@@ -21,10 +21,6 @@ export class OswVersions {
 
     @Column()
     @IsNotEmpty()
-    tdei_service_id: string = "";
-
-    @Column()
-    @IsNotEmpty()
     file_upload_path: string = "";
 
     @Column()
@@ -60,5 +56,5 @@ export class OswVersions {
     osw_schema_version: string = "";
 
     @Column("json")
-    polygon!: Polygon;
+    polygon: Polygon = new Polygon();
 }

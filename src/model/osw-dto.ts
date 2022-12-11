@@ -1,3 +1,4 @@
+import { Polygon } from "./polygon-model";
 
 export class OswDTO {
     tdei_record_id: string = "";
@@ -10,4 +11,5 @@ export class OswDTO {
     valid_to: Date = new Date();
     data_source: string = "";
     osw_schema_version: string = "";
+    polygon: Polygon = new Polygon();
 }

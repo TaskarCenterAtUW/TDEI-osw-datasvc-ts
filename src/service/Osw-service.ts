@@ -26,7 +26,6 @@ class OswService implements IOswService {
         if (params.osw_schema_version) where.osw_schema_version = Equal(params.osw_schema_version);
         if (params.tdei_org_id) where.tdei_org_id = Equal(params.tdei_org_id);
         if (params.tdei_record_id) where.tdei_record_id = Equal(params.tdei_record_id);
-        if (params.tdei_service_id) where.tdei_service_id = Equal(params.tdei_service_id);
         if (params.date_time && Utility.dateIsValid(params.date_time)) where.valid_to = Raw((alias) => `${alias} > :date`, { date: params.date_time });
 
         const osw = await oswRepository.find({

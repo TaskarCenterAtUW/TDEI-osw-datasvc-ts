@@ -1,17 +1,17 @@
-export interface Polygon {
-    type: string
-    features: Feature[]
+export class Polygon {
+    type: string = "";
+    features: Feature[] = [];
 }
 
-export interface Feature {
-    type: string
-    properties: OswProperties
-    geometry: Geometry
+export class Feature {
+    type: string = "";
+    properties: OswProperties = new OswProperties();
+    geometry: Geometry = new Geometry();
 }
 
-export interface OswProperties { }
+export class OswProperties { }
 
-export interface Geometry {
-    type: string
-    coordinates: number[][][]
+export class Geometry {
+    type: string = "";
+    coordinates: number[][][] = [];
 }
