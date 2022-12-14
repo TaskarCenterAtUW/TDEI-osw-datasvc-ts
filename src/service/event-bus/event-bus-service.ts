@@ -53,9 +53,9 @@ class EventBusService implements IEventBusServiceInterface {
     };
 
     subscribeUpload(): void {
-        Core.getTopic(environment.eventBus.uploadTopic as string,
+        Core.getTopic(environment.eventBus.validationTopic as string,
             this.queueConfig)
-            .subscribe(environment.eventBus.uploadSubscription as string, {
+            .subscribe(environment.eventBus.validationSubscription as string, {
                 onReceive: this.processUpload,
                 onError: this.processUploadError
             });
