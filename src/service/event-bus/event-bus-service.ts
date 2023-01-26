@@ -25,10 +25,9 @@ class EventBusService implements IEventBusServiceInterface {
             }
 
             var oswUploadModel = messageReceived.data as OswUploadModel;
-            var oswVersions: OswVersions = new OswVersions();
+            var oswVersions: OswVersions = new OswVersions(oswUploadModel);
             oswVersions.uploaded_by = oswUploadModel.user_id;
             console.log(`Received message: ${JSON.stringify(oswUploadModel)}`);
-            Utility.copy<OswVersions>(oswVersions, oswUploadModel);
 
             validate(oswVersions).then(errors => {
                 // errors is an array of validation errors

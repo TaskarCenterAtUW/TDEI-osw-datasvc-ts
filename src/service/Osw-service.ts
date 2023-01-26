@@ -1,8 +1,10 @@
 import { Core } from "nodets-ms-core";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
-import { Equal, FindOptionsWhere, Raw } from "typeorm";
-import { AppDataSource } from "../database/data-source";
+import { QueryConfig } from "pg";
+import dbClient from "../database/data-source";
 import { OswVersions } from "../database/entity/osw-version-entity";
+import UniqueKeyDbException from "../exceptions/db/database-exceptions";
+import { DuplicateException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { Utility } from "../utility/utility";
@@ -13,32 +15,18 @@ class OswService implements IOswService {
     }
 
     async getAllOsw(params: OswQueryParams): Promise<OswDTO[]> {
-        const oswRepository = AppDataSource.getRepository(OswVersions);
+        //Builds the query object. All the query consitions can be build in getQueryObject()
+        let queryObject = params.getQueryObject();
 
-        //Set defaults if not provided
-        if (params.page_no == undefined) params.page_no = 1;
-        if (params.page_size == undefined) params.page_size = 10;
-        let skip = params.page_no == 1 ? 0 : (params.page_no - 1) * params.page_size;
-        let take = params.page_size > 50 ? 50 : params.page_size;
+        let queryConfig = <QueryConfig>{
+            text: queryObject.getQuery(),
+            values: queryObject.getValues()
+        }
 
-        let where: FindOptionsWhere<OswVersions> = {};
-
-        if (params.osw_schema_version) where.osw_schema_version = Equal(params.osw_schema_version);
-        if (params.tdei_org_id) where.tdei_org_id = Equal(params.tdei_org_id);
-        if (params.tdei_record_id) where.tdei_record_id = Equal(params.tdei_record_id);
-        if (params.date_time && Utility.dateIsValid(params.date_time)) where.valid_to = Raw((alias) => `${alias} > :date`, { date: params.date_time });
-
-        const osw = await oswRepository.find({
-            where: where,
-            order: {
-                tdei_record_id: "DESC",
-            },
-            skip: skip,
-            take: take,
-        });
+        let result = await dbClient.query(queryConfig);
 
         let list: OswDTO[] = [];
-        osw.forEach(x => {
+        result.rows.forEach(x => {
 
             let osw: OswDTO = Utility.copy<OswDTO>(new OswDTO(), x);;
             list.push(osw);
@@ -47,30 +35,48 @@ class OswService implements IOswService {
     }
 
     async getOswById(id: string): Promise<FileEntity> {
-        const oswRepository = AppDataSource.getRepository(OswVersions);
+        const query = {
+            text: 'Select file_upload_path from osw_versions WHERE tdei_record_id = $1',
+            values: [id],
+        }
 
-        const osw: OswVersions | any = await oswRepository.findOneBy(
-            {
-                tdei_record_id: id
-            });
+        let osw = await dbClient.query(query);
 
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw console.error("Storage not configured");
-        let url: string = decodeURIComponent(osw?.file_upload_path);
+        let url: string = decodeURIComponent(osw.rows[0].file_upload_path);
         return storageClient.getFileFromUrl(url);
     }
 
     async createOsw(oswInfo: OswVersions): Promise<OswDTO> {
         try {
-            const oswRepository = AppDataSource.getRepository(OswVersions);
             oswInfo.file_upload_path = decodeURIComponent(oswInfo.file_upload_path!);
-            const newOsw = oswRepository.create(oswInfo);
+            const queryObject = {
+                text: `INSERT INTO public.osw_versions(tdei_record_id, 
+                    confidence_level, 
+                    tdei_org_id, 
+                    file_upload_path, 
+                    uploaded_by,
+                    collected_by, 
+                    collection_date, 
+                    collection_method, valid_from, valid_to, data_source,
+                    osw_schema_version)
+                    VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`.replace(/\n/g, ""),
+                values: [oswInfo.tdei_record_id, oswInfo.tdei_org_id, oswInfo.file_upload_path, oswInfo.uploaded_by
+                    , oswInfo.collected_by, oswInfo.collection_date, oswInfo.collection_method, oswInfo.valid_from, oswInfo.valid_to, oswInfo.data_source, oswInfo.osw_schema_version],
+            }
 
-            await oswRepository.save(newOsw);
-            let osw: OswDTO = Utility.copy<OswDTO>(new OswDTO(), newOsw);
+            let result = await dbClient.query(queryObject);
 
-            return Promise.resolve(osw);
+            let pathway: OswDTO = Utility.copy<OswDTO>(new OswDTO(), oswInfo);
+
+            return Promise.resolve(pathway);
         } catch (error) {
+
+            if (error instanceof UniqueKeyDbException) {
+                throw new DuplicateException(oswInfo.tdei_record_id);
+            }
+
             console.log("Error saving the osw version", error);
             return Promise.reject(error);
         }

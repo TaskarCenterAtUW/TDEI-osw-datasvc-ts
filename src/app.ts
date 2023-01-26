@@ -5,6 +5,8 @@ import { IController } from "./controller/interface/IController";
 import helmet from "helmet";
 import { Core } from "nodets-ms-core";
 import eventBusService from "./service/event-bus/event-bus-service";
+import { unhandledExceptionAndRejectionHandler } from "./middleware/unhandled-exception-rejection-handler";
+import { errorHandler } from "./middleware/error-handler-middleware";
 
 class App {
     public app: express.Application;
@@ -13,11 +15,16 @@ class App {
     constructor(controllers: IController[], port: number) {
         this.app = express();
         this.port = port;
+        //First middleware to be registered: after express init
+        unhandledExceptionAndRejectionHandler();
 
         this.initializeMiddlewares();
         this.initializeControllers(controllers);
         this.subscribeUpload();
         this.initializeLibraries();
+
+        //Last middleware to be registered: error handler. 
+        this.app.use(errorHandler);
     }
 
     initializeLibraries() {

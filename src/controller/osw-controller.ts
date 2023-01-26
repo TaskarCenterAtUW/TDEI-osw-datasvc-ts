@@ -1,9 +1,11 @@
-import { Request } from "express";
+import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/Osw-service";
+import HttpException from "../exceptions/http/http-base-exception";
+import { DuplicateException } from "../exceptions/http/http-exceptions";
 
 class GtfsOSWController implements IController {
     public path = '/api/v1/osw';
@@ -18,14 +20,18 @@ class GtfsOSWController implements IController {
         this.router.post(this.path, this.createOsw);
     }
 
-    getAllOsw = async (request: Request, response: express.Response) => {
-        var params: OswQueryParams = JSON.parse(JSON.stringify(request.query));
-
-        const osw = await oswService.getAllOsw(params);
-        response.send(osw);
+    getAllOsw = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            var params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
+            const osw = await oswService.getAllOsw(params);
+            response.send(osw);
+        } catch (error) {
+            console.log(error);
+            next(new HttpException(500, "Error while fetching the osw information"));
+        }
     }
 
-    getOswById = async (request: Request, response: express.Response) => {
+    getOswById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
             let fileEntity: FileEntity = await oswService.getOswById(request.params.id);
@@ -37,22 +43,25 @@ class GtfsOSWController implements IController {
         } catch (error) {
             console.log('Error while getting the file stream');
             console.log(error);
-            response.status(404);
-            response.end();
-            return;
+            next(new HttpException(500, "Error while getting the file stream"));
         }
     }
 
-    createOsw = async (request: Request, response: express.Response) => {
-
-        var newOsw = await oswService.createOsw(request.body).catch((error: any) => {
+    createOsw = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            var newOsw = await oswService.createOsw(request.body)
+                .catch((error: any) => {
+                    if (error instanceof DuplicateException) {
+                        throw error;
+                    }
+                    throw new HttpException(500, 'Error saving the osw version');
+                });
+            response.send(newOsw);
+        } catch (error) {
             console.log('Error saving the osw version');
             console.log(error);
-            response.status(500);
-            response.end();
-            return;
-        });
-        response.send(newOsw);
+            next(error);
+        }
     }
 }
 
