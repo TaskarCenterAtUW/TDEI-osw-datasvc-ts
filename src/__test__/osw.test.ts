@@ -20,11 +20,12 @@ describe("POST /api/v1/osw", () => {
         };
 
         const list: OswDTO[] = [new OswDTO()]
+        let next = jest.fn();
         const spy = jest
             .spyOn(oswService, "getAllOsw")
             .mockResolvedValueOnce(list);
 
-        await oswController.getAllOsw(mockRequest, mockResponse as Response);
+        await oswController.getAllOsw(mockRequest, mockResponse as Response, next);
         expect(responseObj).toEqual(list);
         expect(spy).toHaveBeenCalledTimes(1);
         spy.mockRestore();
