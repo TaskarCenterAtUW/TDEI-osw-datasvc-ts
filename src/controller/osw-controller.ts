@@ -6,6 +6,7 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/Osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException } from "../exceptions/http/http-exceptions";
+import { OswVersions } from "../database/entity/osw-version-entity";
 
 class GtfsOSWController implements IController {
     public path = '/api/v1/osw';
@@ -49,7 +50,7 @@ class GtfsOSWController implements IController {
 
     createOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            var newOsw = await oswService.createOsw(request.body)
+            var newOsw = await oswService.createOsw(OswVersions.from(request.body))
                 .catch((error: any) => {
                     if (error instanceof DuplicateException) {
                         throw error;
