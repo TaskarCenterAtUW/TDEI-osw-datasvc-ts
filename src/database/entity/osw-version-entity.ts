@@ -1,4 +1,5 @@
 import { IsNotEmpty } from 'class-validator';
+import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
 
 export class OswVersions extends BaseDto {
@@ -32,5 +33,28 @@ export class OswVersions extends BaseDto {
     constructor(init?: Partial<OswVersions>) {
         super();
         Object.assign(this, init);
+    }
+
+    /**
+     * Builds the insert QueryConfig object
+     * @returns QueryConfig object
+     */
+    getInsertQuery(): QueryConfig {
+        const queryObject = {
+            text: `INSERT INTO public.osw_versions(tdei_record_id, 
+                confidence_level, 
+                tdei_org_id, 
+                file_upload_path, 
+                uploaded_by,
+                collected_by, 
+                collection_date, 
+                collection_method, valid_from, valid_to, data_source,
+                osw_schema_version)
+                VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`.replace(/\n/g, ""),
+            values: [this.tdei_record_id, this.tdei_org_id, this.file_upload_path, this.uploaded_by
+                , this.collected_by, this.collection_date, this.collection_method, this.valid_from, this.valid_to, this.data_source, this.osw_schema_version],
+        }
+
+        return queryObject;
     }
 }

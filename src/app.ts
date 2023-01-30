@@ -4,7 +4,7 @@ import bodyParser from "body-parser";
 import { IController } from "./controller/interface/IController";
 import helmet from "helmet";
 import { Core } from "nodets-ms-core";
-import eventBusService from "./service/event-bus/event-bus-service";
+import eventBusService from "./service/event-bus-service";
 import { unhandledExceptionAndRejectionHandler } from "./middleware/unhandled-exception-rejection-handler";
 import { errorHandler } from "./middleware/error-handler-middleware";
 

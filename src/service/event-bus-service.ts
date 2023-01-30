@@ -1,11 +1,10 @@
-import { OswVersions } from "../../database/entity/osw-version-entity";
-import { OswUploadModel } from "../../model/osw-upload-model";
-import { Utility } from "../../utility/utility";
-import oswService from "../Osw-service";
+import { OswVersions } from "../database/entity/osw-version-entity";
+import { OswUploadModel } from "../model/osw-upload-model";
+import oswService from "./Osw-service";
 import { IEventBusServiceInterface } from "./interface/event-bus-service-interface";
 import { validate } from 'class-validator';
 import { AzureQueueConfig } from "nodets-ms-core/lib/core/queue/providers/azure-queue-config";
-import { environment } from "../../environment/environment";
+import { environment } from "../environment/environment";
 import { Core } from "nodets-ms-core";
 
 class EventBusService implements IEventBusServiceInterface {
@@ -52,9 +51,9 @@ class EventBusService implements IEventBusServiceInterface {
     };
 
     subscribeUpload(): void {
-        Core.getTopic(environment.eventBus.uploadTopic as string,
+        Core.getTopic(environment.eventBus.validationTopic as string,
             this.queueConfig)
-            .subscribe(environment.eventBus.uploadSubscription as string, {
+            .subscribe(environment.eventBus.validationSubscription as string, {
                 onReceive: this.processUpload,
                 onError: this.processUploadError
             });

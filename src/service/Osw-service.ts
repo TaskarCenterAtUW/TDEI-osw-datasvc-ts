@@ -7,8 +7,7 @@ import UniqueKeyDbException from "../exceptions/db/database-exceptions";
 import { DuplicateException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
-import { Utility } from "../utility/utility";
-import { IOswService } from "./Osw-service-interface";
+import { IOswService } from "./interface/Osw-service-interface";
 
 class OswService implements IOswService {
     constructor() {
@@ -27,8 +26,7 @@ class OswService implements IOswService {
 
         let list: OswDTO[] = [];
         result.rows.forEach(x => {
-
-            let osw: OswDTO = Utility.copy<OswDTO>(new OswDTO(), x);;
+            let osw = OswDTO.from(x);
             list.push(osw);
         })
         return Promise.resolve(list);
@@ -51,26 +49,11 @@ class OswService implements IOswService {
     async createOsw(oswInfo: OswVersions): Promise<OswDTO> {
         try {
             oswInfo.file_upload_path = decodeURIComponent(oswInfo.file_upload_path!);
-            const queryObject = {
-                text: `INSERT INTO public.osw_versions(tdei_record_id, 
-                    confidence_level, 
-                    tdei_org_id, 
-                    file_upload_path, 
-                    uploaded_by,
-                    collected_by, 
-                    collection_date, 
-                    collection_method, valid_from, valid_to, data_source,
-                    osw_schema_version)
-                    VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`.replace(/\n/g, ""),
-                values: [oswInfo.tdei_record_id, oswInfo.tdei_org_id, oswInfo.file_upload_path, oswInfo.uploaded_by
-                    , oswInfo.collected_by, oswInfo.collection_date, oswInfo.collection_method, oswInfo.valid_from, oswInfo.valid_to, oswInfo.data_source, oswInfo.osw_schema_version],
-            }
 
-            let result = await dbClient.query(queryObject);
+            await dbClient.query(oswInfo.getInsertQuery());
 
-            let pathway: OswDTO = Utility.copy<OswDTO>(new OswDTO(), oswInfo);
-
-            return Promise.resolve(pathway);
+            let osw = OswDTO.from(oswInfo);
+            return Promise.resolve(osw);
         } catch (error) {
 
             if (error instanceof UniqueKeyDbException) {
@@ -84,5 +67,5 @@ class OswService implements IOswService {
     }
 }
 
-const oswService = new OswService();
+const oswService: IOswService = new OswService();
 export default oswService;

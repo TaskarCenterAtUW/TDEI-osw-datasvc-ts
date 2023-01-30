@@ -9,8 +9,8 @@ export const environment = {
     appName: process.env.npm_package_name,
     eventBus: {
         connectionString: process.env.EVENT_BUS_CONNECTION,
-        uploadTopic: process.env.UPLOAD_TOPIC,
-        uploadSubscription: process.env.UPLOAD_SUBSCRIPTION
+        validationTopic: process.env.VALIDATION_TOPIC,
+        validationSubscription: process.env.VALIDATION_SUBSCRIPTION
     },
     database: {
         username: process.env.POSTGRES_USER,
