@@ -17,8 +17,16 @@ export class DynamicQueryObject {
     */
     condition(clouse: string, value: any) {
         this.conditions.push(clouse);
-        this.values.push(value);
+        if (value instanceof Array) {
+            value.forEach(element => {
+                this.values.push(element);
+            });
+        }
+        else {
+            this.values.push(value);
+        }
     }
+
     buildSelect(tableName: string, columns: string[]) {
         this._select = `SELECT ${columns.join(',')} FROM ${tableName}`;
     }

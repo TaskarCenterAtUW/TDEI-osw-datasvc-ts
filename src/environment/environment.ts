@@ -20,5 +20,6 @@ export const environment = {
         ssl: Boolean(process.env.SSL),
         port: parseInt(process.env.POSTGRES_PORT ?? "5432"),
     },
-    appPort: parseInt(process.env.APPLICATION_PORT ?? "8080")
+    appPort: parseInt(process.env.APPLICATION_PORT ?? "8080"),
+    authPermissionUrl: process.env.AUTH_PERMISSION_URL
 }

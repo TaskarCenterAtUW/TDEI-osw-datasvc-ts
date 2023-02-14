@@ -1,11 +1,12 @@
 import { OswVersions } from "../database/entity/osw-version-entity";
-import { OswUploadModel } from "../model/osw-upload-model";
 import oswService from "./Osw-service";
 import { IEventBusServiceInterface } from "./interface/event-bus-service-interface";
 import { validate } from 'class-validator';
 import { AzureQueueConfig } from "nodets-ms-core/lib/core/queue/providers/azure-queue-config";
 import { environment } from "../environment/environment";
 import { Core } from "nodets-ms-core";
+import { Polygon } from "../model/polygon-model";
+import { QueueMessageContent } from "../model/queue-message-model";
 
 class EventBusService implements IEventBusServiceInterface {
     private queueConfig: AzureQueueConfig;
@@ -18,15 +19,23 @@ class EventBusService implements IEventBusServiceInterface {
     // function to handle messages
     private processUpload = async (messageReceived: any) => {
         try {
-            if (!messageReceived.data || !messageReceived.data.is_valid) {
-                console.log("Not valid information received :", messageReceived);
+            var queueMessage = QueueMessageContent.from(messageReceived.data);
+            if (!queueMessage.response.success && !queueMessage.meta.isValid) {
+                console.error("Failed workflow request received:", messageReceived);
                 return;
             }
 
-            var oswUploadModel = messageReceived.data as OswUploadModel;
-            var oswVersions: OswVersions = new OswVersions(oswUploadModel);
-            oswVersions.uploaded_by = oswUploadModel.user_id;
-            console.log(`Received message: ${JSON.stringify(oswUploadModel)}`);
+            if (!await queueMessage.hasPermission(["tdei-admin", "poc", "osw_data_generator"])) {
+                return;
+            }
+
+            var oswVersions: OswVersions = OswVersions.from(queueMessage.request);
+            oswVersions.tdei_record_id = queueMessage.tdeiRecordId;
+            oswVersions.uploaded_by = queueMessage.userId;
+            oswVersions.file_upload_path = queueMessage.meta.file_upload_path;
+            //This line will instantiate the polygon class and set defult class values
+            oswVersions.polygon = new Polygon({ coordinates: oswVersions.polygon.coordinates });
+            console.info(`Received message: ${messageReceived.data}`);
 
             validate(oswVersions).then(errors => {
                 // errors is an array of validation errors

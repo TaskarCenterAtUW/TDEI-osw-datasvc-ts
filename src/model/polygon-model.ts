@@ -1,17 +1,24 @@
-export class Polygon {
-    type: string = "";
-    features: Feature[] = [];
-}
+import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 
-export class Feature {
-    type: string = "";
-    properties: OswProperties = new OswProperties();
-    geometry: Geometry = new Geometry();
-}
 
-export class OswProperties { }
+export class Polygon extends AbstractDomainEntity {
+    @Prop()
+    type: string = "Polygon";
+    @Prop()
+    coordinates: Array<Array<number[]>> = [];
 
-export class Geometry {
-    type: string = "";
-    coordinates: number[][][] = [];
+    constructor(init?: Partial<Polygon>) {
+        super();
+        Object.assign(this, init);
+    }
+}``
+
+export class PolygonDto extends AbstractDomainEntity {
+    @Prop()
+    coordinates: Array<Array<number[]>> = [];
+
+    constructor(init?: Partial<PolygonDto>) {
+        super();
+        Object.assign(this, init);
+    }
 }
