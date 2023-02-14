@@ -4,9 +4,11 @@ import { QueryConfig } from "pg";
 import dbClient from "../database/data-source";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import UniqueKeyDbException from "../exceptions/db/database-exceptions";
+import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
+import { PolygonDto } from "../model/polygon-model";
 import { IOswService } from "./interface/Osw-service-interface";
 
 class OswService implements IOswService {
@@ -27,6 +29,8 @@ class OswService implements IOswService {
         let list: OswDTO[] = [];
         result.rows.forEach(x => {
             let osw = OswDTO.from(x);
+            if (osw.polygon)
+                osw.polygon = new PolygonDto({ coordinates: JSON.parse(x.polygon2).coordinates });
             list.push(osw);
         })
         return Promise.resolve(list);
@@ -39,6 +43,9 @@ class OswService implements IOswService {
         }
 
         let osw = await dbClient.query(query);
+
+        if (osw.rowCount == 0)
+            throw new HttpException(404, "File not found");
 
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw console.error("Storage not configured");

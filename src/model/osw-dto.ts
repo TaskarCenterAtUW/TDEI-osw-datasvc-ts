@@ -1,5 +1,5 @@
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
-import { Polygon } from "./polygon-model";
+import { PolygonDto } from "./polygon-model";
 
 export class OswDTO extends AbstractDomainEntity {
     @Prop()
@@ -23,5 +23,5 @@ export class OswDTO extends AbstractDomainEntity {
     @Prop()
     osw_schema_version: string = "";
     @Prop()
-    polygon: Polygon = new Polygon();
+    polygon: PolygonDto | undefined;
 }

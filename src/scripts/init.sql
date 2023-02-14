@@ -1,6 +1,4 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
--- Enable Topology
-CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
 CREATE TABLE IF NOT EXISTS public.osw_versions
 (
@@ -17,9 +15,14 @@ CREATE TABLE IF NOT EXISTS public.osw_versions
     valid_to timestamp without time zone NOT NULL,
     data_source character varying COLLATE pg_catalog."default" NOT NULL,
     osw_schema_version character varying COLLATE pg_catalog."default" NOT NULL,
-	updated_date timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	uploaded_date timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     polygon geometry,
-    CONSTRAINT "PK_id" PRIMARY KEY (id)
+    CONSTRAINT "PK_id" PRIMARY KEY (id),
+    CONSTRAINT unq_record_id UNIQUE (tdei_record_id)
 )
 
 TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS polygon_geom_idx
+  ON osw_versions
+  USING GIST (polygon);
