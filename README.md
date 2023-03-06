@@ -25,6 +25,7 @@ Step 1:
 |VALIDATION_TOPIC | Validation topic name|
 |EVENT_BUS_CONNECTION | Event bus connection string|
 |AUTH_PERMISSION_URL | Authentication/Authorization url|
+|DATASVC_TOPIC | Data service publishing topic|
 
 #### Build and Test
 Follow the steps to install the node packages required for both building and running the application

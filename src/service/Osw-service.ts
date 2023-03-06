@@ -67,7 +67,7 @@ class OswService implements IOswService {
                 throw new DuplicateException(oswInfo.tdei_record_id);
             }
 
-            console.log("Error saving the osw version", error);
+            console.error("Error saving the osw version", error);
             return Promise.reject(error);
         }
 
