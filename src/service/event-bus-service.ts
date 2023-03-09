@@ -54,8 +54,13 @@ class EventBusService implements IEventBusServiceInterface {
                 // errors is an array of validation errors
                 if (errors.length > 0) {
                     const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
-                    console.error('Upload osw file metadata information failed validation. errors: ', errors);
-                    throw Error(message);
+                    console.error('Upload osw file metadata information failed validation. errors: ', message);
+                    this.publish(messageReceived,
+                        {
+                            success: true,
+                            message: 'Validation error :' + message
+                        });
+                    return Promise.resolve();
                 } else {
                     oswService.createOsw(oswVersions).catch((error: any) => {
                         console.error('Error saving the osw version', error);
