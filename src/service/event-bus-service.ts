@@ -62,7 +62,14 @@ class EventBusService implements IEventBusServiceInterface {
                         });
                     return Promise.resolve();
                 } else {
-                    oswService.createOsw(oswVersions).catch((error: any) => {
+                    oswService.createOsw(oswVersions).then(res => {
+                        this.publish(messageReceived,
+                            {
+                                success: true,
+                                message: 'OSW request processed successfully !'
+                            });
+                        return Promise.resolve();
+                    }).catch((error: any) => {
                         console.error('Error saving the osw version', error);
                         this.publish(messageReceived,
                             {
@@ -71,12 +78,6 @@ class EventBusService implements IEventBusServiceInterface {
                             });
                         return Promise.resolve();
                     });
-                    this.publish(messageReceived,
-                        {
-                            success: true,
-                            message: 'OSW request processed successfully !'
-                        });
-                    return Promise.resolve();
                 }
             });
         } catch (error) {
