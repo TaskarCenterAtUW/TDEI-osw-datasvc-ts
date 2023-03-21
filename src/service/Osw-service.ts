@@ -1,3 +1,4 @@
+import { Geometry, Feature } from "geojson";
 import { Core } from "nodets-ms-core";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { QueryConfig } from "pg";
@@ -8,7 +9,6 @@ import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
-import { PolygonDto } from "../model/polygon-model";
 import { IOswService } from "./interface/Osw-service-interface";
 
 class OswService implements IOswService {
@@ -29,8 +29,19 @@ class OswService implements IOswService {
         let list: OswDTO[] = [];
         result.rows.forEach(x => {
             let osw = OswDTO.from(x);
-            if (osw.polygon)
-                osw.polygon = new PolygonDto({ coordinates: JSON.parse(x.polygon2).coordinates });
+            if (osw.polygon) {
+                var polygon = JSON.parse(x.polygon2) as Geometry;
+                osw.polygon = {
+                    type: "FeatureCollection",
+                    features: [
+                        {
+                            type: "Feature",
+                            geometry: polygon,
+                            properties: {}
+                        } as Feature
+                    ]
+                }
+            }
             list.push(osw);
         })
         return Promise.resolve(list);
