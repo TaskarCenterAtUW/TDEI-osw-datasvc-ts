@@ -1,27 +1,27 @@
+import { FeatureCollection } from "geojson";
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
-import { PolygonDto } from "./polygon-model";
 
 export class OswDTO extends AbstractDomainEntity {
     @Prop()
-    tdei_record_id: string = "";
+    tdei_record_id!: string;
     @Prop()
-    tdei_org_id: string = "";
+    tdei_org_id!: string;
     @Prop()
-    tdei_service_id: string = "";
+    tdei_service_id!: string;
     @Prop()
-    collected_by: string = "";
+    collected_by!: string;
     @Prop()
-    collection_date: Date = new Date();
+    collection_date!: Date;
     @Prop()
-    collection_method: string = "";
+    collection_method!: string;
     @Prop()
-    valid_from: Date = new Date();
+    valid_from!: Date;
     @Prop()
-    valid_to: Date = new Date();
+    valid_to!: Date;
     @Prop()
-    data_source: string = "";
+    data_source!: string;
     @Prop()
-    osw_schema_version: string = "";
+    osw_schema_version!: string;
     @Prop()
-    polygon: PolygonDto | undefined;
+    polygon: FeatureCollection | undefined;
 }
