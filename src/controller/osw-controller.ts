@@ -5,7 +5,7 @@ import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/Osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { DuplicateException } from "../exceptions/http/http-exceptions";
+import { DuplicateException, InputException } from "../exceptions/http/http-exceptions";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import { validate, ValidationError } from "class-validator";
 
@@ -29,7 +29,12 @@ class GtfsOSWController implements IController {
             response.send(osw);
         } catch (error) {
             console.error(error);
-            next(new HttpException(500, "Error while fetching the osw information"));
+            if (error instanceof InputException) {
+                next(error);
+            }
+            else {
+                next(new HttpException(500, "Error while fetching the osw information"));
+            }
         }
     }
 

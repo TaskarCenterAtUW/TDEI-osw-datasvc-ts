@@ -2,21 +2,18 @@
 export class Utility {
 
     public static dateIsValid(dateStr: any): boolean {
-        const regex = /^\d{4}-\d{2}-\d{2}$/;
+        try {
+            const date = new Date(dateStr);
 
-        if (dateStr.match(regex) === null) {
+            const timestamp = date.getTime();
+
+            if (typeof timestamp !== 'number' || Number.isNaN(timestamp)) {
+                return false;
+            }
+        } catch (error) {
             return false;
         }
-
-        const date = new Date(dateStr);
-
-        const timestamp = date.getTime();
-
-        if (typeof timestamp !== 'number' || Number.isNaN(timestamp)) {
-            return false;
-        }
-
-        return date.toISOString().startsWith(dateStr);
+        return true;
     }
 
     public static copy<T extends Object>(target: T, source: any): T {

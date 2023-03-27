@@ -11,13 +11,13 @@ export class OswDTO extends AbstractDomainEntity {
     @Prop()
     collected_by!: string;
     @Prop()
-    collection_date!: Date;
+    collection_date!: string;
     @Prop()
     collection_method!: string;
     @Prop()
-    valid_from!: Date;
+    valid_from!: string;
     @Prop()
-    valid_to!: Date;
+    valid_to!: string;
     @Prop()
     data_source!: string;
     @Prop()
