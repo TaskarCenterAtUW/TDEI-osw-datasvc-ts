@@ -24,6 +24,11 @@ export class UserNotFoundException extends HttpException {
     }
 }
 
+export class InputException extends HttpException {
+    constructor(message: string) {
+        super(400, message);
+    }
+}
 
 
 
