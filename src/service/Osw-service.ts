@@ -29,9 +29,6 @@ class OswService implements IOswService {
         let list: OswDTO[] = [];
         result.rows.forEach(x => {
             let osw = OswDTO.from(x);
-            osw.valid_from = x.valid_from_str;
-            osw.valid_to = x.valid_to_str;
-            osw.collection_date = x.collection_date_str;
             if (osw.polygon) {
                 var polygon = JSON.parse(x.polygon2) as Geometry;
                 osw.polygon = {
