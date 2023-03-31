@@ -26,3 +26,6 @@ TABLESPACE pg_default;
 CREATE INDEX IF NOT EXISTS polygon_geom_idx
   ON osw_versions
   USING GIST (polygon);
+
+  ALTER TABLE public.osw_versions DROP COLUMN valid_from, DROP COLUMN valid_to;
+  ALTER TABLE public.osw_versions ADD COLUMN IF NOT EXISTS publication_date timestamp without time zone NOT NULL;
