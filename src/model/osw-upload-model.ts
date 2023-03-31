@@ -20,10 +20,12 @@ export class OswUploadModel extends AbstractDomainEntity {
     collection_date!: Date;
     @Prop()
     collection_method!: string;
+    // @Prop()
+    // valid_from!: Date;
+    // @Prop()
+    // valid_to!: Date;
     @Prop()
-    valid_from!: Date;
-    @Prop()
-    valid_to!: Date;
+    publication_date!:Date;
     @Prop()
     data_source!: string;
     @Prop()
