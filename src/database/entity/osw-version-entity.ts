@@ -73,7 +73,7 @@ export class OswVersions extends BaseDto {
                 collection_date,
                 collection_method, publication_date, data_source,
                 osw_schema_version ${polygonExists ? ', polygon ' : ''})
-                VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 ${polygonExists ? ', ST_GeomFromGeoJSON($12) ' : ''})`.replace(/\n/g, ""),
+                VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10 ${polygonExists ? ', ST_GeomFromGeoJSON($11) ' : ''})`.replace(/\n/g, ""),
             values: [this.tdei_record_id, this.tdei_org_id, this.file_upload_path, this.uploaded_by
                 , this.collected_by, this.collection_date, this.collection_method, this.publication_date, this.data_source, this.osw_schema_version],
         }
