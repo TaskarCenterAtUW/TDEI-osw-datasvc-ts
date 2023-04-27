@@ -17,15 +17,20 @@ Step 1:
 ### Environment variables
 |Name| Description |
 |--|--|
-| PROVIDER | Provider for cloud service or local |
+| PROVIDER | Provider for cloud service or local (optional)|
 |QUEUECONNECTION | Queue connection string |
 |STORAGECONNECTION | Storage connection string|
-|APPLICATION_PORT |Port on which application will run|
+|PORT |Port on which application will run|
 |VALIDATION_SUBSCRIPTION | Upload topic subscription name|
 |VALIDATION_TOPIC | Validation topic name|
-|EVENT_BUS_CONNECTION | Event bus connection string|
 |AUTH_PERMISSION_URL | Authentication/Authorization url|
 |DATASVC_TOPIC | Data service publishing topic|
+|POSTGRES_DB | Database name|
+|POSTGRES_HOST| Link to the database host |
+|POSTGRES_USER| Database user |
+|POSTGRES_PASSWORD| Database user password|
+
+An example of this is environment file is available [here](./env.example)
 
 #### Build and Test
 Follow the steps to install the node packages required for both building and running the application
