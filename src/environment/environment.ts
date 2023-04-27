@@ -8,7 +8,7 @@ dotenv.config();
 export const environment = {
     appName: process.env.npm_package_name,
     eventBus: {
-        connectionString: process.env.EVENT_BUS_CONNECTION,
+        connectionString: process.env.QUEUECONNECTION,
         validationTopic: process.env.VALIDATION_TOPIC,
         dataServiceTopic: process.env.DATASVC_TOPIC,
         validationSubscription: process.env.VALIDATION_SUBSCRIPTION
@@ -21,6 +21,6 @@ export const environment = {
         ssl: Boolean(process.env.SSL),
         port: parseInt(process.env.POSTGRES_PORT ?? "5432"),
     },
-    appPort: parseInt(process.env.APPLICATION_PORT ?? "8080"),
+    appPort: parseInt(process.env.PORT ?? "8080"),
     authPermissionUrl: process.env.AUTH_PERMISSION_URL
 }
