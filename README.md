@@ -64,13 +64,13 @@ graph LR;
     G(Gateway) -->|GET| B(Data Service)
 ```
 
-- Data service, subscribes to `osw-validation` topic to listen to validation results of the osw file upload request.
+- `Data service`, subscribes to `osw-validation` topic to listen to validation results of the osw file upload request.
 
-- Data service, authorizes the request via `Auth Service` 
+- `Data service`, authorizes the request via `Auth Service` 
 
 - If validation result is failed , Data service publishes the information to `osw-data` topic to update request status complete without persisting the information.
 
-- If validation result is successful , Data service first persists the information to the database and publishes the information to `osw-data` topic to update request status complete.
+- If validation result is successful , Data service first persists the information to the `OSW database` and publishes the information to `osw-data` topic to update request status complete.
 
 - `osw-validation` topic message schema can be found [here](https://github.com/TaskarCenterAtUW/TDEI-event-messages/blob/dev/schema/osw-validation-schema.json)
 
