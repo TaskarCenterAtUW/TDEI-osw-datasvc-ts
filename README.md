@@ -1,7 +1,7 @@
 # Introduction 
 Data service micro-service helps TDEI system to query & persist the information specific to the OSW.
 
-# Getting Started
+## Getting Started
 The project is built on NodeJS framework. All the regular nuances for a NodeJS project are valid for this.
 
 ## System requirements
@@ -53,6 +53,7 @@ Follow the steps to install the node packages required for both building and run
 
 
 ## System flow
+---
 
 Diagram describes the Data service system flow
 
@@ -81,3 +82,14 @@ graph LR;
     - Download the OSW file given the tdei_record_id
 
 
+- Sample GET calls interaction with DB
+
+```mermaid
+sequenceDiagram
+    Client->>+Gateway:GET(OSW)
+    Gateway->>+osw-dataservice: GET
+    osw-dataservice->>+osw-database: QUERY
+    osw-database->>+osw-dataservice:Result
+    osw-dataservice->>+Gateway:List of OSW
+    Gateway->>+Client: OSW files list
+```
