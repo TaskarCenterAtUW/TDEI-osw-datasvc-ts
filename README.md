@@ -52,4 +52,12 @@ Follow the steps to install the node packages required for both building and run
 4. Health check available at path `health/ping` with get and post. Make `get` or `post` request to `http://localhost:3000/health/ping`
 
 
+## System flow
+
+```mermaid
+graph LR;
+    A[osw-upload] -->|subscribe| B(Data Service) -->|publishes| C(osw-data)
+    B -->|Save| D[fa:fa-database OSW Database]
+```
+
 
