@@ -54,10 +54,18 @@ Follow the steps to install the node packages required for both building and run
 
 ## System flow
 
+Diagram describes the Data service system flow
+
 ```mermaid
 graph LR;
     A[osw-upload] -->|subscribe| B(Data Service) -->|publishes| C(osw-data)
-    B -->|Save| D[fa:fa-database OSW Database]
+    B -->|Save| D[OSW Database]
+    B -->|Auth| E[Auth Service]
 ```
+
+- Data service, subscribes to `osw-validation` topic to listen to validation results of the osw file upload request.
+- Data service, authorizes the request via `Auth Service` 
+- If validation result is failed , Data service publishes the information to `osw-data` topic to update request status complete without persisting the information.
+- If validation result is successful , Data service first persists the information to the database and publishes the information to `osw-data` topic to update request status complete.
 
 
