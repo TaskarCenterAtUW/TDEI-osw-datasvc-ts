@@ -58,14 +58,21 @@ Diagram describes the Data service system flow
 
 ```mermaid
 graph LR;
-    A[osw-upload] -->|subscribe| B(Data Service) -->|publishes| C(osw-data)
-    B -->|Save| D[OSW Database]
-    B -->|Auth| E[Auth Service]
+    A[osw-validation] -->|subscribes| B(Data Service) -->|publishes| C(osw-data)
+    B -->|Save| D(OSW Database)
+    B -->|Auth| E(Auth Service)
 ```
 
 - Data service, subscribes to `osw-validation` topic to listen to validation results of the osw file upload request.
+
 - Data service, authorizes the request via `Auth Service` 
+
 - If validation result is failed , Data service publishes the information to `osw-data` topic to update request status complete without persisting the information.
+
 - If validation result is successful , Data service first persists the information to the database and publishes the information to `osw-data` topic to update request status complete.
+
+- `osw-validation` topic message schema can be found [here](https://github.com/TaskarCenterAtUW/TDEI-event-messages/blob/dev/schema/osw-validation-schema.json)
+
+- `osw-data` topic message schema can be found [here](https://github.com/TaskarCenterAtUW/TDEI-event-messages/blob/dev/schema/osw-validation-schema.json)
 
 
