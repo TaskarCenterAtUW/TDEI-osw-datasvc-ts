@@ -61,6 +61,7 @@ graph LR;
     A[osw-validation] -->|subscribes| B(Data Service) -->|publishes| C(osw-data)
     B -->|Save| D(OSW Database)
     B -->|Auth| E(Auth Service)
+    G(Gateway) -->|GET| B(Data Service)
 ```
 
 - Data service, subscribes to `osw-validation` topic to listen to validation results of the osw file upload request.
@@ -74,5 +75,9 @@ graph LR;
 - `osw-validation` topic message schema can be found [here](https://github.com/TaskarCenterAtUW/TDEI-event-messages/blob/dev/schema/osw-validation-schema.json)
 
 - `osw-data` topic message schema can be found [here](https://github.com/TaskarCenterAtUW/TDEI-event-messages/blob/dev/schema/osw-validation-schema.json)
+
+- `Gateway Service`, makes HTTP GET calls to 
+    - Retrive the list of OSW files with/without search criteria.
+    - Download the OSW file given the tdei_record_id
 
 
