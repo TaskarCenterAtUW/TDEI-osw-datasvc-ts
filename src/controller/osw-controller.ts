@@ -26,7 +26,7 @@ class GtfsOSWController implements IController {
         try {
             var params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
             const osw = await oswService.getAllOsw(params);
-            response.send(osw);
+            response.status(200).send(osw);
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
@@ -58,29 +58,29 @@ class GtfsOSWController implements IController {
 
     createOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let pathways = OswVersions.from(request.body);
+            let osw = OswVersions.from(request.body);
 
-            validate(pathways).then(async errors => {
+            return validate(osw).then(async errors => {
                 // errors is an array of validation errors
                 if (errors.length > 0) {
-                    console.error('Upload pathways osw metadata information failed validation. errors: ', errors);
+                    console.error('osw metadata information failed validation. errors: ', errors);
                     const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
                     next(new HttpException(500, 'Input validation failed with below reasons : \n' + message));
                 } else {
-                    var newOsw = await oswService.createOsw(pathways)
+                    var newOsw = await oswService.createOsw(osw)
                         .catch((error: any) => {
                             if (error instanceof DuplicateException) {
                                 throw error;
                             }
                             next(new HttpException(500, 'Error saving the osw version'));
                         });
-                    response.send(newOsw);
+                    return Promise.resolve(response.status(200).send(newOsw));
                 }
             });
         } catch (error) {
             console.error('Error saving the osw version');
             console.error(error);
-            next(error);
+            next(new HttpException(500, "Error saving the osw version"));
         }
     }
 }
