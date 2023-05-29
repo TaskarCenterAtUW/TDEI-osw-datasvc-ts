@@ -76,5 +76,4 @@ export class OswVersions extends BaseDto {
         }
         return queryObject;
     }
-
 }

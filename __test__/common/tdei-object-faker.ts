@@ -3,8 +3,28 @@ import { OswVersions } from "../../src/database/entity/osw-version-entity";
 
 export class TdeiObjectFaker {
     static getOswVersion() {
-        return <OswVersions>{
+        return {
             polygon: this.getPolygon(),
+            tdei_record_id: "test_record_id",
+            confidence_level: 0,
+            tdei_org_id: "test_user",
+            file_upload_path: "test_path",
+            uploaded_by: "test",
+            collected_by: "test",
+            collection_date: new Date(),
+            collection_method: "manual",
+            publication_date: new Date(),
+            data_source: "InHouse",
+            osw_schema_version: "v0.1"
+        } as OswVersions;
+    }
+
+    static getOswVersionFromDB() {
+        return {
+            //DB polygon is stored as binary obj
+            polygon: {},
+            //Select query converts the binary polygon to json using spatial query
+            polygon2: JSON.stringify(this.getPolygonGeometry()),
             tdei_record_id: "test_record_id",
             confidence_level: 0,
             tdei_org_id: "test_user",
@@ -49,14 +69,18 @@ export class TdeiObjectFaker {
                 {
                     type: "Feature",
                     properties: {},
-                    geometry: {
-                        type: "Polygon",
-                        coordinates: [this.getCoordinates()]
-                    }
+                    geometry: this.getPolygonGeometry()
                 }
             ]
         };
-    }
+    };
+
+    static getPolygonGeometry(): any {
+        return {
+            type: "Polygon",
+            coordinates: [this.getCoordinates()]
+        };
+    };
 
     private static getCoordinates(): number[][] {
         var randomCoordinates: number[][] = [];

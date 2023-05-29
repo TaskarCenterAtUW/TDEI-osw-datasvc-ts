@@ -59,16 +59,6 @@ class DataSource {
             client.release();
         }
     }
-
-    /**
-     * Create a client using one of the pooled connections
-     *
-     * @return client
-     */
-    private async connect(): Promise<PoolClient> {
-        const client = await this.pool.connect();
-        return client;
-    }
 }
 
 const dbClient = new DataSource();

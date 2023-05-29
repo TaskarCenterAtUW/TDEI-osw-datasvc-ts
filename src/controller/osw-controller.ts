@@ -30,9 +30,11 @@ class GtfsOSWController implements IController {
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
+                response.status(error.status).send(error.message);
                 next(error);
             }
             else {
+                response.status(500).send("Error while getting the file stream")
                 next(new HttpException(500, "Error while fetching the osw information"));
             }
         }
@@ -50,8 +52,11 @@ class GtfsOSWController implements IController {
         } catch (error: any) {
             console.error('Error while getting the file stream');
             console.error(error);
-            if (error instanceof HttpException)
-                throw next(error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while getting the file stream")
             next(new HttpException(500, "Error while getting the file stream"));
         }
     }
@@ -65,21 +70,29 @@ class GtfsOSWController implements IController {
                 if (errors.length > 0) {
                     console.error('osw metadata information failed validation. errors: ', errors);
                     const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+                    response.status(500).send('Input validation failed with below reasons : \n' + message)
                     next(new HttpException(500, 'Input validation failed with below reasons : \n' + message));
                 } else {
-                    var newOsw = await oswService.createOsw(osw)
+                    return await oswService.createOsw(osw)
+                        .then(newOsw => {
+                            return Promise.resolve(response.status(200).send(newOsw));
+                        })
                         .catch((error: any) => {
                             if (error instanceof DuplicateException) {
-                                throw error;
+                                response.status(error.status).send(error.message)
+                                next(new HttpException(error.status, error.message));
                             }
-                            next(new HttpException(500, 'Error saving the osw version'));
+                            else {
+                                response.status(500).send('Error saving the osw version')
+                                next(new HttpException(500, 'Error saving the osw version'));
+                            }
                         });
-                    return Promise.resolve(response.status(200).send(newOsw));
                 }
             });
         } catch (error) {
             console.error('Error saving the osw version');
             console.error(error);
+            response.status(500).send('Error saving the osw version')
             next(new HttpException(500, "Error saving the osw version"));
         }
     }
