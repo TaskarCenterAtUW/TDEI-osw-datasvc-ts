@@ -161,6 +161,19 @@ describe("OSW API Controller Test", () => {
             expect(next).toHaveBeenCalled();
         });
 
+        test("When provided body with invalid polygon, expect to return error", async () => {
+            //Arrange
+            let oswObject = TdeiObjectFaker.getOswVersion();
+            oswObject.polygon = TdeiObjectFaker.getInvalidPolygon();
+            let req = getMockReq({ body: oswObject });
+            const { res, next } = getMockRes();
+            //Act
+            await oswController.createOsw(req, res, next);
+            //Assert
+            expect(res.status).toBeCalledWith(500);
+            expect(next).toHaveBeenCalled();
+        });
+
         test("When database exception occured while processing request, expect to return error", async () => {
             //Arrange
             let oswObject = TdeiObjectFaker.getOswVersion();

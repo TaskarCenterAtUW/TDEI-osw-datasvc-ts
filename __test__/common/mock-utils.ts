@@ -1,6 +1,11 @@
 import { Core } from "nodets-ms-core"
+import { QueueMessage } from "nodets-ms-core/lib/core/queue";
+import { ITopicSubscription } from "nodets-ms-core/lib/core/queue/abstracts/IMessage-topic";
+import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { FileEntity, StorageClient, StorageContainer } from "nodets-ms-core/lib/core/storage"
+import { IQueueConfig } from "nodets-ms-core/lib/models/abstracts/iqueueconfig";
 import { Readable } from "stream"
+import { QueueMessageContent } from "../../src/model/queue-message-model";
 
 export function getMockFileEntity() {
     var fileEntity: FileEntity = {
@@ -13,10 +18,10 @@ export function getMockFileEntity() {
             return Promise.resolve(mockedStream);
         },
         getBodyText: function (): Promise<string> {
-            throw Promise.resolve("Sample body test");
+            return Promise.resolve("Sample body test");
         },
         upload: function (body: NodeJS.ReadableStream): Promise<FileEntity> {
-            throw Promise.resolve(this);
+            return Promise.resolve(this);
         }
     };
     return fileEntity;
@@ -50,8 +55,33 @@ export function getMockStorageContainer() {
     return storageContainerObj;
 }
 
+export function getMockTopic() {
+    var mockTopic: Topic = new Topic({ provider: "Azure" }, "test");
+    mockTopic.publish = (messaage: QueueMessage): Promise<void> => {
+        return Promise.resolve();
+    }
+
+    return mockTopic;
+}
+
 export function mockCore() {
     jest.spyOn(Core, "initialize");
-    jest.spyOn(Core, "getStorageClient").mockImplementation(() => { return getMockStorageClient(); }
-    );
+    jest.spyOn(Core, "getStorageClient").mockImplementation(() => { return getMockStorageClient(); });
+    jest.spyOn(Core, "getTopic").mockImplementation(() => { return getMockTopic(); });
+}
+
+export function mockQueueMessageContent(permissionResolve: boolean = true) {
+    jest.spyOn(QueueMessageContent, "from")
+        .mockImplementation((json: any) => {
+            var test: QueueMessageContent = new QueueMessageContent();
+            test = structuredClone(json);
+            //This is due to not able to mock Prop() behaviour 
+            test.tdeiRecordId = json.tdei_record_id;
+            test.userId = json.user_id;
+            test.orgId = json.tdei_org_id;
+            test.hasPermission = jest.fn().mockImplementation((roles: []) => {
+                return Promise.resolve(permissionResolve);
+            });
+            return test;
+        });
 }
