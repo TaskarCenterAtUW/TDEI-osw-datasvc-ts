@@ -68,6 +68,10 @@ graph LR;
     H(Client) -->|GET| G
 ```
 
+- `Client`, makes HTTP GET calls to `Gateway`
+    - Retrive the list of OSW files with/without search criteria.
+    - Download the OSW file given the tdei_record_id
+    
 - `Data Service`, authorizes the every incoming request against the `Auth Service` 
 
 - `Data Service`, subscribes to `osw-validation` topic to listen to data validation of the osw file upload request.
@@ -80,9 +84,6 @@ graph LR;
 
 - `osw-data` topic message schema can be found [here](https://github.com/TaskarCenterAtUW/TDEI-event-messages/blob/dev/schema/osw-validation-schema.json)
 
-- `Client`, makes HTTP GET calls to `Gateway`
-    - Retrive the list of OSW files with/without search criteria.
-    - Download the OSW file given the tdei_record_id
 
 
 - Sample GET calls interaction with DB
