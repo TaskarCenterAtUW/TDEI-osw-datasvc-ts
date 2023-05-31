@@ -1,8 +1,5 @@
 import { FeatureCollection } from "geojson";
 import { OswVersions } from "../../src/database/entity/osw-version-entity";
-import { randomUUID } from "crypto";
-import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import { QueueMessageContent } from "../../src/model/queue-message-model";
 import oswValidationSuccessMessage from "../test-data/osw-validation-success.message.json";
 
 export class TdeiObjectFaker {
