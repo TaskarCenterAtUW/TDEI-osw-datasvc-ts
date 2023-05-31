@@ -59,7 +59,7 @@ class OswService implements IOswService {
             throw new HttpException(404, "File not found");
 
         const storageClient = Core.getStorageClient();
-        if (storageClient == null) throw console.error("Storage not configured");
+        if (storageClient == null) throw new Error("Storage not configured");
         let url: string = decodeURIComponent(osw.rows[0].file_upload_path);
         return storageClient.getFileFromUrl(url);
     }

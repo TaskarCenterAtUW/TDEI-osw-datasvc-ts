@@ -26,13 +26,15 @@ class GtfsOSWController implements IController {
         try {
             var params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
             const osw = await oswService.getAllOsw(params);
-            response.send(osw);
+            response.status(200).send(osw);
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
+                response.status(error.status).send(error.message);
                 next(error);
             }
             else {
+                response.status(500).send("Error while getting the file stream")
                 next(new HttpException(500, "Error while fetching the osw information"));
             }
         }
@@ -50,37 +52,48 @@ class GtfsOSWController implements IController {
         } catch (error: any) {
             console.error('Error while getting the file stream');
             console.error(error);
-            if (error instanceof HttpException)
-                throw next(error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while getting the file stream")
             next(new HttpException(500, "Error while getting the file stream"));
         }
     }
 
     createOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let pathways = OswVersions.from(request.body);
+            let osw = OswVersions.from(request.body);
 
-            validate(pathways).then(async errors => {
+            return validate(osw).then(async errors => {
                 // errors is an array of validation errors
                 if (errors.length > 0) {
-                    console.error('Upload pathways osw metadata information failed validation. errors: ', errors);
+                    console.error('osw metadata information failed validation. errors: ', errors);
                     const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+                    response.status(500).send('Input validation failed with below reasons : \n' + message)
                     next(new HttpException(500, 'Input validation failed with below reasons : \n' + message));
                 } else {
-                    var newOsw = await oswService.createOsw(pathways)
+                    return await oswService.createOsw(osw)
+                        .then(newOsw => {
+                            return Promise.resolve(response.status(200).send(newOsw));
+                        })
                         .catch((error: any) => {
                             if (error instanceof DuplicateException) {
-                                throw error;
+                                response.status(error.status).send(error.message)
+                                next(new HttpException(error.status, error.message));
                             }
-                            next(new HttpException(500, 'Error saving the osw version'));
+                            else {
+                                response.status(500).send('Error saving the osw version')
+                                next(new HttpException(500, 'Error saving the osw version'));
+                            }
                         });
-                    response.send(newOsw);
                 }
             });
         } catch (error) {
             console.error('Error saving the osw version');
             console.error(error);
-            next(error);
+            response.status(500).send('Error saving the osw version')
+            next(new HttpException(500, "Error saving the osw version"));
         }
     }
 }

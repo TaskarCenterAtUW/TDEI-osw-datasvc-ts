@@ -32,12 +32,6 @@ export class OswVersions extends BaseDto {
     @Prop()
     @IsNotEmpty()
     collection_method!: string;
-    // @Prop()
-    // @IsNotEmpty()
-    // valid_from!: Date;
-    // @Prop()
-    // @IsNotEmpty()
-    // valid_to!: Date;
     @Prop()
     @IsNotEmpty()
     publication_date!: Date;
@@ -82,5 +76,4 @@ export class OswVersions extends BaseDto {
         }
         return queryObject;
     }
-
 }

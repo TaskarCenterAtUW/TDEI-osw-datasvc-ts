@@ -15,14 +15,4 @@ export class Utility {
         }
         return true;
     }
-
-    public static copy<T extends Object>(target: T, source: any): T {
-        Object.keys(target).forEach(key => {
-            if (source[key] != undefined) {
-                target[key as keyof Object] = source[key];
-            }
-        }
-        );
-        return target;
-    }
 }
