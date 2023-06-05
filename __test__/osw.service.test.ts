@@ -151,7 +151,7 @@ describe("OSW Service Test", () => {
             expect(oswService.getOswById("tdei_record_id")).rejects.toThrow(HttpException);
         });
 
-        test("When Core failed obtaiing storage client, expect to return error", async () => {
+        test("When Core failed obtaing storage client, expect to return error", async () => {
             //Arrange
             var oswObj = TdeiObjectFaker.getOswVersionFromDB();
             const dummyResponse = <QueryResult<any>><unknown>{

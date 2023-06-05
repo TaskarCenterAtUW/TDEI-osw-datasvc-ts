@@ -34,7 +34,7 @@ class GtfsOSWController implements IController {
                 next(error);
             }
             else {
-                response.status(500).send("Error while getting the file stream")
+                response.status(500).send("Error while fetching the osw information");
                 next(new HttpException(500, "Error while fetching the osw information"));
             }
         }
@@ -56,7 +56,7 @@ class GtfsOSWController implements IController {
                 response.status(error.status).send(error.message);
                 return next(error);
             }
-            response.status(500).send("Error while getting the file stream")
+            response.status(500).send("Error while getting the file stream");
             next(new HttpException(500, "Error while getting the file stream"));
         }
     }
@@ -90,8 +90,7 @@ class GtfsOSWController implements IController {
                 }
             });
         } catch (error) {
-            console.error('Error saving the osw version');
-            console.error(error);
+            console.error('Error saving the osw version', error);
             response.status(500).send('Error saving the osw version')
             next(new HttpException(500, "Error saving the osw version"));
         }

@@ -54,7 +54,7 @@ class EventBusService implements IEventBusServiceInterface {
                     console.error('Upload osw file metadata information failed validation. errors: ', message);
                     this.publish(messageReceived,
                         {
-                            success: true,
+                            success: false,
                             message: 'Validation error :' + message
                         });
                     return Promise.resolve();

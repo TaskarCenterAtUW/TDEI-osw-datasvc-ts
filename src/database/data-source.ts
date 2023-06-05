@@ -4,9 +4,12 @@ import { environment } from '../environment/environment';
 import UniqueKeyDbException, { ForeignKeyDbException } from '../exceptions/db/database-exceptions';
 
 class DataSource {
-    private pool: Pool;
+    private pool: Pool = new Pool;
 
     constructor() {
+    }
+
+    public initializaDatabase() {
         console.info("Initializing database !");
         this.pool = new Pool({
             database: environment.database.database,
@@ -22,7 +25,6 @@ class DataSource {
         }).on('connect', () => {
             console.log("Database initialized successfully !");
         });
-
     }
 
     /**
@@ -32,8 +34,8 @@ class DataSource {
      * @returns 
      */
     async query(queryTextOrConfig: string | QueryConfig<any[]>, params: any[] = []): Promise<QueryResult<any>> {
-        const client = await this.pool.connect()
         try {
+            const client = await this.pool.connect();
             if (queryTextOrConfig instanceof String) {
                 const result = await client.query(queryTextOrConfig, params);
                 return result;
@@ -56,7 +58,7 @@ class DataSource {
 
             throw e;
         } finally {
-            client.release();
+            //client.release();
         }
     }
 }

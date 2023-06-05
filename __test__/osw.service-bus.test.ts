@@ -45,7 +45,7 @@ describe("Event Service Bus Test", () => {
             mockTopic.publish = (message: QueueMessage): Promise<void> => {
                 messagedProcessed = message.data.response.success;
                 //Assert
-                expect(messagedProcessed).toBeTruthy();
+                expect(messagedProcessed).toBeFalsy();
                 return Promise.resolve();
             }
             mockCore();
@@ -102,7 +102,7 @@ describe("Event Service Bus Test", () => {
             mockTopic.publish = (message: QueueMessage): Promise<void> => {
                 messagedProcessed = message.data.response.success;
                 //Assert
-                expect(messagedProcessed).toBeTruthy();
+                expect(messagedProcessed).toBeFalsy();
                 return Promise.resolve();
             }
             mockCore();
