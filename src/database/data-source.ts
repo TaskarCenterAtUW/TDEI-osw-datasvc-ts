@@ -34,8 +34,8 @@ class DataSource {
      * @returns 
      */
     async query(queryTextOrConfig: string | QueryConfig<any[]>, params: any[] = []): Promise<QueryResult<any>> {
+        const client = await this.pool.connect();
         try {
-            const client = await this.pool.connect();
             if (queryTextOrConfig instanceof String) {
                 const result = await client.query(queryTextOrConfig, params);
                 return result;
@@ -58,7 +58,7 @@ class DataSource {
 
             throw e;
         } finally {
-            //client.release();
+            client.release();
         }
     }
 }
