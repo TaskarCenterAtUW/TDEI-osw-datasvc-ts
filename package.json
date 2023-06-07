@@ -8,9 +8,9 @@
     "test:watch": "jest --watchAll",
     "test:coverage": "jest --coverage",
     "build": "rimraf ./build && tsc",
-    "start": "npm run build  && npm run copy:assets && node build/server.js",
+    "start": "npm run build  && npm run copy:assets && node build/src/server.js",
     "start:dev": "nodemon",
-    "copy:assets": "cp -r 'src/assets/' 'build/assets/'",
+    "copy:assets": "cp -r 'src/assets/' 'build/src/assets/'",
     "lint": "eslint \"**/*.{ts,tsx}\""
   },
   "keywords": [],
