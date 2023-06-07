@@ -1,9 +1,7 @@
 import { Core } from "nodets-ms-core"
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import { ITopicSubscription } from "nodets-ms-core/lib/core/queue/abstracts/IMessage-topic";
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { FileEntity, StorageClient, StorageContainer } from "nodets-ms-core/lib/core/storage"
-import { IQueueConfig } from "nodets-ms-core/lib/models/abstracts/iqueueconfig";
 import { Readable } from "stream"
 import { QueueMessageContent } from "../../src/model/queue-message-model";
 
