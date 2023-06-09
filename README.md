@@ -39,7 +39,7 @@ Step 3: Run below command which will setup Postgresql database and PgAdmin clien
 
 ```docker compose up```  from root directory
 
-## Build and Test
+## Build
 
 Follow the steps to install the node packages required for both building and running the application
 
@@ -52,6 +52,15 @@ Follow the steps to install the node packages required for both building and run
 4. Health check available at path `health/ping` with get and post. Make `get` or `post` request to `http://localhost:3000/health/ping`.
 Ping should respond with "healthy!" message with HTTP 200 status code.
 
+## Test
+
+Follow the steps to install the node packages required for testing the application
+
+1. Ensure we have installed the dependencies. Run the following command in terminal on the same directory level as `package.json`
+    ```shell
+    npm install
+    ```
+2. To start testing suits, use the command `npm test` , this command will execute all the unit test suites defined for application.
 
 ## System flow
 ---
