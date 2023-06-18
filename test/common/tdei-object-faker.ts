@@ -41,8 +41,8 @@ export class TdeiObjectFaker {
     }
 
     static getInvalidPolygon(): FeatureCollection {
-        var randomCoordinates: number[][] = [];
-        var firstRandom = [
+        const randomCoordinates: number[][] = [];
+        const firstRandom = [
             this.getRandomNumber(70, 79),
             this.getRandomNumber(12, 15)
         ];
@@ -74,18 +74,18 @@ export class TdeiObjectFaker {
                 }
             ]
         };
-    };
+    }
 
     static getPolygonGeometry(): any {
         return {
             type: "Polygon",
             coordinates: [this.getCoordinates()]
         };
-    };
+    }
 
     private static getCoordinates(): number[][] {
-        var randomCoordinates: number[][] = [];
-        var firstRandom = [
+        const randomCoordinates: number[][] = [];
+        const firstRandom = [
             this.getRandomNumber(70, 79),
             this.getRandomNumber(12, 15)
         ];
@@ -102,7 +102,7 @@ export class TdeiObjectFaker {
     }
 
     private static getRandomNumber(min: number, max: number): number {
-        var diff = max - min;
+        const diff = max - min;
         return parseFloat((min + Math.random() * diff).toFixed(6));
     }
 

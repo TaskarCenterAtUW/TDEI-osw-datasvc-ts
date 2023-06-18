@@ -6,12 +6,12 @@ import { Readable } from "stream"
 import { QueueMessageContent } from "../../src/model/queue-message-model";
 
 export function getMockFileEntity() {
-    var fileEntity: FileEntity = {
+    const fileEntity: FileEntity = {
         fileName: "test_file_name",
         mimeType: "csv",
         filePath: "test_file_path",
         getStream: function (): Promise<NodeJS.ReadableStream> {
-            var mockedStream = new Readable();
+            const mockedStream = new Readable();
             mockedStream._read = function (size) { /* do nothing */ };
             return Promise.resolve(mockedStream);
         },
@@ -26,7 +26,7 @@ export function getMockFileEntity() {
 }
 
 export function getMockStorageClient() {
-    var storageClientObj: StorageClient = {
+    const storageClientObj: StorageClient = {
         getContainer: function (name: string): Promise<StorageContainer> {
             return Promise.resolve(getMockStorageContainer());
         },
@@ -41,7 +41,7 @@ export function getMockStorageClient() {
 }
 
 export function getMockStorageContainer() {
-    var storageContainerObj: StorageContainer = {
+    const storageContainerObj: StorageContainer = {
         name: "test_container",
         listFiles: function (): Promise<FileEntity[]> {
             return Promise.resolve([getMockFileEntity()]);
@@ -54,7 +54,7 @@ export function getMockStorageContainer() {
 }
 
 export function getMockTopic() {
-    var mockTopic: Topic = new Topic({ provider: "Azure" }, "test");
+    const mockTopic: Topic = new Topic({ provider: "Azure" }, "test");
     mockTopic.publish = (messaage: QueueMessage): Promise<void> => {
         return Promise.resolve();
     }
@@ -68,7 +68,7 @@ export function mockCore() {
     jest.spyOn(Core, "getTopic").mockImplementation(() => { return getMockTopic(); });
 }
 
-export function mockQueueMessageContent(permissionResolve: boolean = true) {
+export function mockQueueMessageContent(permissionResolve = true) {
     jest.spyOn(QueueMessageContent, "from")
         .mockImplementation((json: any) => {
             var test: QueueMessageContent = new QueueMessageContent();

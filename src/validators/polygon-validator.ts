@@ -33,8 +33,8 @@ export class isPolygon implements ValidatorConstraintInterface {
             return false;
         }
 
-        let polygon = featureCollection.features[0].geometry;
-        let valid = gjv.isPolygon(polygon);
+        const polygon = featureCollection.features[0].geometry;
+        const valid = gjv.isPolygon(polygon);
         if (!valid) {
             this.message = gjv.isPolygon(polygon, true);
         }

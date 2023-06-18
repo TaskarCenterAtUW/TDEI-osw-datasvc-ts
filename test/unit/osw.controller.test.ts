@@ -14,7 +14,7 @@ describe("OSW Controller Test", () => {
         describe("Functional", () => {
             test("When requested with empty search criteria, Expect to return OSW list", async () => {
                 //Arrange
-                let req = getMockReq();
+                const req = getMockReq();
                 const { res, next } = getMockRes();
                 const list: OswDTO[] = [<OswDTO>{}]
                 const getAllOswSpy = jest
@@ -30,7 +30,7 @@ describe("OSW Controller Test", () => {
 
             test("When requested with bad collection_date input, Expect to return HTTP status 400", async () => {
                 //Arrange
-                let req = getMockReq({ body: { collection_date: "2023" } });
+                const req = getMockReq({ body: { collection_date: "2023" } });
                 const { res, next } = getMockRes();
                 const getAllOswSpy = jest
                     .spyOn(oswService, "getAllOsw")
@@ -44,7 +44,7 @@ describe("OSW Controller Test", () => {
 
             test("When unknown or database exception occured while processing request, Expect to return HTTP status 500", async () => {
                 //Arrange
-                let req = getMockReq({ body: { collection_date: "2023" } });
+                const req = getMockReq({ body: { collection_date: "2023" } });
                 const { res, next } = getMockRes();
                 const getAllOswSpy = jest
                     .spyOn(oswService, "getAllOsw")
@@ -63,7 +63,7 @@ describe("OSW Controller Test", () => {
         describe("Functional", () => {
             test("When requested for valid tdei_record_id, Expect to return downloadable file stream", async () => {
                 //Arrange
-                let req = getMockReq();
+                const req = getMockReq();
                 const { res, next } = getMockRes();
 
                 const getOswByIdSpy = jest
@@ -78,7 +78,7 @@ describe("OSW Controller Test", () => {
 
             test("When requested for invalid tdei_record_id, Expect to return HTTP status 404", async () => {
                 //Arrange
-                let req = getMockReq();
+                const req = getMockReq();
                 const { res, next } = getMockRes();
 
                 const getOswByIdSpy = jest
@@ -93,7 +93,7 @@ describe("OSW Controller Test", () => {
 
             test("When unexpected error occured while processing request, Expect to return HTTP status 500", async () => {
                 //Arrange
-                let req = getMockReq();
+                const req = getMockReq();
                 const { res, next } = getMockRes();
 
                 const getOswByIdSpy = jest
@@ -113,9 +113,9 @@ describe("OSW Controller Test", () => {
 
             test("When valid input provided, Expect to return tdei_record_id for new record", async () => {
                 //Arrange
-                let req = getMockReq({ body: TdeiObjectFaker.getOswVersion() });
+                const req = getMockReq({ body: TdeiObjectFaker.getOswVersion() });
                 const { res, next } = getMockRes();
-                var dummyResponse = <OswDTO>{
+                const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
                 const createOswSpy = jest
@@ -131,9 +131,9 @@ describe("OSW Controller Test", () => {
 
             test("When provided null body, Expect to return HTTP status 500", async () => {
                 //Arrange
-                let req = getMockReq({ body: null });
+                const req = getMockReq({ body: null });
                 const { res, next } = getMockRes();
-                var dummyResponse = <OswDTO>{
+                const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
                 const createOswSpy = jest
@@ -148,11 +148,11 @@ describe("OSW Controller Test", () => {
 
             test("When provided body with empty tdei_org_id, Expect to return HTTP status 400", async () => {
                 //Arrange
-                let oswObject = TdeiObjectFaker.getOswVersion();
+                const oswObject = TdeiObjectFaker.getOswVersion();
                 oswObject.tdei_org_id = "";
-                let req = getMockReq({ body: oswObject });
+                const req = getMockReq({ body: oswObject });
                 const { res, next } = getMockRes();
-                var dummyResponse = <OswDTO>{
+                const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
                 const createOswSpy = jest
@@ -167,9 +167,9 @@ describe("OSW Controller Test", () => {
 
             test("When provided body with invalid polygon, Expect to return HTTP status 400", async () => {
                 //Arrange
-                let oswObject = TdeiObjectFaker.getOswVersion();
+                const oswObject = TdeiObjectFaker.getOswVersion();
                 oswObject.polygon = TdeiObjectFaker.getInvalidPolygon();
-                let req = getMockReq({ body: oswObject });
+                const req = getMockReq({ body: oswObject });
                 const { res, next } = getMockRes();
                 //Act
                 await oswController.createOsw(req, res, next);
@@ -180,8 +180,8 @@ describe("OSW Controller Test", () => {
 
             test("When database exception occured while processing request, Expect to return HTTP status 500", async () => {
                 //Arrange
-                let oswObject = TdeiObjectFaker.getOswVersion();
-                let req = getMockReq({ body: oswObject });
+                const oswObject = TdeiObjectFaker.getOswVersion();
+                const req = getMockReq({ body: oswObject });
                 const { res, next } = getMockRes();
 
                 const createOswSpy = jest
@@ -196,8 +196,8 @@ describe("OSW Controller Test", () => {
 
             test("When database exception with duplicate tdei_org_id occured while processing request, Expect to return HTTP status 400", async () => {
                 //Arrange
-                let oswObject = TdeiObjectFaker.getOswVersion();
-                let req = getMockReq({ body: oswObject });
+                const oswObject = TdeiObjectFaker.getOswVersion();
+                const req = getMockReq({ body: oswObject });
                 const { res, next } = getMockRes();
 
                 const createOswSpy = jest

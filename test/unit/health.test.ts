@@ -5,7 +5,7 @@ describe("Health Check", () => {
 
     test("When requested for health check, Expect to returns http status 200 if healthy", async () => {
         //Arrange
-        let req = getMockReq();
+        const req = getMockReq();
         const { res } = getMockRes();
         //Act
         await healthController.getping(req, res);

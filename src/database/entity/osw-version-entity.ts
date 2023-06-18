@@ -13,7 +13,7 @@ export class OswVersions extends BaseDto {
     @IsNotEmpty()
     tdei_record_id!: string;
     @Prop()
-    confidence_level: number = 0;
+    confidence_level = 0;
     @Prop()
     @IsNotEmpty()
     tdei_org_id!: string;
@@ -56,7 +56,7 @@ export class OswVersions extends BaseDto {
      * @returns QueryConfig object
      */
     getInsertQuery(): QueryConfig {
-        let polygonExists = this.polygon ? true : false;
+        const polygonExists = this.polygon ? true : false;
         const queryObject = {
             text: `INSERT INTO public.osw_versions(tdei_record_id, 
                 confidence_level, 

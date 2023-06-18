@@ -24,7 +24,7 @@ class GtfsOSWController implements IController {
 
     getAllOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
+            const params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
             const osw = await oswService.getAllOsw(params);
             response.status(200).send(osw);
         } catch (error) {
