@@ -2,8 +2,7 @@ import {
     registerDecorator,
     ValidationOptions,
     ValidatorConstraint,
-    ValidatorConstraintInterface,
-    ValidationArguments,
+    ValidatorConstraintInterface
 } from 'class-validator';
 import { FeatureCollection } from 'geojson';
 const gjv = require("geojson-validation");
@@ -15,7 +14,7 @@ function isGeoJsonFeatureCollection(obj: any): boolean {
 @ValidatorConstraint({ async: true })
 export class isPolygon implements ValidatorConstraintInterface {
     message = ["Not a valid polygon coordinates."];
-    validate(featureCollection: FeatureCollection, args: ValidationArguments) {
+    validate(featureCollection: FeatureCollection) {
         if (!isGeoJsonFeatureCollection(featureCollection)) {
             this.message = ["Please specify valid geojson."];
             return false;
@@ -47,9 +46,9 @@ export class isPolygon implements ValidatorConstraintInterface {
 }
 
 export function IsValidPolygon(validationOptions?: ValidationOptions) {
-    return function (object: Object, propertyName: string) {
+    return function (object: object, propertyName: string) {
         registerDecorator({
-            target: object.constructor,
+            target: (object as any).constructor,
             propertyName: propertyName,
             options: validationOptions,
             constraints: [],

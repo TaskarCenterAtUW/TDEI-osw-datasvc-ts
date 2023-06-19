@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import HttpException from '../exceptions/http/http-base-exception';
 
 /**
@@ -10,7 +10,7 @@ import HttpException from '../exceptions/http/http-base-exception';
  * @param res The express response instance.
  * @param next The next middleware but actually this should be the last middleware in the pipeline, don't remove this parameter it's important.
  */
-export function errorHandler(error: HttpException, req: Request, res: Response, next: NextFunction): void {
+export function errorHandler(error: HttpException, req: Request, res: Response): void {
   console.error(error.message, error);
   const status = error.status || 500;
   const message = error.message || 'Something went wrong';

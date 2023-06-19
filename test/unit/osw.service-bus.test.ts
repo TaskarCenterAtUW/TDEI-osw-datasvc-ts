@@ -31,7 +31,7 @@ describe("Queue message service", () => {
                 const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
 
@@ -58,7 +58,7 @@ describe("Queue message service", () => {
                 const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
 
@@ -73,7 +73,7 @@ describe("Queue message service", () => {
                 mockQueueMessageContent(true);
 
                 const mockTopic: Topic = getMockTopic();
-                mockTopic.publish = (message: QueueMessage): Promise<void> => {
+                mockTopic.publish = (): Promise<void> => {
                     //Assert
                     expect(true).not.toBeCalled();
                     return Promise.resolve();
@@ -85,7 +85,7 @@ describe("Queue message service", () => {
                 const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
 
@@ -112,7 +112,7 @@ describe("Queue message service", () => {
                 //Mock the topic
                 eventBusService.publishingTopic = mockTopic;
 
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockRejectedValueOnce(new Error("Database exception"));
 
@@ -140,7 +140,7 @@ describe("Queue message service", () => {
                 const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
 

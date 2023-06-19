@@ -32,7 +32,7 @@ describe("OSW Controller Test", () => {
                 //Arrange
                 const req = getMockReq({ body: { collection_date: "2023" } });
                 const { res, next } = getMockRes();
-                const getAllOswSpy = jest
+                jest
                     .spyOn(oswService, "getAllOsw")
                     .mockRejectedValueOnce(new InputException("Invalid date provided."));
                 //Act
@@ -46,7 +46,7 @@ describe("OSW Controller Test", () => {
                 //Arrange
                 const req = getMockReq({ body: { collection_date: "2023" } });
                 const { res, next } = getMockRes();
-                const getAllOswSpy = jest
+                jest
                     .spyOn(oswService, "getAllOsw")
                     .mockRejectedValueOnce(new Error("unknown error"));
                 //Act
@@ -81,7 +81,7 @@ describe("OSW Controller Test", () => {
                 const req = getMockReq();
                 const { res, next } = getMockRes();
 
-                const getOswByIdSpy = jest
+                jest
                     .spyOn(oswService, "getOswById")
                     .mockRejectedValueOnce(new HttpException(404, "Record not found"));
                 //Act
@@ -96,7 +96,7 @@ describe("OSW Controller Test", () => {
                 const req = getMockReq();
                 const { res, next } = getMockRes();
 
-                const getOswByIdSpy = jest
+                jest
                     .spyOn(oswService, "getOswById")
                     .mockRejectedValueOnce(new Error("Unexpected error"));
                 //Act
@@ -136,7 +136,7 @@ describe("OSW Controller Test", () => {
                 const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                 jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
                 //Act
@@ -155,7 +155,7 @@ describe("OSW Controller Test", () => {
                 const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockRejectedValueOnce(dummyResponse);
                 //Act

@@ -22,7 +22,7 @@ class DataSource {
             port: environment.database.port
         });
 
-        this.pool.on('error', function (err: Error, _client: any) {
+        this.pool.on('error', function (err: Error) {
             console.log(`Idle-Client Error:\n${err.message}\n${err.stack}`)
         }).on('connect', () => {
             console.log("Database initialized successfully !");

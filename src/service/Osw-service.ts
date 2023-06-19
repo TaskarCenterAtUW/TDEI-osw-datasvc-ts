@@ -13,6 +13,8 @@ import { IOswService } from "./interface/Osw-service-interface";
 
 class OswService implements IOswService {
     constructor() {
+      // TODO document why this constructor is empty
+    
     }
 
     async getAllOsw(params: OswQueryParams): Promise<OswDTO[]> {

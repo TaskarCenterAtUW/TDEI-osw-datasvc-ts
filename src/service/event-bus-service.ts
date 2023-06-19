@@ -59,7 +59,7 @@ export class EventBusService implements IEventBusServiceInterface {
                         });
                     return Promise.resolve();
                 } else {
-                    oswService.createOsw(oswVersions).then(res => {
+                    oswService.createOsw(oswVersions).then(() => {
                         this.publish(messageReceived,
                             {
                                 success: true,
