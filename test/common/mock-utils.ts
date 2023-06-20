@@ -72,7 +72,7 @@ export function mockQueueMessageContent(permissionResolve: boolean = true) {
     jest.spyOn(QueueMessageContent, "from")
         .mockImplementation((json: any) => {
             var test: QueueMessageContent = new QueueMessageContent();
-            test = structuredClone(json);
+            test = JSON.parse(JSON.stringify(json));
             //This is due to not able to mock Prop() behaviour 
             test.tdeiRecordId = json.tdei_record_id;
             test.userId = json.user_id;
