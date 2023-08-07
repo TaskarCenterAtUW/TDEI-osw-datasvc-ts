@@ -14,11 +14,11 @@ export class EventBusService implements IEventBusServiceInterface {
     private queueConfig: AzureQueueConfig;
     publishingTopic: Topic;
 
-    constructor() {
+    constructor(queueConnection: string = environment.eventBus.connectionString as string, publishingTopicName: string = environment.eventBus.dataServiceTopic as string) {
         Core.initialize();
         this.queueConfig = new AzureQueueConfig();
-        this.queueConfig.connectionString = environment.eventBus.connectionString as string;
-        this.publishingTopic = Core.getTopic(environment.eventBus.dataServiceTopic as string);
+        this.queueConfig.connectionString = queueConnection;
+        this.publishingTopic = Core.getTopic(publishingTopicName);
     }
 
     // function to handle messages
@@ -115,15 +115,15 @@ export class EventBusService implements IEventBusServiceInterface {
         console.log(error);
     };
 
-    subscribeUpload(): void {
-        Core.getTopic(environment.eventBus.validationTopic as string,
+    subscribeUpload(validationTopic: string = environment.eventBus.validationTopic as string, validationSubscription: string = environment.eventBus.validationSubscription as string): void {
+        Core.getTopic(validationTopic,
             this.queueConfig)
-            .subscribe(environment.eventBus.validationSubscription as string, {
+            .subscribe(validationSubscription, {
                 onReceive: this.processUpload,
                 onError: this.processUploadError
             });
     }
 }
 
-const eventBusService = new EventBusService();
-export default eventBusService;
+// const eventBusService = new EventBusService();
+// export default eventBusService;

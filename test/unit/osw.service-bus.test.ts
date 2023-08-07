@@ -4,7 +4,9 @@ import { OswDTO } from "../../src/model/osw-dto";
 import { getMockTopic, mockCore, mockQueueMessageContent } from "../common/mock-utils";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
-import eventBusService from "../../src/service/event-bus-service";
+import { EventBusService } from "../../src/service/event-bus-service";
+
+var eventBusService = new EventBusService();
 
 // group test using describe
 describe("Queue message service", () => {
