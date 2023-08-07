@@ -10,7 +10,7 @@ import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { randomUUID } from "crypto";
 
-class EventBusService implements IEventBusServiceInterface {
+export class EventBusService implements IEventBusServiceInterface {
     private queueConfig: AzureQueueConfig;
     publishingTopic: Topic;
 
