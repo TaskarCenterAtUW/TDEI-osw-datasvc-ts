@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --testRegex 'test/unit'",
+    "test:integration": "TEST_ENV=integration jest --testRegex 'test/integration' --forceExit",
     "test:watch": "jest --watchAll",
     "test:coverage": "jest --coverage",
     "build": "rimraf ./build && tsc",
