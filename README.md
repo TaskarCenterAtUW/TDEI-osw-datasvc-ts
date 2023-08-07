@@ -106,3 +106,19 @@ sequenceDiagram
     osw-dataservice->>+Gateway:List of OSW
     Gateway->>+Client: OSW files list
 ```
+
+
+## How to run integration test
+To run integration test you need a .env file which will be available on request.
+
+Steps to run:
+
+Execute the following commands.
+
+```
+npm run i
+```
+
+``` 
+npm run test:integration
+```
