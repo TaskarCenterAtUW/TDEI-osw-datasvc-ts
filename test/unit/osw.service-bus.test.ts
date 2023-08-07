@@ -1,10 +1,10 @@
-import oswService from "../src/service/Osw-service";
-import { TdeiObjectFaker } from "./common/tdei-object-faker";
-import { OswDTO } from "../src/model/osw-dto";
-import { getMockTopic, mockCore, mockQueueMessageContent } from "./common/mock-utils";
+import oswService from "../../src/service/Osw-service";
+import { TdeiObjectFaker } from "../common/tdei-object-faker";
+import { OswDTO } from "../../src/model/osw-dto";
+import { getMockTopic, mockCore, mockQueueMessageContent } from "../common/mock-utils";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
-import eventBusService from "../src/service/event-bus-service";
+import eventBusService from "../../src/service/event-bus-service";
 
 // group test using describe
 describe("Queue message service", () => {
