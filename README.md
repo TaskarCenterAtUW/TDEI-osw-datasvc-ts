@@ -132,5 +132,7 @@ For running integration test, following env variables are required.
 |--|--|
 |QUEUECONNECTION | Queue connection string |
 |STORAGECONNECTION | Storage connection string|
-|PORT |Port on which application will run|
 |AUTH_HOST | Host of the authentication service |
+|VALIDATION_SUBSCRIPTION | Upload topic subscription name|
+|VALIDATION_TOPIC | Validation topic name|
+|DATASVC_TOPIC | Data service publishing topic|
