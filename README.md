@@ -122,3 +122,15 @@ npm run i
 ``` 
 npm run test:integration
 ```
+
+
+## Required env for running tests
+
+For running integration test, following env variables are required.
+
+|Name| Description |
+|--|--|
+|QUEUECONNECTION | Queue connection string |
+|STORAGECONNECTION | Storage connection string|
+|PORT |Port on which application will run|
+|AUTH_HOST | Host of the authentication service |
