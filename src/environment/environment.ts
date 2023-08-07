@@ -23,7 +23,6 @@ export const environment = {
     },
     appPort: parseInt(process.env.PORT ?? "8080"),
     authPermissionUrl: process.env.AUTH_HOST+'/api/v1/hasPermission',
-    serviceUrl: process.env.SERVICE_URL,
     secretGenerateUrl: process.env.AUTH_HOST+'/api/v1/generateSecret',
 
 }
