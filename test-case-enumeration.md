@@ -78,3 +78,11 @@ describe("{{Component}}", () => {
 | Queue message service | Process Queue message | Functional| When validation service failed| Expect to fail the message processing |:white_check_mark:|
 | Queue message service | Process Queue message | Functional| When create OSW database failed| Expect to fail the message processing |:white_check_mark:|
 | Queue message service | Process Queue message | Functional| When permission denied| Expect to fail the message processing |:white_check_mark:|
+
+### Integration Test cases
+
+| Component | Feature Under Test | Scenario | Expectation | Status |
+|--|--|--|--|--|
+| OSW Service | Servicebus Integration | Subscribe to validation result topic to verify servicebus integration| Expect to return message |:white_check_mark:|
+| OSW Service | Permission Request | Verifying auth service hasPermission api integration| Expect to return false |:white_check_mark:|
+| OSW Service | Auth service | Verifying auth service generate secret api integration | Expect to return HTTP status 200 |:white_check_mark:|

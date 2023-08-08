@@ -1,15 +1,15 @@
 import { QueryResult } from "pg";
-import dbClient from "../src/database/data-source";
-import oswService from "../src/service/Osw-service";
-import { TdeiObjectFaker } from "./common/tdei-object-faker";
-import { OswQueryParams } from "../src/model/osw-get-query-params";
-import { OswDTO } from "../src/model/osw-dto";
+import dbClient from "../../src/database/data-source";
+import oswService from "../../src/service/Osw-service";
+import { TdeiObjectFaker } from "../common/tdei-object-faker";
+import { OswQueryParams } from "../../src/model/osw-get-query-params";
+import { OswDTO } from "../../src/model/osw-dto";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
-import { mockCore } from "./common/mock-utils";
-import { OswVersions } from "../src/database/entity/osw-version-entity";
-import UniqueKeyDbException from "../src/exceptions/db/database-exceptions";
-import { DuplicateException, InputException } from "../src/exceptions/http/http-exceptions";
-import HttpException from "../src/exceptions/http/http-base-exception";
+import { mockCore } from "../common/mock-utils";
+import { OswVersions } from "../../src/database/entity/osw-version-entity";
+import UniqueKeyDbException from "../../src/exceptions/db/database-exceptions";
+import { DuplicateException, InputException } from "../../src/exceptions/http/http-exceptions";
+import HttpException from "../../src/exceptions/http/http-base-exception";
 import { Core } from "nodets-ms-core";
 
 // group test using describe

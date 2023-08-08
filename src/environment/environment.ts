@@ -22,5 +22,7 @@ export const environment = {
         port: parseInt(process.env.POSTGRES_PORT ?? "5432"),
     },
     appPort: parseInt(process.env.PORT ?? "8080"),
-    authPermissionUrl: process.env.AUTH_PERMISSION_URL
+    authPermissionUrl: process.env.AUTH_HOST+'/api/v1/hasPermission',
+    secretGenerateUrl: process.env.AUTH_HOST+'/api/v1/generateSecret',
+
 }

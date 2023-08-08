@@ -1,4 +1,4 @@
-import healthController from "../src/controller/health-controller";
+import healthController from "../../src/controller/health-controller";
 import { getMockReq, getMockRes } from "@jest-mock/express";
 
 describe("Health Check", () => {

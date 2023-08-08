@@ -106,3 +106,33 @@ sequenceDiagram
     osw-dataservice->>+Gateway:List of OSW
     Gateway->>+Client: OSW files list
 ```
+
+
+## How to run integration test
+To run integration test you need a .env file which will be available on request.
+
+Steps to run:
+
+Execute the following commands.
+
+```
+npm run i
+```
+
+``` 
+npm run test:integration
+```
+
+
+## Required env for running tests
+
+For running integration test, following env variables are required.
+
+|Name| Description |
+|--|--|
+|QUEUECONNECTION | Queue connection string |
+|STORAGECONNECTION | Storage connection string|
+|AUTH_HOST | Host of the authentication service |
+|VALIDATION_SUBSCRIPTION | Upload topic subscription name|
+|VALIDATION_TOPIC | Validation topic name|
+|DATASVC_TOPIC | Data service publishing topic|
