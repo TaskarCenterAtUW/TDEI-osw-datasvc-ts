@@ -51,7 +51,7 @@ describe("OSW Integration Test", () => {
         mockQueueMessageContent();
 
         var dummyResponse = <OswDTO>{
-            tdei_record_id: "test_record_id"  
+            tdei_record_id: "test_record_id"
         };
 
         //Mock DB call
@@ -68,18 +68,18 @@ describe("OSW Integration Test", () => {
         //Act
         var eventBusService = new EventBusService();
         eventBusService.publishingTopic = mockPublishingTopic;
-        eventBusService.subscribeUpload();
+        eventBusService.subscribeUpload("temp-validation", "temp-validation-result");
 
         //Assert
         await expect(assertMessage()).resolves.toBeTruthy();
     }, 60000);
 
 
-     /**
-     * Environement dependency 
-     * AUTH_HOST
-     */
-     test("Verifying auth service hasPermission api integration", async () => {
+    /**
+    * Environement dependency 
+    * AUTH_HOST
+    */
+    test("Verifying auth service hasPermission api integration", async () => {
         //Pre-requisite environment dependency
         if (!process.env.AUTH_HOST) {
             console.error("AUTH_HOST environment not set");
@@ -102,11 +102,11 @@ describe("OSW Integration Test", () => {
     }, 15000);
 
 
-      /**
-     * Environement dependency 
-     * AUTH_HOST
-     */
-      test("Verifying auth service generate secret api integration", async () => {
+    /**
+   * Environement dependency 
+   * AUTH_HOST
+   */
+    test("Verifying auth service generate secret api integration", async () => {
         //Pre-requisite environment dependency
         if (!process.env.AUTH_HOST) {
             console.error("AUTH_HOST environment not set");
