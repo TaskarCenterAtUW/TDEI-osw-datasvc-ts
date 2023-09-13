@@ -5,11 +5,41 @@ import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/Osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { DuplicateException, InputException } from "../exceptions/http/http-exceptions";
+import { DuplicateException, InputException, FileTypeException } from "../exceptions/http/http-exceptions";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import { validate, ValidationError } from "class-validator";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
+import multer, { memoryStorage } from "multer";
+import { OswDTO } from "../model/osw-dto";
+import { OswUploadMeta } from "../model/osw-upload-meta";
+import storageService from "../service/storage-service";
+import path from "path";
+import { Readable } from "stream";
+import { tokenValidator } from "../middleware/token-validation-middleware";
+import { metajsonValidator } from "../middleware/json-validation-middleware";
+import { EventBusService } from "../service/event-bus-service";
+import validationMiddleware from "../middleware/dto-validation-middleware";
+
+/**
+  * Multer for multiple uploads
+  * Configured to pull to 'uploads' folder
+  * and buffer is available with the request
+  * File filter is added to ensure only files with .zip extension
+  * are allowed
+  */
+
+const upload = multer({
+    dest: 'uploads/',
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        if (ext != '.zip') {
+            cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
 
 class GtfsOSWController implements IController {
     public path = '/api/v1/osw';
@@ -18,10 +48,12 @@ class GtfsOSWController implements IController {
         this.intializeRoutes();
     }
 
+    eventBusService = new EventBusService();
+
     public intializeRoutes() {
         this.router.get(this.path, this.getAllOsw);
         this.router.get(`${this.path}/:id`, this.getOswById);
-        this.router.post(this.path, this.createOsw);
+        this.router.post(this.path, upload.single('file'), metajsonValidator, tokenValidator, this.createOsw);
         this.router.get(`${this.path}/versions/info`, this.getVersions);
     }
 
@@ -77,38 +109,56 @@ class GtfsOSWController implements IController {
         }
     }
 
+     /**
+      * Function to create record in the database and upload the gtfs-pathway files
+      * @param request 
+      * @param response 
+      * @param next 
+      * @returns 
+      */
+
     createOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            const osw = OswVersions.from(request.body);
+            console.log('Received upload request');
+            const meta = JSON.parse(request.body['meta']);
+            const userId = request.body.user_id;
+            // Validate the meta data
+            const oswdto = OswUploadMeta.from(meta);
+            const result = await validate(oswdto);
+            console.log('result', result);
+        
+            if(result.length != 0){
+                console.log('Metadata validation failed');
+                console.log(result);
+                // Need to send these as response
+                const message = result.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+                return response.status(400).send('Input validation failed with below reasons : \n' + message);
+            }
+            // Generate the files and upload them
+            const uid = storageService.generateRandomUUID(); // Fetches a random UUID for the record
+            const folderPath = storageService.getFolderPath(oswdto.tdei_org_id,uid);
+            const uploadedFile = request.file;
+            const uploadPath = path.join(folderPath,uploadedFile!.originalname)
+            const remoteUrl = await storageService.uploadFile(uploadPath,'application/zip',Readable.from(uploadedFile!.buffer))
+            // Upload the meta file  
+            const metaFilePath = path.join(folderPath,'meta.json');
+            const metaUrl = await storageService.uploadFile(metaFilePath,'text/json',oswdto.getStream());
+            // Insert into database
+            const osw = OswVersions.from(meta);
+            osw.tdei_record_id = uid;
+            osw.file_upload_path = remoteUrl;
+            osw.uploaded_by = userId;
+            const returnInfo = await oswService.createOsw(osw);
 
-            return validate(osw).then(async errors => {
-                // errors is an array of validation errors
-                if (errors.length > 0) {
-                    console.error('osw metadata information failed validation. errors: ', errors);
-                    const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
-                    response.status(400).send('Input validation failed with below reasons : \n' + message)
-                    next(new HttpException(400, 'Input validation failed with below reasons : \n' + message));
-                } else {
-                    return await oswService.createOsw(osw)
-                        .then(newOsw => {
-                            return Promise.resolve(response.status(200).send(newOsw));
-                        })
-                        .catch((error: any) => {
-                            if (error instanceof DuplicateException) {
-                                response.status(error.status).send(error.message)
-                                next(new HttpException(error.status, error.message));
-                            }
-                            else {
-                                response.status(500).send('Error saving the osw version')
-                                next(new HttpException(500, 'Error saving the osw version'));
-                            }
-                        });
-                }
-            });
+            // Publish to the topic
+            this.eventBusService.publishUpload(oswdto,uid,remoteUrl,userId,metaUrl);
+            // Also send the information to the queue
+            console.log('Responding to request');
+            return response.status(200).send(uid);
+
         } catch (error) {
-            console.error('Error saving the osw version', error);
-            response.status(500).send('Error saving the osw version')
-            next(new HttpException(500, "Error saving the osw version"));
+            console.error('Error saving the osw file', error);
+            response.status(500).send('Error saving the osw file');
         }
     }
 }
