@@ -110,7 +110,7 @@ class GtfsOSWController implements IController {
     }
 
      /**
-      * Function to create record in the database and upload the gtfs-pathway files
+      * Function to create record in the database and upload the gtfs-osw files
       * @param request 
       * @param response 
       * @param next 
