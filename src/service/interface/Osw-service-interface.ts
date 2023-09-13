@@ -16,7 +16,7 @@ export interface IOswService {
     getOswById(id: string): Promise<FileEntity>;
     /**
     * Creates new OSW in the TDEI system.
-    * @param pathwayInfo OSW object 
+    * @param oswInfo OSW object 
     */
     createOsw(oswInfo: OswVersions): Promise<OswDTO>;
 }
