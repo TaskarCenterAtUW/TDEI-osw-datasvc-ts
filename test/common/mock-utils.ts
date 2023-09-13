@@ -9,6 +9,7 @@ export function getMockFileEntity() {
         fileName: "test_file_name",
         mimeType: "csv",
         filePath: "test_file_path",
+        remoteUrl: "",
         getStream: function (): Promise<NodeJS.ReadableStream> {
             const mockedStream = new Readable();
             mockedStream._read = function () { /* do nothing */ };
