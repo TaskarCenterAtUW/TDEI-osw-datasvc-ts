@@ -1,4 +1,4 @@
-import { Pool, PoolClient, QueryConfig, QueryResult } from 'pg';
+import { Pool, QueryConfig, QueryResult } from 'pg';
 import { PostgresError } from '../constants/pg-error-constants';
 import { environment } from '../environment/environment';
 import UniqueKeyDbException, { ForeignKeyDbException } from '../exceptions/db/database-exceptions';
@@ -7,6 +7,8 @@ class DataSource {
     private pool: Pool = new Pool;
 
     constructor() {
+      // TODO document why this constructor is empty
+    
     }
 
     public initializaDatabase() {
@@ -20,7 +22,7 @@ class DataSource {
             port: environment.database.port
         });
 
-        this.pool.on('error', function (err: Error, _client: any) {
+        this.pool.on('error', function (err: Error) {
             console.log(`Idle-Client Error:\n${err.message}\n${err.stack}`)
         }).on('connect', () => {
             console.log("Database initialized successfully !");

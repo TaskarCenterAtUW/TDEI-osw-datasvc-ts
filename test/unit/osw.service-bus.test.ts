@@ -13,11 +13,11 @@ describe("Queue message service", () => {
     describe("Process Queue message", () => {
         describe("Functional", () => {
             test("When valid message received, Expect to process the message successfully", async () => {
-                let messagedProcessed: boolean = false;
+                let messagedProcessed = false;
                 //Arrange
                 mockQueueMessageContent(true);
 
-                var mockTopic: Topic = getMockTopic();
+                const mockTopic: Topic = getMockTopic();
                 mockTopic.publish = (message: QueueMessage): Promise<void> => {
                     messagedProcessed = message.data.response.success;
                     //Assert
@@ -28,10 +28,10 @@ describe("Queue message service", () => {
                 //Mock the topic
                 eventBusService.publishingTopic = mockTopic;
 
-                var dummyResponse = <OswDTO>{
+                const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
 
@@ -40,11 +40,11 @@ describe("Queue message service", () => {
             });
 
             test("When message with empty tdei_record_id received, Expect to fail the message processing", async () => {
-                let messagedProcessed: boolean = false;
+                let messagedProcessed = false;
                 //Arrange
                 mockQueueMessageContent(true);
 
-                var mockTopic: Topic = getMockTopic();
+                const mockTopic: Topic = getMockTopic();
                 mockTopic.publish = (message: QueueMessage): Promise<void> => {
                     messagedProcessed = message.data.response.success;
                     //Assert
@@ -55,14 +55,14 @@ describe("Queue message service", () => {
                 //Mock the topic
                 eventBusService.publishingTopic = mockTopic;
 
-                var dummyResponse = <OswDTO>{
+                const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
 
-                var message = TdeiObjectFaker.getOswQueueMessageSuccess();
+                const message = TdeiObjectFaker.getOswQueueMessageSuccess();
                 message.data.tdei_record_id = "";
                 //Act
                 await eventBusService['processUpload'](message);
@@ -72,8 +72,8 @@ describe("Queue message service", () => {
                 //Arrange
                 mockQueueMessageContent(true);
 
-                var mockTopic: Topic = getMockTopic();
-                mockTopic.publish = (message: QueueMessage): Promise<void> => {
+                const mockTopic: Topic = getMockTopic();
+                mockTopic.publish = (): Promise<void> => {
                     //Assert
                     expect(true).not.toBeCalled();
                     return Promise.resolve();
@@ -82,14 +82,14 @@ describe("Queue message service", () => {
                 //Mock the topic
                 eventBusService.publishingTopic = mockTopic;
 
-                var dummyResponse = <OswDTO>{
+                const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
 
-                var message = TdeiObjectFaker.getOswQueueMessageSuccess();
+                const message = TdeiObjectFaker.getOswQueueMessageSuccess();
                 message.data.response.success = false;
                 message.data.meta.isValid = false;
                 //Act
@@ -97,11 +97,11 @@ describe("Queue message service", () => {
             });
 
             test("When create osw database failed, Expect to fail the message processing", async () => {
-                let messagedProcessed: boolean = false;
+                let messagedProcessed = false;
                 //Arrange
                 mockQueueMessageContent(true);
 
-                var mockTopic: Topic = getMockTopic();
+                const mockTopic: Topic = getMockTopic();
                 mockTopic.publish = (message: QueueMessage): Promise<void> => {
                     messagedProcessed = message.data.response.success;
                     //Assert
@@ -112,7 +112,7 @@ describe("Queue message service", () => {
                 //Mock the topic
                 eventBusService.publishingTopic = mockTopic;
 
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockRejectedValueOnce(new Error("Database exception"));
 
@@ -121,11 +121,11 @@ describe("Queue message service", () => {
             });
 
             test("When permission denied, Expect to fail the message processing", async () => {
-                let messagedProcessed: boolean = false;
+                let messagedProcessed = false;
                 //Arrange
                 mockQueueMessageContent(false);
 
-                var mockTopic: Topic = getMockTopic();
+                const mockTopic: Topic = getMockTopic();
                 mockTopic.publish = (message: QueueMessage): Promise<void> => {
                     messagedProcessed = message.data.response.success;
                     //Assert
@@ -137,10 +137,10 @@ describe("Queue message service", () => {
                 //Mock the topic
                 eventBusService.publishingTopic = mockTopic;
 
-                var dummyResponse = <OswDTO>{
+                const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                const createOswSpy = jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
 

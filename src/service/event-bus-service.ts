@@ -23,26 +23,26 @@ export class EventBusService implements IEventBusServiceInterface {
 
     // function to handle messages
     private processUpload = async (messageReceived: any) => {
-        var tdeiRecordId = "";
+        let tdeiRecordId = "";
         try {
-            var queueMessage = QueueMessageContent.from(messageReceived.data);
+            const queueMessage = QueueMessageContent.from(messageReceived.data);
             tdeiRecordId = queueMessage.tdeiRecordId!;
 
             console.log("Received message for : ", queueMessage.tdeiRecordId, "Message received for osw processing !");
 
             if (!queueMessage.response.success || !queueMessage.meta.isValid) {
-                let errorMessage = "Received failed workflow request";
+                const errorMessage = "Received failed workflow request";
                 console.error(queueMessage.tdeiRecordId, errorMessage, messageReceived);
                 return Promise.resolve();
             }
 
             if (!await queueMessage.hasPermission(["tdei-admin", "poc", "osw_data_generator"])) {
-                let errorMessage = "Unauthorized request !";
+                const errorMessage = "Unauthorized request !";
                 console.error(queueMessage.tdeiRecordId, errorMessage);
                 throw Error(errorMessage);
             }
 
-            var oswVersions: OswVersions = OswVersions.from(queueMessage.request);
+            const oswVersions: OswVersions = OswVersions.from(queueMessage.request);
             oswVersions.tdei_record_id = queueMessage.tdeiRecordId;
             oswVersions.uploaded_by = queueMessage.userId;
             oswVersions.file_upload_path = queueMessage.meta.file_upload_path;
@@ -59,7 +59,7 @@ export class EventBusService implements IEventBusServiceInterface {
                         });
                     return Promise.resolve();
                 } else {
-                    oswService.createOsw(oswVersions).then(res => {
+                    oswService.createOsw(oswVersions).then(() => {
                         this.publish(messageReceived,
                             {
                                 success: true,
@@ -92,7 +92,7 @@ export class EventBusService implements IEventBusServiceInterface {
         success: boolean,
         message: string
     }) {
-        var queueMessageContent: QueueMessageContent = QueueMessageContent.from(queueMessage.data);
+        const queueMessageContent: QueueMessageContent = QueueMessageContent.from(queueMessage.data);
         //Set validation stage
         queueMessageContent.stage = 'osw-data-service';
         //Set response

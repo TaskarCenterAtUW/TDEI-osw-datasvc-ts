@@ -24,7 +24,7 @@ class GtfsOSWController implements IController {
 
     getAllOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            var params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
+            const params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
             const osw = await oswService.getAllOsw(params);
             response.status(200).send(osw);
         } catch (error) {
@@ -43,7 +43,7 @@ class GtfsOSWController implements IController {
     getOswById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            let fileEntity: FileEntity = await oswService.getOswById(request.params.id);
+            const fileEntity: FileEntity = await oswService.getOswById(request.params.id);
 
             response.header('Content-Type', fileEntity.mimeType);
             response.header('Content-disposition', `attachment; filename=${fileEntity.fileName}`);
@@ -63,7 +63,7 @@ class GtfsOSWController implements IController {
 
     createOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let osw = OswVersions.from(request.body);
+            const osw = OswVersions.from(request.body);
 
             return validate(osw).then(async errors => {
                 // errors is an array of validation errors

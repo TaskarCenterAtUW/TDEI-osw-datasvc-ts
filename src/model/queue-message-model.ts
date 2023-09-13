@@ -36,7 +36,7 @@ export class QueueMessageContent extends AbstractDomainEntity {
      */
     async hasPermission(roles: tdeiRoles[]): Promise<boolean> {
         try {
-            var permissionRequest = new PermissionRequest({
+            const permissionRequest = new PermissionRequest({
                 userId: this.userId,
                 orgId: this.orgId,
                 permssions: roles,

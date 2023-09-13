@@ -18,18 +18,18 @@ describe("OSW Service Test", () => {
         describe("Functional", () => {
             test("When requested with empty search filters, Expect to return OSW list", async () => {
                 //Arrange
-                var oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         oswObj
                     ]
                 };
-                const getAllOswSpy = jest
+                jest
                     .spyOn(dbClient, "query")
                     .mockResolvedValueOnce(dummyResponse);
-                var params: OswQueryParams = new OswQueryParams();
+                const params: OswQueryParams = new OswQueryParams();
                 //Act
-                var result = await oswService.getAllOsw(params);
+                const result = await oswService.getAllOsw(params);
                 //Assert
                 expect(Array.isArray(result));
                 expect(result.every(item => item instanceof OswDTO));
@@ -37,16 +37,16 @@ describe("OSW Service Test", () => {
 
             test("When requested with all search filters, expect to return OSW list", async () => {
                 //Arrange
-                var oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         oswObj
                     ]
                 };
-                const getAllOswSpy = jest
+               jest
                     .spyOn(dbClient, "query")
                     .mockResolvedValueOnce(dummyResponse);
-                var params: OswQueryParams = new OswQueryParams();
+                const params: OswQueryParams = new OswQueryParams();
                 params.page_no = 1;
                 params.page_size = 10;
                 params.date_time = "03-03-2023";
@@ -56,7 +56,7 @@ describe("OSW Service Test", () => {
                 params.osw_schema_version = "v0.1";
                 params.bbox = [1, 2, 3, 4]
                 //Act
-                var result = await oswService.getAllOsw(params);
+                const result = await oswService.getAllOsw(params);
                 //Assert
                 expect(Array.isArray(result));
                 expect(result.every(item => item instanceof OswDTO));
@@ -64,16 +64,16 @@ describe("OSW Service Test", () => {
 
             test("When requested with invalid date search filter, Expect to throw InputException", async () => {
                 //Arrange
-                var oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         oswObj
                     ]
                 };
-                const getAllOswSpy = jest
+                jest
                     .spyOn(dbClient, "query")
                     .mockResolvedValueOnce(dummyResponse);
-                var params: OswQueryParams = new OswQueryParams();
+                const params: OswQueryParams = new OswQueryParams();
                 params.page_no = 1;
                 params.page_size = 10;
                 params.date_time = "13-13-2023";
@@ -89,16 +89,16 @@ describe("OSW Service Test", () => {
 
             test("When requested with invalid bbox search filter, Expect to throw InputException", async () => {
                 //Arrange
-                var oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         oswObj
                     ]
                 };
-                const getAllOswSpy = jest
+                 jest
                     .spyOn(dbClient, "query")
                     .mockResolvedValueOnce(dummyResponse);
-                var params: OswQueryParams = new OswQueryParams();
+                const params: OswQueryParams = new OswQueryParams();
                 params.page_no = 1;
                 params.page_size = 10;
                 params.date_time = "03-03-2023";
@@ -118,7 +118,6 @@ describe("OSW Service Test", () => {
         describe("Functional", () => {
             test("When requested for get OSW version by tdei_record_id, Expect to return FileEntity object", async () => {
                 //Arrange
-                var oswObj = TdeiObjectFaker.getOswVersionFromDB();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         {
@@ -132,14 +131,13 @@ describe("OSW Service Test", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                var result = await oswService.getOswById("tdei_record_id");
+                const result = await oswService.getOswById("tdei_record_id");
                 //Assert
                 expect(result instanceof FileEntity);
             });
 
             test("When requested for get OSW version with invalid tdei_record_id, Expect to throw HttpException", async () => {
                 //Arrange
-                var oswObj = TdeiObjectFaker.getOswVersionFromDB();
                 const dummyResponse = <QueryResult<any>><unknown>{
                     rows: [],
                     rowCount: 0
@@ -156,7 +154,6 @@ describe("OSW Service Test", () => {
 
             test("When Core failed obtaing storage client, Expect to throw error", async () => {
                 //Arrange
-                var oswObj = TdeiObjectFaker.getOswVersionFromDB();
                 const dummyResponse = <QueryResult<any>><unknown>{
                     rows: [
                         {
@@ -183,7 +180,7 @@ describe("OSW Service Test", () => {
         describe("Functional", () => {
             test("When requested for creating OSW version with valid input, Expect to return OswDTO object", async () => {
                 //Arrange
-                var oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
+                const oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
 
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
@@ -195,21 +192,14 @@ describe("OSW Service Test", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                var result = await oswService.createOsw(oswObj);
+                const result = await oswService.createOsw(oswObj);
                 //Assert
                 expect(result instanceof OswDTO);
             });
 
             test("When database exception with duplicate tdei_org_id occured while processing request, Expect to throw DuplicateException", async () => {
                 //Arrange
-                var oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
-
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-
+                const oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
                 jest.spyOn(dbClient, "query")
                     .mockRejectedValueOnce(new UniqueKeyDbException("Unique contraint error"));
 
@@ -220,13 +210,7 @@ describe("OSW Service Test", () => {
 
             test("When database exception occured while processing request, Expect to throw error", async () => {
                 //Arrange
-                var oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
-
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
+                const oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
 
                 jest.spyOn(dbClient, "query")
                     .mockRejectedValueOnce(new Error("Unknown Error"));

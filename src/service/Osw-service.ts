@@ -13,24 +13,26 @@ import { IOswService } from "./interface/Osw-service-interface";
 
 class OswService implements IOswService {
     constructor() {
+      // TODO document why this constructor is empty
+    
     }
 
     async getAllOsw(params: OswQueryParams): Promise<OswDTO[]> {
         //Builds the query object. All the query consitions can be build in getQueryObject()
-        let queryObject = params.getQueryObject();
+        const queryObject = params.getQueryObject();
 
-        let queryConfig = <QueryConfig>{
+        const queryConfig = <QueryConfig>{
             text: queryObject.getQuery(),
             values: queryObject.getValues()
         }
 
-        let result = await dbClient.query(queryConfig);
+        const result = await dbClient.query(queryConfig);
 
-        let list: OswDTO[] = [];
+        const list: OswDTO[] = [];
         result.rows.forEach(x => {
-            let osw = OswDTO.from(x);
+            const osw = OswDTO.from(x);
             if (osw.polygon) {
-                var polygon = JSON.parse(x.polygon2) as Geometry;
+                const polygon = JSON.parse(x.polygon2) as Geometry;
                 osw.polygon = {
                     type: "FeatureCollection",
                     features: [
@@ -53,14 +55,14 @@ class OswService implements IOswService {
             values: [id],
         }
 
-        let osw = await dbClient.query(query);
+        const osw = await dbClient.query(query);
 
         if (osw.rowCount == 0)
             throw new HttpException(404, "File not found");
 
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
-        let url: string = decodeURIComponent(osw.rows[0].file_upload_path);
+        const url: string = decodeURIComponent(osw.rows[0].file_upload_path);
         return storageClient.getFileFromUrl(url);
     }
 
@@ -70,7 +72,7 @@ class OswService implements IOswService {
 
             await dbClient.query(oswInfo.getInsertQuery());
 
-            let osw = OswDTO.from(oswInfo);
+            const osw = OswDTO.from(oswInfo);
             return Promise.resolve(osw);
         } catch (error) {
 

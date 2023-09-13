@@ -13,11 +13,11 @@ export class OswQueryParams {
     @IsOptional()
     tdei_record_id: string | undefined;
     @IsOptional()
-    confidence_level: number = 0;
+    confidence_level = 0;
     @IsOptional()
-    page_no: number = 1;
+    page_no = 1;
     @IsOptional()
-    page_size: number = 10;
+    page_size = 10;
     @IsOptional()
     @IsArray()
     @ArrayMinSize(4)
@@ -33,7 +33,7 @@ export class OswQueryParams {
    * @returns DynamicQueryObject
    */
     getQueryObject() {
-        let queryObject: DynamicQueryObject = new DynamicQueryObject();
+        const queryObject: DynamicQueryObject = new DynamicQueryObject();
         queryObject.buildSelect("osw_versions", ["ST_AsGeoJSON(polygon) as polygon2, *"]);
         queryObject.buildPagination(this.page_no, this.page_size);
         queryObject.buildOrder("uploaded_date", SqlORder.DESC);
