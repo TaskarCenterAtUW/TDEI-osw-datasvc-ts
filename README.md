@@ -137,3 +137,141 @@ For running integration test, following env variables are required.
 |VALIDATION_SUBSCRIPTION | Upload topic subscription name|
 |VALIDATION_TOPIC | Validation topic name|
 |DATASVC_TOPIC | Data service publishing topic|
+
+## File upload implementation
+
+The file upload implementation is done as per the existing upload API.
+
+Path : `/api/v1/osw`
+
+Method : `POST`
+
+Form data : Contains two parts
+
+`meta`: Payload in JSON format 
+
+`file`: The zip file for flex
+
+Example for meta 
+
+```json
+
+{
+  "tdei_org_id": "4e991e7a-5c16-4ebf-ad31-3a3625bcca10",
+  "collected_by": "See best practices document",
+  "collection_date": "2018-02-10T09:30Z",
+  "collection_method": "manual",
+  "publication_date": "2023-03-02T04:22:42.493Z",
+  "data_source": "3rdParty",
+  "polygon": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "id": "string",
+        "properties": {},
+        "geometry": {
+          "type": "string",
+          "coordinates": [
+            [
+              [
+                77.58700584031209,
+                12.97544246408998
+              ],
+              [
+                77.58670678771239,
+                12.974635462667848
+              ],
+              [
+                77.58782248394829,
+                12.974489753799247
+              ],
+              [
+                77.58813303857153,
+                12.97529675569426
+              ],
+              [
+                77.58700584031209,
+                12.97544246408998
+              ]]]
+          
+        }
+      }
+    ]
+  },
+  "osw_schema_version": "v0.1"
+}
+
+```
+## Execution of flow
+
+The flow of processing is as follows
+1. Middleware auth verification
+2. File format verification
+3. Meta validation of upload
+4. Generating random UID (recordID)
+5. Uploading to Storage (with path)
+6. Assigning path, recordID and creating DTO 
+7. Verifying the serviceID against orgID and inserting into the Database
+8. Responding with recordID
+
+### 1. Middleware for auth verification
+- This step verifies the `Bearer` token for userID and also parses the `userId` from the header.
+- The `userID` is inserted into body as `body.userId` for further processing
+- The userId is checked for authentication to upload against the auth URL.
+
+Any error in this is dealt with a 401 Unauthorized error
+
+### 2. File format verification
+This middleware verifies that the uploaded file is in `.zip` extension and reponds with 400 bad request if the file is not a zip file
+
+### 3. Meta validation
+The `meta` body is parsed and is validated according to the initial validation conditions Any error is responded back with 500 error with the message
+
+<!-- ### 4&5. Generating randomUID and upload
+
+Random UUID is generated which will be assigned as `tdei_record_id`. The uploaded file is transferred to storage with path. The path for storage is
+`yyyy/mm/<tdeiorgid>/<tdeirecordID>`
+
+Eg.
+- tdeiOrgID - abc
+- tdeiRecordId - def
+
+Uploaded on 23rd August  2023 will be stored in (if the file name is `attrib.zip`)
+
+`2023/08/abc/def/attrib.zip` -->
+
+### 6&7: Assigning the path and record id and inserting into DB
+An initial DTO (Data object) is created with the meta data along with the uploaded path, userID and the record ID. There is a check made to ensure the serviceId belongs to the organization. After the verification, the data is inserted into the DB. Queuemessage for upload is also scheduled here.
+
+### 8:Response
+The recordID generated in step 4 is sent back as response to the user.
+
+
+## Steps to run local database
+
+To run the local database setup, you will have to bring up the `postgresql` server separately in a docker
+
+### Bring up the db server and pgadmin tool
+
+`docker compose up` 
+
+The above command will invoke and bring up two dockers running as a single group
+- postgresql with gis
+- pgadmin tool for GUI
+
+### Add local server in pgadmin tool
+- go to http://localhost:5000 and add server with the following parameters
+
+- server name : Local
+- host: postgres
+- user: POSTGRES_USER in .env file
+- password: POSTGRES_PASSWROD in .env file
+
+### Import gtfs-flex database structure
+- In the sql query tool of the gtfs-flex database, execute the query available in `src/scripts/init.sql`
+
+The database is ready to be connected to the service
+
+### Edit the host in .env file
+In the `.env` file, `POSTGRES_HOST=localhost` and run the service with `npm run start`
