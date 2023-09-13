@@ -31,7 +31,7 @@ class StorageService {
      * @param filePath File path of the file
      * @param type mimetype of the file
      * @param body Readable stream of the body
-     * @param containerName Name of the container. defaults to gtfs-flex
+     * @param containerName Name of the container. defaults to gtfs-osw
      */
     async uploadFile(filePath:string, type:string = 'application/zip' ,body:NodeJS.ReadableStream, containerName:string = 'osw'){
         const client = Core.getStorageClient();

@@ -150,7 +150,7 @@ Form data : Contains two parts
 
 `meta`: Payload in JSON format 
 
-`file`: The zip file for flex
+`file`: The zip file for osw
 
 Example for meta 
 
@@ -268,8 +268,8 @@ The above command will invoke and bring up two dockers running as a single group
 - user: POSTGRES_USER in .env file
 - password: POSTGRES_PASSWROD in .env file
 
-### Import gtfs-flex database structure
-- In the sql query tool of the gtfs-flex database, execute the query available in `src/scripts/init.sql`
+### Import gtfs-osw database structure
+- In the sql query tool of the gtfs-osw database, execute the query available in `src/scripts/init.sql`
 
 The database is ready to be connected to the service
 

@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.osw_versions
     valid_from timestamp without time zone NOT NULL,
     valid_to timestamp without time zone NOT NULL,
     data_source character varying COLLATE pg_catalog."default" NOT NULL,
-    flex_schema_version character varying COLLATE pg_catalog."default" NOT NULL,
+    osw_schema_version character varying COLLATE pg_catalog."default" NOT NULL,
     uploaded_date timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     polygon geometry,
     CONSTRAINT "PK_7e3d24ec6024b551e5612baae54" PRIMARY KEY (id),
@@ -47,6 +47,6 @@ ALTER TABLE IF EXISTS public.osw_versions
 -- DROP INDEX IF EXISTS public.polygon_geom_idx;
 
 CREATE INDEX IF NOT EXISTS polygon_geom_idx
-    ON public.flex_versions USING gist
+    ON public.osw_versions USING gist
     (polygon)
     TABLESPACE pg_default;

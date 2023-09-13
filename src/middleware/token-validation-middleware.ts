@@ -43,7 +43,7 @@ export async function tokenValidator(req: Request, res: Response, next: NextFunc
         const orgId = meta['tdei_org_id'];
         // Also check for the authorization of the user 
         // Needs to be authorized with tdeiOrgId, and should have any 
-        // of the `flex_data_generator`, `poc`, `tdei_admin` 
+        // of the `osw_data_generator`, `poc`, `tdei_admin` 
         // this is to be done against the userID
         const authProvider = Core.getAuthorizer({ provider: "Hosted", apiUrl: environment.authPermissionUrl });
         const permissionRequest = new PermissionRequest({
