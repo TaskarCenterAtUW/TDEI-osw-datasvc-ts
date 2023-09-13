@@ -11,7 +11,8 @@ export const environment = {
         connectionString: process.env.QUEUECONNECTION,
         validationTopic: process.env.VALIDATION_TOPIC,
         dataServiceTopic: process.env.DATASVC_TOPIC,
-        validationSubscription: process.env.VALIDATION_SUBSCRIPTION
+        validationSubscription: process.env.VALIDATION_SUBSCRIPTION,
+        uploadTopic:process.env.UPLOAD_TOPIC
     },
     database: {
         username: process.env.POSTGRES_USER,
