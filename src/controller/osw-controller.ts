@@ -27,7 +27,7 @@ class GtfsOSWController implements IController {
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
         let versionsList = new Versions([{
-            documentation: environment.getewayUrl as string,
+            documentation: environment.gatewayUrl as string,
             specification: "https://github.com/OpenSidewalks/OpenSidewalks-Schema",
             version: "v0.1"
         }]);
