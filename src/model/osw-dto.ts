@@ -19,11 +19,13 @@ export class OswDTO extends AbstractDomainEntity {
     // @Prop()
     // valid_to!: Date;
     @Prop()
-    publication_date!:Date;
+    publication_date!: Date;
     @Prop()
     data_source!: string;
     @Prop()
     osw_schema_version!: string;
     @Prop()
     polygon: FeatureCollection | undefined;
+    @Prop()
+    download_url!: string;
 }
