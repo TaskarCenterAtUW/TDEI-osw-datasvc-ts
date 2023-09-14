@@ -136,7 +136,7 @@ describe("OSW Controller Test", () => {
                 const dummyResponse = <OswDTO>{
                     tdei_record_id: "test_record_id"
                 };
-                 jest
+                jest
                     .spyOn(oswService, "createOsw")
                     .mockResolvedValueOnce(dummyResponse);
                 //Act
@@ -208,6 +208,21 @@ describe("OSW Controller Test", () => {
                 //Assert
                 expect(createOswSpy).toHaveBeenCalledTimes(1);
                 expect(res.status).toBeCalledWith(400);
+            });
+        });
+    });
+
+    describe("Get Version list", () => {
+        describe("Functional", () => {
+
+            test("When requested version info, Expect to return HTTP status 200", async () => {
+                //Arrange
+                let req = getMockReq();
+                const { res, next } = getMockRes();
+                //Act
+                await oswController.getVersions(req, res, next);
+                //Assert
+                expect(res.status).toHaveBeenCalledWith(200);
             });
         });
     });

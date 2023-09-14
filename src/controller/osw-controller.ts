@@ -8,6 +8,8 @@ import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException, InputException } from "../exceptions/http/http-exceptions";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import { validate, ValidationError } from "class-validator";
+import { Versions } from "../model/versions-dto";
+import { environment } from "../environment/environment";
 
 class GtfsOSWController implements IController {
     public path = '/api/v1/osw';
@@ -20,12 +22,26 @@ class GtfsOSWController implements IController {
         this.router.get(this.path, this.getAllOsw);
         this.router.get(`${this.path}/:id`, this.getOswById);
         this.router.post(this.path, this.createOsw);
+        this.router.get(`${this.path}/versions/info`, this.getVersions);
+    }
+
+    getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
+        let versionsList = new Versions([{
+            documentation: environment.getewayUrl as string,
+            specification: "https://github.com/OpenSidewalks/OpenSidewalks-Schema",
+            version: "v0.1"
+        }]);
+
+        response.status(200).send(versionsList);
     }
 
     getAllOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             const params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
             const osw = await oswService.getAllOsw(params);
+            osw.forEach(x => {
+                x.download_url = `${this.path}/${x.tdei_record_id}`;
+            });
             response.status(200).send(osw);
         } catch (error) {
             console.error(error);
