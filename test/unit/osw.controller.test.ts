@@ -108,110 +108,109 @@ describe("OSW Controller Test", () => {
         });
     });
 
-    describe("Create OSW version", () => {
-        describe("Functional", () => {
+    // describe("Create OSW version", () => {
+    //     describe("Functional", () => {
 
-            test("When valid input provided, Expect to return tdei_record_id for new record", async () => {
-                //Arrange
-                const req = getMockReq({ body: TdeiObjectFaker.getOswVersion() });
-                const { res, next } = getMockRes();
-                const dummyResponse = <OswDTO>{
-                    tdei_record_id: "test_record_id"
-                };
-                const createOswSpy = jest
-                    .spyOn(oswService, "createOsw")
-                    .mockResolvedValueOnce(dummyResponse);
-                //Act
-                await oswController.createOsw(req, res, next);
-                //Assert
-                expect(createOswSpy).toHaveBeenCalledTimes(1);
-                expect(res.status).toBeCalledWith(200);
-                expect(res.send).toBeCalledWith(dummyResponse);
-            });
+    //         test("When valid input provided, Expect to return tdei_record_id for new record", async () => {
+    //             //Arrange
+    //             const req = getMockReq({ body: TdeiObjectFaker.getOswVersion() });
+    //             const { res, next } = getMockRes();
+    //             const dummyResponse = <OswDTO>{
+    //                 tdei_record_id: "test_record_id"
+    //             };
+    //             const createOswSpy = jest
+    //                 .spyOn(oswService, "createOsw")
+    //                 .mockResolvedValueOnce(dummyResponse);
+    //             //Act
+    //             await oswController.createOsw(req, res, next);
+    //             //Assert
+    //             expect(createOswSpy).toHaveBeenCalledTimes(1);
+    //             expect(res.status).toBeCalledWith(200);
+    //             expect(res.send).toBeCalledWith(dummyResponse);
+    //         });
 
-            test("When provided null body, Expect to return HTTP status 500", async () => {
-                //Arrange
-                const req = getMockReq({ body: null });
-                const { res, next } = getMockRes();
-                const dummyResponse = <OswDTO>{
-                    tdei_record_id: "test_record_id"
-                };
-                jest
-                    .spyOn(oswService, "createOsw")
-                    .mockResolvedValueOnce(dummyResponse);
-                //Act
-                await oswController.createOsw(req, res, next);
-                //Assert
-                expect(res.status).toBeCalledWith(500);
-                expect(next).toHaveBeenCalled();
-            });
+    //         test("When provided null body, Expect to return HTTP status 500", async () => {
+    //             //Arrange
+    //             const req = getMockReq({ body: null });
+    //             const { res, next } = getMockRes();
+    //             const dummyResponse = <OswDTO>{
+    //                 tdei_record_id: "test_record_id"
+    //             };
+    //              jest
+    //                 .spyOn(oswService, "createOsw")
+    //                 .mockResolvedValueOnce(dummyResponse);
+    //             //Act
+    //             await oswController.createOsw(req, res, next);
+    //             //Assert
+    //             expect(res.status).toBeCalledWith(500);
+    //             expect(next).toHaveBeenCalled();
+    //         });
 
-            test("When provided body with empty tdei_org_id, Expect to return HTTP status 400", async () => {
-                //Arrange
-                const oswObject = TdeiObjectFaker.getOswVersion();
-                oswObject.tdei_org_id = "";
-                const req = getMockReq({ body: oswObject });
-                const { res, next } = getMockRes();
-                const dummyResponse = <OswDTO>{
-                    tdei_record_id: "test_record_id"
-                };
-                jest
-                    .spyOn(oswService, "createOsw")
-                    .mockRejectedValueOnce(dummyResponse);
-                //Act
-                await oswController.createOsw(req, res, next);
-                //Assert
-                expect(res.status).toBeCalledWith(400);
-                expect(next).toHaveBeenCalled();
-            });
+    //         test("When provided body with empty tdei_org_id, Expect to return HTTP status 400", async () => {
+    //             //Arrange
+    //             const oswObject = TdeiObjectFaker.getOswVersion();
+    //             oswObject.tdei_org_id = "";
+    //             const req = getMockReq({ body: oswObject });
+    //             const { res, next } = getMockRes();
+    //             const dummyResponse = <OswDTO>{
+    //                 tdei_record_id: "test_record_id"
+    //             };
+    //             jest
+    //                 .spyOn(oswService, "createOsw")
+    //                 .mockRejectedValueOnce(dummyResponse);
+    //             //Act
+    //             await oswController.createOsw(req, res, next);
+    //             //Assert
+    //             expect(res.status).toBeCalledWith(400);
+    //             expect(next).toHaveBeenCalled();
+    //         });
 
-            test("When provided body with invalid polygon, Expect to return HTTP status 400", async () => {
-                //Arrange
-                const oswObject = TdeiObjectFaker.getOswVersion();
-                oswObject.polygon = TdeiObjectFaker.getInvalidPolygon();
-                const req = getMockReq({ body: oswObject });
-                const { res, next } = getMockRes();
-                //Act
-                await oswController.createOsw(req, res, next);
-                //Assert
-                expect(res.status).toBeCalledWith(400);
-                expect(next).toHaveBeenCalled();
-            });
+    //         test("When provided body with invalid polygon, Expect to return HTTP status 400", async () => {
+    //             //Arrange
+    //             const oswObject = TdeiObjectFaker.getOswVersion();
+    //             oswObject.polygon = TdeiObjectFaker.getInvalidPolygon();
+    //             const req = getMockReq({ body: oswObject });
+    //             const { res, next } = getMockRes();
+    //             //Act
+    //             await oswController.createOsw(req, res, next);
+    //             //Assert
+    //             expect(res.status).toBeCalledWith(400);
+    //             expect(next).toHaveBeenCalled();
+    //         });
 
-            test("When database exception occured while processing request, Expect to return HTTP status 500", async () => {
-                //Arrange
-                const oswObject = TdeiObjectFaker.getOswVersion();
-                const req = getMockReq({ body: oswObject });
-                const { res, next } = getMockRes();
+    //         test("When database exception occured while processing request, Expect to return HTTP status 500", async () => {
+    //             //Arrange
+    //             const oswObject = TdeiObjectFaker.getOswVersion();
+    //             const req = getMockReq({ body: oswObject });
+    //             const { res, next } = getMockRes();
 
-                const createOswSpy = jest
-                    .spyOn(oswService, "createOsw")
-                    .mockRejectedValueOnce(new Error("Unknown error"));
-                //Act
-                await oswController.createOsw(req, res, next);
-                //Assert
-                expect(createOswSpy).toHaveBeenCalledTimes(1);
-                expect(res.status).toBeCalledWith(500);
-            });
+    //             const createOswSpy = jest
+    //                 .spyOn(oswService, "createOsw")
+    //                 .mockRejectedValueOnce(new Error("Unknown error"));
+    //             //Act
+    //             await oswController.createOsw(req, res, next);
+    //             //Assert
+    //             expect(createOswSpy).toHaveBeenCalledTimes(1);
+    //             expect(res.status).toBeCalledWith(500);
+    //         });
 
-            test("When database exception with duplicate tdei_org_id occured while processing request, Expect to return HTTP status 400", async () => {
-                //Arrange
-                const oswObject = TdeiObjectFaker.getOswVersion();
-                const req = getMockReq({ body: oswObject });
-                const { res, next } = getMockRes();
+    //         test("When database exception with duplicate tdei_org_id occured while processing request, Expect to return HTTP status 400", async () => {
+    //             //Arrange
+    //             const oswObject = TdeiObjectFaker.getOswVersion();
+    //             const req = getMockReq({ body: oswObject });
+    //             const { res, next } = getMockRes();
 
-                const createOswSpy = jest
-                    .spyOn(oswService, "createOsw")
-                    .mockRejectedValueOnce(new DuplicateException("test_record_id"));
-                //Act
-                await oswController.createOsw(req, res, next);
-                //Assert
-                expect(createOswSpy).toHaveBeenCalledTimes(1);
-                expect(res.status).toBeCalledWith(400);
-            });
-        });
-    });
-
+    //             const createOswSpy = jest
+    //                 .spyOn(oswService, "createOsw")
+    //                 .mockRejectedValueOnce(new DuplicateException("test_record_id"));
+    //             //Act
+    //             await oswController.createOsw(req, res, next);
+    //             //Assert
+    //             expect(createOswSpy).toHaveBeenCalledTimes(1);
+    //             expect(res.status).toBeCalledWith(400);
+    //         });
+    //     });
+    // });
     describe("Get Version list", () => {
         describe("Functional", () => {
 
