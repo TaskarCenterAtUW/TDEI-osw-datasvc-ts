@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS public.osw_versions
     tdei_record_id character varying COLLATE pg_catalog."default" NOT NULL,
     confidence_level integer DEFAULT 0,
     tdei_org_id character varying COLLATE pg_catalog."default" NOT NULL,
-    tdei_service_id character varying COLLATE pg_catalog."default" NOT NULL,
     file_upload_path character varying COLLATE pg_catalog."default" NOT NULL,
     uploaded_by character varying COLLATE pg_catalog."default" NOT NULL,
     collected_by character varying COLLATE pg_catalog."default" NOT NULL,
