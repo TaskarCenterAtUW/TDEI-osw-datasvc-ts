@@ -158,11 +158,9 @@ class GtfsOSWController implements IController {
 
         } catch (error) {
             console.error('Error saving the osw file', error);
-            if (error instanceof HttpException)
-            {
+            if (error instanceof HttpException) {
                 next(error)
-            }
-            else {
+            } else {
                 response.status(500).send('Error saving the osw file');
             }
         }
