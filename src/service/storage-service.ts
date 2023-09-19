@@ -38,11 +38,6 @@ class StorageService {
         const container = await client?.getContainer(containerName);
         const file = container?.createFile(filePath, type);
         const uploadedEntity = await file?.upload(body);
-        // need to get the full path here and return
-        // console.log('File path',uploadedEntity!.filePath);
-        // console.log('File name',uploadedEntity?.fileName);
-        // const otherEntity = await client?.getFile(containerName,uploadedEntity!.filePath);
-        // console.log(otherEntity?.filePath);
         return uploadedEntity!.remoteUrl; 
     }
 }
