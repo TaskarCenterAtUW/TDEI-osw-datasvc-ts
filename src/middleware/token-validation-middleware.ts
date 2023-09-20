@@ -31,11 +31,13 @@ export async function tokenValidator(req: Request, res: Response, next: NextFunc
         const bearer = bearerHeader!.replace(/^Bearer\s/, '');
         if (bearer === '' || bearer === undefined) {
             next(new UnAuthenticated());
+            return
         }
         // Decode the token
         const jwtOutput = jwt.decode(bearer);
         if (jwtOutput == null) {
             next(new UnAuthenticated());
+            return
         }
         const user_id = jwtOutput?.sub;
 
