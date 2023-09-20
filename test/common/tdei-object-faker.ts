@@ -1,4 +1,5 @@
 import { FeatureCollection } from "geojson";
+import { Readable } from "stream";
 import { OswVersions } from "../../src/database/entity/osw-version-entity";
 import oswValidationSuccessMessage from "../test-data/osw-validation-success.message.json";
 
@@ -109,4 +110,21 @@ export class TdeiObjectFaker {
     static getOswQueueMessageSuccess() {
         return oswValidationSuccessMessage;
     }
+
+
+    static getMockUploadFile() {
+        return {
+            originalname:'sample.zip',
+            mimetype:'application/zip',
+            path:'sample/path/to.zip',
+            buffer:Buffer.from('sample-buffer'),
+            fieldname:'file',
+            filename:'sample.zip',
+            size:100,
+            stream:Readable.from(''),
+            encoding:'',
+            destination:''
+        };
+    }
+
 }
