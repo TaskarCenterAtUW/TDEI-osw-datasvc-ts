@@ -160,8 +160,6 @@ export class TdeiObjectFaker {
     }
 
 
-
-
     static getMockUploadFile() {
         return {
             originalname:'sample.zip',
