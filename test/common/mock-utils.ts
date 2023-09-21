@@ -1,8 +1,11 @@
 import { Core } from "nodets-ms-core"
+import { IAuthorizer } from "nodets-ms-core/lib/core/auth/abstracts/IAuthorizer";
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { FileEntity, StorageClient, StorageContainer } from "nodets-ms-core/lib/core/storage"
 import { Readable } from "stream"
 import { QueueMessageContent } from "../../src/model/queue-message-model";
+import { NextFunction, Request, Response } from "express";
+
 
 export function getMockFileEntity() {
     const fileEntity: FileEntity = {
@@ -62,6 +65,21 @@ export function getMockTopic() {
     return mockTopic;
 }
 
+export function getMockAuthorizer(result:boolean) {
+    const authorizor: IAuthorizer = {
+        hasPermission(permissionRequest) {
+            return Promise.resolve(result);
+        },
+    }
+    return authorizor;
+}
+
+export function mockCoreAuth(result:boolean){
+    jest.spyOn(Core,'getAuthorizer').mockImplementation(()=> {return getMockAuthorizer(result);})
+
+}
+
+
 export function mockCore() {
     jest.spyOn(Core, "initialize");
     jest.spyOn(Core, "getStorageClient").mockImplementation(() => { return getMockStorageClient(); });
@@ -82,4 +100,33 @@ export function mockQueueMessageContent(permissionResolve = true) {
             });
             return test;
         });
+}
+
+
+export function mockMulter() {
+    jest.mock('multer', ()=>{
+        const multer = () =>({
+            any:() =>{
+                return (req:Request,res:Response,next:NextFunction)=>{
+                    req.body.user_id ='sample-user';
+                    req.file = {
+                        originalname:'sample.zip',
+                        mimetype:'application/zip',
+                        path:'sample/path/to.zip',
+                        buffer:Buffer.from('sample-buffer'),
+                        fieldname:'file',
+                        filename:'sample.zip',
+                        size:100,
+                        stream:Readable.from(''),
+                        encoding:'',
+                        destination:''
+                    }
+
+                    return next()
+                }
+            }
+        })
+        multer.memoryStorage = () => jest.fn()
+        return multer
+    })
 }

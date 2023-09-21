@@ -24,6 +24,11 @@ export class FileTypeException extends HttpException{
     }
 }
 
+export class OverlapException extends HttpException {
+    constructor(name:string){
+        super(400,`Given record overlaps with tdeirecord ${name} in the system.`);
+    }
+}
 
 export class UserNotFoundException extends HttpException {
     constructor(name: string) {

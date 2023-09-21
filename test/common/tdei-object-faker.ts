@@ -1,4 +1,5 @@
 import { FeatureCollection } from "geojson";
+import { Readable } from "stream";
 import { OswVersions } from "../../src/database/entity/osw-version-entity";
 import oswValidationSuccessMessage from "../test-data/osw-validation-success.message.json";
 
@@ -109,4 +110,69 @@ export class TdeiObjectFaker {
     static getOswQueueMessageSuccess() {
         return oswValidationSuccessMessage;
     }
+
+    static getOswPayload2(){
+        return {
+            "tdei_org_id": "e1956869-02d9-4e14-8391-6024406ced41",
+            "collected_by": "testuser",
+            "collection_date": "2023-03-02T04:22:42.493Z",
+            "collection_method": "manual",
+            "publication_date": "2023-03-02T04:22:42.493Z",
+            "data_source": "TDEITools",
+            "polygon": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {},
+              "geometry": {
+                "coordinates": [
+                  [
+                    [
+                      -122.32615394375401,
+                      47.61267259760652
+                    ],
+                    [
+                      -122.32615394375401,
+                      47.60504395643625
+                    ],
+                    [
+                      -122.3155850364906,
+                      47.60504395643625
+                    ],
+                    [
+                      -122.3155850364906,
+                      47.61267259760652
+                    ],
+                    [
+                      -122.32615394375401,
+                      47.61267259760652
+                    ]
+                  ]
+                ],
+                "type": "Polygon"
+              }
+            }
+          ]
+        },
+            "osw_schema_version": "v2.0"
+          }
+    }
+
+
+    static getMockUploadFile() {
+        return {
+            originalname:'sample.zip',
+            mimetype:'application/zip',
+            path:'sample/path/to.zip',
+            buffer:Buffer.from('sample-buffer'),
+            fieldname:'file',
+            filename:'sample.zip',
+            size:100,
+            stream:Readable.from(''),
+            encoding:'',
+            destination:''
+        };
+    }
+
 }
