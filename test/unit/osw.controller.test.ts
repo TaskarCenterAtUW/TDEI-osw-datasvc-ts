@@ -143,7 +143,7 @@ describe("OSW Controller Test", () => {
 
             await oswController.createOsw(req,res,next)
             expect(createOswSpy).toHaveBeenCalledTimes(1);
-            expect(res.status).toBeCalledWith(200);
+            expect(res.status).toBeCalledWith(202);
         })
 
         test('When invalid meta is provided, expect to return 400 error', async ()=>{
