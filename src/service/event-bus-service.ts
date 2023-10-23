@@ -63,22 +63,13 @@ export class EventBusService implements IEventBusServiceInterface {
                         });
                     return Promise.resolve();
                 } else {
-                    oswService.createOsw(oswVersions).then(() => {
-                        this.publish(messageReceived,
-                            {
-                                success: true,
-                                message: 'OSW request processed successfully !'
-                            });
-                        return Promise.resolve();
-                    }).catch((error: any) => {
-                        console.error('Error saving the osw version', error);
-                        this.publish(messageReceived,
-                            {
-                                success: false,
-                                message: 'Error occured while processing osw request' + error
-                            });
-                        return Promise.resolve();
-                    });
+                    // Publish request successful.
+                    this.publish(messageReceived,
+                        {
+                            success: true,
+                            message: 'OSW request processed successfully !'
+                        });
+                    return Promise.resolve();
                 }
             });
         } catch (error) {
