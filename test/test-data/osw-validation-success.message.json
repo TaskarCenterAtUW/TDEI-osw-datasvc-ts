@@ -1,8 +1,8 @@
 {
-    "messageType": "osw-validation",
+    "messageType": "osw-formatter",
     "publishedDate": "2023-02-08T08:33:36.267213Z",
     "data": {
-        "stage": "OSW-Validation",
+        "stage": "OSW-formatter",
         "request": {
             "tdei_project_group_id": "0b41ebc5-350c-42d3-90af-3af4ad3628fb",
             "collected_by": "6D3E5B8C-FB16-4B6A-9436-72FD24756CC9",
@@ -49,6 +49,8 @@
         },
         "meta": {
             "file_upload_path": "https://tdeisamplestorage.blob.core.windows.net/osw/2023%2FFEBRUARY%2F0b41ebc5-350c-42d3-90af-3af4ad3628fb%2Fvalid_c8c76e89f30944d2b2abd2491bd95337.zip",
+            "download_osm_url": "https://tdeisamplestorage.blob.core.windows.net/osw/2023%2FFEBRUARY%2F0b41ebc5-350c-42d3-90af-3af4ad3628fb%2Fvalid_c8c76e89f30944d2b2abd2491bd95337.zip",
+            "download_xml_url": "https://tdeisamplestorage.blob.core.windows.net/osw/2023%2FFEBRUARY%2F0b41ebc5-350c-42d3-90af-3af4ad3628fb%2Fvalid_c8c76e89f30944d2b2abd2491bd95337.zip",
             "isValid": true
         },
         "response": {

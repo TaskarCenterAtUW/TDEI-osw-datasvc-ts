@@ -75,7 +75,7 @@ class GtfsOSWController implements IController {
             const params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
             const osw = await oswService.getAllOsw(params);
             osw.forEach(x => {
-                x.download_url = `${this.path}/${x.tdei_record_id}`;
+                x.osw_download_url = `${this.path}/${x.tdei_record_id}`;
             });
             response.status(200).send(osw);
         } catch (error) {
@@ -94,7 +94,9 @@ class GtfsOSWController implements IController {
     getOswById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            const fileEntity: FileEntity = await oswService.getOswById(request.params.id);
+            let format = request.query.format as string ?? 'osw';
+
+            const fileEntity: FileEntity = await oswService.getOswById(request.params.id, format);
 
             response.header('Content-Type', fileEntity.mimeType);
             response.header('Content-disposition', `attachment; filename=${fileEntity.fileName}`);
@@ -112,13 +114,13 @@ class GtfsOSWController implements IController {
         }
     }
 
-     /**
-      * Function to create record in the database and upload the gtfs-osw files
-      * @param request 
-      * @param response 
-      * @param next 
-      * @returns 
-      */
+    /**
+     * Function to create record in the database and upload the gtfs-osw files
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
 
     createOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
@@ -129,8 +131,8 @@ class GtfsOSWController implements IController {
             const oswdto = OswUploadMeta.from(meta);
             const result = await validate(oswdto);
             console.log('result', result);
-        
-            if(result.length != 0){
+
+            if (result.length != 0) {
                 console.log('Metadata validation failed');
                 console.log(result);
                 // Need to send these as response
@@ -141,11 +143,11 @@ class GtfsOSWController implements IController {
             const uid = storageService.generateRandomUUID(); // Fetches a random UUID for the record
             const folderPath = storageService.getFolderPath(oswdto.tdei_project_group_id, uid);
             const uploadedFile = request.file;
-            const uploadPath = path.join(folderPath,uploadedFile!.originalname)
-            const remoteUrl = await storageService.uploadFile(uploadPath,'application/zip',Readable.from(uploadedFile!.buffer))
+            const uploadPath = path.join(folderPath, uploadedFile!.originalname)
+            const remoteUrl = await storageService.uploadFile(uploadPath, 'application/zip', Readable.from(uploadedFile!.buffer))
             // Upload the meta file  
-            const metaFilePath = path.join(folderPath,'meta.json');
-            const metaUrl = await storageService.uploadFile(metaFilePath,'text/json',oswdto.getStream());
+            const metaFilePath = path.join(folderPath, 'meta.json');
+            const metaUrl = await storageService.uploadFile(metaFilePath, 'text/json', oswdto.getStream());
             // Insert into database
             const osw = OswVersions.from(meta);
             osw.tdei_record_id = uid;
@@ -154,7 +156,7 @@ class GtfsOSWController implements IController {
             const returnInfo = await oswService.createOsw(osw);
 
             // Publish to the topic
-            this.eventBusService.publishUpload(oswdto,uid,remoteUrl,userId,metaUrl);
+            this.eventBusService.publishUpload(oswdto, uid, remoteUrl, userId, metaUrl);
             // Also send the information to the queue
             console.log('Responding to request');
             return response.status(202).send(uid);

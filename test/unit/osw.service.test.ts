@@ -43,7 +43,7 @@ describe("OSW Service Test", () => {
                         oswObj
                     ]
                 };
-               jest
+                jest
                     .spyOn(dbClient, "query")
                     .mockResolvedValueOnce(dummyResponse);
                 const params: OswQueryParams = new OswQueryParams();
@@ -95,7 +95,7 @@ describe("OSW Service Test", () => {
                         oswObj
                     ]
                 };
-                 jest
+                jest
                     .spyOn(dbClient, "query")
                     .mockResolvedValueOnce(dummyResponse);
                 const params: OswQueryParams = new OswQueryParams();
@@ -131,7 +131,7 @@ describe("OSW Service Test", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                const result = await oswService.getOswById("tdei_record_id");
+                const result = await oswService.getOswById("tdei_record_id", "");
                 //Assert
                 expect(result instanceof FileEntity);
             });
@@ -149,7 +149,7 @@ describe("OSW Service Test", () => {
 
                 //Act
                 //Assert
-                expect(oswService.getOswById("tdei_record_id")).rejects.toThrow(HttpException);
+                expect(oswService.getOswById("tdei_record_id", "")).rejects.toThrow(HttpException);
             });
 
             test("When Core failed obtaing storage client, Expect to throw error", async () => {
@@ -171,7 +171,7 @@ describe("OSW Service Test", () => {
 
                 //Act
                 //Assert
-                expect(oswService.getOswById("tdei_record_id")).rejects.toThrow();
+                expect(oswService.getOswById("tdei_record_id", "")).rejects.toThrow();
             });
         });
     });

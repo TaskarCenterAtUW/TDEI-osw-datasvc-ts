@@ -9,14 +9,14 @@ export const environment = {
     appName: process.env.npm_package_name,
     eventBus: {
         connectionString: process.env.QUEUECONNECTION,
-        validationTopic: process.env.VALIDATION_TOPIC,
+        formatterTopic: process.env.FORMATTER_TOPIC,
         dataServiceTopic: process.env.DATASVC_TOPIC,
         validationSubscription: process.env.VALIDATION_SUBSCRIPTION,
-        uploadTopic:process.env.UPLOAD_TOPIC,
+        uploadTopic: process.env.UPLOAD_TOPIC,
         confidenceRequestTopic: process.env.CONF_REQ_TOPIC,
         confidenceResponseTopic: process.env.CONF_RES_TOPIC,
-        confidenceResponseSubscription: process.env.CONF_RES_SUB
-
+        confidenceResponseSubscription: process.env.CONF_RES_SUB,
+        formatterSubscription: process.env.FORMATTER_SUBSCRIPTION,
     },
     database: {
         username: process.env.POSTGRES_USER,

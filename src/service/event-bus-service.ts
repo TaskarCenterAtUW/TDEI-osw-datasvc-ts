@@ -29,8 +29,8 @@ export class EventBusService implements IEventBusServiceInterface {
         // Confidence metric In and out
         this.confidenceReqTopic = Core.getTopic(environment.eventBus.confidenceRequestTopic as string)
         this.confidenceResTopic = Core.getTopic(environment.eventBus.confidenceResponseTopic as string)
-        
-        
+
+
 
     }
 
@@ -58,7 +58,9 @@ export class EventBusService implements IEventBusServiceInterface {
             const oswVersions: OswVersions = OswVersions.from(queueMessage.request);
             oswVersions.tdei_record_id = queueMessage.tdeiRecordId;
             oswVersions.uploaded_by = queueMessage.userId;
-            oswVersions.file_upload_path = queueMessage.meta.file_upload_path;
+            oswVersions.file_upload_path = queueMessage.meta.file_upload_path ?? "";
+            oswVersions.download_osm_url = queueMessage.meta.download_osm_url ?? "";
+            oswVersions.download_xml_url = queueMessage.meta.download_xml_url ?? "";
 
             validate(oswVersions).then(errors => {
                 // errors is an array of validation errors
@@ -72,13 +74,22 @@ export class EventBusService implements IEventBusServiceInterface {
                         });
                     return Promise.resolve();
                 } else {
-                    // Publish request successful.
-                    this.publish(messageReceived,
-                        {
-                            success: true,
-                            message: 'OSW request processed successfully !'
-                        });
-                    return Promise.resolve();
+                    oswService.updateOsw(oswVersions).then(() => {
+                        this.publish(messageReceived,
+                            {
+                                success: true,
+                                message: 'OSW request processed successfully !'
+                            });
+                        return Promise.resolve();
+                    }).catch((error: any) => {
+                        console.error('Error updating the osw version', error);
+                        this.publish(messageReceived,
+                            {
+                                success: false,
+                                message: 'Error occured while processing osw request' + error
+                            });
+                        return Promise.resolve();
+                    });
                 }
             });
         } catch (error) {
@@ -119,7 +130,7 @@ export class EventBusService implements IEventBusServiceInterface {
         console.log(error);
     };
 
-    subscribeUpload(validationTopic: string = environment.eventBus.validationTopic as string, validationSubscription: string = environment.eventBus.validationSubscription as string): void {
+    subscribeUpload(validationTopic: string = environment.eventBus.formatterTopic as string, validationSubscription: string = environment.eventBus.formatterSubscription as string): void {
         Core.getTopic(validationTopic,
             this.queueConfig)
             .subscribe(validationSubscription, {
@@ -157,30 +168,30 @@ export class EventBusService implements IEventBusServiceInterface {
     // Methods for handling the confidence response
     subscribeConfidenceMetric(): void {
         const responseSubscription = environment.eventBus.confidenceResponseSubscription as string
-        this.confidenceResTopic.subscribe(responseSubscription ,
+        this.confidenceResTopic.subscribe(responseSubscription,
             {
-                onReceive:this.processConfidenceReceived,
-                onError:this.processConfidenceFailed
+                onReceive: this.processConfidenceReceived,
+                onError: this.processConfidenceFailed
             })
     }
 
-    public processConfidenceReceived(msg: QueueMessage){
+    public processConfidenceReceived(msg: QueueMessage) {
         console.log('received confidence calculation message')
         const confidenceResponse = OSWConfidenceResponse.from(msg.data)
         console.log(confidenceResponse);
         // Do the database transaction
-         oswService.updateConfidenceMetric(confidenceResponse);
+        oswService.updateConfidenceMetric(confidenceResponse);
     }
 
-    public processConfidenceFailed(error:Error){
+    public processConfidenceFailed(error: Error) {
         console.log('received confidence calculation failed message')
         console.log(error)
     }
 
-    public publishConfidenceRequest(req: OSWConfidenceRequest){
+    public publishConfidenceRequest(req: OSWConfidenceRequest) {
         this.confidenceReqTopic.publish(QueueMessage.from({
-            messageType:'osw-confidence-request',
-            data:req
+            messageType: 'osw-confidence-request',
+            data: req
         }))
     }
 }

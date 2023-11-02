@@ -22,6 +22,12 @@ export class OswVersions extends BaseDto {
     file_upload_path!: string;
     @Prop()
     @IsNotEmpty()
+    download_osm_url!: string;
+    @Prop()
+    @IsNotEmpty()
+    download_xml_url!: string;
+    @Prop()
+    @IsNotEmpty()
     uploaded_by!: string;
     @Prop()
     @IsNotEmpty()
@@ -73,6 +79,20 @@ export class OswVersions extends BaseDto {
         }
         if (polygonExists) {
             queryObject.values.push(JSON.stringify(this.polygon.features[0].geometry));
+        }
+        return queryObject;
+    }
+
+    /**
+    * Builds the update QueryConfig object
+    * @returns QueryConfig object
+    */
+    getUpdateQuery(): QueryConfig {
+        const queryObject = {
+            text: `UPDATE public.osw_versions SET  
+                download_osm_url=$2, download_xml_url=$3, uploaded_by=$4  
+                WHERE tdei_record_id=$1`.replace(/\n/g, ""),
+            values: [this.tdei_record_id, this.download_osm_url, this.download_xml_url, this.uploaded_by],
         }
         return queryObject;
     }
