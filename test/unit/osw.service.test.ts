@@ -114,14 +114,16 @@ describe("OSW Service Test", () => {
         });
     });
 
-    describe("Get OSW version by Id", () => {
+    describe("Get OSW file by Id", () => {
         describe("Functional", () => {
-            test("When requested for get OSW version by tdei_record_id, Expect to return FileEntity object", async () => {
+            test("When requested for get OSW file by tdei_record_id, Expect to return FileEntity object", async () => {
                 //Arrange
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         {
-                            file_upload_path: "test_path"
+                            file_upload_path: "test_path",
+                            osm_upload_path: "test_path",
+                            pbf_upload_path: "test_path"
                         }
                     ]
                 };
@@ -131,12 +133,99 @@ describe("OSW Service Test", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                const result = await oswService.getOswById("tdei_record_id", "");
+                const result = await oswService.getOswById("tdei_record_id", "osw");
                 //Assert
                 expect(result instanceof FileEntity);
             });
 
-            test("When requested for get OSW version with invalid tdei_record_id, Expect to throw HttpException", async () => {
+            test("When requested for get OSW file by tdei_record_id and osm format, Expect to return FileEntity object", async () => {
+                //Arrange
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        {
+                            file_upload_path: "test_path",
+                            osm_upload_path: "test_path",
+                            pbf_upload_path: "test_path"
+                        }
+                    ]
+                };
+
+                mockCore();
+                jest.spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+
+                //Act
+                const result = await oswService.getOswById("tdei_record_id", "osw");
+                //Assert
+                expect(result instanceof FileEntity);
+            });
+
+            test("When requested for get OSW file by tdei_record_id and pbf format, Expect to return FileEntity object", async () => {
+                //Arrange
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        {
+                            file_upload_path: "test_path",
+                            osm_upload_path: "test_path",
+                            pbf_upload_path: "test_path"
+                        }
+                    ]
+                };
+
+                mockCore();
+                jest.spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+
+                //Act
+                const result = await oswService.getOswById("tdei_record_id", "pbf");
+                //Assert
+                expect(result instanceof FileEntity);
+            });
+
+            test("When requested for get OSW file where conversion for osm for tdei_record_id not available, Expect to throw HttpException", async () => {
+                //Arrange
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        {
+                            file_upload_path: "test_path",
+                            osm_upload_path: "",
+                            pbf_upload_path: "test_path"
+                        }
+                    ]
+                };
+
+                mockCore();
+                jest.spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+
+                //Act
+                //Assert
+                expect(oswService.getOswById("tdei_record_id", "osm")).rejects.toThrow(HttpException);
+            });
+
+            test("When requested for get OSW file where conversion for pbf for tdei_record_id not available, Expect to throw HttpException", async () => {
+                //Arrange
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        {
+                            file_upload_path: "test_path",
+                            osm_upload_path: "test_path",
+                            pbf_upload_path: ""
+                        }
+                    ]
+                };
+
+                mockCore();
+                jest.spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+
+                //Act
+                //Assert
+                expect(oswService.getOswById("tdei_record_id", "pbf")).rejects.toThrow(HttpException);
+            });
+
+
+            test("When requested for get OSW file with invalid tdei_record_id, Expect to throw HttpException", async () => {
                 //Arrange
                 const dummyResponse = <QueryResult<any>><unknown>{
                     rows: [],
