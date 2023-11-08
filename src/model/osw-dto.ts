@@ -25,9 +25,5 @@ export class OswDTO extends AbstractDomainEntity {
     @Prop()
     polygon: FeatureCollection | undefined;
     @Prop()
-    osw_download_url!: string;
-    @Prop()
-    osm_download_url!: string;
-    @Prop()
-    pbf_download_url!: string;
+    download_url!: string;
 }
