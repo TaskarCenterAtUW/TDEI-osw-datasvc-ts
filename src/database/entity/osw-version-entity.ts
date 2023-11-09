@@ -16,7 +16,7 @@ export class OswVersions extends BaseDto {
     confidence_level = 0;
     @Prop()
     @IsNotEmpty()
-    tdei_org_id!: string;
+    tdei_project_group_id!: string;
     @Prop()
     @IsNotEmpty()
     file_upload_path!: string;
@@ -60,7 +60,7 @@ export class OswVersions extends BaseDto {
         const queryObject = {
             text: `INSERT INTO public.osw_versions(tdei_record_id, 
                 confidence_level, 
-                tdei_org_id, 
+                tdei_project_group_id, 
                 file_upload_path, 
                 uploaded_by,
                 collected_by, 
@@ -68,7 +68,7 @@ export class OswVersions extends BaseDto {
                 collection_method, publication_date, data_source,
                 osw_schema_version ${polygonExists ? ', polygon ' : ''})
                 VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10 ${polygonExists ? ', ST_GeomFromGeoJSON($11) ' : ''})`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.tdei_org_id, this.file_upload_path, this.uploaded_by
+            values: [this.tdei_record_id, this.tdei_project_group_id, this.file_upload_path, this.uploaded_by
                 , this.collected_by, this.collection_date, this.collection_method, this.publication_date, this.data_source, this.osw_schema_version],
         }
         if (polygonExists) {

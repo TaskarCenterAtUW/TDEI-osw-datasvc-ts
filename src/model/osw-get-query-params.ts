@@ -9,7 +9,7 @@ export class OswQueryParams {
     @IsOptional()
     date_time: string | undefined;
     @IsOptional()
-    tdei_org_id: string | undefined;
+    tdei_project_group_id: string | undefined;
     @IsOptional()
     tdei_record_id: string | undefined;
     @IsOptional()
@@ -40,8 +40,8 @@ export class OswQueryParams {
         //Add conditions
         if (this.osw_schema_version)
             queryObject.condition(` osw_schema_version = $${queryObject.paramCouter++} `, this.osw_schema_version);
-        if (this.tdei_org_id)
-            queryObject.condition(` tdei_org_id = $${queryObject.paramCouter++} `, this.tdei_org_id);
+        if (this.tdei_project_group_id)
+            queryObject.condition(` tdei_project_group_id = $${queryObject.paramCouter++} `, this.tdei_project_group_id);
         if (this.tdei_record_id)
             queryObject.condition(` tdei_record_id = $${queryObject.paramCouter++} `, this.tdei_record_id);
         if (this.date_time && Utility.dateIsValid(this.date_time))

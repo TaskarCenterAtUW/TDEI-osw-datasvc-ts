@@ -15,8 +15,8 @@ export class QueueMessageContent extends AbstractDomainEntity {
     @IsNotEmpty()
     userId!: string;
     @IsNotEmpty()
-    @Prop("tdei_org_id")
-    orgId!: string;
+    @Prop("tdei_project_group_id")
+    projectGroupId!: string;
     @Prop()
     @IsNotEmpty()
     stage!: string;
@@ -38,7 +38,7 @@ export class QueueMessageContent extends AbstractDomainEntity {
         try {
             const permissionRequest = new PermissionRequest({
                 userId: this.userId,
-                orgId: this.orgId,
+                projectGroupId: this.projectGroupId,
                 permssions: roles,
                 shouldSatisfyAll: false
             });

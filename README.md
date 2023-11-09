@@ -157,7 +157,7 @@ Example for meta
 ```json
 
 {
-  "tdei_org_id": "4e991e7a-5c16-4ebf-ad31-3a3625bcca10",
+  "tdei_project_group_id": "4e991e7a-5c16-4ebf-ad31-3a3625bcca10",
   "collected_by": "See best practices document",
   "collection_date": "2018-02-10T09:30Z",
   "collection_method": "manual",
@@ -212,7 +212,7 @@ The flow of processing is as follows
 4. Generating random UID (recordID)
 5. Uploading to Storage (with path)
 6. Assigning path, recordID and creating DTO 
-7. Verifying the serviceID against orgID and inserting into the Database
+7. Verifying the serviceID against projectGroupID and inserting into the Database
 8. Responding with recordID
 
 ### 1. Middleware for auth verification
@@ -231,10 +231,10 @@ The `meta` body is parsed and is validated according to the initial validation c
 <!-- ### 4&5. Generating randomUID and upload
 
 Random UUID is generated which will be assigned as `tdei_record_id`. The uploaded file is transferred to storage with path. The path for storage is
-`yyyy/mm/<tdeiorgid>/<tdeirecordID>`
+`yyyy/mm/<tdeiProjectGroupId>/<tdeirecordID>`
 
 Eg.
-- tdeiOrgID - abc
+- tdeiProjectGroupId - abc
 - tdeiRecordId - def
 
 Uploaded on 23rd August  2023 will be stored in (if the file name is `attrib.zip`)
@@ -242,7 +242,7 @@ Uploaded on 23rd August  2023 will be stored in (if the file name is `attrib.zip
 `2023/08/abc/def/attrib.zip` -->
 
 ### 6&7: Assigning the path and record id and inserting into DB
-An initial DTO (Data object) is created with the meta data along with the uploaded path, userID and the record ID. There is a check made to ensure the serviceId belongs to the organization. After the verification, the data is inserted into the DB. Queuemessage for upload is also scheduled here.
+An initial DTO (Data object) is created with the meta data along with the uploaded path, userID and the record ID. There is a check made to ensure the serviceId belongs to the  project group. After the verification, the data is inserted into the DB. Queuemessage for upload is also scheduled here.
 
 ### 8:Response
 The recordID generated in step 4 is sent back as response to the user.

@@ -29,13 +29,13 @@ class App {
         //Last middleware to be registered: error handler. 
         // this.app.use(errorHandler); // Not working
 
-        this.app.use((err:any, req: Request, res: Response, next: NextFunction) => {
+        this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
             console.log(err);
-            if( err instanceof HttpException){
+            if (err instanceof HttpException) {
                 res.status(err.status).send(err.message);
             }
             else {
-                res.status(500).send('Something went wrong');
+                res.status(500).send('Application error occured');
             }
         })
     }

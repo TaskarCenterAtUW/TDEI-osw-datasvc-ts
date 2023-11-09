@@ -7,23 +7,23 @@ import { Core } from "nodets-ms-core";
 
 class StorageService {
 
-    generateRandomUUID():string {
-        const randomUID = randomUUID().toString().replace(/-/g,''); // Take out the - from UID
+    generateRandomUUID(): string {
+        const randomUID = randomUUID().toString().replace(/-/g, ''); // Take out the - from UID
         return randomUID;
     }
 
     /**
      * Generates the folder path for the given record
-     * @param orgId ID of the organization
+     * @param projectGroupId ID of the  project group
      * @param recordId ID of the record
      * @returns string with path
      */
-    getFolderPath(tdeiOrgId:string, recordId:string):string {
+    getFolderPath(tdeiProjectGroupId: string, recordId: string): string {
         const today = new Date();
         const year = today.getFullYear();
-        const month = today.getMonth()+1;
-        
-        return year+'/'+month+'/'+tdeiOrgId+'/'+recordId;
+        const month = today.getMonth() + 1;
+
+        return year + '/' + month + '/' + tdeiProjectGroupId + '/' + recordId;
     }
 
     /**
@@ -33,12 +33,12 @@ class StorageService {
      * @param body Readable stream of the body
      * @param containerName Name of the container. defaults to gtfs-osw
      */
-    async uploadFile(filePath:string, type:string = 'application/zip' ,body:NodeJS.ReadableStream, containerName:string = 'osw'){
+    async uploadFile(filePath: string, type: string = 'application/zip', body: NodeJS.ReadableStream, containerName: string = 'osw') {
         const client = Core.getStorageClient();
         const container = await client?.getContainer(containerName);
         const file = container?.createFile(filePath, type);
         const uploadedEntity = await file?.upload(body);
-        return uploadedEntity!.remoteUrl; 
+        return uploadedEntity!.remoteUrl;
     }
 }
 
