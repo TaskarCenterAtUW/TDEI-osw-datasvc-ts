@@ -29,21 +29,21 @@ describe('Token validation middleware', () => {
         expect(next).toBeCalledWith(expect.any(UnAuthenticated))
     })
 
-    test('When token is present but not a valid jwt, expect Unauthorized error', async ()=>{
+    test('When token is present but not a valid jwt, expect Unauthorized error', async () => {
         // Get the header
 
         const req = getMockReq({ headers: { 'authorization': "sample-token" } })
         const { res, next } = getMockRes()
-        
+
         await tokenValidator(req, res, next)
         expect(next).toBeCalledWith(expect.any(UnAuthenticated))
 
     })
 
-    test('When a valid token is present, expect to return with user_id in body', async ()=>{
+    test('When a valid token is present, expect to return with user_id in body', async () => {
         const testUserId = 'test-user-id';
-        const token = jwt.sign('{"sub":"test-user-id"}','secret-key')
-        const req = getMockReq({ headers: { 'authorization': token },body:{'meta':'{"tdei_org_id":"sample-org"}'} })
+        const token = jwt.sign('{"sub":"test-user-id"}', 'secret-key')
+        const req = getMockReq({ headers: { 'authorization': token }, body: { 'meta': '{"tdei_project_group_id":"sample-project-group"}' } })
         const { res, next } = getMockRes()
         mockCoreAuth(true);
         await tokenValidator(req, res, next)
@@ -52,11 +52,11 @@ describe('Token validation middleware', () => {
 
     })
 
-    test('When unauthorized token is given, expect to return Unauthorized', async ()=>{
+    test('When unauthorized token is given, expect to return Unauthorized', async () => {
 
         const testUserId = 'test-user-id';
-        const token = jwt.sign('{"sub":"test-user-id"}','secret-key')
-        const req = getMockReq({ headers: { 'authorization': token },body:{'meta':'{"tdei_org_id":"sample-org"}'} })
+        const token = jwt.sign('{"sub":"test-user-id"}', 'secret-key')
+        const req = getMockReq({ headers: { 'authorization': token }, body: { 'meta': '{"tdei_project_group_id":"sample-project-group"}' } })
         const { res, next } = getMockRes()
         mockCoreAuth(false);
         await tokenValidator(req, res, next)

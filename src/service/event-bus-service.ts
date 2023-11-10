@@ -119,31 +119,31 @@ export class EventBusService implements IEventBusServiceInterface {
             });
     }
 
-    public publishUpload(request:OswUploadMeta, recordId:string,file_upload_path:string, userId:string, meta_file_path:string){
-        const messageContent =  QueueMessageContent.from({
-             stage:'osw-upload',
-             request:request,
-             userId:userId,
-             orgId:request.tdei_org_id,
-             tdeiRecordId:recordId,
-             meta:{
-                 'file_upload_path':file_upload_path,
-                 'meta_file_path':meta_file_path
-             },
-             response:{
-                 success:true,
-                 message:'File uploaded for the organization: '+request.tdei_org_id+' with record id'+recordId
-             }
-         });
-         const message = QueueMessage.from(
-             {
-                 messageType:'osw-upload',
-                 data:messageContent,
- 
-             }
-         )
-         this.uploadTopic.publish(message);
-     }
+    public publishUpload(request: OswUploadMeta, recordId: string, file_upload_path: string, userId: string, meta_file_path: string) {
+        const messageContent = QueueMessageContent.from({
+            stage: 'osw-upload',
+            request: request,
+            userId: userId,
+            projectGroupId: request.tdei_project_group_id,
+            tdeiRecordId: recordId,
+            meta: {
+                'file_upload_path': file_upload_path,
+                'meta_file_path': meta_file_path
+            },
+            response: {
+                success: true,
+                message: 'File uploaded for the  project group: ' + request.tdei_project_group_id + ' with record id' + recordId
+            }
+        });
+        const message = QueueMessage.from(
+            {
+                messageType: 'osw-upload',
+                data: messageContent,
+
+            }
+        )
+        this.uploadTopic.publish(message);
+    }
 }
 
 // const eventBusService = new EventBusService();

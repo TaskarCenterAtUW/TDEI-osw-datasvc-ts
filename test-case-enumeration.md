@@ -57,10 +57,10 @@ describe("{{Component}}", () => {
 | Controller | Get OSW file by Id | Functional| When unexpected error occured while processing request | Expect to return HTTP status 500 |:white_check_mark:|
 | Controller | Create OSW version | Functional| When valid input provided | Expect to return tdei_record_id for new record |:white_check_mark:|
 | Controller | Create OSW version | Functional| When provided null body | Expect to return HTTP status 500 |:white_check_mark:|
-| Controller | Create OSW version | Functional| When provided body with empty tdei_org_id | Expect to return HTTP status 400|:white_check_mark:|
+| Controller | Create OSW version | Functional| When provided body with empty tdei_project_group_id | Expect to return HTTP status 400|:white_check_mark:|
 | Controller | Create OSW version | Functional| When provided body with invalid polygon | Expect to return HTTP status 400|:white_check_mark:|
 | Controller | Create OSW version | Functional| When database exception occured while processing request | Expect to return HTTP status 500|:white_check_mark:|
-| Controller | Create OSW version | Functional| When database exception with duplicate tdei_org_id occured while processing request | Expect to return HTTP status 400|:white_check_mark:|
+| Controller | Create OSW version | Functional| When database exception with duplicate tdei_project_group_id occured while processing request | Expect to return HTTP status 400|:white_check_mark:|
 |--|--|--|--|--|--|
 | OSW Service | Get all OSW | Functional| When requested with empty search filters | Expect to return OSW list |:white_check_mark:|
 | OSW Service | Get all OSW | Functional| When requested with all search filters| Expect to return OSW list |:white_check_mark:|
@@ -70,7 +70,7 @@ describe("{{Component}}", () => {
 | OSW Service | Get OSW version by Id | Functional| When requested for get OSW version with invalid tdei_record_id| Expect to throw HttpException |:white_check_mark:|
 | OSW Service | Get OSW version by Id | Functional| When Core failed obtaing storage client| Expect to throw error |:white_check_mark:|
 | OSW Service | Create OSW version | Functional| When requested for creating OSW version with valid input| Expect to return OswDTO object |:white_check_mark:|
-| OSW Service | Create OSW version | Functional| When database exception with duplicate tdei_org_id occured while processing request| Expect to throw DuplicateException |:white_check_mark:|
+| OSW Service | Create OSW version | Functional| When database exception with duplicate tdei_project_group_id occured while processing request| Expect to throw DuplicateException |:white_check_mark:|
 | OSW Service | Create OSW version | Functional| When database exception occured while processing request| Expect to throw error |:white_check_mark:|
 |--|--|--|--|--|--|
  | Queue message service | Process Queue message | Functional| When valid message received| Expect to process the message successfully |:white_check_mark:|

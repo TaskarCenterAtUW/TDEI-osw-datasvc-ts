@@ -65,7 +65,7 @@ export function getMockTopic() {
     return mockTopic;
 }
 
-export function getMockAuthorizer(result:boolean) {
+export function getMockAuthorizer(result: boolean) {
     const authorizor: IAuthorizer = {
         hasPermission(permissionRequest) {
             return Promise.resolve(result);
@@ -74,8 +74,8 @@ export function getMockAuthorizer(result:boolean) {
     return authorizor;
 }
 
-export function mockCoreAuth(result:boolean){
-    jest.spyOn(Core,'getAuthorizer').mockImplementation(()=> {return getMockAuthorizer(result);})
+export function mockCoreAuth(result: boolean) {
+    jest.spyOn(Core, 'getAuthorizer').mockImplementation(() => { return getMockAuthorizer(result); })
 
 }
 
@@ -94,7 +94,7 @@ export function mockQueueMessageContent(permissionResolve = true) {
             //This is due to not able to mock Prop() behaviour 
             test.tdeiRecordId = json.tdei_record_id;
             test.userId = json.user_id;
-            test.orgId = json.tdei_org_id;
+            test.projectGroupId = json.tdei_project_group_id;
             test.hasPermission = jest.fn().mockImplementation(() => {
                 return Promise.resolve(permissionResolve);
             });
@@ -104,22 +104,22 @@ export function mockQueueMessageContent(permissionResolve = true) {
 
 
 export function mockMulter() {
-    jest.mock('multer', ()=>{
-        const multer = () =>({
-            any:() =>{
-                return (req:Request,res:Response,next:NextFunction)=>{
-                    req.body.user_id ='sample-user';
+    jest.mock('multer', () => {
+        const multer = () => ({
+            any: () => {
+                return (req: Request, res: Response, next: NextFunction) => {
+                    req.body.user_id = 'sample-user';
                     req.file = {
-                        originalname:'sample.zip',
-                        mimetype:'application/zip',
-                        path:'sample/path/to.zip',
-                        buffer:Buffer.from('sample-buffer'),
-                        fieldname:'file',
-                        filename:'sample.zip',
-                        size:100,
-                        stream:Readable.from(''),
-                        encoding:'',
-                        destination:''
+                        originalname: 'sample.zip',
+                        mimetype: 'application/zip',
+                        path: 'sample/path/to.zip',
+                        buffer: Buffer.from('sample-buffer'),
+                        fieldname: 'file',
+                        filename: 'sample.zip',
+                        size: 100,
+                        stream: Readable.from(''),
+                        encoding: '',
+                        destination: ''
                     }
 
                     return next()

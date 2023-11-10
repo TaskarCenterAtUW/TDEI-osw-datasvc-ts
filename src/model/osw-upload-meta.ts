@@ -5,11 +5,11 @@ import { Readable } from "stream";
 import { IsValidPolygon } from "../validators/polygon-validator";
 
 
-export class OswUploadMeta extends AbstractDomainEntity{
+export class OswUploadMeta extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    collected_by!:string;
+    collected_by!: string;
 
     @Prop()
     @IsISO8601()
@@ -23,24 +23,24 @@ export class OswUploadMeta extends AbstractDomainEntity{
 
     @Prop()
     @IsNotEmpty()
-    tdei_org_id!:string;
+    tdei_project_group_id!: string;
 
     @Prop()
     @IsNotEmpty()
-    @IsIn(['manual','transform','generated','others'])
-    collection_method!:string;
+    @IsIn(['manual', 'transform', 'generated', 'others'])
+    collection_method!: string;
 
     @Prop()
     @IsNotEmpty()
     @IsIn(['3rdParty', 'TDEITools', 'InHouse'])
-    data_source!:string;
+    data_source!: string;
 
     @Prop()
     @IsValidPolygon()
-    polygon!:FeatureCollection ;
+    polygon!: FeatureCollection;
 
     @Prop()
-    osw_schema_version!:string;
+    osw_schema_version!: string;
 
     /**
      * Returns the readable stream of the information
@@ -48,7 +48,7 @@ export class OswUploadMeta extends AbstractDomainEntity{
      */
     getStream(): NodeJS.ReadableStream {
         const stringContent = JSON.stringify(this);
-        const buffer =  Buffer.from(stringContent)
+        const buffer = Buffer.from(stringContent)
         return Readable.from(buffer);
     }
 

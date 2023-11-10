@@ -50,9 +50,9 @@ describe("OSW Service Test", () => {
                 params.page_no = 1;
                 params.page_size = 10;
                 params.date_time = "03-03-2023";
-                params.tdei_org_id = "test_id";
+                params.tdei_project_group_id = "test_id";
                 params.tdei_record_id = "test_id";
-                params.tdei_org_id = "test_id";
+                params.tdei_project_group_id = "test_id";
                 params.osw_schema_version = "v0.1";
                 params.bbox = [1, 2, 3, 4]
                 //Act
@@ -77,9 +77,9 @@ describe("OSW Service Test", () => {
                 params.page_no = 1;
                 params.page_size = 10;
                 params.date_time = "13-13-2023";
-                params.tdei_org_id = "test_id";
+                params.tdei_project_group_id = "test_id";
                 params.tdei_record_id = "test_id";
-                params.tdei_org_id = "test_id";
+                params.tdei_project_group_id = "test_id";
                 params.osw_schema_version = "v0.1";
                 params.bbox = [1, 2, 3, 4]
                 //Act
@@ -102,9 +102,9 @@ describe("OSW Service Test", () => {
                 params.page_no = 1;
                 params.page_size = 10;
                 params.date_time = "03-03-2023";
-                params.tdei_org_id = "test_id";
+                params.tdei_project_group_id = "test_id";
                 params.tdei_record_id = "test_id";
-                params.tdei_org_id = "test_id";
+                params.tdei_project_group_id = "test_id";
                 params.osw_schema_version = "v0.1";
                 params.bbox = [1, 2]
                 //Act
@@ -197,7 +197,7 @@ describe("OSW Service Test", () => {
                 expect(result instanceof OswDTO);
             });
 
-            test("When database exception with duplicate tdei_org_id occured while processing request, Expect to throw DuplicateException", async () => {
+            test("When database exception with duplicate tdei_project_group_id occured while processing request, Expect to throw DuplicateException", async () => {
                 //Arrange
                 const oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
                 jest.spyOn(dbClient, "query")
