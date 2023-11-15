@@ -85,6 +85,35 @@ class OswService implements IOswService {
         }
 
     }
+
+    async getOSWRecordById(id: string): Promise<OswDTO> {
+        const query = {
+            text: 'Select ST_AsGeoJSON(polygon) as polygon2, * from osw_versions WHERE tdei_record_id = $1',
+            values: [id],
+        }
+
+        const result = await dbClient.query(query);
+        if (result.rowCount == 0)
+            throw new HttpException(404, "Record not found");
+        const record = result.rows[0]
+        console.log(record);
+            const osw = OswDTO.from(record);
+            
+            if (osw.polygon) {
+                const polygon = JSON.parse(record.polygon2) as Geometry;
+                osw.polygon = {
+                    type: "FeatureCollection",
+                    features: [
+                        {
+                            type: "Feature",
+                            geometry: polygon,
+                            properties: {}
+                        } as Feature
+                    ]
+                }
+            }
+        return osw;
+    }
 }
 
 const oswService: IOswService = new OswService();

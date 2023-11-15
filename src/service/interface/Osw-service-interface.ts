@@ -19,4 +19,10 @@ export interface IOswService {
     * @param oswInfo OSW object 
     */
     createOsw(oswInfo: OswVersions): Promise<OswDTO>;
+
+    /**
+     * Fetches the Record of OSW from the database
+     * @param id  tdeiRecordId
+     */
+    getOSWRecordById(id: string): Promise<OswDTO>;
 }

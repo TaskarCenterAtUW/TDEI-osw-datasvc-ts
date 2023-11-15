@@ -55,6 +55,7 @@ class GtfsOSWController implements IController {
         this.router.get(`${this.path}/:id`, this.getOswById);
         this.router.post(this.path, upload.single('file'), metajsonValidator, tokenValidator, this.createOsw);
         this.router.get(`${this.path}/versions/info`, this.getVersions);
+        this.router.post(`${this.path}/confidence/calculate`,this.calculateConfidence); // Confidence calculation
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -164,6 +165,34 @@ class GtfsOSWController implements IController {
                 response.status(500).send('Error saving the osw file');
             }
         }
+    }
+    /**
+     * Request sent to calculate the 
+     * @param request 
+     * @param response 
+     * @param next 
+     */
+    calculateConfidence = async (request: Request, response: express.Response, next: NextFunction) => {
+        console.log(request.body)
+        const tdeiRecordId = request.body['tdeiRecordId']
+        console.log(tdeiRecordId)
+        if (tdeiRecordId == undefined) {
+            response.status(400).send('Please add tdeiRecordId in payload')
+            return next()
+        }
+        // Check and get the record for the same in the database
+        try {
+        const oswRecord = await oswService.getOSWRecordById(tdeiRecordId)
+        console.log(oswRecord);
+        // Create a job in the database for the same.
+        // Send the details to the confidence metric.
+        // Send the jobId back to the user.
+        }
+        catch (error) {
+            console.log(error);
+        }
+        
+        response.status(200).send('ok')
     }
 }
 
