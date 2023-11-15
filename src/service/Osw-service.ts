@@ -10,6 +10,7 @@ import { DuplicateException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { IOswService } from "./interface/Osw-service-interface";
+import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 
 class OswService implements IOswService {
     constructor() {
@@ -113,6 +114,17 @@ class OswService implements IOswService {
                 }
             }
         return osw;
+    }
+
+    async createOSWConfidenceJob(info: OswConfidenceJob): Promise<string> {
+        try {
+        const query = info.getInsertQuery()
+        const result = await dbClient.query(query)
+        const inserted_jobId = result.rows[0]['jobid']; // Get the jobId and return it back
+        return inserted_jobId;
+        } catch (error){
+            return Promise.reject(error);
+        }
     }
 }
 

@@ -2,6 +2,7 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { OswVersions } from "../../database/entity/osw-version-entity";
 import { OswDTO } from "../../model/osw-dto";
 import { OswQueryParams } from "../../model/osw-get-query-params";
+import { OswConfidenceJob } from "../../database/entity/osw-confidence-job-entity";
 
 export interface IOswService {
     /**
@@ -25,4 +26,10 @@ export interface IOswService {
      * @param id  tdeiRecordId
      */
     getOSWRecordById(id: string): Promise<OswDTO>;
+
+    /**
+     * Creates a confidence job and returns data
+     * @param info Confidence job information
+     */
+    createOSWConfidenceJob(info:OswConfidenceJob): Promise<string>;
 }
