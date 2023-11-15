@@ -60,4 +60,12 @@ export class OswConfidenceJob extends BaseDto {
         return queryObject;
     }
 
+    getUpdateStatusQuery(status:string): QueryConfig {
+        const queryObject = {
+            text:`UPDATE public.osw_versions SET status = $1 WHERE jobid = $2`,
+            values:[status,this.jobId]
+        }
+        return queryObject;
+    }
+
 }
