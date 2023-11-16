@@ -4,9 +4,9 @@ export enum SqlORder {
 
 export class DynamicQueryObject {
     private _select!: string;
-    private _limit: string = "";
-    private _offset: string = "";
-    private _order: string = "";
+    private _limit = "";
+    private _offset = "";
+    private _order = "";
     private values: any[] = [];
     paramCouter = 1;
 
@@ -43,8 +43,8 @@ export class DynamicQueryObject {
             page_no = 1;
         if (page_size == undefined)
             page_size = 10;
-        let skip = page_no == 1 ? 0 : (page_no - 1) * page_size;
-        let take = page_size > 50 ? 50 : page_size;
+        const skip = page_no == 1 ? 0 : (page_no - 1) * page_size;
+        const take = page_size > 50 ? 50 : page_size;
 
         this._limit = ` LIMIT $${this.paramCouter++}`;
         this.values.push(take);

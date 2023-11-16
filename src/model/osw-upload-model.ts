@@ -9,7 +9,7 @@ export class OswUploadModel extends AbstractDomainEntity {
     @Prop()
     tdei_record_id!: string;
     @Prop()
-    tdei_org_id!: string;
+    tdei_project_group_id!: string;
     @Prop()
     tdei_service_id!: string;
     @Prop()
@@ -25,7 +25,7 @@ export class OswUploadModel extends AbstractDomainEntity {
     // @Prop()
     // valid_to!: Date;
     @Prop()
-    publication_date!:Date;
+    publication_date!: Date;
     @Prop()
     data_source!: string;
     @Prop()

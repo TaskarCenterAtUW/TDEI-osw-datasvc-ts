@@ -9,15 +9,15 @@ export class OswQueryParams {
     @IsOptional()
     date_time: string | undefined;
     @IsOptional()
-    tdei_org_id: string | undefined;
+    tdei_project_group_id: string | undefined;
     @IsOptional()
     tdei_record_id: string | undefined;
     @IsOptional()
-    confidence_level: number = 0;
+    confidence_level = 0;
     @IsOptional()
-    page_no: number = 1;
+    page_no = 1;
     @IsOptional()
-    page_size: number = 10;
+    page_size = 10;
     @IsOptional()
     @IsArray()
     @ArrayMinSize(4)
@@ -33,15 +33,15 @@ export class OswQueryParams {
    * @returns DynamicQueryObject
    */
     getQueryObject() {
-        let queryObject: DynamicQueryObject = new DynamicQueryObject();
+        const queryObject: DynamicQueryObject = new DynamicQueryObject();
         queryObject.buildSelect("osw_versions", ["ST_AsGeoJSON(polygon) as polygon2, *"]);
         queryObject.buildPagination(this.page_no, this.page_size);
         queryObject.buildOrder("uploaded_date", SqlORder.DESC);
         //Add conditions
         if (this.osw_schema_version)
             queryObject.condition(` osw_schema_version = $${queryObject.paramCouter++} `, this.osw_schema_version);
-        if (this.tdei_org_id)
-            queryObject.condition(` tdei_org_id = $${queryObject.paramCouter++} `, this.tdei_org_id);
+        if (this.tdei_project_group_id)
+            queryObject.condition(` tdei_project_group_id = $${queryObject.paramCouter++} `, this.tdei_project_group_id);
         if (this.tdei_record_id)
             queryObject.condition(` tdei_record_id = $${queryObject.paramCouter++} `, this.tdei_record_id);
         if (this.date_time && Utility.dateIsValid(this.date_time))

@@ -18,6 +18,18 @@ export class ForeignKeyException extends HttpException {
     }
 }
 
+export class FileTypeException extends HttpException{
+    constructor(){
+        super(400,'Invalid file type.');
+    }
+}
+
+export class OverlapException extends HttpException {
+    constructor(name:string){
+        super(400,`Given record overlaps with tdeirecord ${name} in the system.`);
+    }
+}
+
 export class UserNotFoundException extends HttpException {
     constructor(name: string) {
         super(404, `User not found for the given username '${name}'.`);

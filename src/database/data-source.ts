@@ -1,12 +1,17 @@
-import { Pool, PoolClient, QueryConfig, QueryResult } from 'pg';
+import { Pool, QueryConfig, QueryResult } from 'pg';
 import { PostgresError } from '../constants/pg-error-constants';
 import { environment } from '../environment/environment';
 import UniqueKeyDbException, { ForeignKeyDbException } from '../exceptions/db/database-exceptions';
 
 class DataSource {
-    private pool: Pool;
+    private pool: Pool = new Pool;
 
     constructor() {
+      // TODO document why this constructor is empty
+    
+    }
+
+    public initializaDatabase() {
         console.info("Initializing database !");
         this.pool = new Pool({
             database: environment.database.database,
@@ -17,12 +22,11 @@ class DataSource {
             port: environment.database.port
         });
 
-        this.pool.on('error', function (err: Error, _client: any) {
+        this.pool.on('error', function (err: Error) {
             console.log(`Idle-Client Error:\n${err.message}\n${err.stack}`)
         }).on('connect', () => {
             console.log("Database initialized successfully !");
         });
-
     }
 
     /**
@@ -32,7 +36,7 @@ class DataSource {
      * @returns 
      */
     async query(queryTextOrConfig: string | QueryConfig<any[]>, params: any[] = []): Promise<QueryResult<any>> {
-        const client = await this.pool.connect()
+        const client = await this.pool.connect();
         try {
             if (queryTextOrConfig instanceof String) {
                 const result = await client.query(queryTextOrConfig, params);
@@ -58,16 +62,6 @@ class DataSource {
         } finally {
             client.release();
         }
-    }
-
-    /**
-     * Create a client using one of the pooled connections
-     *
-     * @return client
-     */
-    private async connect(): Promise<PoolClient> {
-        const client = await this.pool.connect();
-        return client;
     }
 }
 
