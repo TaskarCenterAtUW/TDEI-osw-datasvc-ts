@@ -21,6 +21,7 @@ import { metajsonValidator } from "../middleware/json-validation-middleware";
 import { EventBusService } from "../service/event-bus-service";
 import validationMiddleware from "../middleware/dto-validation-middleware";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
+import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 
 /**
   * Multer for multiple uploads
@@ -196,14 +197,19 @@ class GtfsOSWController implements IController {
         confidence_job.cm_last_calculated_at = new Date()
         confidence_job.user_id = ''
         confidence_job.cm_version = 'v1.0'
-        // const query = confidence_job.getInsertQuery()
-        // console.log(query);
         const jobId = await oswService.createOSWConfidenceJob(confidence_job);
-        console.log(jobId);
         
         // Send the details to the confidence metric.
+        //TODO: Fill based on the metadata received
+        const confidenceRequestMsg = new OSWConfidenceRequest();
+        confidenceRequestMsg.jobId = jobId;
+        confidenceRequestMsg.data_file = oswRecord.download_url;
+        //TODO: Once this is done, get the things moved.
+        confidenceRequestMsg.meta_file = 'def';
+        confidenceRequestMsg.trigger_type = 'manual'
+        this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
         // Send the jobId back to the user.
-        return response.status(200).send({'jobId':jobId});
+        return response.status(200).send({'jobId':jobId,'tdeiRecordId':tdeiRecordId});
         }
         catch (error) {
             console.log(error);

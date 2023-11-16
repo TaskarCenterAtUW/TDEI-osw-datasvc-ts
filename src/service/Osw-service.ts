@@ -113,6 +113,7 @@ class OswService implements IOswService {
                     ]
                 }
             }
+            osw.download_url = record.file_upload_path
         return osw;
     }
 

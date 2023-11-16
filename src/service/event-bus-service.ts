@@ -10,11 +10,14 @@ import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { randomUUID } from "crypto";
 import { OswUploadMeta } from "../model/osw-upload-meta";
+import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 
 export class EventBusService implements IEventBusServiceInterface {
     private queueConfig: AzureQueueConfig;
     publishingTopic: Topic;
     public uploadTopic: Topic;
+    public confidenceReqTopic: Topic;
+    public confidenceResTopic: Topic; // May not need
 
     constructor(queueConnection: string = environment.eventBus.connectionString as string, publishingTopicName: string = environment.eventBus.dataServiceTopic as string) {
         Core.initialize();
@@ -22,6 +25,11 @@ export class EventBusService implements IEventBusServiceInterface {
         this.queueConfig.connectionString = queueConnection;
         this.publishingTopic = Core.getTopic(publishingTopicName);
         this.uploadTopic = Core.getTopic(environment.eventBus.uploadTopic as string);
+        // Confidence metric In and out
+        this.confidenceReqTopic = Core.getTopic(environment.eventBus.confidenceRequestTopic as string)
+        this.confidenceResTopic = Core.getTopic(environment.eventBus.confidenceResponseTopic as string)
+        
+        
 
     }
 
@@ -143,6 +151,30 @@ export class EventBusService implements IEventBusServiceInterface {
             }
         )
         this.uploadTopic.publish(message);
+    }
+
+    // Methods for handling the confidence response
+    subscribeConfidenceMetric(): void {
+        const responseSubscription = environment.eventBus.confidenceResponseSubscription as string
+        this.confidenceResTopic.subscribe(responseSubscription ,
+            {
+                onReceive:this.processConfidenceReceived,
+                onError:this.processConfidenceFailed
+            })
+    }
+
+    public processConfidenceReceived(msg: QueueMessage){
+
+    }
+    public processConfidenceFailed(error:Error){
+
+    }
+
+    public publishConfidenceRequest(req: OSWConfidenceRequest){
+        this.confidenceReqTopic.publish(QueueMessage.from({
+            messageType:'osw-confidence-request',
+            data:req
+        }))
     }
 }
 
