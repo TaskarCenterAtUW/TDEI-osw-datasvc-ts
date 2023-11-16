@@ -11,6 +11,7 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { randomUUID } from "crypto";
 import { OswUploadMeta } from "../model/osw-upload-meta";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
+import { OSWConfidenceResponse } from "../model/osw-confidence-response";
 
 export class EventBusService implements IEventBusServiceInterface {
     private queueConfig: AzureQueueConfig;
@@ -164,10 +165,16 @@ export class EventBusService implements IEventBusServiceInterface {
     }
 
     public processConfidenceReceived(msg: QueueMessage){
-
+        console.log('received confidence calculation message')
+        const confidenceResponse = OSWConfidenceResponse.from(msg.data)
+        console.log(confidenceResponse);
+        // Do the database transaction
+         oswService.updateConfidenceMetric(confidenceResponse);
     }
-    public processConfidenceFailed(error:Error){
 
+    public processConfidenceFailed(error:Error){
+        console.log('received confidence calculation failed message')
+        console.log(error)
     }
 
     public publishConfidenceRequest(req: OSWConfidenceRequest){

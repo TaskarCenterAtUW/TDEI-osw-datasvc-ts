@@ -47,6 +47,7 @@ class App {
     private subscribeUpload() {
         this.eventBusService = new EventBusService();
         this.eventBusService.subscribeUpload();
+        this.eventBusService.subscribeConfidenceMetric();
     }
 
     private initializeMiddlewares() {

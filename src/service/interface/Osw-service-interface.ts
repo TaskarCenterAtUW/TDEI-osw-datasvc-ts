@@ -3,6 +3,7 @@ import { OswVersions } from "../../database/entity/osw-version-entity";
 import { OswDTO } from "../../model/osw-dto";
 import { OswQueryParams } from "../../model/osw-get-query-params";
 import { OswConfidenceJob } from "../../database/entity/osw-confidence-job-entity";
+import { OSWConfidenceResponse } from "../../model/osw-confidence-response";
 
 export interface IOswService {
     /**
@@ -32,4 +33,10 @@ export interface IOswService {
      * @param info Confidence job information
      */
     createOSWConfidenceJob(info:OswConfidenceJob): Promise<string>;
+
+    /**
+     * Updates the score for a confidence metric job
+     * @param info 
+     */
+    updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string>
 }

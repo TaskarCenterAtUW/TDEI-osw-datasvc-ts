@@ -205,7 +205,7 @@ class GtfsOSWController implements IController {
         confidenceRequestMsg.jobId = jobId;
         confidenceRequestMsg.data_file = oswRecord.download_url;
         //TODO: Once this is done, get the things moved.
-        confidenceRequestMsg.meta_file = 'def';
+        confidenceRequestMsg.meta_file = oswRecord.download_url;
         confidenceRequestMsg.trigger_type = 'manual'
         this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
         // Send the jobId back to the user.

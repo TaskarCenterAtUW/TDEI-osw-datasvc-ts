@@ -11,6 +11,7 @@ import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { IOswService } from "./interface/Osw-service-interface";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
+import { OSWConfidenceResponse } from "../model/osw-confidence-response";
 
 class OswService implements IOswService {
     constructor() {
@@ -126,6 +127,26 @@ class OswService implements IOswService {
         } catch (error){
             return Promise.reject(error);
         }
+    }
+
+    async updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string> {
+        try {
+                console.log('Updating status for ',info.jobId);
+                const updateQuery = info.getUpdateJobQuery();
+                const result = await dbClient.query(updateQuery);
+                const tdeiRecordId = result.rows[0]['tdei_record_id'];
+                if (tdeiRecordId != undefined){
+                    console.log('Updating OSW records');
+                    const oswUpdateQuery = info.getRecordUpdateQuery(tdeiRecordId);
+                    const queryResult = await dbClient.query(oswUpdateQuery);
+                }
+
+                return info.jobId.toString();
+        }
+        catch (error) {
+            Promise.reject(error);
+        }
+        return ''
     }
 }
 
