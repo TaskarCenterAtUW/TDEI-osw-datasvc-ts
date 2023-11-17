@@ -20,6 +20,8 @@ import { tokenValidator } from "../middleware/token-validation-middleware";
 import { metajsonValidator } from "../middleware/json-validation-middleware";
 import { EventBusService } from "../service/event-bus-service";
 import validationMiddleware from "../middleware/dto-validation-middleware";
+import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
+import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 
 /**
   * Multer for multiple uploads
@@ -55,6 +57,7 @@ class GtfsOSWController implements IController {
         this.router.get(`${this.path}/:id`, this.getOswById);
         this.router.post(this.path, upload.single('file'), metajsonValidator, tokenValidator, this.createOsw);
         this.router.get(`${this.path}/versions/info`, this.getVersions);
+        this.router.post(`${this.path}/confidence/calculate`,this.calculateConfidence); // Confidence calculation
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -164,6 +167,55 @@ class GtfsOSWController implements IController {
                 response.status(500).send('Error saving the osw file');
             }
         }
+    }
+    /**
+     * Request sent to calculate the 
+     * @param request 
+     * @param response 
+     * @param next 
+     */
+    calculateConfidence = async (request: Request, response: express.Response, next: NextFunction) => {
+        console.log(request.body)
+        const tdeiRecordId = request.body['tdeiRecordId']
+        console.log(tdeiRecordId)
+        if (tdeiRecordId == undefined) {
+            response.status(400).send('Please add tdeiRecordId in payload')
+            return next()
+        }
+        // Check and get the record for the same in the database
+        try {
+        const oswRecord = await oswService.getOSWRecordById(tdeiRecordId)
+        console.log(oswRecord);
+        // Create a job in the database for the same.
+        //TODO: Have to add these based on some of the input data.
+        const confidence_job = new OswConfidenceJob()
+        confidence_job.tdei_record_id = tdeiRecordId
+        confidence_job.trigger_type = 'manual'
+        confidence_job.created_at = new Date()
+        confidence_job.updated_at = new Date()
+        confidence_job.status = 'started'
+        confidence_job.cm_last_calculated_at = new Date()
+        confidence_job.user_id = ''
+        confidence_job.cm_version = 'v1.0'
+        const jobId = await oswService.createOSWConfidenceJob(confidence_job);
+        
+        // Send the details to the confidence metric.
+        //TODO: Fill based on the metadata received
+        const confidenceRequestMsg = new OSWConfidenceRequest();
+        confidenceRequestMsg.jobId = jobId;
+        confidenceRequestMsg.data_file = oswRecord.download_url;
+        //TODO: Once this is done, get the things moved.
+        confidenceRequestMsg.meta_file = oswRecord.download_url;
+        confidenceRequestMsg.trigger_type = 'manual'
+        this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
+        // Send the jobId back to the user.
+        return response.status(200).send({'jobId':jobId,'tdeiRecordId':tdeiRecordId});
+        }
+        catch (error) {
+            console.log(error);
+        }
+        
+        response.status(200).send('ok')
     }
 }
 

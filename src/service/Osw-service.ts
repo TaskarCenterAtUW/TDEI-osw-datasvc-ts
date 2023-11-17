@@ -10,6 +10,8 @@ import { DuplicateException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { IOswService } from "./interface/Osw-service-interface";
+import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
+import { OSWConfidenceResponse } from "../model/osw-confidence-response";
 
 class OswService implements IOswService {
     constructor() {
@@ -84,6 +86,67 @@ class OswService implements IOswService {
             return Promise.reject(error);
         }
 
+    }
+
+    async getOSWRecordById(id: string): Promise<OswDTO> {
+        const query = {
+            text: 'Select ST_AsGeoJSON(polygon) as polygon2, * from osw_versions WHERE tdei_record_id = $1',
+            values: [id],
+        }
+
+        const result = await dbClient.query(query);
+        if (result.rowCount == 0)
+            throw new HttpException(404, "Record not found");
+        const record = result.rows[0]
+        console.log(record);
+            const osw = OswDTO.from(record);
+            
+            if (osw.polygon) {
+                const polygon = JSON.parse(record.polygon2) as Geometry;
+                osw.polygon = {
+                    type: "FeatureCollection",
+                    features: [
+                        {
+                            type: "Feature",
+                            geometry: polygon,
+                            properties: {}
+                        } as Feature
+                    ]
+                }
+            }
+            osw.download_url = record.file_upload_path
+        return osw;
+    }
+
+    async createOSWConfidenceJob(info: OswConfidenceJob): Promise<string> {
+        try {
+        const query = info.getInsertQuery()
+        const result = await dbClient.query(query)
+        const inserted_jobId = result.rows[0]['jobid']; // Get the jobId and return it back
+        return inserted_jobId;
+        } catch (error){
+            return Promise.reject(error);
+        }
+    }
+
+    async updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string> {
+        try {
+                console.log('Updating status for ',info.jobId);
+                const updateQuery = info.getUpdateJobQuery();
+                const result = await dbClient.query(updateQuery);
+                const tdeiRecordId = result.rows[0]['tdei_record_id'];
+                if (tdeiRecordId != undefined){
+                    console.log('Updating OSW records');
+                    const oswUpdateQuery = info.getRecordUpdateQuery(tdeiRecordId);
+                    const queryResult = await dbClient.query(oswUpdateQuery);
+                }
+
+                return info.jobId.toString();
+        }
+        catch (error) {
+            Promise.reject(error);
+        }
+        return ''
     }
 }
 
