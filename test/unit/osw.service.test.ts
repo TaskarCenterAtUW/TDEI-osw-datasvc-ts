@@ -122,8 +122,8 @@ describe("OSW Service Test", () => {
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            osm_upload_path: "test_path",
-                            pbf_upload_path: "test_path"
+                            download_osm_url: "test_path",
+                            download_xml_url: "test_path"
                         }
                     ]
                 };
@@ -144,8 +144,8 @@ describe("OSW Service Test", () => {
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            osm_upload_path: "test_path",
-                            pbf_upload_path: "test_path"
+                            download_osm_url: "test_path",
+                            download_xml_url: "test_path"
                         }
                     ]
                 };
@@ -160,14 +160,14 @@ describe("OSW Service Test", () => {
                 expect(result instanceof FileEntity);
             });
 
-            test("When requested for get OSW file by tdei_record_id and pbf format, Expect to return FileEntity object", async () => {
+            test("When requested for get OSW file by tdei_record_id and xml format, Expect to return FileEntity object", async () => {
                 //Arrange
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            osm_upload_path: "test_path",
-                            pbf_upload_path: "test_path"
+                            download_osm_url: "test_path",
+                            download_xml_url: "test_path"
                         }
                     ]
                 };
@@ -177,7 +177,7 @@ describe("OSW Service Test", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                const result = await oswService.getOswById("tdei_record_id", "pbf");
+                const result = await oswService.getOswById("tdei_record_id", "xml");
                 //Assert
                 expect(result instanceof FileEntity);
             });
@@ -188,8 +188,8 @@ describe("OSW Service Test", () => {
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            osm_upload_path: "",
-                            pbf_upload_path: "test_path"
+                            download_osm_url: "",
+                            download_xml_url: "test_path"
                         }
                     ]
                 };
@@ -203,14 +203,14 @@ describe("OSW Service Test", () => {
                 expect(oswService.getOswById("tdei_record_id", "osm")).rejects.toThrow(HttpException);
             });
 
-            test("When requested for get OSW file where conversion for pbf for tdei_record_id not available, Expect to throw HttpException", async () => {
+            test("When requested for get OSW file where conversion for xml for tdei_record_id not available, Expect to throw HttpException", async () => {
                 //Arrange
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            osm_upload_path: "test_path",
-                            pbf_upload_path: ""
+                            download_osm_url: "test_path",
+                            download_xml_url: ""
                         }
                     ]
                 };
@@ -221,7 +221,7 @@ describe("OSW Service Test", () => {
 
                 //Act
                 //Assert
-                expect(oswService.getOswById("tdei_record_id", "pbf")).rejects.toThrow(HttpException);
+                expect(oswService.getOswById("tdei_record_id", "xml")).rejects.toThrow(HttpException);
             });
 
 

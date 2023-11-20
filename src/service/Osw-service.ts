@@ -75,7 +75,7 @@ class OswService implements IOswService {
             if (osw.rows[0].download_osm_url && osw.rows[0].download_xml_url != '')
                 url = decodeURIComponent(osw.rows[0].download_xml_url);
             else
-                throw new HttpException(404, "Requested PBF file format not found");
+                throw new HttpException(404, "Requested XML file format not found");
         } else if (format == "osw") {
             url = decodeURIComponent(osw.rows[0].file_upload_path);
         }
