@@ -36,6 +36,12 @@ export interface IOswService {
     createOSWConfidenceJob(info: OswConfidenceJob): Promise<string>;
 
     /**
+     * Get the OSWConfidenceJOb based on jobId
+     * @param jobId 
+     */
+    getOSWConfidenceJob(jobId: string) : Promise<OswConfidenceJob>;
+
+    /**
      * Updates the score for a confidence metric job
      * @param info 
      */

@@ -58,6 +58,7 @@ class GtfsOSWController implements IController {
         this.router.post(this.path, upload.single('file'), metajsonValidator, tokenValidator, this.createOsw);
         this.router.get(`${this.path}/versions/info`, this.getVersions);
         this.router.post(`${this.path}/confidence/calculate`, this.calculateConfidence); // Confidence calculation
+        this.router.get(`${this.path}/confidence/status/:jobId`,this.getConfidenceJobStatus)
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -217,7 +218,26 @@ class GtfsOSWController implements IController {
             console.log(error);
         }
 
-        response.status(200).send('ok')
+        response.status(200).send('ok');
+    }
+
+    getConfidenceJobStatus = async (request: Request, response: express.Response, next: NextFunction) => {
+        console.log('Requested status for jobInfo ')
+        try {
+        const jobId = request.params['jobId']
+        const jobInfo = await oswService.getOSWConfidenceJob(jobId)
+        const responseData = {
+            'jobId':jobId,
+            'confidenceValue':jobInfo.confidence_metric,
+            'status':jobInfo.status,
+            'updatedAt':jobInfo.updated_at,
+            'message':'ok' //Need to update this.
+        };
+        response.status(200).send(responseData);
+    } catch (error){
+        return next(error);
+        
+    }
     }
 }
 

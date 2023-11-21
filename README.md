@@ -29,6 +29,12 @@ Application configuration is read from .env file. Below are the list of environe
 |POSTGRES_USER| Database user |
 |POSTGRES_PASSWORD| Database user password|
 |GATEWAY_URL | Gateway Url|
+|CONF_REQ_TOPIC| Confidence requested topic |
+|CONF_RES_TOPIC | Confidence calculated topic |
+|CONF_RES_SUB | Confidence calculated topic subscription |
+|UPLOAD_TOPIC | Upload topic for the osw file type |
+|FORMATTER_TOPIC | Topic for formatter |
+| FORMATTER_SUBSCRIPTION | Subscription for fomatter service output |
 
 ## Local Postgresql database setup
 
@@ -275,3 +281,60 @@ The database is ready to be connected to the service
 
 ### Edit the host in .env file
 In the `.env` file, `POSTGRES_HOST=localhost` and run the service with `npm run start`
+
+## Confidence metric implementation and APIs
+
+There are two APIs exposed for calculating the confidence metric for record
+
+### Initiate  Confidence metric calculation
+
+PATH : `/api/v1/osw/confidence/calculate`
+
+Method: POST
+
+Body:
+
+```json
+{
+      "tdeiRecordId":"<tdeiRecord ID>"
+}
+
+```
+
+Response:
+
+```json
+{
+  "tdeiRecordId":"<tdeiRecord ID>",
+  "jobId":"<jobId>",
+  "statusUrl":"<status URL>"
+}
+
+```
+
+### Get status of the confidence metric job
+
+PATH: `/api/v1/osw/confidence/status/<jobId>`
+
+Method: GET
+
+Response:
+
+```json
+{
+    "jobId":"<jobId>",
+    "confidenceValue":"float or 0 if not calculated",
+    "status":"started/calculated/failed",
+    "updatedAt":"Date time of the last update of the status",
+    "message":"Response message containing error or status information"
+}
+
+```
+
+The status can be any of `started`, `calculated` or `failed`
+
+| Status | Description |
+|-|-|
+| started | Initiated the calculation. Waiting for confidence service to respond|
+| calculated| Calculation done. The value is in `confidenceValue` |
+| failed | Confidence service failed to calculate. `message` will have the error |
