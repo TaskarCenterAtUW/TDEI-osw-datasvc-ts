@@ -59,8 +59,7 @@ export class EventBusService implements IEventBusServiceInterface {
             oswVersions.tdei_record_id = queueMessage.tdeiRecordId;
             oswVersions.uploaded_by = queueMessage.userId;
             oswVersions.file_upload_path = queueMessage.meta.file_upload_path ?? "";
-            oswVersions.download_osm_url = queueMessage.meta.download_osm_url ?? "";
-            oswVersions.download_xml_url = queueMessage.meta.download_xml_url ?? "";
+            oswVersions.download_osm_url = queueMessage.meta.download_xml_url ?? "";
 
             validate(oswVersions).then(errors => {
                 // errors is an array of validation errors
@@ -130,10 +129,10 @@ export class EventBusService implements IEventBusServiceInterface {
         console.log(error);
     };
 
-    subscribeUpload(validationTopic: string = environment.eventBus.formatterTopic as string, validationSubscription: string = environment.eventBus.formatterSubscription as string): void {
-        Core.getTopic(validationTopic,
+    subscribeUpload(formatterTopic: string = environment.eventBus.formatterTopic as string, formatterSubscription: string = environment.eventBus.formatterSubscription as string): void {
+        Core.getTopic(formatterTopic,
             this.queueConfig)
-            .subscribe(validationSubscription, {
+            .subscribe(formatterSubscription, {
                 onReceive: this.processUpload,
                 onError: this.processUploadError
             });

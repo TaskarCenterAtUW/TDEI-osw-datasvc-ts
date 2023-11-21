@@ -122,8 +122,7 @@ describe("OSW Service Test", () => {
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            download_osm_url: "test_path",
-                            download_xml_url: "test_path"
+                            download_osm_url: "test_path"
                         }
                     ]
                 };
@@ -144,8 +143,7 @@ describe("OSW Service Test", () => {
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            download_osm_url: "test_path",
-                            download_xml_url: "test_path"
+                            download_osm_url: "test_path"
                         }
                     ]
                 };
@@ -166,8 +164,7 @@ describe("OSW Service Test", () => {
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            download_osm_url: "test_path",
-                            download_xml_url: "test_path"
+                            download_osm_url: "test_path"
                         }
                     ]
                 };
@@ -188,8 +185,7 @@ describe("OSW Service Test", () => {
                     rows: [
                         {
                             file_upload_path: "test_path",
-                            download_osm_url: "",
-                            download_xml_url: "test_path"
+                            download_osm_url: ""
                         }
                     ]
                 };
@@ -202,28 +198,6 @@ describe("OSW Service Test", () => {
                 //Assert
                 expect(oswService.getOswById("tdei_record_id", "osm")).rejects.toThrow(HttpException);
             });
-
-            test("When requested for get OSW file where conversion for xml for tdei_record_id not available, Expect to throw HttpException", async () => {
-                //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            file_upload_path: "test_path",
-                            download_osm_url: "test_path",
-                            download_xml_url: ""
-                        }
-                    ]
-                };
-
-                mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
-                //Act
-                //Assert
-                expect(oswService.getOswById("tdei_record_id", "xml")).rejects.toThrow(HttpException);
-            });
-
 
             test("When requested for get OSW file with invalid tdei_record_id, Expect to throw HttpException", async () => {
                 //Arrange

@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS public.osw_versions
 	uploaded_date timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     cm_version character varying COLLATE pg_catalog."default",
     cm_last_calculated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    download_xml_url character varying COLLATE pg_catalog."default",
     download_osm_url character varying COLLATE pg_catalog."default",
     polygon geometry,
     CONSTRAINT "PK_id" PRIMARY KEY (id),

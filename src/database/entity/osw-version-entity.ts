@@ -25,9 +25,6 @@ export class OswVersions extends BaseDto {
     download_osm_url!: string;
     @Prop()
     @IsNotEmpty()
-    download_xml_url!: string;
-    @Prop()
-    @IsNotEmpty()
     uploaded_by!: string;
     @Prop()
     @IsNotEmpty()
@@ -90,9 +87,9 @@ export class OswVersions extends BaseDto {
     getUpdateQuery(): QueryConfig {
         const queryObject = {
             text: `UPDATE public.osw_versions SET  
-                download_osm_url=$2, download_xml_url=$3, uploaded_by=$4  
+                download_osm_url=$2, uploaded_by=$3  
                 WHERE tdei_record_id=$1`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.download_osm_url, this.download_xml_url, this.uploaded_by],
+            values: [this.tdei_record_id, this.download_osm_url, this.uploaded_by],
         }
         return queryObject;
     }
