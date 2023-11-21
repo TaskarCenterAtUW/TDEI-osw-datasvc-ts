@@ -6,7 +6,7 @@ import dbClient from "../database/data-source";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import UniqueKeyDbException from "../exceptions/db/database-exceptions";
 import HttpException from "../exceptions/http/http-base-exception";
-import { DuplicateException } from "../exceptions/http/http-exceptions";
+import { DuplicateException, JobIdNotFoundException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { IOswService } from "./interface/Osw-service-interface";
@@ -159,6 +159,23 @@ class OswService implements IOswService {
             const inserted_jobId = result.rows[0]['jobid']; // Get the jobId and return it back
             return inserted_jobId;
         } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    async getOSWConfidenceJob(jobId: string) : Promise<OswConfidenceJob> {
+        try {
+            const query = 'SELECT * from public.osw_confidence_jobs where jobId='+jobId;
+            const result = await dbClient.query(query);
+            if (result.rowCount == 0){
+                return Promise.reject(new JobIdNotFoundException(jobId))
+            }
+            const job = OswConfidenceJob.from(result.rows[0])
+            return job;
+
+        }
+        catch (error) {
+            console.log(error);
             return Promise.reject(error);
         }
     }

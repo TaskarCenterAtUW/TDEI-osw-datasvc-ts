@@ -42,5 +42,10 @@ export class InputException extends HttpException {
     }
 }
 
+export class JobIdNotFoundException extends HttpException {
+    constructor(jobId:string){
+        super(404,`JobId with ID ${jobId} not found`)
+    }
+}
 
 
