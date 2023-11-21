@@ -53,7 +53,7 @@ class OswService implements IOswService {
 
     async getOswById(id: string, format: string = "osw"): Promise<FileEntity> {
         const query = {
-            text: 'Select file_upload_path, download_osm_url, download_xml_url from osw_versions WHERE tdei_record_id = $1',
+            text: 'Select file_upload_path, download_osm_url from osw_versions WHERE tdei_record_id = $1',
             values: [id],
         }
 
@@ -71,11 +71,6 @@ class OswService implements IOswService {
                 url = decodeURIComponent(osw.rows[0].download_osm_url);
             else
                 throw new HttpException(404, "Requested OSM file format not found");
-        } else if (format == "xml") {
-            if (osw.rows[0].download_osm_url && osw.rows[0].download_xml_url != '')
-                url = decodeURIComponent(osw.rows[0].download_xml_url);
-            else
-                throw new HttpException(404, "Requested XML file format not found");
         } else if (format == "osw") {
             url = decodeURIComponent(osw.rows[0].file_upload_path);
         }
@@ -110,7 +105,6 @@ class OswService implements IOswService {
         try {
             oswInfo.file_upload_path = decodeURIComponent(oswInfo.file_upload_path!);
             oswInfo.download_osm_url = decodeURIComponent(oswInfo.download_osm_url!);
-            oswInfo.download_xml_url = decodeURIComponent(oswInfo.download_xml_url!);
 
             await dbClient.query(oswInfo.getUpdateQuery());
 
