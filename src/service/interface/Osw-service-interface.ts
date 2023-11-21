@@ -14,8 +14,9 @@ export interface IOswService {
     /**
     * 
     * @param id Record Id of the OSW file to be downloaded
+    * @param format file format to download
     */
-    getOswById(id: string): Promise<FileEntity>;
+    getOswById(id: string, format: string): Promise<FileEntity>;
     /**
     * Creates new OSW in the TDEI system.
     * @param oswInfo OSW object 
@@ -32,11 +33,16 @@ export interface IOswService {
      * Creates a confidence job and returns data
      * @param info Confidence job information
      */
-    createOSWConfidenceJob(info:OswConfidenceJob): Promise<string>;
+    createOSWConfidenceJob(info: OswConfidenceJob): Promise<string>;
 
     /**
      * Updates the score for a confidence metric job
      * @param info 
      */
     updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string>
+    /**
+    * Updated the existing OSW in the TDEI system.
+    * @param oswInfo OSW object 
+    */
+    updateOsw(oswInfo: OswVersions): Promise<OswDTO>;
 }

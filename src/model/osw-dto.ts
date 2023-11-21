@@ -7,8 +7,6 @@ export class OswDTO extends AbstractDomainEntity {
     @Prop()
     tdei_project_group_id!: string;
     @Prop()
-    tdei_service_id!: string;
-    @Prop()
     collected_by!: string;
     @Prop()
     collection_date!: Date;
