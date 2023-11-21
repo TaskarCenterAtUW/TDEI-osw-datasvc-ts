@@ -23,7 +23,7 @@ describe("OSW Integration Test", () => {
      * QUEUE CONNECTION
      */
 
-    test("Subscribe to validation result topic to verify servicebus integration", async () => {
+    test("Subscribe to temporary topic to verify servicebus integration", async () => {
         //Pre-requsite environment dependency
         if (!process.env.QUEUECONNECTION) {
             console.error("QUEUECONNECTION environment not set");
@@ -38,7 +38,7 @@ describe("OSW Integration Test", () => {
         var topicToSubscribe = Core.getTopic("temp-validation", {
             provider: "Azure"
         });
-        //Live: validation service posts message
+        //Live: posts message
         await topicToSubscribe.publish(QueueMessage.from(TdeiObjectFaker.getOswQueueMessageSuccess()));
 
         //Mock publishing topic - outbound

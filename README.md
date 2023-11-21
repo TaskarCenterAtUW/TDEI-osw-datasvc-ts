@@ -20,8 +20,6 @@ Application configuration is read from .env file. Below are the list of environe
 |QUEUECONNECTION | Queue connection string |
 |STORAGECONNECTION | Storage connection string|
 |PORT |Port on which application will run|
-|VALIDATION_SUBSCRIPTION | Upload topic subscription name|
-|VALIDATION_TOPIC | Validation topic name|
 |AUTH_PERMISSION_URL | Authentication/Authorization url|
 |DATASVC_TOPIC | Data service publishing topic|
 |POSTGRES_DB | Database name|
@@ -34,7 +32,7 @@ Application configuration is read from .env file. Below are the list of environe
 |CONF_RES_SUB | Confidence calculated topic subscription |
 |UPLOAD_TOPIC | Upload topic for the osw file type |
 |FORMATTER_TOPIC | Topic for formatter |
-| FORMATTER_SUBSCRIPTION | Subscription for fomatter service output |
+|FORMATTER_SUBSCRIPTION | Subscription for fomatter service output |
 
 ## Local Postgresql database setup
 
@@ -140,8 +138,8 @@ For running integration test, following env variables are required.
 |QUEUECONNECTION | Queue connection string |
 |STORAGECONNECTION | Storage connection string|
 |AUTH_HOST | Host of the authentication service |
-|VALIDATION_SUBSCRIPTION | Upload topic subscription name|
-|VALIDATION_TOPIC | Validation topic name|
+|FORMATTER_SUBSCRIPTION | OSW Formatter topic subscription name|
+|FORMATTER_TOPIC | OSW Formatter topic name|
 |DATASVC_TOPIC | Data service publishing topic|
 
 ## File upload implementation
