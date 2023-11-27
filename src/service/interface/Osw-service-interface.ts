@@ -4,6 +4,8 @@ import { OswDTO } from "../../model/osw-dto";
 import { OswQueryParams } from "../../model/osw-get-query-params";
 import { OswConfidenceJob } from "../../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceResponse } from "../../model/osw-confidence-response";
+import { OswFormatJob } from "../../database/entity/osw-format-job-entity";
+import { OswFormatJobResponse } from "../../model/osw-format-job-response";
 
 export interface IOswService {
     /**
@@ -45,10 +47,22 @@ export interface IOswService {
      * Updates the score for a confidence metric job
      * @param info 
      */
-    updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string>
+    updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string>;
     /**
     * Updated the existing OSW in the TDEI system.
     * @param oswInfo OSW object 
     */
     updateOsw(oswInfo: OswVersions): Promise<OswDTO>;
+
+    /**
+     * Creates the osw-format
+     * @param info OSWFormat job requested
+     */
+    createOSWFormatJob(info: OswFormatJob): Promise<string>;
+
+    /**
+     * Updates the osw-format job
+     * @param info Updates the OSWFormatJob with status and other parameters
+     */
+    updateOSWFormatJob(info: OswFormatJobResponse) : Promise<string>;
 }

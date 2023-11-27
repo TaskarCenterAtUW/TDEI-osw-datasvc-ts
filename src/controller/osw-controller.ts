@@ -22,6 +22,7 @@ import { EventBusService } from "../service/event-bus-service";
 import validationMiddleware from "../middleware/dto-validation-middleware";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
+import { OswFormatJob } from "../database/entity/osw-format-job-entity";
 
 /**
   * Multer for multiple uploads
@@ -254,7 +255,34 @@ class GtfsOSWController implements IController {
     }
 
     createFormatRequest = async (request: Request, response: express.Response, next: NextFunction) => {
-            response.status(200).send('ok')
+           // Get the file
+
+            const uploadedFile = request.file;
+            // Get the upload path
+            const uid = storageService.generateRandomUUID();
+            const folderPath = storageService.getFormatJobPath(uid);
+            const uploadPath = path.join(folderPath,uploadedFile!.originalname)
+            const extension = path.extname(uploadedFile!.originalname)
+            let fileType = 'application/xml'
+            if (extension == 'zip') {
+                fileType = 'application/zip'
+            }
+            const remoteUrl = await storageService.uploadFile(uploadPath,fileType,Readable.from(uploadedFile!.buffer))
+            console.log('Uplaoded to ');
+            console.log(remoteUrl);
+            const oswformatJob = new OswFormatJob();
+            oswformatJob.created_at = new Date();
+            oswformatJob.source = request.body['source'];
+            oswformatJob.target = request.body['target'];
+            oswformatJob.source_url = remoteUrl;
+            oswformatJob.status = 'started'
+
+            const jobId = await oswService.createOSWFormatJob(oswformatJob);
+            console.log('JobId created')
+            console.log(jobId);
+            // Send the same to service bus.
+
+            response.status(200).send({'jobId':jobId})
     }
 }
 

@@ -26,6 +26,13 @@ class StorageService {
         return year + '/' + month + '/' + tdeiProjectGroupId + '/' + recordId;
     }
 
+    getFormatJobPath(uid:string): string {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        return 'jobs/'+year+'/'+month+'/'+uid;
+    }
+
     /**
      * Upload the file to storage
      * @param filePath File path of the file

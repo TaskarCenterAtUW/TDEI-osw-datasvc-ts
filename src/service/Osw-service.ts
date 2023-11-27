@@ -12,6 +12,8 @@ import { OswQueryParams } from "../model/osw-get-query-params";
 import { IOswService } from "./interface/Osw-service-interface";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceResponse } from "../model/osw-confidence-response";
+import { OswFormatJob } from "../database/entity/osw-format-job-entity";
+import { OswFormatJobResponse } from "../model/osw-format-job-response";
 
 class OswService implements IOswService {
     constructor() {
@@ -195,6 +197,45 @@ class OswService implements IOswService {
             Promise.reject(error);
         }
         return ''
+    }
+
+
+    async createOSWFormatJob(info: OswFormatJob): Promise<string> {
+        
+        try{
+            console.log(' Creating formatting job');
+            const insertQuery =  info.getInsertQuery();
+
+            const  result = await dbClient.query(insertQuery);
+            const jobId = result.rows[0]['jobid'];
+            if (jobId == undefined)
+            {
+                return ''; //TODO: Throw insert exception
+            }
+            return jobId;
+        }
+        catch (error){
+            return Promise.reject(error);
+        }
+    }
+    
+    async updateOSWFormatJob(info: OswFormatJobResponse): Promise<string> {
+        console.log(' Updating formatter job info');
+        try {
+            const updateQuery = OswFormatJob.getUpdateStatusQuery(info.jobId,info.status,info.formattedUrl,info.message)
+            const result = await dbClient.query(updateQuery);
+            if (result.rowCount == 0){
+                // Something went wrong. Write the stuff here.
+                return '';
+            }
+            return info.jobId;
+        }   
+        catch (error){
+            console.log('Error while updating formatter job')
+            console.log(error);
+            Promise.reject(error);
+        }
+        return '';
     }
 }
 

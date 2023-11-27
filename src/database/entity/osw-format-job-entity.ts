@@ -48,17 +48,17 @@ export class OswFormatJob extends BaseDto {
                 target_url,
                 message,
                 created_at
-            ) VALUES($1, $2, $3, $4, '','',$5)`.replace(/\n/g,""),
+            ) VALUES($1, $2, $3, $4, '','',$5) RETURNING *`.replace(/\n/g,""),
             values:[this.source, this.target, this.status, this.source_url,this.created_at]
         }
         return queryObject;
     }
 
-    getUpdateStatusQuery(status:string, target_url:string, message:string): QueryConfig {
+    static getUpdateStatusQuery(jobId:string ,status:string, target_url:string, message:string): QueryConfig {
         const queryObject = {
             text:`UPDATE public.osw_formatting_jobs SET status = $1, target_url = $2, message = $3
             WHERE jobid = $4`,
-            values: [status, target_url, message, this.jobId]
+            values: [status, target_url, message, jobId]
         }
         return queryObject;
     }
