@@ -15,6 +15,7 @@ import { OSWConfidenceResponse } from "../model/osw-confidence-response";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OswFormatJob } from "../database/entity/osw-format-job-entity";
 import { OswFormatJobRequest } from "../model/osw-format-job-request";
+import { OswFormatJobResponse } from "../model/osw-format-job-response";
 
 export class EventBusService implements IEventBusServiceInterface {
     private queueConfig: AzureQueueConfig;
@@ -36,14 +37,23 @@ export class EventBusService implements IEventBusServiceInterface {
         // For formatter service
         this.validationTopic = Core.getTopic(environment.eventBus.validationTopic as string)
 
-
-
     }
 
-    // function to handle messages
-    private processUpload = async (messageReceived: any) => {
+    // function to handle messages after formatting is done.
+    private processUpload = async (messageReceived: QueueMessage) => {
         let tdeiRecordId = "";
         try {
+            console.log(messageReceived);
+            if(messageReceived.messageType == 'osw-formatter-response'){
+                console.log('Received on demand format response');
+                console.log(messageReceived);
+                const response = OswFormatJobResponse.from(messageReceived.data);
+                console.log('Response')
+                console.log(response);
+                oswService.updateOSWFormatJob(response);
+                console.log('updated job');
+                return;
+            }
             const queueMessage = QueueMessageContent.from(messageReceived.data);
             tdeiRecordId = queueMessage.tdeiRecordId!;
 
@@ -108,6 +118,7 @@ export class EventBusService implements IEventBusServiceInterface {
         }
     };
 
+    // Internal method for publishing data.
     private publish(queueMessage: QueueMessage, response: {
         success: boolean,
         message: string
@@ -144,6 +155,7 @@ export class EventBusService implements IEventBusServiceInterface {
             });
     }
 
+    // Publishes data for uploading
     public publishUpload(request: OswUploadMeta, recordId: string, file_upload_path: string, userId: string, meta_file_path: string) {
         const messageContent = QueueMessageContent.from({
             stage: 'osw-upload',
