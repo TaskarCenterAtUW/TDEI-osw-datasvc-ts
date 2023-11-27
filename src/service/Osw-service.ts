@@ -162,7 +162,7 @@ class OswService implements IOswService {
     async getOSWConfidenceJob(jobId: string): Promise<OswConfidenceJob> {
         try {
             const query = {
-                text: 'SELECT * from public.osw_confidence_jobs where jobId= = $1',
+                text: 'SELECT * from public.osw_confidence_jobs where jobId = $1',
                 values: [jobId],
             }
             const result = await dbClient.query(query);
@@ -236,6 +236,28 @@ class OswService implements IOswService {
             Promise.reject(error);
         }
         return '';
+    }
+
+    async getOSWFormatJob(jobId: string): Promise<OswFormatJob> {
+
+        try {
+            const query = {
+                text: 'SELECT * from public.osw_formatting_jobs where jobId = $1',
+                values: [jobId],
+            }
+            const result = await dbClient.query(query);
+            if (result.rowCount == 0) {
+                return Promise.reject(new JobIdNotFoundException(jobId))
+            }
+            const job = OswFormatJob.from(result.rows[0])
+            return job;
+
+        }
+        catch (error) {
+            console.log(error);
+            return Promise.reject(error);
+        }
+        
     }
 }
 

@@ -73,6 +73,7 @@ class GtfsOSWController implements IController {
         this.router.post(`${this.path}/confidence/calculate`, this.calculateConfidence); // Confidence calculation
         this.router.get(`${this.path}/confidence/status/:jobId`,this.getConfidenceJobStatus);
         this.router.post(`${this.path}/format/upload`,upload.single('file'),this.createFormatRequest); // Format request
+        this.router.get(`${this.path}/format/status/:jobId`,this.getFormatStatus);
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -286,6 +287,27 @@ class GtfsOSWController implements IController {
             this.eventBusService.publishOnDemandFormat(oswformatJob);
 
             response.status(200).send({'jobId':jobId})
+    }
+
+    getFormatStatus = async (request: Request, response: express.Response, next: NextFunction) => {
+
+        console.log('Requested status for format jobInfo ')
+        try {
+        const jobId = request.params['jobId']
+        const jobInfo = await oswService.getOSWFormatJob(jobId)
+        const responseData = {
+            'jobId':jobId,
+            'sourceUrl':jobInfo.source_url,
+            'targetUrl':jobInfo.target_url,
+            'conversion':jobInfo.source+'-'+jobInfo.target,
+            'status':jobInfo.status,
+            'message':jobInfo.message
+        };
+        response.status(200).send(responseData);
+    } catch (error){
+        return next(error);
+        
+    }
     }
 }
 
