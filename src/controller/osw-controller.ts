@@ -43,6 +43,18 @@ const upload = multer({
     }
 });
 
+const uploadForFormat = multer({
+    dest: 'uploads/',
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        if (ext != '.zip' && ext != '.xml' && ext != '.osm') {
+            cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
+
 class GtfsOSWController implements IController {
     public path = '/api/v1/osw';
     public router = express.Router();
@@ -58,7 +70,8 @@ class GtfsOSWController implements IController {
         this.router.post(this.path, upload.single('file'), metajsonValidator, tokenValidator, this.createOsw);
         this.router.get(`${this.path}/versions/info`, this.getVersions);
         this.router.post(`${this.path}/confidence/calculate`, this.calculateConfidence); // Confidence calculation
-        this.router.get(`${this.path}/confidence/status/:jobId`,this.getConfidenceJobStatus)
+        this.router.get(`${this.path}/confidence/status/:jobId`,this.getConfidenceJobStatus);
+        this.router.post(`${this.path}/format/upload`,upload.single('file'),this.createFormatRequest); // Format request
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -238,6 +251,10 @@ class GtfsOSWController implements IController {
         return next(error);
         
     }
+    }
+
+    createFormatRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+            response.status(200).send('ok')
     }
 }
 

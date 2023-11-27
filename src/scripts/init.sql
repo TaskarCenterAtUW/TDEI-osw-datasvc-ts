@@ -44,3 +44,16 @@ CREATE TABLE IF NOT EXISTS public.osw_confidence_jobs
     cm_last_calculated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "PK_id" PRIMARY KEY (jobId)
 )
+
+CREATE TABLE IF NOT EXISTS public.osw_formatting_jobs
+(
+    jobId bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    source character varying COLLATE pg_catalog."default" NOT NULL,
+    target character varying COLLATE pg_catalog."default" NOT NULL,
+    status character varying COLLATE pg_catalog."default" NOT NULL,
+    source_url character varying COLLATE pg_catalog."default" NOT NULL,
+    target_url character varying COLLATE pg_catalog."default" NOT NULL,
+    message character varying COLLATE pg_catalog."default" NOT NULL,
+    created_at  timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     CONSTRAINT "PK_jobId" PRIMARY KEY (jobId)
+)
