@@ -12,6 +12,9 @@ import { randomUUID } from "crypto";
 import { OswUploadMeta } from "../model/osw-upload-meta";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 import { OSWConfidenceResponse } from "../model/osw-confidence-response";
+import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
+import { OswFormatJob } from "../database/entity/osw-format-job-entity";
+import { OswFormatJobRequest } from "../model/osw-format-job-request";
 
 export class EventBusService implements IEventBusServiceInterface {
     private queueConfig: AzureQueueConfig;
@@ -19,6 +22,7 @@ export class EventBusService implements IEventBusServiceInterface {
     public uploadTopic: Topic;
     public confidenceReqTopic: Topic;
     public confidenceResTopic: Topic; // May not need
+    public validationTopic: Topic;
 
     constructor(queueConnection: string = environment.eventBus.connectionString as string, publishingTopicName: string = environment.eventBus.dataServiceTopic as string) {
         Core.initialize();
@@ -29,6 +33,8 @@ export class EventBusService implements IEventBusServiceInterface {
         // Confidence metric In and out
         this.confidenceReqTopic = Core.getTopic(environment.eventBus.confidenceRequestTopic as string)
         this.confidenceResTopic = Core.getTopic(environment.eventBus.confidenceResponseTopic as string)
+        // For formatter service
+        this.validationTopic = Core.getTopic(environment.eventBus.validationTopic as string)
 
 
 
@@ -193,6 +199,25 @@ export class EventBusService implements IEventBusServiceInterface {
             data: req
         }))
     }
+
+     publishOnDemandFormat(info: OswFormatJob): void {
+        const oswFormatRequest = OswFormatJobRequest.from({
+            jobId:info.jobId.toString(),
+            source:info.source,
+            target:info.target,
+            sourceUrl:info.source_url
+        });
+        
+         const message = QueueMessage.from({
+            messageType: "osw-formatter-request",
+            data: oswFormatRequest
+         });
+         console.log(message);
+         // Publish the same
+         this.validationTopic.publish(message); 
+     }
+
+    
 }
 
 // const eventBusService = new EventBusService();

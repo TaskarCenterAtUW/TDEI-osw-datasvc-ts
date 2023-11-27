@@ -280,7 +280,10 @@ class GtfsOSWController implements IController {
             const jobId = await oswService.createOSWFormatJob(oswformatJob);
             console.log('JobId created')
             console.log(jobId);
+            
             // Send the same to service bus.
+            oswformatJob.jobId = parseInt(jobId);
+            this.eventBusService.publishOnDemandFormat(oswformatJob);
 
             response.status(200).send({'jobId':jobId})
     }
