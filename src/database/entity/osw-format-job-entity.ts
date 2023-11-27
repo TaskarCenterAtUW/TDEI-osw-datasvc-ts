@@ -4,7 +4,10 @@ import { IsNotEmpty, IsOptional } from "class-validator";
 import { QueryConfig } from "pg";
 
 
-
+/**
+ * Database entity class that represents one row in the `osw_formatting_jobs` 
+ * table
+ */
 export class OswFormatJob extends BaseDto {
 
     @Prop()
