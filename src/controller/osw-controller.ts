@@ -5,7 +5,7 @@ import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/Osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { DuplicateException, InputException, FileTypeException } from "../exceptions/http/http-exceptions";
+import { DuplicateException, InputException, FileTypeException, JobIdNotFoundException } from "../exceptions/http/http-exceptions";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import { validate, ValidationError } from "class-validator";
 import { Versions } from "../model/versions-dto";
@@ -72,7 +72,7 @@ class GtfsOSWController implements IController {
         this.router.get(`${this.path}/versions/info`, this.getVersions);
         this.router.post(`${this.path}/confidence/calculate`, this.calculateConfidence); // Confidence calculation
         this.router.get(`${this.path}/confidence/status/:jobId`,this.getConfidenceJobStatus);
-        this.router.post(`${this.path}/format/upload`,upload.single('file'),this.createFormatRequest); // Format request
+        this.router.post(`${this.path}/format/upload`,uploadForFormat.single('file'),this.createFormatRequest); // Format request
         this.router.get(`${this.path}/format/status/:jobId`,this.getFormatStatus);
     }
 
@@ -273,8 +273,8 @@ class GtfsOSWController implements IController {
             console.log(remoteUrl);
             const oswformatJob = new OswFormatJob();
             oswformatJob.created_at = new Date();
-            oswformatJob.source = request.body['source'];
-            oswformatJob.target = request.body['target'];
+            oswformatJob.source = request.body['source']; //TODO: Validate the input enums 
+            oswformatJob.target = request.body['target']; //TODO: Validate the input enums
             oswformatJob.source_url = remoteUrl;
             oswformatJob.status = 'started'
 
@@ -293,8 +293,11 @@ class GtfsOSWController implements IController {
 
         console.log('Requested status for format jobInfo ')
         try {
-        const jobId = request.params['jobId']
-        const jobInfo = await oswService.getOSWFormatJob(jobId)
+        const jobId = request.params['jobId'];
+        if(jobId == undefined || jobId == ''){
+            return next(new InputException('jobId not provided'));
+        }
+        const jobInfo = await oswService.getOSWFormatJob(jobId);
         const responseData = {
             'jobId':jobId,
             'sourceUrl':jobInfo.source_url,
