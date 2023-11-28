@@ -36,7 +36,7 @@ describe("Queue message service", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                await eventBusService['processUpload'](TdeiObjectFaker.getOswQueueMessageSuccess());
+                await eventBusService['processMessage'](TdeiObjectFaker.getOswQueueMessageSuccess());
             });
 
             test("When message with empty tdei_record_id received, Expect to fail the message processing", async () => {
@@ -65,7 +65,7 @@ describe("Queue message service", () => {
                 const message = TdeiObjectFaker.getOswQueueMessageSuccess();
                 message.data.tdei_record_id = "";
                 //Act
-                await eventBusService['processUpload'](message);
+                await eventBusService['processMessage'](message);
             });
 
             test("When validation service failed, Expect to fail the message processing", async () => {
@@ -93,7 +93,7 @@ describe("Queue message service", () => {
                 message.data.response.success = false;
                 message.data.meta.isValid = false;
                 //Act
-                await eventBusService['processUpload'](message);
+                await eventBusService['processMessage'](message);
             });
 
             test("When create osw database failed, Expect to fail the message processing", async () => {
@@ -117,7 +117,7 @@ describe("Queue message service", () => {
                     .mockRejectedValueOnce(new Error("Database exception"));
 
                 //Act
-                await eventBusService['processUpload'](TdeiObjectFaker.getOswQueueMessageSuccess());
+                await eventBusService['processMessage'](TdeiObjectFaker.getOswQueueMessageSuccess());
             });
 
             test("When permission denied, Expect to fail the message processing", async () => {
@@ -145,7 +145,7 @@ describe("Queue message service", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                await eventBusService['processUpload'](TdeiObjectFaker.getOswQueueMessageSuccess());
+                await eventBusService['processMessage'](TdeiObjectFaker.getOswQueueMessageSuccess());
             });
         });
     });
