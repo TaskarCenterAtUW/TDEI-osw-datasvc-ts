@@ -5,7 +5,7 @@ import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/Osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { DuplicateException, InputException, FileTypeException } from "../exceptions/http/http-exceptions";
+import { DuplicateException, InputException, FileTypeException, JobIdNotFoundException } from "../exceptions/http/http-exceptions";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import { validate, ValidationError } from "class-validator";
 import { Versions } from "../model/versions-dto";
@@ -22,6 +22,7 @@ import { EventBusService } from "../service/event-bus-service";
 import validationMiddleware from "../middleware/dto-validation-middleware";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
+import { OswFormatJob } from "../database/entity/osw-format-job-entity";
 
 /**
   * Multer for multiple uploads
@@ -43,6 +44,18 @@ const upload = multer({
     }
 });
 
+const uploadForFormat = multer({
+    dest: 'uploads/',
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        if (ext != '.zip' && ext != '.xml' && ext != '.osm') {
+            cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
+
 class GtfsOSWController implements IController {
     public path = '/api/v1/osw';
     public router = express.Router();
@@ -58,7 +71,9 @@ class GtfsOSWController implements IController {
         this.router.post(this.path, upload.single('file'), metajsonValidator, tokenValidator, this.createOsw);
         this.router.get(`${this.path}/versions/info`, this.getVersions);
         this.router.post(`${this.path}/confidence/calculate`, this.calculateConfidence); // Confidence calculation
-        this.router.get(`${this.path}/confidence/status/:jobId`,this.getConfidenceJobStatus)
+        this.router.get(`${this.path}/confidence/status/:jobId`,this.getConfidenceJobStatus);
+        this.router.post(`${this.path}/format/upload`,uploadForFormat.single('file'),this.createFormatRequest); // Format request
+        this.router.get(`${this.path}/format/status/:jobId`,this.getFormatStatus);
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -232,6 +247,64 @@ class GtfsOSWController implements IController {
             'status':jobInfo.status,
             'updatedAt':jobInfo.updated_at,
             'message':'ok' //Need to update this.
+        };
+        response.status(200).send(responseData);
+    } catch (error){
+        return next(error);
+        
+    }
+    }
+
+    createFormatRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+           // Get the file
+
+            const uploadedFile = request.file;
+            // Get the upload path
+            const uid = storageService.generateRandomUUID();
+            const folderPath = storageService.getFormatJobPath(uid);
+            const uploadPath = path.join(folderPath,uploadedFile!.originalname)
+            const extension = path.extname(uploadedFile!.originalname)
+            let fileType = 'application/xml'
+            if (extension == 'zip') {
+                fileType = 'application/zip'
+            }
+            const remoteUrl = await storageService.uploadFile(uploadPath,fileType,Readable.from(uploadedFile!.buffer))
+            console.log('Uplaoded to ');
+            console.log(remoteUrl);
+            const oswformatJob = new OswFormatJob();
+            oswformatJob.created_at = new Date();
+            oswformatJob.source = request.body['source']; //TODO: Validate the input enums 
+            oswformatJob.target = request.body['target']; //TODO: Validate the input enums
+            oswformatJob.source_url = remoteUrl;
+            oswformatJob.status = 'started'
+
+            const jobId = await oswService.createOSWFormatJob(oswformatJob);
+            console.log('JobId created')
+            console.log(jobId);
+            
+            // Send the same to service bus.
+            oswformatJob.jobId = parseInt(jobId);
+            this.eventBusService.publishOnDemandFormat(oswformatJob);
+
+            response.status(200).send({'jobId':jobId})
+    }
+
+    getFormatStatus = async (request: Request, response: express.Response, next: NextFunction) => {
+
+        console.log('Requested status for format jobInfo ')
+        try {
+        const jobId = request.params['jobId'];
+        if(jobId == undefined || jobId == ''){
+            return next(new InputException('jobId not provided'));
+        }
+        const jobInfo = await oswService.getOSWFormatJob(jobId);
+        const responseData = {
+            'jobId':jobId,
+            'sourceUrl':jobInfo.source_url,
+            'targetUrl':jobInfo.target_url,
+            'conversion':jobInfo.source+'-'+jobInfo.target,
+            'status':jobInfo.status,
+            'message':jobInfo.message
         };
         response.status(200).send(responseData);
     } catch (error){

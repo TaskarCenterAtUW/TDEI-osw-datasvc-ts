@@ -12,6 +12,10 @@ import { randomUUID } from "crypto";
 import { OswUploadMeta } from "../model/osw-upload-meta";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 import { OSWConfidenceResponse } from "../model/osw-confidence-response";
+import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
+import { OswFormatJob } from "../database/entity/osw-format-job-entity";
+import { OswFormatJobRequest } from "../model/osw-format-job-request";
+import { OswFormatJobResponse } from "../model/osw-format-job-response";
 
 export class EventBusService implements IEventBusServiceInterface {
     private queueConfig: AzureQueueConfig;
@@ -19,6 +23,7 @@ export class EventBusService implements IEventBusServiceInterface {
     public uploadTopic: Topic;
     public confidenceReqTopic: Topic;
     public confidenceResTopic: Topic; // May not need
+    public validationTopic: Topic;
 
     constructor(queueConnection: string = environment.eventBus.connectionString as string, publishingTopicName: string = environment.eventBus.dataServiceTopic as string) {
         Core.initialize();
@@ -29,15 +34,25 @@ export class EventBusService implements IEventBusServiceInterface {
         // Confidence metric In and out
         this.confidenceReqTopic = Core.getTopic(environment.eventBus.confidenceRequestTopic as string)
         this.confidenceResTopic = Core.getTopic(environment.eventBus.confidenceResponseTopic as string)
-
-
+        // For formatter service
+        this.validationTopic = Core.getTopic(environment.eventBus.validationTopic as string)
 
     }
 
-    // function to handle messages
-    private processUpload = async (messageReceived: any) => {
+    // function to handle messages after formatting is done.
+    private processMessage = async (messageReceived: QueueMessage) => {
         let tdeiRecordId = "";
         try {
+            console.log(messageReceived);
+            if(messageReceived.messageType == 'osw-formatter-response'){
+                console.log('Received on demand format response');
+                const response = OswFormatJobResponse.from(messageReceived.data);
+                console.log('Response')
+                console.log(response);
+                oswService.updateOSWFormatJob(response);
+                console.log('updated job');
+                return;
+            }
             const queueMessage = QueueMessageContent.from(messageReceived.data);
             tdeiRecordId = queueMessage.tdeiRecordId!;
 
@@ -66,7 +81,7 @@ export class EventBusService implements IEventBusServiceInterface {
                 if (errors.length > 0) {
                     const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
                     console.error('Upload osw file metadata information failed validation. errors: ', message);
-                    this.publish(messageReceived,
+                    this.publishToDataservice(messageReceived,
                         {
                             success: false,
                             message: 'Validation error :' + message
@@ -74,7 +89,7 @@ export class EventBusService implements IEventBusServiceInterface {
                     return Promise.resolve();
                 } else {
                     oswService.updateOsw(oswVersions).then(() => {
-                        this.publish(messageReceived,
+                        this.publishToDataservice(messageReceived,
                             {
                                 success: true,
                                 message: 'OSW request processed successfully !'
@@ -82,7 +97,7 @@ export class EventBusService implements IEventBusServiceInterface {
                         return Promise.resolve();
                     }).catch((error: any) => {
                         console.error('Error updating the osw version', error);
-                        this.publish(messageReceived,
+                        this.publishToDataservice(messageReceived,
                             {
                                 success: false,
                                 message: 'Error occured while processing osw request' + error
@@ -93,7 +108,7 @@ export class EventBusService implements IEventBusServiceInterface {
             });
         } catch (error) {
             console.error(tdeiRecordId, 'Error occured while processing osw request', error);
-            this.publish(messageReceived,
+            this.publishToDataservice(messageReceived,
                 {
                     success: false,
                     message: 'Error occured while processing osw request' + error
@@ -102,7 +117,9 @@ export class EventBusService implements IEventBusServiceInterface {
         }
     };
 
-    private publish(queueMessage: QueueMessage, response: {
+    // Internal method for publishing data.
+    // Sends message to the dataservice
+    private publishToDataservice(queueMessage: QueueMessage, response: {
         success: boolean,
         message: string
     }) {
@@ -133,11 +150,12 @@ export class EventBusService implements IEventBusServiceInterface {
         Core.getTopic(formatterTopic,
             this.queueConfig)
             .subscribe(formatterSubscription, {
-                onReceive: this.processUpload,
+                onReceive: this.processMessage,
                 onError: this.processUploadError
             });
     }
 
+    // Publishes data for uploading
     public publishUpload(request: OswUploadMeta, recordId: string, file_upload_path: string, userId: string, meta_file_path: string) {
         const messageContent = QueueMessageContent.from({
             stage: 'osw-upload',
@@ -186,13 +204,39 @@ export class EventBusService implements IEventBusServiceInterface {
         console.log('received confidence calculation failed message')
         console.log(error)
     }
-
+    /**
+     * Publishes confidence request
+     * @param req 
+     */
     public publishConfidenceRequest(req: OSWConfidenceRequest) {
         this.confidenceReqTopic.publish(QueueMessage.from({
             messageType: 'osw-confidence-request',
             data: req
         }))
     }
+
+    /**
+     * Publishes the ondemand format message to `validationTopic`
+     * @param info 
+     */
+     publishOnDemandFormat(info: OswFormatJob): void {
+        const oswFormatRequest = OswFormatJobRequest.from({
+            jobId:info.jobId.toString(),
+            source:info.source,
+            target:info.target,
+            sourceUrl:info.source_url
+        });
+        
+         const message = QueueMessage.from({
+            messageType: "osw-formatter-request",
+            data: oswFormatRequest
+         });
+         console.log(message);
+         // Publish the same
+         this.validationTopic.publish(message); 
+     }
+
+    
 }
 
 // const eventBusService = new EventBusService();

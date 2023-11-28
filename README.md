@@ -338,3 +338,52 @@ The status can be any of `started`, `calculated` or `failed`
 | started | Initiated the calculation. Waiting for confidence service to respond|
 | calculated| Calculation done. The value is in `confidenceValue` |
 | failed | Confidence service failed to calculate. `message` will have the error |
+
+
+## On demand formatting for osw
+
+On demand formatting is done by uploading a type of format.
+
+### On demand format upload API 
+
+PATH: `/api/v1/format/upload`
+
+Method : POST
+
+Body: (multipart-form-data)
+
+|Key | Description|
+|-|-|
+|source| From format (osw or osm) |
+| target | To format (osw or osm) should not be same as source |
+| file | input file  to be converted|
+
+Response:
+
+```json
+{
+    "jobId":"<jobId>",
+    "statusUrl":"<status url >"
+}
+
+```
+
+### Status request API
+
+Path: `/api/v1/osw/format/status/<jobId>`
+
+Method: `GET`
+
+Response:
+
+```json
+{
+    "jobId":"<jobId>",
+    "status":"<started/completed/failed>",
+    "message":"<any error message. will be blank for completed or started>",
+    "sourceUrl":"<url to the source dataset>",
+    "targetUrl":"<url to the formatted dataset>",
+    "conversion":"<type of conversion> osm-osw or osw-osm"
+}
+
+```

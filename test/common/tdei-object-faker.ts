@@ -1,6 +1,7 @@
 import { FeatureCollection } from "geojson";
 import { Readable } from "stream";
 import { OswVersions } from "../../src/database/entity/osw-version-entity";
+import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import oswValidationSuccessMessage from "../test-data/osw-validation-success.message.json";
 
 export class TdeiObjectFaker {
@@ -108,7 +109,7 @@ export class TdeiObjectFaker {
     }
 
     static getOswQueueMessageSuccess() {
-        return oswValidationSuccessMessage;
+        return QueueMessage.from(oswValidationSuccessMessage);
     }
 
     static getOswPayload2() {
