@@ -46,7 +46,6 @@ export class EventBusService implements IEventBusServiceInterface {
             console.log(messageReceived);
             if(messageReceived.messageType == 'osw-formatter-response'){
                 console.log('Received on demand format response');
-                console.log(messageReceived);
                 const response = OswFormatJobResponse.from(messageReceived.data);
                 console.log('Response')
                 console.log(response);
