@@ -1,0 +1,85 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Generated schema for Root",
+    "type": "object",
+    "properties": {
+        "tasks": {
+            "type": "array",
+            "description": "Define Tasks",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "task": {
+                        "type": "string"
+                    },
+                    "workflow": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "event": {
+                                    "type": "string",
+                                    "anyOf": [
+                                        {
+                                            "const": "VALIDATION_COMPLETED",
+                                            "title": "Process to invoke upon validation completion"
+                                        },
+                                        {
+                                            "const": "PUBLISH_VALIDATION_COMPLETED",
+                                            "title": "Process to invoke upon validation completion"
+                                        },
+                                        {
+                                            "const": "FORMATTING_REQUEST",
+                                            "title": "Process to invoke for formatting request"
+                                        },
+                                        {
+                                            "const": "FORMATTING_COMPLETED",
+                                            "title": "Process to invoke upon formatting completion"
+                                        },
+                                        {
+                                            "const": "CONFIDENCE_REQUEST",
+                                            "title": "Process to invoke for confidence request"
+                                        },
+                                        {
+                                            "const": "CONFIDENCE_COMPLETED",
+                                            "title": "Process to invoke upon confidence completion"
+                                        }
+                                    ]
+                                },
+                                "action": {
+                                    "type": "string"
+                                },
+                                "message-type": {
+                                    "type": "string"
+                                },
+                                "topic": {
+                                    "type": "string"
+                                },
+                                "subscription": {
+                                    "type": "string"
+                                },
+                                "publish-data-keys": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "event",
+                                "action"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "task",
+                    "workflow"
+                ]
+            }
+        }
+    },
+    "required": [
+        "tasks"
+    ]
+}
