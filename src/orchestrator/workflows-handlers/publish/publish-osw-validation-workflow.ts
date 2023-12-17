@@ -9,7 +9,6 @@ export class PublishValidationWorkflow implements IWorkflowRegister {
     }
 
     register(): void {
-        console.log("Registering OSW_PUBLISH_VALIDATION_WORKFLOW");
         this.workflowEvent.on("OSW_PUBLISH_VALIDATION_WORKFLOW", this.handleWorkflow);
     }
 

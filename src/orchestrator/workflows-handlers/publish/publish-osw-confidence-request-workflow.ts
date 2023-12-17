@@ -9,7 +9,6 @@ export class PublishConfidenceRequestWorkflow implements IWorkflowRegister {
     }
 
     register(): void {
-        console.log("Registering OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW");
         this.workflowEvent.on("OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW", this.handleWorkflow);
     }
 

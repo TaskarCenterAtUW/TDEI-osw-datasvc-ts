@@ -9,7 +9,6 @@ export class UploadValidationHandler implements IWorkflowRegister {
     }
 
     register(): void {
-        console.log("Registering OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER");
         this.workflowEvent.on("OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER", this.handleMessage);
     }
 

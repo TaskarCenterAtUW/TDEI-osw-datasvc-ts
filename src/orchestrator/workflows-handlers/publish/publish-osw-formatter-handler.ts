@@ -9,7 +9,6 @@ export class PublishFormattingHandler implements IWorkflowRegister {
     }
 
     register(): void {
-        console.log("Registering OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER");
         this.workflowEvent.on("OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER", this.handleMessage);
     }
 

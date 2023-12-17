@@ -57,11 +57,13 @@ class App {
         if (!this.orchestratorService)
             this.orchestratorService = new OrchestratorService(orchestratorConfig, this.workflowEvent);
         //Register all handlers and workflow
-        
+        console.log("Registering the orchestration workflow and handlers");
         handlers.forEach(x => {
             let handler: IWorkflowRegister = new x(this.workflowEvent);
             handler.register();
-        })
+        });
+        //Validate the workflow and handlers defined in configuration are registered in the Orchestrator engine
+        this.orchestratorService.validateDeclaredVsRegisteredWorkflowHandlers();
     }
 
     public get orchestratorServiceInstance() {

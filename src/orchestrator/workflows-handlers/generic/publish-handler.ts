@@ -9,7 +9,6 @@ export class PublishHandler implements IWorkflowRegister {
     }
 
     register(): void {
-        console.log("Registering PUBLISH_HANDLER");
         this.workflowEvent.on("PUBLISH_HANDLER", this.handleWorkflow);
     }
     /**

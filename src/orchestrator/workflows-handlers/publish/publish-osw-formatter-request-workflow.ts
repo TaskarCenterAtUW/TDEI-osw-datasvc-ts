@@ -9,7 +9,6 @@ export class PublishFormattingRequestWorkflow implements IWorkflowRegister {
     }
 
     register(): void {
-        console.log("Registering OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW");
         this.workflowEvent.on("OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW", this.handleWorkflow);
     }
 
