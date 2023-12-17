@@ -1,4 +1,4 @@
-import App from './app';
+import App, { IAppContext } from './app';
 import dotenv from 'dotenv';
 import "reflect-metadata";
 import oswController from './controller/osw-controller';
@@ -10,10 +10,13 @@ dotenv.config()
 
 const PORT: number = environment.appPort;
 
-new App(
+const appContext = new App(
     [
         oswController,
         healthController
     ],
     PORT,
-).listen();
+);
+appContext.listen();
+
+export default appContext as IAppContext;

@@ -1,0 +1,84 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Schema for tdei orchestrator config",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "workflows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "worflow_type": {
+                        "type": "string"
+                    },
+                    "worflow_identifier": {
+                        "type": "string"
+                    },
+                    "handlers": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "params": {
+                                    "type": "object",
+                                    "properties": {
+                                        "identifier": {
+                                            "type": "string"
+                                        },
+                                        "topic": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": []
+                                },
+                                "delegate_worflow": {
+                                    "type": "array"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "params"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "worflow_type",
+                    "worflow_identifier"
+                ]
+            }
+        },
+        "subscriptions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "topic": {
+                        "type": "string"
+                    },
+                    "subscription": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "description",
+                    "topic",
+                    "subscription"
+                ]
+            }
+        }
+    },
+    "required": [
+        "workflows",
+        "subscriptions"
+    ]
+}
