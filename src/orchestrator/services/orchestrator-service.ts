@@ -61,7 +61,7 @@ export class OrchestratorService {
      * Initializes the workflows
      */
     private initializeOrhchestrator() {
-        //this.subscribe();
+        this.subscribe();
     }
 
     /**
@@ -199,6 +199,7 @@ export class OrchestratorService {
             )
             .filter(Boolean);
 
+        //TODO:: 4. Validate the delegate workflow belongs to the same workflow type group
 
         if (workflowsWithDelegateNotExists.length)
             console.log("Delegate workflow does not exists for below workflows:", workflowsWithDelegateNotExists)

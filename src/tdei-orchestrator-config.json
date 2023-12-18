@@ -32,7 +32,7 @@
                     "name": "PUBLISH_HANDLER",
                     "params": {
                         "identifier": "OSW_PUBLISH_FORMATTING_WORKFLOW",
-                        "topic": "osw-formatting-response"
+                        "topic": "osw-formatting-request"
                     }
                 }
             ]
@@ -58,7 +58,7 @@
                     "name": "PUBLISH_HANDLER",
                     "params": {
                         "identifier": "OSW_PUBLISH_CONFIDENCE_WORKFLOW",
-                        "topic": "osw-confidence-response"
+                        "topic": "osw-confidence-request"
                     }
                 }
             ]
