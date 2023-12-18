@@ -12,27 +12,46 @@
                 "type": "object",
                 "properties": {
                     "worflow_type": {
-                        "type": "string"
+                        "type": "string",
+                        "anyOf": [
+                            {
+                                "const": "TRIGGER",
+                                "title": "Defines that the worklow can be triggered via orchestrator"
+                            },
+                            {
+                                "const": "HANDLER",
+                                "title": "Defines that the worklow can handle the response messages and cannot be triggered via orchestrator"
+                            }
+                        ]
+                    },
+                    "worflow_group": {
+                        "type": "string",
+                        "description": "Defines the workflow group"
                     },
                     "worflow_identifier": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Uniquely identifies the workflow."
                     },
                     "handlers": {
                         "type": "array",
+                        "description": "Defines the handlers to respond to the workflow request",
                         "items": {
                             "type": "object",
                             "properties": {
                                 "name": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "Name of the handler"
                                 },
                                 "params": {
                                     "type": "object",
                                     "properties": {
                                         "identifier": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "description": "Workflow identifier"
                                         },
                                         "topic": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "description": "Topic to publish the message"
                                         }
                                     },
                                     "required": []
@@ -50,6 +69,7 @@
                 },
                 "required": [
                     "worflow_type",
+                    "worflow_group",
                     "worflow_identifier"
                 ]
             }
@@ -60,13 +80,16 @@
                 "type": "object",
                 "properties": {
                     "description": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Free text description"
                     },
                     "topic": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Topic name where the message are posted"
                     },
                     "subscription": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Subscription name to listen to topic messages"
                     }
                 },
                 "required": [

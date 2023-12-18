@@ -31,6 +31,9 @@ ALTER TABLE IF EXISTS public.osw_versions
 ALTER TABLE IF EXISTS public.osw_versions
  ADD COLUMN status character varying;  
 
+ALTER TABLE IF EXISTS public.osw_versions
+ ADD COLUMN tdei_service_id character varying;  
+
  CREATE TABLE IF NOT EXISTS public.osw_metadata
 (
 	id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
@@ -61,4 +64,17 @@ CREATE TABLE IF NOT EXISTS public.osw_validation_jobs
     created_at  timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
      CONSTRAINT "PK_validation_job_id" PRIMARY KEY (job_id)
+)
+
+CREATE TABLE IF NOT EXISTS public.osw_workflow_history
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    tdei_record_id character varying COLLATE pg_catalog."default" NOT NULL,
+    workflow_name character varying COLLATE pg_catalog."default",
+    request_message json,
+    response_message json,
+    created_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT osw_workflow_history_pkey PRIMARY KEY (id)
+    CONSTRAINT unq_tdei_record_id_workflow UNIQUE (tdei_record_id, workflow_name)
 )

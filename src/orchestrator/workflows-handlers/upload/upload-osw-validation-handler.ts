@@ -21,6 +21,6 @@ export class UploadValidationHandler implements IWorkflowRegister {
     private handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
         console.log("Triggered OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER :", message.messageType);
 
-        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message, {});
+        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

@@ -3,6 +3,7 @@ import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { OrchestratorContext } from "../models/config-model";
 import { EventEmitter } from 'events';
+import workflowDatabaseService from "./wrokflow-database-service";
 
 export interface IOrchestratorService {
 
@@ -25,12 +26,19 @@ export interface IOrchestratorService {
      * @param message 
      * @param params 
      */
-    delegateWorkflowIfAny(delegateWorkflows: string[], message: QueueMessage, params: any): void;
+    delegateWorkflowIfAny(delegateWorkflows: string[], message: QueueMessage): void;
 
     /**
-         * Validate declared vs registered workflow & handlers
-         */
-    validateDeclaredVsRegisteredWorkflowHandlers(): void
+     * Validate declared vs registered workflow & handlers
+     */
+    validateDeclaredVsRegisteredWorkflowHandlers(): void;
+
+    /**
+     * Triggers the workflow of type "TRIGGER"
+     * @param workflow_name 
+     * @param message 
+     */
+    triggerWorkflow(workflow_name: string, message: QueueMessage): Promise<void>
 }
 
 export class OrchestratorService {
@@ -81,6 +89,26 @@ export class OrchestratorService {
         });
     }
 
+    /**
+     * Triggers the workflow of type "TRIGGER"
+     * @param workflow_name 
+     * @param message 
+     */
+    async triggerWorkflow(workflow_name: string, message: QueueMessage): Promise<void> {
+        let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow_name);
+        if (trigger_workflow?.worflow_type == "TRIGGER") {
+            //Log/Insert the workflow history
+            await workflowDatabaseService.logWorkflowHistory(message);
+            message.messageType = workflow_name;
+            //trigger workflow
+            this.workflowEvent.emit(workflow_name, message);
+        }
+        else {
+            return Promise.reject("Workflow with type 'Trigger' only allowed. Workflow with type HANDLER cannot be triggered");
+        }
+        return Promise.resolve();
+    }
+
     /** 
      * Handle the subscribed messages
      * @param message 
@@ -90,6 +118,8 @@ export class OrchestratorService {
             console.log("Received message", message.messageType);
             //Get workflow identifier
             let identifier = message.messageType;
+            //Update the workflow history
+            workflowDatabaseService.updateWorkflowHistory(message);
             //trigger workflow
             this.workflowEvent.emit(identifier, message);
         } catch (error) {
@@ -126,11 +156,18 @@ export class OrchestratorService {
      * @param message 
      * @param params 
      */
-    delegateWorkflowIfAny = (delegateWorkflows: string[], message: QueueMessage, params: any): void => {
+    delegateWorkflowIfAny = (delegateWorkflows: string[], message: QueueMessage): void => {
         if (delegateWorkflows) {
-            delegateWorkflows.forEach(workflow => {
+            delegateWorkflows.forEach(async workflow => {
                 message.messageType = workflow;
-                this.workflowEvent.emit(workflow, message, params);
+
+                let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow);
+                if (trigger_workflow?.worflow_type == "TRIGGER") {
+                    //Log/Insert the workflow history
+                    await workflowDatabaseService.logWorkflowHistory(message);
+                }
+                //trigger workflow
+                this.workflowEvent.emit(workflow, message);
             });
         }
     }

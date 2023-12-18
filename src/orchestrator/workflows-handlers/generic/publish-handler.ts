@@ -22,8 +22,8 @@ export class PublishHandler implements IWorkflowRegister {
         let topic = params.topic;
         let message_type = params.identifier;
         message.messageType = message_type;
-        //Do job publishing to queue
+        //TODO:: Log woflow history for request_message
         await appContext.orchestratorServiceInstance.publishMessage(topic, message)
-        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message, {});
+        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

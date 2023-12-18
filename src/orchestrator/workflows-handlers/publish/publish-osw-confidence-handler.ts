@@ -21,6 +21,6 @@ export class PublishConfidenceHandler implements IWorkflowRegister {
     private handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
         console.log("Triggered OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER :", message.messageType);
 
-        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message, {});
+        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

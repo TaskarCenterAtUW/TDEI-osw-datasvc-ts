@@ -2,7 +2,22 @@
     "$schema": "./tdei-orchestrator.schema.json",
     "workflows": [
         {
-            "worflow_type": "UPLOAD_OSW",
+            "worflow_group": "UPLOAD_OSW",
+            "worflow_type": "TRIGGER",
+            "worflow_identifier": "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW",
+            "handlers": [
+                {
+                    "name": "PUBLISH_HANDLER",
+                    "params": {
+                        "identifier": "OSW_UPLOAD_VALIDATION_WORKFLOW",
+                        "topic": "osw-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "worflow_group": "UPLOAD_OSW",
+            "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_UPLOAD_VALIDATION_WORKFLOW",
             "handlers": [
                 {
@@ -12,7 +27,22 @@
             ]
         },
         {
-            "worflow_type": "PUBLISH_OSW",
+            "worflow_group": "PUBLISH_OSW",
+            "worflow_type": "TRIGGER",
+            "worflow_identifier": "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
+            "handlers": [
+                {
+                    "name": "PUBLISH_HANDLER",
+                    "params": {
+                        "identifier": "OSW_PUBLISH_VALIDATION_WORKFLOW",
+                        "topic": "osw-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "worflow_group": "PUBLISH_OSW",
+            "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_PUBLISH_VALIDATION_WORKFLOW",
             "handlers": [
                 {
@@ -25,7 +55,8 @@
             ]
         },
         {
-            "worflow_type": "PUBLISH_OSW",
+            "worflow_group": "PUBLISH_OSW",
+            "worflow_type": "TRIGGER",
             "worflow_identifier": "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW",
             "handlers": [
                 {
@@ -38,7 +69,8 @@
             ]
         },
         {
-            "worflow_type": "PUBLISH_OSW",
+            "worflow_group": "PUBLISH_OSW",
+            "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_PUBLISH_FORMATTING_WORKFLOW",
             "handlers": [
                 {
@@ -51,7 +83,8 @@
             ]
         },
         {
-            "worflow_type": "PUBLISH_OSW",
+            "worflow_group": "PUBLISH_OSW",
+            "worflow_type": "TRIGGER",
             "worflow_identifier": "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW",
             "handlers": [
                 {
@@ -64,7 +97,8 @@
             ]
         },
         {
-            "worflow_type": "PUBLISH_OSW",
+            "worflow_group": "PUBLISH_OSW",
+            "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_PUBLISH_CONFIDENCE_WORKFLOW",
             "handlers": [
                 {

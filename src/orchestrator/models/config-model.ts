@@ -1,8 +1,7 @@
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 
-export interface IWorkflowRegister
-{
-    register() : void;
+export interface IWorkflowRegister {
+    register(): void;
 }
 
 export class OrchestratorContext {
@@ -26,20 +25,21 @@ export class OrchestratorContext {
 }
 
 export interface Workflow {
-    worflow_type: string
-    worflow_identifier?: string
-    handlers?: Handler[]
+    worflow_group: string;
+    worflow_type: string;
+    worflow_identifier?: string;
+    handlers?: Handler[];
 }
 
 export interface Handler {
-    name: string
-    params: any
-    delegate_worflow?: string[]
+    name: string;
+    params: any;
+    delegate_worflow?: string[];
 }
 
 export interface Subscription {
-    description: string
-    topic: string
-    subscription: string
+    description: string;
+    topic: string;
+    subscription: string;
 }
 

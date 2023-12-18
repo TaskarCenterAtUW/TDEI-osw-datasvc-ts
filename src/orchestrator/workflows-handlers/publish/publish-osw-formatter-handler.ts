@@ -21,6 +21,6 @@ export class PublishFormattingHandler implements IWorkflowRegister {
     private handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
         console.log("Triggered OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER");
 
-        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message, {});
+        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

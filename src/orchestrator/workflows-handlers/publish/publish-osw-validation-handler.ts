@@ -21,6 +21,6 @@ export class PublishValidationHandler implements IWorkflowRegister {
     private handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
         console.log("Triggered OSW_PUBLISH_VALIDATION_RESPONSE_HANDLER");
 
-        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message, {});
+        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }
