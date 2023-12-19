@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS public.osw_workflow_history
     response_message json,
     created_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT osw_workflow_history_pkey PRIMARY KEY (id)
+    status text GENERATED ALWAYS AS ((response_message->'data'->>'status')::text) STORED,
+    CONSTRAINT osw_workflow_history_pkey PRIMARY KEY (id),
     CONSTRAINT unq_tdei_record_id_workflow UNIQUE (tdei_record_id, workflow_name)
 )

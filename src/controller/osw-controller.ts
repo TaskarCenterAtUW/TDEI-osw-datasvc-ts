@@ -142,7 +142,7 @@ class GtfsOSWController implements IController {
     processUploadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received upload request');
-
+            //TODO:: Verify tdei_service_id is allowed to do the upload for OSW file type
             let uploadRequest: IUploadRequest = {
                 user_id: request.body.user_id,
                 tdei_project_group_id: request.params["tdei_project_group_id"],

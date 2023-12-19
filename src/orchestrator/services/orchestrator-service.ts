@@ -81,7 +81,7 @@ export class OrchestratorService {
             var topic = Core.getTopic(subscription.topic as string);
             topic.subscribe(subscription.subscription as string,
                 {
-                    onReceive: this.delegateWorkflow,
+                    onReceive: this.handleMessage,
                     onError: this.handleFailedMessages
                 });
             //Store the topics into collection 
@@ -113,7 +113,7 @@ export class OrchestratorService {
      * Handle the subscribed messages
      * @param message 
      */
-    private delegateWorkflow = (message: QueueMessage) => {
+    private handleMessage = (message: QueueMessage) => {
         try {
             console.log("Received message", message.messageType);
             //Get workflow identifier

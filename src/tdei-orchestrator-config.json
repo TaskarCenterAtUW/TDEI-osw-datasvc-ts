@@ -106,6 +106,31 @@
                     "params": {}
                 }
             ]
+        },
+        {
+            "worflow_group": "VALIDATION_ONLY_OSW",
+            "worflow_type": "TRIGGER",
+            "worflow_identifier": "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW",
+            "handlers": [
+                {
+                    "name": "PUBLISH_HANDLER",
+                    "params": {
+                        "identifier": "OSW_VALIDATION_ONLY_VALIDATION_WORKFLOW",
+                        "topic": "osw-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "worflow_group": "VALIDATION_ONLY_OSW",
+            "worflow_type": "HANDLER",
+            "worflow_identifier": "OSW_VALIDATION_ONLY_VALIDATION_WORKFLOW",
+            "handlers": [
+                {
+                    "name": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
         }
     ],
     "subscriptions": [
