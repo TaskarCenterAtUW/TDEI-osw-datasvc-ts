@@ -76,4 +76,16 @@ export interface IOswService {
      * @param uploadRequestObject 
      */
     processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string>;
+
+    /**
+    * Publishes the osw record
+    * @param tdei_record_id 
+    */
+    processPublishRequest(user_id: string, tdei_record_id: string): Promise<void>;
+
+    /**
+   * Processes the validation only request
+   * @param tdei_record_id 
+   */
+    processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
 }

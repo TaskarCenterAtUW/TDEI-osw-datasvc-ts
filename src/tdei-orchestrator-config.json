@@ -3,6 +3,7 @@
     "workflows": [
         {
             "worflow_group": "UPLOAD_OSW",
+            "worflow_stage": "VALIDATION",
             "worflow_type": "TRIGGER",
             "worflow_identifier": "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW",
             "handlers": [
@@ -17,6 +18,7 @@
         },
         {
             "worflow_group": "UPLOAD_OSW",
+            "worflow_stage": "VALIDATION",
             "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_UPLOAD_VALIDATION_WORKFLOW",
             "handlers": [
@@ -28,6 +30,7 @@
         },
         {
             "worflow_group": "PUBLISH_OSW",
+            "worflow_stage": "VALIDATION",
             "worflow_type": "TRIGGER",
             "worflow_identifier": "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
             "handlers": [
@@ -42,6 +45,7 @@
         },
         {
             "worflow_group": "PUBLISH_OSW",
+            "worflow_stage": "VALIDATION",
             "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_PUBLISH_VALIDATION_WORKFLOW",
             "handlers": [
@@ -56,6 +60,7 @@
         },
         {
             "worflow_group": "PUBLISH_OSW",
+            "worflow_stage": "FILE_FORMATTING",
             "worflow_type": "TRIGGER",
             "worflow_identifier": "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW",
             "handlers": [
@@ -70,6 +75,7 @@
         },
         {
             "worflow_group": "PUBLISH_OSW",
+            "worflow_stage": "FILE_FORMATTING",
             "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_PUBLISH_FORMATTING_WORKFLOW",
             "handlers": [
@@ -84,6 +90,7 @@
         },
         {
             "worflow_group": "PUBLISH_OSW",
+            "worflow_stage": "CONFIDENCE_MATRIC_CALCULATION",
             "worflow_type": "TRIGGER",
             "worflow_identifier": "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW",
             "handlers": [
@@ -98,6 +105,7 @@
         },
         {
             "worflow_group": "PUBLISH_OSW",
+            "worflow_stage": "CONFIDENCE_MATRIC_CALCULATION",
             "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_PUBLISH_CONFIDENCE_WORKFLOW",
             "handlers": [
@@ -109,6 +117,7 @@
         },
         {
             "worflow_group": "VALIDATION_ONLY_OSW",
+            "worflow_stage": "VALIDATION",
             "worflow_type": "TRIGGER",
             "worflow_identifier": "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW",
             "handlers": [
@@ -123,6 +132,7 @@
         },
         {
             "worflow_group": "VALIDATION_ONLY_OSW",
+            "worflow_stage": "VALIDATION",
             "worflow_type": "HANDLER",
             "worflow_identifier": "OSW_VALIDATION_ONLY_VALIDATION_WORKFLOW",
             "handlers": [

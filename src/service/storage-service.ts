@@ -30,7 +30,14 @@ class StorageService {
         const today = new Date();
         const year = today.getFullYear();
         const month = today.getMonth() + 1;
-        return 'jobs/' + year + '/' + month + '/' + uid;
+        return 'jobs/formatting/' + year + '/' + month + '/' + uid;
+    }
+
+    getValidationJobPath(uid: string): string {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        return 'jobs/validation/' + year + '/' + month + '/' + uid;
     }
 
     /**

@@ -23,9 +23,82 @@ import storageService from "./storage-service";
 import { OswMetadataEntity } from "../database/entity/osw-metadata";
 import appContext from "../server";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
+import { OswValidationJobs } from "../database/entity/osw-validate-jobs";
 
 class OswService implements IOswService {
     constructor() { }
+
+    /**
+   * Publishes the osw record
+   * @param tdei_record_id 
+   */
+    async processPublishRequest(user_id: string, tdei_record_id: string): Promise<void> {
+        try {
+            //
+            let osw_version = await this.getOSWRecordById(tdei_record_id);
+            //Compose the meessage
+            let workflow_identifier = "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: tdei_record_id,
+                messageType: workflow_identifier,
+                data: {
+                    userId: user_id, // Required field for message authorization
+                    projectGroupId: osw_version.tdei_project_group_id,// Required field for message authorization
+                    file_upload_path: osw_version.download_osw_url
+                }
+            });
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+
+            return Promise.resolve();
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+   * Processes the validation only request
+   * @param tdei_record_id 
+   */
+    async processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string> {
+        try {
+
+            //Upload the files to the storage
+            const uid = storageService.generateRandomUUID();
+            const storageFolderPath = storageService.getValidationJobPath(uid);
+            // Upload dataset file
+            const uploadStoragePath = path.join(storageFolderPath, datasetFile[0].originalname)
+            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile[0].buffer))
+
+
+            let validationJob = OswValidationJobs.from({
+                upload_url: datasetUploadUrl,
+                status: "In-progress"
+            });
+
+            const insertQuery = validationJob.getInsertQuery();
+
+            const result = await dbClient.query(insertQuery);
+            const job_id = result.rows[0]['job_id'];
+
+            //Compose the meessage
+            let workflow_identifier = "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: job_id,
+                messageType: workflow_identifier,
+                data: {
+                    userId: user_id, // Required field for message authorization
+                    file_upload_path: datasetUploadUrl
+                }
+            });
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+
+            return Promise.resolve(job_id);
+        } catch (error) {
+            throw error;
+        }
+    }
 
     /**
     * Processes the upload request and returns the unique tdei_record_id to represent the request
@@ -80,9 +153,9 @@ class OswService implements IOswService {
                 messageId: uid,
                 messageType: workflow_identifier,
                 data: {
-                    userId: uploadRequestObject.user_id,
-                    projectGroupId: uploadRequestObject.tdei_project_group_id,
-                    download_osw_url: datasetUploadUrl
+                    userId: uploadRequestObject.user_id,// Required field for message authorization
+                    projectGroupId: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
+                    file_upload_path: datasetUploadUrl
                 }
             });
             //Trigger the workflow

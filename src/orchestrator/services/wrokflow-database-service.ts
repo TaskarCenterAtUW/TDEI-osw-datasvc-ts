@@ -9,7 +9,7 @@ export interface IWorkflowDatabaseService {
      * @param message 
      * @returns 
      */
-    logWorkflowHistory(worflow_group: string, message: QueueMessage): Promise<boolean>;
+    logWorkflowHistory(worflow_group: string, worflow_stage: string, message: QueueMessage): Promise<boolean>;
     /**
      * Updates the existing workflow response message
      * @param message 
@@ -26,23 +26,25 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
      * @param message 
      * @returns 
      */
-    async logWorkflowHistory(worflow_group: string, message: QueueMessage): Promise<boolean> {
+    async logWorkflowHistory(worflow_group: string, worflow_stage: string, message: QueueMessage): Promise<boolean> {
         try {
             let data = {
                 workflow_name: message.messageType,
-                tdei_record_id: message.messageId,
+                reference_id: message.messageId,
                 request_message: message,
-                worflow_group: worflow_group
+                worflow_group: worflow_group,
+                worflow_stage: worflow_stage
             }
 
             const queryObject = {
                 text: `INSERT INTO public.osw_workflow_history(
-                    tdei_record_id, 
+                    reference_id, 
                     worflow_group,
+                    worflow_stage,
                     workflow_name, 
                     request_message)
                     VALUES (?, ?, ?)`.replace(/\n/g, ""),
-                values: [data.tdei_record_id, data.worflow_group, data.workflow_name, data.request_message],
+                values: [data.reference_id, data.worflow_group, data.worflow_stage, data.workflow_name, data.request_message],
             }
 
             await dbClient.query(queryObject);
@@ -63,7 +65,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
         try {
             let data = {
                 workflow_name: message.messageType,
-                tdei_record_id: message.messageId,
+                reference_id: message.messageId,
                 response_message: message
             }
 
@@ -71,8 +73,8 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
                 text: `UPDATE public.osw_workflow_history SET
                     response_message=$1, 
                     updated_timestamp= CURRENT_TIMESTAMP) 
-                    WHERE  tdei_record_id=$2 AND workflow_name=$3`.replace(/\n/g, ""),
-                values: [data.response_message, data.tdei_record_id, data.workflow_name],
+                    WHERE  reference_id=$2 AND workflow_name=$3`.replace(/\n/g, ""),
+                values: [data.response_message, data.reference_id, data.workflow_name],
             }
 
             await dbClient.query(queryObject);

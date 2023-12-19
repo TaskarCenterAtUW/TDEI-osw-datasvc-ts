@@ -28,6 +28,7 @@ Response message from any service is expected to maintain below structure
     "messageType": "workflow_identifier", // Passed as part of request
     "data": {
         "success" : "boolean value representing success or failure",
+        "message" : "if error specify the reason for the error"
         //...Other response params as per service needs 
     }
 }

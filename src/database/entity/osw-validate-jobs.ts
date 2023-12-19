@@ -38,7 +38,7 @@ export class OswValidationJobs extends BaseDto {
         return queryObject;
     }
 
-    static updateStatusQuery(job_id: string, status: string, validation_result: string): QueryConfig {
+    static getUpdateStatusQuery(job_id: string, status: string, validation_result: string): QueryConfig {
         const queryObject = {
             text: `UPDATE public.osw_validation_jobs SET status = $1, validation_result = $2, updated_at = CURRENT_TIMESTAMP
             WHERE job_id = $3`,

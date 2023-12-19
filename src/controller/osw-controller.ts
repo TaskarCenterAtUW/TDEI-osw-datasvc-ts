@@ -71,6 +71,8 @@ class GtfsOSWController implements IController {
             { name: "metadata", maxCount: 1 },
             { name: "changeset", maxCount: 1 }
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
+        this.router.post(`${this.path}/publish/:tdei_record_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
+        this.router.post(`${this.path}/validate`, upload.single('dataset'), authenticate, this.processValidationOnlyRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
         this.router.post(`${this.path}/confidence/calculate`, authenticate, this.calculateConfidence); // Confidence calculation
         this.router.get(`${this.path}/confidence/status/:jobId`, authenticate, this.getConfidenceJobStatus);
@@ -129,6 +131,65 @@ class GtfsOSWController implements IController {
             }
             response.status(500).send("Error while getting the file stream");
             next(new HttpException(500, "Error while getting the file stream"));
+        }
+    }
+
+    /**
+    * Processes the validation only request 
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    processValidationOnlyRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            console.log('Received upload request');
+            //TODO:: Verify tdei_service_id is allowed to do the upload for OSW file type
+            let datasetFile = (request.files as any)['dataset'];
+
+            if (!datasetFile) {
+                console.error("dataset file input upload missing");
+                response.status(400).send("dataset file input upload missing");
+                next(new InputException("dataset file input upload missing"));
+            }
+
+            let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
+            return response.status(202).send(job_id);
+
+        } catch (error) {
+            console.error("Error while processing the upload request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the upload request");
+            next(new HttpException(500, "Error while processing the upload request"));
+        }
+    }
+
+    /**
+    * Publishes the tdei record 
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    processPublishRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            let tdei_record_id = request.params["tdei_record_id"];
+            await oswService.processPublishRequest(request.body.user_id, tdei_record_id);
+
+            response.setHeader('Location', `/publish/status/${tdei_record_id}`);
+            return response.status(202).send(tdei_record_id);
+
+        } catch (error) {
+            console.error("Error while processing the publish request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the publish request");
+            next(new HttpException(500, "Error while processing the publish request"));
         }
     }
 

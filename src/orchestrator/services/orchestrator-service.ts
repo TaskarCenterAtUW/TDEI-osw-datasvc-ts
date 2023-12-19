@@ -98,7 +98,10 @@ export class OrchestratorService {
         let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow_identifier);
         if (trigger_workflow?.worflow_type == "TRIGGER") {
             //Log/Insert the workflow history
-            await workflowDatabaseService.logWorkflowHistory(trigger_workflow.worflow_group, message);
+            await workflowDatabaseService.logWorkflowHistory(
+                trigger_workflow.worflow_group,
+                trigger_workflow.worflow_stage,
+                message);
             message.messageType = workflow_identifier;
             //trigger workflow
             this.workflowEvent.emit(workflow_identifier, message);
@@ -164,7 +167,10 @@ export class OrchestratorService {
                 let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow);
                 if (trigger_workflow?.worflow_type == "TRIGGER") {
                     //Log/Insert the workflow history
-                    await workflowDatabaseService.logWorkflowHistory(trigger_workflow.worflow_group, message);
+                    await workflowDatabaseService.logWorkflowHistory(
+                        trigger_workflow.worflow_group,
+                        trigger_workflow.worflow_stage,
+                        message);
                 }
                 //trigger workflow
                 this.workflowEvent.emit(workflow, message);

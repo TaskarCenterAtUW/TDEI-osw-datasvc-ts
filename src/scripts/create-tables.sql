@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS public.osw_validation_jobs
 CREATE TABLE IF NOT EXISTS public.osw_workflow_history
 (
     id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    tdei_record_id character varying COLLATE pg_catalog."default" NOT NULL,
+    reference_id character varying COLLATE pg_catalog."default" NOT NULL,
     worflow_group character varying COLLATE pg_catalog."default" NOT NULL,
     workflow_name character varying COLLATE pg_catalog."default" NOT NULL,
     request_message json NOT NULL,
