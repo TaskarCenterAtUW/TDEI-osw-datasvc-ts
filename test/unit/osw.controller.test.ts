@@ -69,7 +69,7 @@ describe("OSW Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 const getOswByIdSpy = jest
-                    .spyOn(oswService, "getOswById")
+                    .spyOn(oswService, "getOswStreamById")
                     .mockResolvedValueOnce(getMockFileEntity());
                 //Act
                 await oswController.getOswById(req, res, next);
@@ -84,7 +84,7 @@ describe("OSW Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 jest
-                    .spyOn(oswService, "getOswById")
+                    .spyOn(oswService, "getOswStreamById")
                     .mockRejectedValueOnce(new HttpException(404, "Record not found"));
                 //Act
                 await oswController.getOswById(req, res, next);
@@ -99,7 +99,7 @@ describe("OSW Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 jest
-                    .spyOn(oswService, "getOswById")
+                    .spyOn(oswService, "getOswStreamById")
                     .mockRejectedValueOnce(new Error("Unexpected error"));
                 //Act
                 await oswController.getOswById(req, res, next);
@@ -124,59 +124,57 @@ describe("OSW Controller Test", () => {
         });
     });
 
-    describe('Create Osw file', ()=>{
+    describe('Create Osw file', () => {
 
-        beforeAll(()=>{
+        beforeAll(() => {
             mockCore();
         })
-        test('When valid input provided, expect to return tdei_record_id for new record', async ()=>{
+        test('When valid input provided, expect to return tdei_record_id for new record', async () => {
             mockCore();
-            let req = getMockReq({ body: {"meta":JSON.stringify(TdeiObjectFaker.getOswPayload2()),"file": Buffer.from('whatever') }});
+            let req = getMockReq({ body: { "meta": JSON.stringify(TdeiObjectFaker.getOswPayload2()), "file": Buffer.from('whatever') } });
             req.file = TdeiObjectFaker.getMockUploadFile();
-            const {res, next} = getMockRes()
-            const dummyResponse =  <OswDTO>{
-                tdei_record_id:"test_record_id"
-            }
-            const createOswSpy = jest.spyOn(oswService, "createOsw").mockResolvedValueOnce(dummyResponse);
-            const storageCliSpy  = jest.spyOn(storageService,"uploadFile").mockResolvedValue('remote_url');
-            const uploadSpy = jest.spyOn(oswController.eventBusService,"publishUpload").mockImplementation()
+            const { res, next } = getMockRes()
+            const dummyResponse = "test_record_id";
+            const createOswSpy = jest.spyOn(oswService, "processUploadRequest").mockResolvedValueOnce(dummyResponse);
+            const storageCliSpy = jest.spyOn(storageService, "uploadFile").mockResolvedValue('remote_url');
+            // const uploadSpy = jest.spyOn(oswController.eventBusService,"publishUpload").mockImplementation()
 
-            await oswController.createOsw(req,res,next)
+            await oswController.processUploadRequest(req, res, next)
             expect(createOswSpy).toHaveBeenCalledTimes(1);
             expect(res.status).toBeCalledWith(202);
         })
 
-        test('When invalid meta is provided, expect to return 400 error', async ()=>{
+        test('When invalid meta is provided, expect to return 400 error', async () => {
             const payload = TdeiObjectFaker.getOswPayload2()
             payload.collection_method = ""; // Empty collection method
-            let req = getMockReq({ body: {"meta":JSON.stringify(payload),"file": Buffer.from('whatever') }});
+            let req = getMockReq({ body: { "meta": JSON.stringify(payload), "file": Buffer.from('whatever') } });
             req.file = TdeiObjectFaker.getMockUploadFile();
-            const {res, next} = getMockRes()
-            await oswController.createOsw(req,res,next);
+            const { res, next } = getMockRes()
+            await oswController.processUploadRequest(req, res, next);
             expect(res.status).toBeCalledWith(400);
         });
 
-        test('When database exception occurs, expect to return same error', async ()=>{
+        test('When database exception occurs, expect to return same error', async () => {
 
-            let req = getMockReq({ body: {"meta":JSON.stringify(TdeiObjectFaker.getOswPayload2()),"file": Buffer.from('whatever') }});
+            let req = getMockReq({ body: { "meta": JSON.stringify(TdeiObjectFaker.getOswPayload2()), "file": Buffer.from('whatever') } });
             req.file = TdeiObjectFaker.getMockUploadFile();
             mockCore();
-            const {res, next} = getMockRes()
-           const exception  = new DuplicateException("test_record_id")
-            const createOswSpy = jest.spyOn(oswService, "createOsw").mockRejectedValueOnce(exception)
-            await oswController.createOsw(req,res,next)
+            const { res, next } = getMockRes()
+            const exception = new DuplicateException("test_record_id")
+            const createOswSpy = jest.spyOn(oswService, "processUploadRequest").mockRejectedValueOnce(exception)
+            await oswController.processUploadRequest(req, res, next)
             expect(next).toBeCalledWith(exception);
 
         })
-        test('When any HTTPexception occurs during the creation, its sent as response', async ()=>{
+        test('When any HTTPexception occurs during the creation, its sent as response', async () => {
 
-            let req = getMockReq({ body: {"meta":JSON.stringify(TdeiObjectFaker.getOswPayload2()),"file": Buffer.from('whatever') }});
+            let req = getMockReq({ body: { "meta": JSON.stringify(TdeiObjectFaker.getOswPayload2()), "file": Buffer.from('whatever') } });
             req.file = TdeiObjectFaker.getMockUploadFile();
             mockCore();
-            const {res, next} = getMockRes()
-           const exception  = new OverlapException("test_record_id")
-            const createOswSpy = jest.spyOn(oswService, "createOsw").mockRejectedValueOnce(exception)
-            await oswController.createOsw(req,res,next)
+            const { res, next } = getMockRes()
+            const exception = new OverlapException("test_record_id")
+            const createOswSpy = jest.spyOn(oswService, "processUploadRequest").mockRejectedValueOnce(exception)
+            await oswController.processUploadRequest(req, res, next)
             expect(next).toBeCalledWith(exception);
 
         })

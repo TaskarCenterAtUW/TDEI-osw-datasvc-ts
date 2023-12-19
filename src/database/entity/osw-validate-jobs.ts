@@ -1,95 +1,48 @@
-import { IsNotEmpty, IsOptional } from 'class-validator';
-import { FeatureCollection } from 'geojson';
+import { IsNotEmpty } from 'class-validator';
 import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
-import { IsValidPolygon } from '../../validators/polygon-validator';
 
-export class OswVersions extends BaseDto {
+export class OswValidationJobs extends BaseDto {
 
     @Prop()
-    id!: number;
+    job_id!: number;
     @Prop()
     @IsNotEmpty()
-    tdei_record_id!: string;
-    @Prop()
-    confidence_level = 0;
+    validation_result!: string;
     @Prop()
     @IsNotEmpty()
-    tdei_project_group_id!: string;
+    upload_url!: string;
     @Prop()
     @IsNotEmpty()
-    file_upload_path!: string;
+    status!: string;
     @Prop()
-    @IsNotEmpty()
-    download_osm_url!: string;
+    created_at!: Date;
     @Prop()
-    @IsNotEmpty()
-    uploaded_by!: string;
-    @Prop()
-    @IsNotEmpty()
-    collected_by!: string;
-    @Prop()
-    @IsNotEmpty()
-    collection_date!: Date;
-    @Prop()
-    @IsNotEmpty()
-    collection_method!: string;
-    @Prop()
-    @IsNotEmpty()
-    publication_date!: Date;
-    @Prop()
-    @IsNotEmpty()
-    data_source!: string;
-    @Prop()
-    @IsNotEmpty()
-    osw_schema_version!: string;
-    @IsOptional()
-    @IsValidPolygon()
-    @Prop()
-    polygon!: FeatureCollection;
+    updated_at!: Date;
 
-    constructor(init?: Partial<OswVersions>) {
+    constructor(init?: Partial<OswValidationJobs>) {
         super();
         Object.assign(this, init);
     }
 
-    /**
-     * Builds the insert QueryConfig object
-     * @returns QueryConfig object
-     */
     getInsertQuery(): QueryConfig {
-        const polygonExists = this.polygon ? true : false;
+
         const queryObject = {
-            text: `INSERT INTO public.osw_versions(tdei_record_id, 
-                confidence_level, 
-                tdei_project_group_id, 
-                file_upload_path, 
-                uploaded_by,
-                collected_by, 
-                collection_date,
-                collection_method, publication_date, data_source,
-                osw_schema_version ${polygonExists ? ', polygon ' : ''})
-                VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10 ${polygonExists ? ', ST_GeomFromGeoJSON($11) ' : ''})`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.tdei_project_group_id, this.file_upload_path, this.uploaded_by
-                , this.collected_by, this.collection_date, this.collection_method, this.publication_date, this.data_source, this.osw_schema_version],
-        }
-        if (polygonExists) {
-            queryObject.values.push(JSON.stringify(this.polygon.features[0].geometry));
+            text: `INSERT INTO public.osw_validation_jobs(
+                upload_url,
+                status
+            ) VALUES($1, $2)`.replace(/\n/g, ""),
+            values: [this.upload_url, this.status]
         }
         return queryObject;
     }
 
-    /**
-    * Builds the update QueryConfig object
-    * @returns QueryConfig object
-    */
-    getUpdateQuery(): QueryConfig {
+    static updateStatusQuery(job_id: string, status: string, validation_result: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_versions SET  
-                download_osm_url=$2, uploaded_by=$3  
-                WHERE tdei_record_id=$1`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.download_osm_url, this.uploaded_by],
+            text: `UPDATE public.osw_validation_jobs SET status = $1, validation_result = $2, updated_at = CURRENT_TIMESTAMP
+            WHERE job_id = $3`,
+            values: [status, validation_result, job_id]
         }
         return queryObject;
     }

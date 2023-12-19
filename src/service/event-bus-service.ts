@@ -9,10 +9,8 @@ import { QueueMessageContent } from "../model/queue-message-model";
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { randomUUID } from "crypto";
-import { OswUploadMeta } from "../model/osw-upload-meta";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 import { OSWConfidenceResponse } from "../model/osw-confidence-response";
-import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OswFormatJob } from "../database/entity/osw-format-job-entity";
 import { OswFormatJobRequest } from "../model/osw-format-job-request";
 import { OswFormatJobResponse } from "../model/osw-format-job-response";
@@ -44,7 +42,7 @@ export class EventBusService implements IEventBusServiceInterface {
         let tdeiRecordId = "";
         try {
             console.log(messageReceived);
-            if(messageReceived.messageType == 'osw-formatter-response'){
+            if (messageReceived.messageType == 'osw-formatter-response') {
                 console.log('Received on demand format response');
                 const response = OswFormatJobResponse.from(messageReceived.data);
                 console.log('Response')
@@ -73,7 +71,7 @@ export class EventBusService implements IEventBusServiceInterface {
             const oswVersions: OswVersions = OswVersions.from(queueMessage.request);
             oswVersions.tdei_record_id = queueMessage.tdeiRecordId;
             oswVersions.uploaded_by = queueMessage.userId;
-            oswVersions.file_upload_path = queueMessage.meta.file_upload_path ?? "";
+            //oswVersions.file_upload_path = queueMessage.meta.file_upload_path ?? "";
             oswVersions.download_osm_url = queueMessage.meta.download_xml_url ?? "";
 
             validate(oswVersions).then(errors => {
@@ -88,22 +86,23 @@ export class EventBusService implements IEventBusServiceInterface {
                         });
                     return Promise.resolve();
                 } else {
-                    oswService.updateOsw(oswVersions).then(() => {
-                        this.publishToDataservice(messageReceived,
-                            {
-                                success: true,
-                                message: 'OSW request processed successfully !'
-                            });
-                        return Promise.resolve();
-                    }).catch((error: any) => {
-                        console.error('Error updating the osw version', error);
-                        this.publishToDataservice(messageReceived,
-                            {
-                                success: false,
-                                message: 'Error occured while processing osw request' + error
-                            });
-                        return Promise.resolve();
-                    });
+                    return Promise.resolve();
+                    // oswService.updateOsw(oswVersions).then(() => {
+                    //     this.publishToDataservice(messageReceived,
+                    //         {
+                    //             success: true,
+                    //             message: 'OSW request processed successfully !'
+                    //         });
+                    //     return Promise.resolve();
+                    // }).catch((error: any) => {
+                    //     console.error('Error updating the osw version', error);
+                    //     this.publishToDataservice(messageReceived,
+                    //         {
+                    //             success: false,
+                    //             message: 'Error occured while processing osw request' + error
+                    //         });
+                    //     return Promise.resolve();
+                    // });
                 }
             });
         } catch (error) {
@@ -156,31 +155,31 @@ export class EventBusService implements IEventBusServiceInterface {
     }
 
     // Publishes data for uploading
-    public publishUpload(request: OswUploadMeta, recordId: string, file_upload_path: string, userId: string, meta_file_path: string) {
-        const messageContent = QueueMessageContent.from({
-            stage: 'osw-upload',
-            request: request,
-            userId: userId,
-            projectGroupId: request.tdei_project_group_id,
-            tdeiRecordId: recordId,
-            meta: {
-                'file_upload_path': file_upload_path,
-                'meta_file_path': meta_file_path
-            },
-            response: {
-                success: true,
-                message: 'File uploaded for the  project group: ' + request.tdei_project_group_id + ' with record id' + recordId
-            }
-        });
-        const message = QueueMessage.from(
-            {
-                messageType: 'osw-upload',
-                data: messageContent,
+    // public publishUpload(request: OswUploadMeta, recordId: string, file_upload_path: string, userId: string, meta_file_path: string) {
+    //     const messageContent = QueueMessageContent.from({
+    //         stage: 'osw-upload',
+    //         request: request,
+    //         userId: userId,
+    //         projectGroupId: request.tdei_project_group_id,
+    //         tdeiRecordId: recordId,
+    //         meta: {
+    //             'file_upload_path': file_upload_path,
+    //             'meta_file_path': meta_file_path
+    //         },
+    //         response: {
+    //             success: true,
+    //             message: 'File uploaded for the  project group: ' + request.tdei_project_group_id + ' with record id' + recordId
+    //         }
+    //     });
+    //     const message = QueueMessage.from(
+    //         {
+    //             messageType: 'osw-upload',
+    //             data: messageContent,
 
-            }
-        )
-        this.uploadTopic.publish(message);
-    }
+    //         }
+    //     )
+    //     this.uploadTopic.publish(message);
+    // }
 
     // Methods for handling the confidence response
     subscribeConfidenceMetric(): void {
@@ -219,24 +218,24 @@ export class EventBusService implements IEventBusServiceInterface {
      * Publishes the ondemand format message to `validationTopic`
      * @param info 
      */
-     publishOnDemandFormat(info: OswFormatJob): void {
+    publishOnDemandFormat(info: OswFormatJob): void {
         const oswFormatRequest = OswFormatJobRequest.from({
-            jobId:info.jobId.toString(),
-            source:info.source,
-            target:info.target,
-            sourceUrl:info.source_url
+            jobId: info.jobId.toString(),
+            source: info.source,
+            target: info.target,
+            sourceUrl: info.source_url
         });
-        
-         const message = QueueMessage.from({
+
+        const message = QueueMessage.from({
             messageType: "osw-formatter-request",
             data: oswFormatRequest
-         });
-         console.log(message);
-         // Publish the same
-         this.validationTopic.publish(message); 
-     }
+        });
+        console.log(message);
+        // Publish the same
+        this.validationTopic.publish(message);
+    }
 
-    
+
 }
 
 // const eventBusService = new EventBusService();

@@ -9,7 +9,7 @@ export interface IWorkflowDatabaseService {
      * @param message 
      * @returns 
      */
-    logWorkflowHistory(message: QueueMessage): Promise<boolean>;
+    logWorkflowHistory(worflow_group: string, message: QueueMessage): Promise<boolean>;
     /**
      * Updates the existing workflow response message
      * @param message 
@@ -18,7 +18,7 @@ export interface IWorkflowDatabaseService {
     updateWorkflowHistory(message: QueueMessage): Promise<boolean>;
 }
 
-class WorkflowDatabaseService {
+class WorkflowDatabaseService implements IWorkflowDatabaseService {
     constructor() { }
 
     /**
@@ -26,21 +26,23 @@ class WorkflowDatabaseService {
      * @param message 
      * @returns 
      */
-    async logWorkflowHistory(message: QueueMessage): Promise<boolean> {
+    async logWorkflowHistory(worflow_group: string, message: QueueMessage): Promise<boolean> {
         try {
             let data = {
                 workflow_name: message.messageType,
                 tdei_record_id: message.messageId,
-                request_message: message
+                request_message: message,
+                worflow_group: worflow_group
             }
 
             const queryObject = {
                 text: `INSERT INTO public.osw_workflow_history(
                     tdei_record_id, 
+                    worflow_group,
                     workflow_name, 
                     request_message)
                     VALUES (?, ?, ?)`.replace(/\n/g, ""),
-                values: [data.tdei_record_id, data.workflow_name, data.request_message],
+                values: [data.tdei_record_id, data.worflow_group, data.workflow_name, data.request_message],
             }
 
             await dbClient.query(queryObject);

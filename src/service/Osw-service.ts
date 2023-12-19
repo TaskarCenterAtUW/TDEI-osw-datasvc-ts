@@ -6,7 +6,7 @@ import dbClient from "../database/data-source";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import UniqueKeyDbException from "../exceptions/db/database-exceptions";
 import HttpException from "../exceptions/http/http-base-exception";
-import { DuplicateException, JobIdNotFoundException } from "../exceptions/http/http-exceptions";
+import { DuplicateException, InputException, JobIdNotFoundException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { IOswService } from "./interface/Osw-service-interface";
@@ -14,11 +14,102 @@ import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceResponse } from "../model/osw-confidence-response";
 import { OswFormatJob } from "../database/entity/osw-format-job-entity";
 import { OswFormatJobResponse } from "../model/osw-format-job-response";
+import { IUploadRequest } from "./interface/upload-request-interface";
+import { OswUploadMeta } from "../model/osw-upload-meta";
+import { ValidationError, validate } from "class-validator";
+import path from "path";
+import { Readable } from "stream";
+import storageService from "./storage-service";
+import { OswMetadataEntity } from "../database/entity/osw-metadata";
+import appContext from "../server";
+import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 
 class OswService implements IOswService {
-    constructor() {
-        // TODO document why this constructor is empty
+    constructor() { }
 
+    /**
+    * Processes the upload request and returns the unique tdei_record_id to represent the request
+    * @param uploadRequestObject 
+    */
+    async processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string> {
+        try {
+            //Validate metadata
+            const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
+            const oswdto = OswUploadMeta.from(metadata);
+            await this.validateMetadata(oswdto);
+
+            //Check for unique name and version combination
+            await this.checkMetaNameAndVersionUnique(metadata.name, metadata.version);
+
+            // Generate unique UUID for the upload request 
+            const uid = storageService.generateRandomUUID();
+
+            //Upload the files to the storage
+            const storageFolderPath = storageService.getFolderPath(uploadRequestObject.tdei_service_id, uid);
+            // Upload dataset file
+            const uploadStoragePath = path.join(storageFolderPath, uploadRequestObject.datasetFile[0].originalname)
+            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(uploadRequestObject.datasetFile[0].buffer))
+            // Upload the metadata file  
+            const metadataStorageFilePath = path.join(storageFolderPath, 'metadata.json');
+            const metadataUploadUrl = await storageService.uploadFile(metadataStorageFilePath, 'text/json', uploadRequestObject.metadataFile[0].buffer);
+            // Upload the changeset file  
+            let changesetUploadUrl = "";
+            if (uploadRequestObject.changesetFile) {
+                const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.txt');
+                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'text/plain', uploadRequestObject.changesetFile[0].buffer);
+            }
+
+            // Insert metadata into database
+            const oswMetadataEntity = OswMetadataEntity.from(metadata);
+            oswMetadataEntity.tdei_record_id = uid;
+            await this.createOswMetadata(oswMetadataEntity);
+
+            // Insert osw version into database
+            const oswEntity = new OswVersions();
+            oswEntity.tdei_record_id = uid;
+            oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
+            oswEntity.download_changeset_url = changesetUploadUrl ?? null;
+            oswEntity.download_metadata_url = metadataUploadUrl;
+            oswEntity.download_osw_url = datasetUploadUrl;
+            oswEntity.uploaded_by = uploadRequestObject.user_id;
+            await this.createOsw(oswEntity);
+
+            //Compose the meessage
+            let workflow_identifier = "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: uid,
+                messageType: workflow_identifier,
+                data: {
+                    userId: uploadRequestObject.user_id,
+                    projectGroupId: uploadRequestObject.tdei_project_group_id,
+                    download_osw_url: datasetUploadUrl
+                }
+            });
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+
+            //Return the tdei_record_id
+            return Promise.resolve(uid);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Validates the metadata
+     * @param metadataObj 
+     */
+    private async validateMetadata(metadataObj: OswUploadMeta) {
+
+        const metadata_result = await validate(metadataObj);
+
+        if (metadata_result.length) {
+            console.log('Metadata validation failed');
+            console.log(metadata_result);
+            // Need to send these as response
+            const message = metadata_result.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            throw new InputException('Input validation failed with below reasons : \n' + message);
+        }
     }
 
     async getAllOsw(params: OswQueryParams): Promise<OswDTO[]> {
@@ -53,7 +144,7 @@ class OswService implements IOswService {
         return Promise.resolve(list);
     }
 
-    async getOswById(id: string, format: string = "osw"): Promise<FileEntity> {
+    async getOswStreamById(id: string, format: string = "osw"): Promise<FileEntity> {
         const query = {
             text: 'Select file_upload_path, download_osm_url from osw_versions WHERE tdei_record_id = $1',
             values: [id],
@@ -84,9 +175,41 @@ class OswService implements IOswService {
         return storageClient.getFileFromUrl(url);
     }
 
+    /**
+     * Validates the unique name and version combination
+     * @param name 
+     * @param version 
+     * @returns 
+     */
+    private async checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean> {
+        try {
+            const queryObject = {
+                text: `Select * FROM public.osw_metadata 
+                WHERE name=$1 AND version=$2`.replace(/\n/g, ""),
+                values: [name, version],
+            }
+
+            let result = await dbClient.query(queryObject);
+
+            //If record exists then throw error
+            if (result.rowCount)
+                throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
+
+            return Promise.resolve(true);
+        } catch (error) {
+            console.error("Error saving the osw version", error);
+            return Promise.reject(false);
+        }
+    }
+
+    /**
+     * Creates the new version of osw file in the TDEI system
+     * @param oswInfo 
+     * @returns 
+     */
     async createOsw(oswInfo: OswVersions): Promise<OswDTO> {
         try {
-            oswInfo.file_upload_path = decodeURIComponent(oswInfo.file_upload_path!);
+            oswInfo.download_osw_url = decodeURIComponent(oswInfo.download_osw_url!);
 
             await dbClient.query(oswInfo.getInsertQuery());
 
@@ -103,48 +226,49 @@ class OswService implements IOswService {
         }
     }
 
-    async updateOsw(oswInfo: OswVersions): Promise<OswDTO> {
+    /**
+     * Creates the metadata entry for new osw version
+     * @param oswMetadataEntity 
+     * @returns 
+     */
+    private async createOswMetadata(oswMetadataEntity: OswMetadataEntity): Promise<void> {
         try {
-            oswInfo.file_upload_path = decodeURIComponent(oswInfo.file_upload_path!);
-            oswInfo.download_osm_url = decodeURIComponent(oswInfo.download_osm_url!);
-
-            await dbClient.query(oswInfo.getUpdateQuery());
-
-            const osw = OswDTO.from(oswInfo);
-            return Promise.resolve(osw);
+            await dbClient.query(oswMetadataEntity.getInsertQuery());
+            return Promise.resolve();
         } catch (error) {
-            console.error("Error updating the osw version", error);
+            console.error("Error saving the osw metadata", error);
             return Promise.reject(error);
         }
     }
 
-    async getOSWRecordById(id: string): Promise<OswDTO> {
+    // async updateOsw(oswInfo: OswVersions): Promise<OswDTO> {
+    //     try {
+    //         oswInfo.download_osw_url = decodeURIComponent(oswInfo.download_osw_url!);
+    //         oswInfo.download_osm_url = decodeURIComponent(oswInfo.download_osm_url!);
+
+    //         await dbClient.query(oswInfo.getUpdateQuery());
+
+    //         const osw = OswDTO.from(oswInfo);
+    //         return Promise.resolve(osw);
+    //     } catch (error) {
+    //         console.error("Error updating the osw version", error);
+    //         return Promise.reject(error);
+    //     }
+    // }
+
+    async getOSWRecordById(id: string): Promise<OswVersions> {
         const query = {
-            text: 'Select ST_AsGeoJSON(polygon) as polygon2, * from osw_versions WHERE tdei_record_id = $1',
+            text: 'Select * from osw_versions WHERE tdei_record_id = $1',
             values: [id],
         }
 
         const result = await dbClient.query(query);
         if (result.rowCount == 0)
             throw new HttpException(404, "Record not found");
-        const record = result.rows[0]
+        const record = result.rows[0];
         console.log(record);
-        const osw = OswDTO.from(record);
+        const osw = OswVersions.from(record);
 
-        if (osw.polygon) {
-            const polygon = JSON.parse(record.polygon2) as Geometry;
-            osw.polygon = {
-                type: "FeatureCollection",
-                features: [
-                    {
-                        type: "Feature",
-                        geometry: polygon,
-                        properties: {}
-                    } as Feature
-                ]
-            }
-        }
-        osw.download_url = record.file_upload_path
         return osw;
     }
 
@@ -199,38 +323,36 @@ class OswService implements IOswService {
         return ''
     }
 
-
     async createOSWFormatJob(info: OswFormatJob): Promise<string> {
-        
-        try{
-            console.log(' Creating formatting job');
-            const insertQuery =  info.getInsertQuery();
 
-            const  result = await dbClient.query(insertQuery);
+        try {
+            console.log(' Creating formatting job');
+            const insertQuery = info.getInsertQuery();
+
+            const result = await dbClient.query(insertQuery);
             const jobId = result.rows[0]['jobid'];
-            if (jobId == undefined)
-            {
+            if (jobId == undefined) {
                 return ''; //TODO: Throw insert exception
             }
             return jobId;
         }
-        catch (error){
+        catch (error) {
             return Promise.reject(error);
         }
     }
-    
+
     async updateOSWFormatJob(info: OswFormatJobResponse): Promise<string> {
         console.log(' Updating formatter job info');
         try {
-            const updateQuery = OswFormatJob.getUpdateStatusQuery(info.jobId,info.status,info.formattedUrl,info.message)
+            const updateQuery = OswFormatJob.getUpdateStatusQuery(info.jobId, info.status, info.formattedUrl, info.message)
             const result = await dbClient.query(updateQuery);
-            if (result.rowCount == 0){
+            if (result.rowCount == 0) {
                 // Something went wrong. Write the stuff here.
                 return '';
             }
             return info.jobId;
-        }   
-        catch (error){
+        }
+        catch (error) {
             console.log('Error while updating formatter job')
             console.log(error);
             Promise.reject(error);
@@ -257,7 +379,7 @@ class OswService implements IOswService {
             console.log(error);
             return Promise.reject(error);
         }
-        
+
     }
 }
 

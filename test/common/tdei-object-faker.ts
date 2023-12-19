@@ -7,18 +7,11 @@ import oswValidationSuccessMessage from "../test-data/osw-validation-success.mes
 export class TdeiObjectFaker {
     static getOswVersion() {
         return {
-            polygon: this.getPolygon(),
             tdei_record_id: "test_record_id",
             confidence_level: 0,
-            tdei_project_group_id: "test_user",
-            file_upload_path: "test_path",
-            uploaded_by: "test",
-            collected_by: "test",
-            collection_date: new Date(),
-            collection_method: "manual",
-            publication_date: new Date(),
-            data_source: "InHouse",
-            osw_schema_version: "v0.1"
+            tdei_service_id: "test_user",
+            download_osw_url: "test_path",
+            uploaded_by: "test"
         } as OswVersions;
     }
 

@@ -6,21 +6,20 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/Osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, FileTypeException } from "../exceptions/http/http-exceptions";
-import { OswVersions } from "../database/entity/osw-version-entity";
-import { validate, ValidationError } from "class-validator";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
-import { OswUploadMeta } from "../model/osw-upload-meta";
 import storageService from "../service/storage-service";
 import path from "path";
 import { Readable } from "stream";
-import { tokenValidator } from "../middleware/token-validation-middleware";
-import { metajsonValidator } from "../middleware/json-validation-middleware";
 import { EventBusService } from "../service/event-bus-service";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 import { OswFormatJob } from "../database/entity/osw-format-job-entity";
+import { IUploadRequest } from "../service/interface/upload-request-interface";
+import { metajsonValidator } from "../middleware/json-validation-middleware";
+import { authorize } from "../middleware/authorize-middleware";
+import { authenticate } from "../middleware/authenticate-middleware";
 
 /**
   * Multer for multiple uploads
@@ -34,8 +33,9 @@ const upload = multer({
     dest: 'uploads/',
     storage: memoryStorage(),
     fileFilter: (req, file, cb) => {
+        const allowedFileTypes = ['.zip', '.txt', '.json'];
         const ext = path.extname(file.originalname);
-        if (ext != '.zip') {
+        if (!allowedFileTypes.includes(ext)) {
             cb(new FileTypeException());
         }
         cb(null, true);
@@ -64,14 +64,18 @@ class GtfsOSWController implements IController {
     eventBusService = new EventBusService();
 
     public intializeRoutes() {
-        this.router.get(this.path, this.getAllOsw);
-        this.router.get(`${this.path}/:id`, this.getOswById);
-        this.router.post(`${this.path}/upload/:tdei_project_group_id`, upload.single('file'), metajsonValidator, tokenValidator, this.createOsw);
-        this.router.get(`${this.path}/versions/info`, this.getVersions);
-        this.router.post(`${this.path}/confidence/calculate`, this.calculateConfidence); // Confidence calculation
-        this.router.get(`${this.path}/confidence/status/:jobId`, this.getConfidenceJobStatus);
-        this.router.post(`${this.path}/format/upload`, uploadForFormat.single('file'), this.createFormatRequest); // Format request
-        this.router.get(`${this.path}/format/status/:jobId`, this.getFormatStatus);
+        this.router.get(this.path, authenticate, this.getAllOsw);
+        this.router.get(`${this.path}/:id`, authenticate, this.getOswById);
+        this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
+            { name: "dataset", maxCount: 1 },
+            { name: "metadata", maxCount: 1 },
+            { name: "changeset", maxCount: 1 }
+        ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
+        this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
+        this.router.post(`${this.path}/confidence/calculate`, authenticate, this.calculateConfidence); // Confidence calculation
+        this.router.get(`${this.path}/confidence/status/:jobId`, authenticate, this.getConfidenceJobStatus);
+        this.router.post(`${this.path}/format/upload`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
+        this.router.get(`${this.path}/format/status/:jobId`, authenticate, this.getFormatStatus);
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -110,7 +114,7 @@ class GtfsOSWController implements IController {
         try {
             let format = request.query.format as string ?? 'osw';
 
-            const fileEntity: FileEntity = await oswService.getOswById(request.params.id, format);
+            const fileEntity: FileEntity = await oswService.getOswStreamById(request.params.id, format);
 
             response.header('Content-Type', fileEntity.mimeType);
             response.header('Content-disposition', `attachment; filename=${fileEntity.fileName}`);
@@ -135,55 +139,44 @@ class GtfsOSWController implements IController {
      * @param next 
      * @returns 
      */
-
-    createOsw = async (request: Request, response: express.Response, next: NextFunction) => {
+    processUploadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received upload request');
-            const meta = JSON.parse(request.body['meta']);
-            const userId = request.body.user_id;
-            // Validate the meta data
-            const oswdto = OswUploadMeta.from(meta);
-            const result = await validate(oswdto);
-            console.log('result', result);
 
-            if (result.length != 0) {
-                console.log('Metadata validation failed');
-                console.log(result);
-                // Need to send these as response
-                const message = result.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
-                return response.status(400).send('Input validation failed with below reasons : \n' + message);
+            let uploadRequest: IUploadRequest = {
+                user_id: request.body.user_id,
+                tdei_project_group_id: request.params["tdei_project_group_id"],
+                tdei_service_id: request.params['tdei_service_id'],
+                datasetFile: (request.files as any)['dataset'],
+                metadataFile: (request.files as any)['metadata'],
+                changesetFile: (request.files as any)['changeset']
             }
-            // Generate the files and upload them
-            const uid = storageService.generateRandomUUID(); // Fetches a random UUID for the record
-            const folderPath = storageService.getFolderPath(oswdto.tdei_project_group_id, uid);
-            const uploadedFile = request.file;
-            const uploadPath = path.join(folderPath, uploadedFile!.originalname)
-            const remoteUrl = await storageService.uploadFile(uploadPath, 'application/zip', Readable.from(uploadedFile!.buffer))
-            // Upload the meta file  
-            const metaFilePath = path.join(folderPath, 'meta.json');
-            const metaUrl = await storageService.uploadFile(metaFilePath, 'text/json', oswdto.getStream());
-            // Insert into database
-            const osw = OswVersions.from(meta);
-            osw.tdei_record_id = uid;
-            osw.file_upload_path = remoteUrl;
-            osw.uploaded_by = userId;
-            const returnInfo = await oswService.createOsw(osw);
 
-            // Publish to the topic
-            this.eventBusService.publishUpload(oswdto, uid, remoteUrl, userId, metaUrl);
-            // Also send the information to the queue
-            console.log('Responding to request');
-            return response.status(202).send(uid);
+            if (!uploadRequest.datasetFile) {
+                console.error("dataset file input upload missing");
+                response.status(400).send("dataset file input upload missing");
+                next(new InputException("dataset file input upload missing"));
+            }
+            if (!uploadRequest.metadataFile) {
+                console.error("metadata file input upload missing");
+                response.status(400).send("metadata file input upload missing");
+                next(new InputException("metadata file input upload missing"));
+            }
+
+            let tdei_record_id = await oswService.processUploadRequest(uploadRequest);
+            return response.status(202).send(tdei_record_id);
 
         } catch (error) {
-            console.error('Error saving the osw file', error);
+            console.error("Error while processing the upload request", error);
             if (error instanceof HttpException) {
-                next(error)
-            } else {
-                response.status(500).send('Error saving the osw file');
+                response.status(error.status).send(error.message);
+                return next(error);
             }
+            response.status(500).send("Error while processing the upload request");
+            next(new HttpException(500, "Error while processing the upload request"));
         }
     }
+
     /**
      * Request sent to calculate the 
      * @param request 
@@ -204,23 +197,23 @@ class GtfsOSWController implements IController {
             // Create a job in the database for the same.
             //TODO: Have to add these based on some of the input data.
             const confidence_job = new OswConfidenceJob()
-            confidence_job.tdei_record_id = tdeiRecordId
-            confidence_job.trigger_type = 'manual'
-            confidence_job.created_at = new Date()
-            confidence_job.updated_at = new Date()
-            confidence_job.status = 'started'
-            confidence_job.cm_last_calculated_at = new Date()
-            confidence_job.user_id = ''
-            confidence_job.cm_version = 'v1.0'
+            confidence_job.tdei_record_id = tdeiRecordId;
+            confidence_job.trigger_type = 'manual';
+            confidence_job.created_at = new Date();
+            confidence_job.updated_at = new Date();
+            confidence_job.status = 'started';
+            confidence_job.cm_last_calculated_at = new Date();
+            confidence_job.user_id = '';
+            confidence_job.cm_version = 'v1.0';
             const jobId = await oswService.createOSWConfidenceJob(confidence_job);
 
             // Send the details to the confidence metric.
             //TODO: Fill based on the metadata received
             const confidenceRequestMsg = new OSWConfidenceRequest();
             confidenceRequestMsg.jobId = jobId;
-            confidenceRequestMsg.data_file = oswRecord.download_url;
+            confidenceRequestMsg.data_file = oswRecord.download_osw_url;
             //TODO: Once this is done, get the things moved.
-            confidenceRequestMsg.meta_file = oswRecord.download_url;
+            confidenceRequestMsg.meta_file = oswRecord.download_metadata_url;
             confidenceRequestMsg.trigger_type = 'manual'
             this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
             // Send the jobId back to the user.

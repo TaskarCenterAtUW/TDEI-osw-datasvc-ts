@@ -34,6 +34,12 @@ ALTER TABLE IF EXISTS public.osw_versions
 ALTER TABLE IF EXISTS public.osw_versions
  ADD COLUMN tdei_service_id character varying;  
 
+ ALTER TABLE IF EXISTS public.osw_versions
+ ADD COLUMN download_changeset_url character varying; 
+
+ ALTER TABLE IF EXISTS public.osw_versions
+ ADD COLUMN download_metadata_url character varying; 
+
  CREATE TABLE IF NOT EXISTS public.osw_metadata
 (
 	id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
@@ -44,9 +50,9 @@ ALTER TABLE IF EXISTS public.osw_versions
     custom_metadata json,
     collected_by character varying COLLATE pg_catalog."default" NOT NULL,
     collection_date timestamp without time zone NOT NULL,
-    collection_method character varying COLLATE pg_catalog."default" NOT NULL,
-    valid_from timestamp without time zone NOT NULL,
-    valid_to timestamp without time zone NOT NULL,
+    collection_method character varying COLLATE pg_catalog."default",
+    valid_from timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    valid_to timestamp without time zone,
     data_source character varying COLLATE pg_catalog."default" NOT NULL,
     osw_schema_version character varying COLLATE pg_catalog."default" NOT NULL,
     dataset_area geometry,
@@ -70,8 +76,9 @@ CREATE TABLE IF NOT EXISTS public.osw_workflow_history
 (
     id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
     tdei_record_id character varying COLLATE pg_catalog."default" NOT NULL,
-    workflow_name character varying COLLATE pg_catalog."default",
-    request_message json,
+    worflow_group character varying COLLATE pg_catalog."default" NOT NULL,
+    workflow_name character varying COLLATE pg_catalog."default" NOT NULL,
+    request_message json NOT NULL,
     response_message json,
     created_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,

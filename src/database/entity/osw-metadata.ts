@@ -1,11 +1,11 @@
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 import { FeatureCollection } from 'geojson';
 import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
 import { IsValidPolygon } from '../../validators/polygon-validator';
 
-export class OswVersions extends BaseDto {
+export class OswMetadataEntity extends BaseDto {
 
     @Prop()
     id!: number;
@@ -13,43 +13,61 @@ export class OswVersions extends BaseDto {
     @IsNotEmpty()
     tdei_record_id!: string;
     @Prop()
-    confidence_level = 0;
+    @IsNotEmpty()
+    name!: string;
+
+    @Prop()
+    @IsOptional()
+    description!: string;
+
     @Prop()
     @IsNotEmpty()
-    tdei_project_group_id!: string;
+    version!: string;
+
     @Prop()
-    @IsNotEmpty()
-    file_upload_path!: string;
+    @IsOptional()
+    derived_from_dataset_id!: string;
+
     @Prop()
-    @IsNotEmpty()
-    download_osm_url!: string;
-    @Prop()
-    @IsNotEmpty()
-    uploaded_by!: string;
+    @IsOptional()
+    custom_metadata!: Object;
+
     @Prop()
     @IsNotEmpty()
     collected_by!: string;
+
     @Prop()
     @IsNotEmpty()
     collection_date!: Date;
+
     @Prop()
-    @IsNotEmpty()
+    @IsOptional()
+    valid_from!: Date;
+
+    @Prop()
+    @IsOptional()
+    valid_to!: Date;
+
+    @Prop()
+    @IsOptional()
     collection_method!: string;
-    @Prop()
-    @IsNotEmpty()
-    publication_date!: Date;
+
     @Prop()
     @IsNotEmpty()
     data_source!: string;
+
+    @Prop()
+    @IsOptional()
+    @IsNotEmpty()
+    @IsObject()
+    @IsValidPolygon()
+    dataset_area!: FeatureCollection;
+
     @Prop()
     @IsNotEmpty()
     osw_schema_version!: string;
-    @IsOptional()
-    @IsValidPolygon()
-    @Prop()
-    polygon!: FeatureCollection;
 
-    constructor(init?: Partial<OswVersions>) {
+    constructor(init?: Partial<OswMetadataEntity>) {
         super();
         Object.assign(this, init);
     }
@@ -59,38 +77,29 @@ export class OswVersions extends BaseDto {
      * @returns QueryConfig object
      */
     getInsertQuery(): QueryConfig {
-        const polygonExists = this.polygon ? true : false;
         const queryObject = {
-            text: `INSERT INTO public.osw_versions(tdei_record_id, 
-                confidence_level, 
-                tdei_project_group_id, 
-                file_upload_path, 
-                uploaded_by,
+            text: `INSERT INTO public.osw_metadata(
+                tdei_record_id, 
+                name, 
+                version, 
+                description, 
+                custom_metadata, 
                 collected_by, 
-                collection_date,
-                collection_method, publication_date, data_source,
-                osw_schema_version ${polygonExists ? ', polygon ' : ''})
-                VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10 ${polygonExists ? ', ST_GeomFromGeoJSON($11) ' : ''})`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.tdei_project_group_id, this.file_upload_path, this.uploaded_by
-                , this.collected_by, this.collection_date, this.collection_method, this.publication_date, this.data_source, this.osw_schema_version],
+                collection_date, 
+                collection_method, 
+                valid_from, 
+                valid_to, 
+                data_source, 
+                osw_schema_version, 
+                dataset_area)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`.replace(/\n/g, ""),
+            values: [this.tdei_record_id, this.name, this.version, this.description,
+            this.custom_metadata, this.collected_by, this.collection_date, this.collection_method,
+            this.valid_from ? this.valid_from : new Date(), this.valid_to,
+            this.data_source, this.osw_schema_version,
+            this.dataset_area ? JSON.stringify(this.dataset_area.features[0].geometry) : null],
         }
-        if (polygonExists) {
-            queryObject.values.push(JSON.stringify(this.polygon.features[0].geometry));
-        }
-        return queryObject;
-    }
 
-    /**
-    * Builds the update QueryConfig object
-    * @returns QueryConfig object
-    */
-    getUpdateQuery(): QueryConfig {
-        const queryObject = {
-            text: `UPDATE public.osw_versions SET  
-                download_osm_url=$2, uploaded_by=$3  
-                WHERE tdei_record_id=$1`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.download_osm_url, this.uploaded_by],
-        }
         return queryObject;
     }
 }

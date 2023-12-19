@@ -3,7 +3,7 @@
  */
 
 import { getMockReq, getMockRes } from "@jest-mock/express"
-import { tokenValidator } from "../../../src/middleware/token-validation-middleware"
+import { authorize } from "../../../src/middleware/authorize-middleware"
 import { UnAuthenticated } from "../../../src/exceptions/http/http-exceptions"
 import jwt from 'jsonwebtoken';
 import { mockCoreAuth } from "../../common/mock-utils";
@@ -16,7 +16,7 @@ describe('Token validation middleware', () => {
         const req = getMockReq()
         const { res, next } = getMockRes()
 
-        await tokenValidator(req, res, next)
+        await authorize(["tdei_admin", "poc", "osw_data_generator"])
         expect(next).toBeCalledWith(expect.any(UnAuthenticated))
 
     })
@@ -25,7 +25,7 @@ describe('Token validation middleware', () => {
         const req = getMockReq({ headers: { 'Authorization': "" } })
         const { res, next } = getMockRes()
 
-        await tokenValidator(req, res, next)
+        await authorize(["tdei_admin", "poc", "osw_data_generator"])
         expect(next).toBeCalledWith(expect.any(UnAuthenticated))
     })
 
@@ -35,7 +35,7 @@ describe('Token validation middleware', () => {
         const req = getMockReq({ headers: { 'authorization': "sample-token" } })
         const { res, next } = getMockRes()
 
-        await tokenValidator(req, res, next)
+        await authorize(["tdei_admin", "poc", "osw_data_generator"])
         expect(next).toBeCalledWith(expect.any(UnAuthenticated))
 
     })
@@ -46,7 +46,7 @@ describe('Token validation middleware', () => {
         const req = getMockReq({ headers: { 'authorization': token }, body: { 'meta': '{"tdei_project_group_id":"sample-project-group"}' } })
         const { res, next } = getMockRes()
         mockCoreAuth(true);
-        await tokenValidator(req, res, next)
+        await authorize(["tdei_admin", "poc", "osw_data_generator"])
         expect(req.body.user_id).toBe(testUserId)
         expect(next).toBeCalled()
 
@@ -59,7 +59,7 @@ describe('Token validation middleware', () => {
         const req = getMockReq({ headers: { 'authorization': token }, body: { 'meta': '{"tdei_project_group_id":"sample-project-group"}' } })
         const { res, next } = getMockRes()
         mockCoreAuth(false);
-        await tokenValidator(req, res, next)
+        await authorize(["tdei_admin", "poc", "osw_data_generator"])
         expect(next).toBeCalledWith(expect.any(UnAuthenticated))
 
     })

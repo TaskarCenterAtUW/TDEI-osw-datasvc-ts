@@ -132,7 +132,7 @@ describe("OSW Service Test", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                const result = await oswService.getOswById("tdei_record_id", "osw");
+                const result = await oswService.getOswStreamById("tdei_record_id", "osw");
                 //Assert
                 expect(result instanceof FileEntity);
             });
@@ -153,7 +153,7 @@ describe("OSW Service Test", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                const result = await oswService.getOswById("tdei_record_id", "osw");
+                const result = await oswService.getOswStreamById("tdei_record_id", "osw");
                 //Assert
                 expect(result instanceof FileEntity);
             });
@@ -174,7 +174,7 @@ describe("OSW Service Test", () => {
                     .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                const result = await oswService.getOswById("tdei_record_id", "xml");
+                const result = await oswService.getOswStreamById("tdei_record_id", "xml");
                 //Assert
                 expect(result instanceof FileEntity);
             });
@@ -196,7 +196,7 @@ describe("OSW Service Test", () => {
 
                 //Act
                 //Assert
-                expect(oswService.getOswById("tdei_record_id", "osm")).rejects.toThrow(HttpException);
+                expect(oswService.getOswStreamById("tdei_record_id", "osm")).rejects.toThrow(HttpException);
             });
 
             test("When requested for get OSW file with invalid tdei_record_id, Expect to throw HttpException", async () => {
@@ -212,7 +212,7 @@ describe("OSW Service Test", () => {
 
                 //Act
                 //Assert
-                expect(oswService.getOswById("tdei_record_id", "")).rejects.toThrow(HttpException);
+                expect(oswService.getOswStreamById("tdei_record_id", "")).rejects.toThrow(HttpException);
             });
 
             test("When Core failed obtaing storage client, Expect to throw error", async () => {
@@ -234,7 +234,7 @@ describe("OSW Service Test", () => {
 
                 //Act
                 //Assert
-                expect(oswService.getOswById("tdei_record_id", "")).rejects.toThrow();
+                expect(oswService.getOswStreamById("tdei_record_id", "")).rejects.toThrow();
             });
         });
     });
@@ -260,7 +260,7 @@ describe("OSW Service Test", () => {
                 expect(result instanceof OswDTO);
             });
 
-            test("When database exception with duplicate tdei_project_group_id occured while processing request, Expect to throw DuplicateException", async () => {
+            test("When database exception with duplicate tdei_record_id occured while processing request, Expect to throw DuplicateException", async () => {
                 //Arrange
                 const oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
                 jest.spyOn(dbClient, "query")

@@ -4,9 +4,7 @@ import bodyParser from "body-parser";
 import { IController } from "./controller/interface/IController";
 import helmet from "helmet";
 import { Core } from "nodets-ms-core";
-import { EventBusService } from "./service/event-bus-service";
 import { unhandledExceptionAndRejectionHandler } from "./middleware/unhandled-exception-rejection-handler";
-import { errorHandler } from "./middleware/error-handler-middleware";
 import dbClient from "./database/data-source";
 import HttpException from "./exceptions/http/http-base-exception";
 import { IOrchestratorService, OrchestratorService } from "./orchestrator/services/orchestrator-service";
@@ -14,8 +12,6 @@ import orchestratorConfig from "./tdei-orchestrator-config.json";
 import handlers from "./orchestrator/workflows-handlers";
 import { IWorkflowRegister } from "./orchestrator/models/config-model";
 import EventEmitter from "events";
-import { PublishValidationWorkflow } from "./orchestrator/workflows-handlers/publish/publish-osw-validation-workflow";
-import { PublishValidationHandler } from "./orchestrator/workflows-handlers/publish/publish-osw-validation-handler";
 
 export interface IAppContext {
     orchestratorServiceInstance: IOrchestratorService;
@@ -23,7 +19,7 @@ export interface IAppContext {
 class App {
     public app: express.Application;
     public port: number;
-    private eventBusService!: EventBusService;
+    //private eventBusService!: EventBusService;
     private orchestratorService: IOrchestratorService | undefined;
     workflowEvent = new EventEmitter();
 
@@ -77,9 +73,9 @@ class App {
     }
 
     private subscribeUpload() {
-        this.eventBusService = new EventBusService();
-        this.eventBusService.subscribeUpload();
-        this.eventBusService.subscribeConfidenceMetric();
+        // this.eventBusService = new EventBusService();
+        // this.eventBusService.subscribeUpload();
+        // this.eventBusService.subscribeConfidenceMetric();
     }
 
     private initializeMiddlewares() {

@@ -35,10 +35,10 @@ export interface IOrchestratorService {
 
     /**
      * Triggers the workflow of type "TRIGGER"
-     * @param workflow_name 
+     * @param workflow_identifier 
      * @param message 
      */
-    triggerWorkflow(workflow_name: string, message: QueueMessage): Promise<void>
+    triggerWorkflow(workflow_identifier: string, message: QueueMessage): Promise<void>
 }
 
 export class OrchestratorService {
@@ -91,17 +91,17 @@ export class OrchestratorService {
 
     /**
      * Triggers the workflow of type "TRIGGER"
-     * @param workflow_name 
+     * @param workflow_identifier 
      * @param message 
      */
-    async triggerWorkflow(workflow_name: string, message: QueueMessage): Promise<void> {
-        let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow_name);
+    async triggerWorkflow(workflow_identifier: string, message: QueueMessage): Promise<void> {
+        let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow_identifier);
         if (trigger_workflow?.worflow_type == "TRIGGER") {
             //Log/Insert the workflow history
-            await workflowDatabaseService.logWorkflowHistory(message);
-            message.messageType = workflow_name;
+            await workflowDatabaseService.logWorkflowHistory(trigger_workflow.worflow_group, message);
+            message.messageType = workflow_identifier;
             //trigger workflow
-            this.workflowEvent.emit(workflow_name, message);
+            this.workflowEvent.emit(workflow_identifier, message);
         }
         else {
             return Promise.reject("Workflow with type 'Trigger' only allowed. Workflow with type HANDLER cannot be triggered");
@@ -164,7 +164,7 @@ export class OrchestratorService {
                 let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow);
                 if (trigger_workflow?.worflow_type == "TRIGGER") {
                     //Log/Insert the workflow history
-                    await workflowDatabaseService.logWorkflowHistory(message);
+                    await workflowDatabaseService.logWorkflowHistory(trigger_workflow.worflow_group, message);
                 }
                 //trigger workflow
                 this.workflowEvent.emit(workflow, message);

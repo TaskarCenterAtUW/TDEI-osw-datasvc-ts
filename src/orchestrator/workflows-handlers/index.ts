@@ -6,8 +6,10 @@ import { PublishFormattingHandler } from "./publish/publish-osw-formatter-handle
 import { PublishFormattingRequestWorkflow } from "./publish/publish-osw-formatter-request-workflow";
 import { PublishFormattingWorkflow } from "./publish/publish-osw-formatter-workflow";
 import { PublishValidationHandler } from "./publish/publish-osw-validation-handler";
+import { PublishValidationRequestWorkflow } from "./publish/publish-osw-validation-request-workflow";
 import { PublishValidationWorkflow } from "./publish/publish-osw-validation-workflow";
 import { UploadValidationHandler } from "./upload/upload-osw-validation-handler";
+import { UploadValidationRequestWorkflow } from "./upload/upload-osw-validation-request-workflow";
 import { UploadValidationWorkflow } from "./upload/upload-osw-validation-workflow";
 
 export default [
@@ -19,7 +21,9 @@ export default [
     PublishFormattingRequestWorkflow,
     PublishFormattingWorkflow,
     PublishValidationHandler,
+    PublishValidationRequestWorkflow,
     PublishValidationWorkflow,
     UploadValidationHandler,
-    UploadValidationWorkflow
+    UploadValidationWorkflow,
+    UploadValidationRequestWorkflow,
 ];

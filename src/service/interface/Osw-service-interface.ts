@@ -1,13 +1,22 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
-import { OswVersions } from "../../database/entity/osw-version-entity";
 import { OswDTO } from "../../model/osw-dto";
 import { OswQueryParams } from "../../model/osw-get-query-params";
 import { OswConfidenceJob } from "../../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceResponse } from "../../model/osw-confidence-response";
 import { OswFormatJob } from "../../database/entity/osw-format-job-entity";
 import { OswFormatJobResponse } from "../../model/osw-format-job-response";
+import { IUploadRequest } from "./upload-request-interface";
+import { OswVersions } from "../../database/entity/osw-version-entity";
 
 export interface IOswService {
+
+    /**
+     * Creates the new version of osw file in the TDEI system
+     * @param oswInfo 
+     * @returns 
+     */
+    createOsw(oswInfo: OswVersions): Promise<OswDTO>;
+
     /**
      * Gets the OSW details
      * @param params Query params
@@ -18,18 +27,13 @@ export interface IOswService {
     * @param id Record Id of the OSW file to be downloaded
     * @param format file format to download
     */
-    getOswById(id: string, format: string): Promise<FileEntity>;
-    /**
-    * Creates new OSW in the TDEI system.
-    * @param oswInfo OSW object 
-    */
-    createOsw(oswInfo: OswVersions): Promise<OswDTO>;
+    getOswStreamById(id: string, format: string): Promise<FileEntity>;
 
     /**
      * Fetches the Record of OSW from the database
      * @param id  tdeiRecordId
      */
-    getOSWRecordById(id: string): Promise<OswDTO>;
+    getOSWRecordById(id: string): Promise<OswVersions>;
 
     /**
      * Creates a confidence job and returns data
@@ -41,18 +45,13 @@ export interface IOswService {
      * Get the OSWConfidenceJOb based on jobId
      * @param jobId 
      */
-    getOSWConfidenceJob(jobId: string) : Promise<OswConfidenceJob>;
+    getOSWConfidenceJob(jobId: string): Promise<OswConfidenceJob>;
 
     /**
      * Updates the score for a confidence metric job
      * @param info 
      */
     updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string>;
-    /**
-    * Updated the existing OSW in the TDEI system.
-    * @param oswInfo OSW object 
-    */
-    updateOsw(oswInfo: OswVersions): Promise<OswDTO>;
 
     /**
      * Creates the osw-format
@@ -64,11 +63,17 @@ export interface IOswService {
      * Updates the osw-format job
      * @param info Updates the OSWFormatJob with status and other parameters
      */
-    updateOSWFormatJob(info: OswFormatJobResponse) : Promise<string>;
+    updateOSWFormatJob(info: OswFormatJobResponse): Promise<string>;
 
     /**
      * Fetches the job Id for formatting
      * @param jobId jobId for formatting
      */
-    getOSWFormatJob(jobId: string) : Promise<OswFormatJob>;
+    getOSWFormatJob(jobId: string): Promise<OswFormatJob>;
+
+    /**
+     * Processes the upload request and returns the unique tdei_record_id to represent the request
+     * @param uploadRequestObject 
+     */
+    processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string>;
 }
