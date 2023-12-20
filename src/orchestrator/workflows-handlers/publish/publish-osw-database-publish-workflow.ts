@@ -4,7 +4,7 @@ import EventEmitter from "events";
 import dbClient from "../../../database/data-source";
 import { OswVersions } from "../../../database/entity/osw-version-entity";
 
-export class PublishConfidenceRequestWorkflow implements IWorkflowRegister {
+export class PublishDatabaseWorkflow implements IWorkflowRegister {
 
     constructor(private workflowEvent: EventEmitter) {
     }

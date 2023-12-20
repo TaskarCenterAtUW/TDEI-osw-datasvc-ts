@@ -217,9 +217,10 @@ class OswService implements IOswService {
         return Promise.resolve(list);
     }
 
-    async getOswStreamById(id: string, format: string = "osw"): Promise<FileEntity> {
+    async getOswStreamById(id: string, format: string = "osw"): Promise<FileEntity[]> {
+        let fileEntities: FileEntity[] = [];
         const query = {
-            text: 'Select file_upload_path, download_osm_url from osw_versions WHERE tdei_record_id = $1',
+            text: 'Select download_osw_url, download_osm_url, download_changeset_url, download_metadata_url from osw_versions WHERE tdei_record_id = $1',
             values: [id],
         }
 
@@ -245,7 +246,11 @@ class OswService implements IOswService {
             url = decodeURIComponent(osw.rows[0].file_upload_path);
         }
 
-        return storageClient.getFileFromUrl(url);
+        fileEntities.push(await storageClient.getFileFromUrl(url));
+        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].download_metadata_url)));
+        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].download_changeset_url)));
+
+        return fileEntities;
     }
 
     /**

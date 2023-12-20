@@ -70,7 +70,7 @@ describe("OSW Controller Test", () => {
 
                 const getOswByIdSpy = jest
                     .spyOn(oswService, "getOswStreamById")
-                    .mockResolvedValueOnce(getMockFileEntity());
+                    .mockResolvedValueOnce([getMockFileEntity()]);
                 //Act
                 await oswController.getOswById(req, res, next);
                 //Assert

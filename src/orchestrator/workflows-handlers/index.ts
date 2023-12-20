@@ -11,6 +11,10 @@ import { PublishValidationResponseWorkflow } from "./publish/publish-osw-validat
 import { UploadValidationResponseHandler } from "./upload/upload-osw-validation-response-handler";
 import { UploadValidationRequestWorkflow } from "./upload/upload-osw-validation-request-workflow";
 import { UploadValidationResponseWorkflow } from "./upload/upload-osw-validation-response-workflow";
+import { ValidationOnlyValidationResponseHandler } from "./validation-only/validation-only-osw-validation-response-handler";
+import { ValidationOnlyValidationRequestWorkflow } from "./validation-only/validation-only-osw-validation-request-workflow";
+import { ValidationOnlyValidationResponseWorkflow } from "./validation-only/validation-only-osw-validation-response-workflow";
+import { PublishDatabaseWorkflow } from "./publish/publish-osw-database-publish-workflow";
 
 export default [
     PublishHandler,
@@ -26,4 +30,9 @@ export default [
     UploadValidationResponseHandler,
     UploadValidationResponseWorkflow,
     UploadValidationRequestWorkflow,
+    PublishConfidenceRequestWorkflow,
+    ValidationOnlyValidationResponseHandler,
+    ValidationOnlyValidationRequestWorkflow,
+    ValidationOnlyValidationResponseWorkflow,
+    PublishDatabaseWorkflow
 ];

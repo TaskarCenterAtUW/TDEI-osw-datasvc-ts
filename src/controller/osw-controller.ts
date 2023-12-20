@@ -20,7 +20,8 @@ import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
-
+import archiver from 'archiver';
+import fs from 'fs';
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -65,7 +66,7 @@ class GtfsOSWController implements IController {
 
     public intializeRoutes() {
         this.router.get(this.path, authenticate, this.getAllOsw);
-        this.router.get(`${this.path}/:id`, authenticate, this.getOswById);
+        this.router.get(`${this.path}/:id`, this.getOswById);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
@@ -116,12 +117,40 @@ class GtfsOSWController implements IController {
         try {
             let format = request.query.format as string ?? 'osw';
 
-            const fileEntity: FileEntity = await oswService.getOswStreamById(request.params.id, format);
+            const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format);
 
-            response.header('Content-Type', fileEntity.mimeType);
-            response.header('Content-disposition', `attachment; filename=${fileEntity.fileName}`);
-            response.status(200);
-            (await fileEntity.getStream()).pipe(response);
+            const zipFileName = 'osw.zip';
+
+            // Create a writable stream for the zip file
+            const zipStream = fs.createWriteStream(zipFileName);
+
+            // Create a new zip archive
+            const archive = archiver('zip', { zlib: { level: 9 } });
+
+            // Pipe the archive to the zip stream
+            archive.pipe(zipStream);
+
+            // Add files to the zip archive
+            for (const filee of fileEntities) {
+                let stream = await filee.getStream();
+                archive.append(stream.read(), { name: filee.fileName });
+            }
+
+            // Finalize the archive and close the zip stream
+            archive.finalize();
+            zipStream.on('close', () => {
+                // Set the response headers for downloading the zip file
+                response.setHeader('Content-Type', 'application/zip');
+                response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
+
+                // Pipe the zip file to the response
+                const zipFile = fs.createReadStream(zipFileName);
+                zipFile.pipe(response);
+                response.status(200);
+
+                // Delete the generated zip file after sending
+                zipFile.on('close', () => fs.unlinkSync(zipFileName));
+            });
         } catch (error: any) {
             console.error('Error while getting the file stream');
             console.error(error);

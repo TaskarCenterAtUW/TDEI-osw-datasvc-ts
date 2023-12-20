@@ -27,7 +27,7 @@ export interface IOswService {
     * @param id Record Id of the OSW file to be downloaded
     * @param format file format to download
     */
-    getOswStreamById(id: string, format: string): Promise<FileEntity>;
+    getOswStreamById(id: string, format: string): Promise<FileEntity[]>;
 
     /**
      * Fetches the Record of OSW from the database

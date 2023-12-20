@@ -5,7 +5,7 @@ import EventEmitter from "events";
 import { OswValidationJobs } from "../../../database/entity/osw-validate-jobs";
 import dbClient from "../../../database/data-source";
 
-export class ValidationOnlyValidationHandler implements IWorkflowRegister {
+export class ValidationOnlyValidationResponseHandler implements IWorkflowRegister {
 
     constructor(private workflowEvent: EventEmitter) {
     }
