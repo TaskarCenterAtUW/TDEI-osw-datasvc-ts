@@ -72,4 +72,23 @@ export class OswVersions extends BaseDto {
 
         return queryObject;
     }
+
+
+    static getUpdateFormatUrlQuery(tdei_record_id: string, download_osm_url: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE public.osw_versions SET download_osm_url = $1 AND uploaded_timestamp = CURRENT_TIMESTAMP
+            WHERE tdei_record_id = $2`,
+            values: [download_osm_url, tdei_record_id]
+        }
+        return queryObject;
+    }
+
+    static getPublishRecordQuery(tdei_record_id: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE public.osw_versions SET status = 'Published' AND uploaded_timestamp = CURRENT_TIMESTAMP
+            WHERE tdei_record_id = $1`,
+            values: [tdei_record_id]
+        }
+        return queryObject;
+    }
 }

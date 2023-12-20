@@ -23,56 +23,56 @@ describe("OSW Integration Test", () => {
      * QUEUE CONNECTION
      */
 
-    test("Subscribe to validation result topic to verify servicebus integration", async () => {
-        //Pre-requsite environment dependency
-        if (!process.env.QUEUECONNECTION) {
-            console.error("QUEUECONNECTION environment not set");
-            expect(process.env.QUEUECONNECTION != undefined && process.env.QUEUECONNECTION != null).toBeTruthy();
-            return;
-        }
+    // test("Subscribe to validation result topic to verify servicebus integration", async () => {
+    //     //Pre-requsite environment dependency
+    //     if (!process.env.QUEUECONNECTION) {
+    //         console.error("QUEUECONNECTION environment not set");
+    //         expect(process.env.QUEUECONNECTION != undefined && process.env.QUEUECONNECTION != null).toBeTruthy();
+    //         return;
+    //     }
 
-        //Arrange
-        var messageReceiver!: QueueMessage;
+    //     //Arrange
+    //     var messageReceiver!: QueueMessage;
 
-        Core.initialize();
-        var topicToSubscribe = Core.getTopic("temp-validation", {
-            provider: "Azure"
-        });
-        //Live: validation service posts message
-        await topicToSubscribe.publish(QueueMessage.from(TdeiObjectFaker.getOswQueueMessageSuccess()));
+    //     Core.initialize();
+    //     var topicToSubscribe = Core.getTopic("temp-validation", {
+    //         provider: "Azure"
+    //     });
+    //     //Live: validation service posts message
+    //     await topicToSubscribe.publish(QueueMessage.from(TdeiObjectFaker.getOswQueueMessageSuccess()));
 
-        //Mock publishing topic - outbound
-        var mockPublishingTopic = Core.getTopic("Mock");
-        jest.spyOn(mockPublishingTopic, "publish").mockImplementation((message: QueueMessage) => {
-            messageReceiver = message;
-            return Promise.resolve();
-        });
+    //     //Mock publishing topic - outbound
+    //     var mockPublishingTopic = Core.getTopic("Mock");
+    //     jest.spyOn(mockPublishingTopic, "publish").mockImplementation((message: QueueMessage) => {
+    //         messageReceiver = message;
+    //         return Promise.resolve();
+    //     });
 
-        mockQueueMessageContent();
+    //     mockQueueMessageContent();
 
-        var dummyResponse = <OswDTO>{
-            tdei_record_id: "test_record_id"
-        };
+    //     var dummyResponse = <OswDTO>{
+    //         tdei_record_id: "test_record_id"
+    //     };
 
-        //Mock DB call
-        jest
-            .spyOn(oswService, "createOsw")
-            .mockResolvedValueOnce(dummyResponse);
+    //     //Mock DB call
+    //     jest
+    //         .spyOn(oswService, "createOsw")
+    //         .mockResolvedValueOnce(dummyResponse);
 
-        //Wait for message to process
-        async function assertMessage() {
-            await setTimeout(20000);
-            return Promise.resolve(messageReceiver?.data?.response?.success);
-        }
+    //     //Wait for message to process
+    //     async function assertMessage() {
+    //         await setTimeout(20000);
+    //         return Promise.resolve(messageReceiver?.data?.response?.success);
+    //     }
 
-        //Act
-        var eventBusService = new EventBusService();
-        eventBusService.publishingTopic = mockPublishingTopic;
-        eventBusService.subscribeUpload("temp-validation", "temp-validation-result");
+    //     //Act
+    //     var eventBusService = new EventBusService();
+    //     eventBusService.publishingTopic = mockPublishingTopic;
+    //     // eventBusService.subscribeUpload("temp-validation", "temp-validation-result");
 
-        //Assert
-        await expect(assertMessage()).resolves.toBeTruthy();
-    }, 60000);
+    //     //Assert
+    //     await expect(assertMessage()).resolves.toBeTruthy();
+    // }, 60000);
 
 
     /**

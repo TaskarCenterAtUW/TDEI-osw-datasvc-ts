@@ -3,17 +3,17 @@ import appContext from "../../../server";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 
-export class PublishValidationWorkflow implements IWorkflowRegister {
+export class PublishValidationResponseWorkflow implements IWorkflowRegister {
 
     constructor(private workflowEvent: EventEmitter) {
     }
 
     register(): void {
-        this.workflowEvent.on("OSW_PUBLISH_VALIDATION_WORKFLOW", this.handleWorkflow);
+        this.workflowEvent.on("OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW", this.handleWorkflow);
     }
 
     handleWorkflow(message: QueueMessage, params: any) {
-        console.log("Triggered OSW_PUBLISH_VALIDATION_WORKFLOW");
+        console.log("Triggered OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW");
         //do any pre-requisite tasks
 
         //trigger handlers

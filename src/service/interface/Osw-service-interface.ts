@@ -63,7 +63,7 @@ export interface IOswService {
      * Updates the osw-format job
      * @param info Updates the OSWFormatJob with status and other parameters
      */
-    updateOSWFormatJob(info: OswFormatJobResponse): Promise<string>;
+    updateOSWFormatJob(info: OswFormatJobResponse): Promise<void>;
 
     /**
      * Fetches the job Id for formatting

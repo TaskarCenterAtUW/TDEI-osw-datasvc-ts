@@ -1,29 +1,29 @@
 import { PublishHandler } from "./generic/publish-handler";
-import { PublishConfidenceHandler } from "./publish/publish-osw-confidence-handler";
+import { PublishConfidenceResponseHandler } from "./publish/publish-osw-confidence-response-handler";
 import { PublishConfidenceRequestWorkflow } from "./publish/publish-osw-confidence-request-workflow";
-import { PublishConfidenceWorkflow } from "./publish/publish-osw-confidence-workflow";
-import { PublishFormattingHandler } from "./publish/publish-osw-formatter-handler";
+import { PublishConfidenceResponseWorkflow } from "./publish/publish-osw-confidence-response-workflow";
+import { PublishFormattingResponseHandler } from "./publish/publish-osw-formatter-response-handler";
 import { PublishFormattingRequestWorkflow } from "./publish/publish-osw-formatter-request-workflow";
-import { PublishFormattingWorkflow } from "./publish/publish-osw-formatter-workflow";
-import { PublishValidationHandler } from "./publish/publish-osw-validation-handler";
+import { PublishFormattingResponseWorkflow } from "./publish/publish-osw-formatter-response-workflow";
+import { PublishValidationResponseHandler } from "./publish/publish-osw-validation-response-handler";
 import { PublishValidationRequestWorkflow } from "./publish/publish-osw-validation-request-workflow";
-import { PublishValidationWorkflow } from "./publish/publish-osw-validation-workflow";
-import { UploadValidationHandler } from "./upload/upload-osw-validation-handler";
+import { PublishValidationResponseWorkflow } from "./publish/publish-osw-validation-response-workflow";
+import { UploadValidationResponseHandler } from "./upload/upload-osw-validation-response-handler";
 import { UploadValidationRequestWorkflow } from "./upload/upload-osw-validation-request-workflow";
-import { UploadValidationWorkflow } from "./upload/upload-osw-validation-workflow";
+import { UploadValidationResponseWorkflow } from "./upload/upload-osw-validation-response-workflow";
 
 export default [
     PublishHandler,
-    PublishConfidenceHandler,
-    PublishConfidenceWorkflow,
+    PublishConfidenceResponseHandler,
+    PublishConfidenceResponseWorkflow,
     PublishConfidenceRequestWorkflow,
-    PublishFormattingHandler,
+    PublishFormattingResponseHandler,
     PublishFormattingRequestWorkflow,
-    PublishFormattingWorkflow,
-    PublishValidationHandler,
+    PublishFormattingResponseWorkflow,
+    PublishValidationResponseHandler,
     PublishValidationRequestWorkflow,
-    PublishValidationWorkflow,
-    UploadValidationHandler,
-    UploadValidationWorkflow,
+    PublishValidationResponseWorkflow,
+    UploadValidationResponseHandler,
+    UploadValidationResponseWorkflow,
     UploadValidationRequestWorkflow,
 ];

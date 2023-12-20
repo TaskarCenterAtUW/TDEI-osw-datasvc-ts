@@ -254,7 +254,6 @@ class GtfsOSWController implements IController {
         // Check and get the record for the same in the database
         try {
             const oswRecord = await oswService.getOSWRecordById(tdeiRecordId)
-            console.log(oswRecord);
             // Create a job in the database for the same.
             //TODO: Have to add these based on some of the input data.
             const confidence_job = new OswConfidenceJob()
@@ -271,11 +270,11 @@ class GtfsOSWController implements IController {
             // Send the details to the confidence metric.
             //TODO: Fill based on the metadata received
             const confidenceRequestMsg = new OSWConfidenceRequest();
-            confidenceRequestMsg.jobId = jobId;
+            confidenceRequestMsg.jobId = jobId; // skip tdei-record-id
             confidenceRequestMsg.data_file = oswRecord.download_osw_url;
             //TODO: Once this is done, get the things moved.
             confidenceRequestMsg.meta_file = oswRecord.download_metadata_url;
-            confidenceRequestMsg.trigger_type = 'manual'
+            confidenceRequestMsg.trigger_type = 'manual' //release
             this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
             // Send the jobId back to the user.
             return response.status(200).send({ 'jobId': jobId, 'tdeiRecordId': tdeiRecordId });
@@ -320,8 +319,7 @@ class GtfsOSWController implements IController {
             fileType = 'application/zip'
         }
         const remoteUrl = await storageService.uploadFile(uploadPath, fileType, Readable.from(uploadedFile!.buffer))
-        console.log('Uplaoded to ');
-        console.log(remoteUrl);
+        console.log('Uplaoded to ', remoteUrl);
         const oswformatJob = new OswFormatJob();
         oswformatJob.created_at = new Date();
         oswformatJob.source = request.body['source']; //TODO: Validate the input enums 
@@ -330,8 +328,7 @@ class GtfsOSWController implements IController {
         oswformatJob.status = 'started'
 
         const jobId = await oswService.createOSWFormatJob(oswformatJob);
-        console.log('JobId created')
-        console.log(jobId);
+        console.log('JobId created ', jobId)
 
         // Send the same to service bus.
         oswformatJob.jobId = parseInt(jobId);

@@ -3,17 +3,17 @@ import appContext from "../../../server";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 
-export class PublishConfidenceWorkflow implements IWorkflowRegister {
+export class PublishConfidenceResponseWorkflow implements IWorkflowRegister {
 
     constructor(private workflowEvent: EventEmitter) {
     }
 
     register(): void {
-        this.workflowEvent.on("OSW_PUBLISH_CONFIDENCE_WORKFLOW", this.handleWorkflow);
+        this.workflowEvent.on("OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW", this.handleWorkflow);
     }
 
     handleWorkflow(message: QueueMessage, params: any) {
-        console.log("Triggered OSW_PUBLISH_CONFIDENCE_WORKFLOW :", message.messageType);
+        console.log("Triggered OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW :", message.messageType);
         //do any pre-requisite task
 
         //trigger handlers

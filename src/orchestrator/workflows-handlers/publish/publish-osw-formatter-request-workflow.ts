@@ -2,6 +2,7 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../server";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
+import oswService from "../../../service/Osw-service";
 
 export class PublishFormattingRequestWorkflow implements IWorkflowRegister {
 
@@ -12,11 +13,25 @@ export class PublishFormattingRequestWorkflow implements IWorkflowRegister {
         this.workflowEvent.on("OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW", this.handleWorkflow);
     }
 
-    handleWorkflow(message: QueueMessage, params: any) {
+    async handleWorkflow(message: QueueMessage, params: any) {
         console.log("Triggered OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW :", message.messageType);
-        //do any pre-requisite task
 
-        //trigger handlers
-        appContext.orchestratorServiceInstance.delegateWorkflowHandlers(message);
+        try {
+            let osw_version = await oswService.getOSWRecordById(message.messageId);
+            //Compose the meessage
+            let queueMessage = QueueMessage.from({
+                messageId: message.messageId,
+                messageType: "", //will be set by the publish handler with params defined in config
+                data: {
+                    file_upload_path: osw_version.download_osw_url
+                }
+            });
+
+            //trigger handlers
+            appContext.orchestratorServiceInstance.delegateWorkflowHandlers(queueMessage);
+        }
+        catch (error) {
+            console.error("Error in handling the formatting request workflow", error);
+        }
     }
 }

@@ -3,13 +3,13 @@ import appContext from "../../../server";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 
-export class PublishValidationHandler implements IWorkflowRegister {
+export class UploadValidationResponseHandler implements IWorkflowRegister {
 
     constructor(private workflowEvent: EventEmitter) {
     }
 
     register(): void {
-        this.workflowEvent.on("OSW_PUBLISH_VALIDATION_RESPONSE_HANDLER", this.handleMessage);
+        this.workflowEvent.on("OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER", this.handleMessage);
     }
 
     /**
@@ -19,7 +19,7 @@ export class PublishValidationHandler implements IWorkflowRegister {
      * @param params 
      */
     private handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
-        console.log("Triggered OSW_PUBLISH_VALIDATION_RESPONSE_HANDLER");
+        console.log("Triggered OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER :", message.messageType);
 
         appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
     }

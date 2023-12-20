@@ -199,9 +199,9 @@ class OswService implements IOswService {
         const list: OswDTO[] = [];
         result.rows.forEach(x => {
             const osw = OswDTO.from(x);
-            if (osw.polygon) {
+            if (osw.dataset_area) {
                 const polygon = JSON.parse(x.polygon2) as Geometry;
-                osw.polygon = {
+                osw.dataset_area = {
                     type: "FeatureCollection",
                     features: [
                         {
@@ -414,23 +414,24 @@ class OswService implements IOswService {
         }
     }
 
-    async updateOSWFormatJob(info: OswFormatJobResponse): Promise<string> {
-        console.log(' Updating formatter job info');
+    async updateOSWFormatJob(info: OswFormatJobResponse): Promise<void> {
+        console.log('Updating formatter job info');
         try {
-            const updateQuery = OswFormatJob.getUpdateStatusQuery(info.jobId, info.status, info.formattedUrl, info.message)
+            const updateQuery = OswFormatJob.getUpdateStatusQuery(info.jobId, info.status, info.formattedUrl, info.message);
             const result = await dbClient.query(updateQuery);
-            if (result.rowCount == 0) {
-                // Something went wrong. Write the stuff here.
-                return '';
+
+            if (result.rowCount === 0) {
+                // Handle the case when no rows were updated. Write appropriate logic here.
+                console.log('No rows were updated during the formatter job update.');
+                return;
             }
-            return info.jobId;
+
+            console.log(`Formatter job successfully updated with jobId: ${info.jobId}`);
+        } catch (error) {
+            console.error('Error while updating formatter job');
+            console.error(error);
+            return Promise.reject(error);
         }
-        catch (error) {
-            console.log('Error while updating formatter job')
-            console.log(error);
-            Promise.reject(error);
-        }
-        return '';
     }
 
     async getOSWFormatJob(jobId: string): Promise<OswFormatJob> {
