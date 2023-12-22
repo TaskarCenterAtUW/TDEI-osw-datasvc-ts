@@ -38,7 +38,10 @@ export interface IOrchestratorService {
      * @param workflow_identifier 
      * @param message 
      */
-    triggerWorkflow(workflow_identifier: string, message: QueueMessage): Promise<void>
+    triggerWorkflow(workflow_identifier: string, message: QueueMessage): Promise<void>;
+
+    //Workflow configuration context
+    orchestratorContext: OrchestratorContext;
 }
 
 export class OrchestratorService {
@@ -99,7 +102,7 @@ export class OrchestratorService {
         if (trigger_workflow?.worflow_type == "TRIGGER") {
             //Log/Insert the workflow history
             await workflowDatabaseService.logWorkflowHistory(
-                trigger_workflow.worflow_group,
+                trigger_workflow.workflow_group,
                 trigger_workflow.worflow_stage,
                 message);
             message.messageType = workflow_identifier;
@@ -122,9 +125,12 @@ export class OrchestratorService {
             //Get workflow identifier
             let identifier = message.messageType;
             //Update the workflow history
-            workflowDatabaseService.updateWorkflowHistory(message);
-            //trigger workflow
-            this.workflowEvent.emit(identifier, message);
+            let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(identifier);
+            if (trigger_workflow) {
+                workflowDatabaseService.updateWorkflowHistory(trigger_workflow?.worflow_stage!, message);
+                //trigger workflow
+                this.workflowEvent.emit(identifier, message);
+            }
         } catch (error) {
             console.error("Error invoking handlers", error);
         }
@@ -168,7 +174,7 @@ export class OrchestratorService {
                 if (trigger_workflow?.worflow_type == "TRIGGER") {
                     //Log/Insert the workflow history
                     await workflowDatabaseService.logWorkflowHistory(
-                        trigger_workflow.worflow_group,
+                        trigger_workflow.workflow_group,
                         trigger_workflow.worflow_stage,
                         message);
                 }

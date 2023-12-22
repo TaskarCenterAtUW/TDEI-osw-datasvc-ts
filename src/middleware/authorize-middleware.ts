@@ -19,7 +19,7 @@ import oswService from '../service/Osw-service';
 export const authorize = (approvedRoles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
 
-        if (req.body.user_id)
+        if (!req.body.user_id)
             return next(new UnAuthenticated());
 
         if (req.params["tdei_record_id"]) {

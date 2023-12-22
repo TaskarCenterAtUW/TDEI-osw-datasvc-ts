@@ -24,6 +24,7 @@ import { OswMetadataEntity } from "../database/entity/osw-metadata";
 import appContext from "../server";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { OswValidationJobs } from "../database/entity/osw-validate-jobs";
+import workflowDatabaseService from "../orchestrator/services/wrokflow-database-service";
 
 class OswService implements IOswService {
     constructor() { }
@@ -42,11 +43,14 @@ class OswService implements IOswService {
                 messageId: tdei_record_id,
                 messageType: workflow_identifier,
                 data: {
-                    userId: user_id, // Required field for message authorization
-                    projectGroupId: osw_version.tdei_project_group_id,// Required field for message authorization
+                    user_id: user_id, // Required field for message authorization
+                    tdei_project_group_id: osw_version.tdei_project_group_id,// Required field for message authorization
                     file_upload_path: osw_version.download_osw_url
                 }
             });
+            //Delete exisitng workflow if exists
+            let trigger_workflow = appContext.orchestratorServiceInstance.orchestratorContext.getWorkflowByIdentifier(workflow_identifier);
+            workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_record_id, trigger_workflow?.workflow_group!);
             //Trigger the workflow
             await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
 
@@ -87,7 +91,7 @@ class OswService implements IOswService {
                 messageId: job_id,
                 messageType: workflow_identifier,
                 data: {
-                    userId: user_id, // Required field for message authorization
+                    user_id: user_id, // Required field for message authorization
                     file_upload_path: datasetUploadUrl
                 }
             });
@@ -124,12 +128,12 @@ class OswService implements IOswService {
             const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(uploadRequestObject.datasetFile[0].buffer))
             // Upload the metadata file  
             const metadataStorageFilePath = path.join(storageFolderPath, 'metadata.json');
-            const metadataUploadUrl = await storageService.uploadFile(metadataStorageFilePath, 'text/json', uploadRequestObject.metadataFile[0].buffer);
+            const metadataUploadUrl = await storageService.uploadFile(metadataStorageFilePath, 'text/json', Readable.from(uploadRequestObject.metadataFile[0].buffer));
             // Upload the changeset file  
             let changesetUploadUrl = "";
             if (uploadRequestObject.changesetFile) {
                 const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.txt');
-                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'text/plain', uploadRequestObject.changesetFile[0].buffer);
+                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'text/plain', Readable.from(uploadRequestObject.changesetFile[0].buffer));
             }
 
             // Insert metadata into database
@@ -153,8 +157,8 @@ class OswService implements IOswService {
                 messageId: uid,
                 messageType: workflow_identifier,
                 data: {
-                    userId: uploadRequestObject.user_id,// Required field for message authorization
-                    projectGroupId: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
+                    user_id: uploadRequestObject.user_id,// Required field for message authorization
+                    tdei_project_group_id: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
                     file_upload_path: datasetUploadUrl
                 }
             });
@@ -333,7 +337,6 @@ class OswService implements IOswService {
     //         return Promise.reject(error);
     //     }
     // }
-
     async getOSWRecordById(id: string): Promise<OswVersions> {
         const query = {
             text: 'Select * from osw_versions WHERE tdei_record_id = $1',
@@ -344,7 +347,6 @@ class OswService implements IOswService {
         if (result.rowCount == 0)
             throw new HttpException(404, "Record not found");
         const record = result.rows[0];
-        console.log(record);
         const osw = OswVersions.from(record);
 
         return osw;

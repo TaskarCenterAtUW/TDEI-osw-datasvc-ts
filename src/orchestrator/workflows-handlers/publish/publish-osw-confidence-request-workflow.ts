@@ -28,7 +28,7 @@ export class PublishConfidenceRequestWorkflow implements IWorkflowRegister {
 
             let queueMessage = QueueMessage.from({
                 messageId: tdei_record_id,
-                messageType: "", //will be set by the publish handler with params defined in config
+                messageType: "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW", //will be set by the publish handler with params defined in config
                 data: confidenceRequestMsg
             });
             //trigger handlers

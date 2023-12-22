@@ -20,6 +20,7 @@ export class PublishHandler implements IWorkflowRegister {
     private async handleWorkflow(message: QueueMessage, delegate_worflow: string[], params: any) {
         console.log("Triggered PUBLISH_HANDLER :", message.messageType);
         message.messageType = params.identifier;
+        //TODO:: Update the workflow history with latest message type
         await appContext.orchestratorServiceInstance.publishMessage(params.topic, message)
         appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
     }

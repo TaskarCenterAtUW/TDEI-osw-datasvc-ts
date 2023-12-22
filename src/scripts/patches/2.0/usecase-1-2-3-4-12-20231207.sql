@@ -76,13 +76,19 @@ CREATE TABLE IF NOT EXISTS public.osw_workflow_history
 (
     id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
     reference_id character varying COLLATE pg_catalog."default" NOT NULL,
-    worflow_group character varying COLLATE pg_catalog."default" NOT NULL,
-    workflow_name character varying COLLATE pg_catalog."default" NOT NULL,
+    workflow_group character varying COLLATE pg_catalog."default" NOT NULL,
     request_message json NOT NULL,
     response_message json,
     created_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status text GENERATED ALWAYS AS ((response_message->'data'->>'status')::text) STORED,
-    CONSTRAINT osw_workflow_history_pkey PRIMARY KEY (id),
-    CONSTRAINT unq_tdei_record_id_workflow UNIQUE (tdei_record_id, workflow_name)
+    workflow_stage character varying COLLATE pg_catalog."default",
+    message text COLLATE pg_catalog."default" GENERATED ALWAYS AS (((response_message -> 'data'::text) ->> 'message'::text)) STORED,
+    status text COLLATE pg_catalog."default" GENERATED ALWAYS AS (
+CASE
+    WHEN (COALESCE(((response_message -> 'data'::text) ->> 'success'::text), ''::text) = ''::text) THEN ''::text
+    WHEN (((response_message -> 'data'::text) ->> 'success'::text))::boolean THEN 'Success'::text
+    ELSE 'Failure'::text
+END) STORED,
+    obsolete boolean,
+    CONSTRAINT osw_workflow_history_pkey PRIMARY KEY (id)
 )

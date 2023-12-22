@@ -55,19 +55,16 @@ export class OswVersions extends BaseDto {
         const queryObject = {
             text: `INSERT INTO public.osw_versions(
                 tdei_record_id, 
-                confidence_level, 
                 tdei_service_id, 
                 tdei_project_group_id,
                 download_osw_url, 
                 uploaded_by, 
                 uploaded_timestamp, 
-                cm_version, 
-                cm_last_calculated_at, 
                 derived_from_dataset_id, 
                 status)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.confidence_level, this.tdei_service_id, this.tdei_project_group_id, this.download_osw_url
-                , this.uploaded_by, this.uploaded_timestamp, this.cm_version, this.cm_last_calculated_at, this.derived_from_dataset_id, this.status],
+                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6, $7)`.replace(/\n/g, ""),
+            values: [this.tdei_record_id, this.tdei_service_id, this.tdei_project_group_id, this.download_osw_url
+                , this.uploaded_by, this.derived_from_dataset_id, this.status],
         }
 
         return queryObject;
@@ -76,7 +73,7 @@ export class OswVersions extends BaseDto {
 
     static getUpdateFormatUrlQuery(tdei_record_id: string, download_osm_url: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_versions SET download_osm_url = $1 AND uploaded_timestamp = CURRENT_TIMESTAMP
+            text: `UPDATE public.osw_versions SET download_osm_url = $1 , uploaded_timestamp = CURRENT_TIMESTAMP
             WHERE tdei_record_id = $2`,
             values: [download_osm_url, tdei_record_id]
         }
@@ -85,7 +82,7 @@ export class OswVersions extends BaseDto {
 
     static getPublishRecordQuery(tdei_record_id: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_versions SET status = 'Published' AND uploaded_timestamp = CURRENT_TIMESTAMP
+            text: `UPDATE public.osw_versions SET status = 'Published' , uploaded_timestamp = CURRENT_TIMESTAMP
             WHERE tdei_record_id = $1`,
             values: [tdei_record_id]
         }

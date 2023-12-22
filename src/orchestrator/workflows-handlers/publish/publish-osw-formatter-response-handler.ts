@@ -24,7 +24,7 @@ export class PublishFormattingResponseHandler implements IWorkflowRegister {
         console.log("Triggered OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER");
         if (message.data.success) {
 
-            let download_osm_url = message.data.download_xml_url ?? "";
+            let download_osm_url = message.data.formatted_url ?? "";
 
             try {
                 download_osm_url = decodeURIComponent(download_osm_url!);

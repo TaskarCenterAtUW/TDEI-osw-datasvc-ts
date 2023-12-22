@@ -183,6 +183,7 @@ class GtfsOSWController implements IController {
             }
 
             let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
+            response.setHeader('Location', `/validation/status/${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -245,15 +246,16 @@ class GtfsOSWController implements IController {
             if (!uploadRequest.datasetFile) {
                 console.error("dataset file input upload missing");
                 response.status(400).send("dataset file input upload missing");
-                next(new InputException("dataset file input upload missing"));
+                return next(new InputException("dataset file input upload missing"));
             }
             if (!uploadRequest.metadataFile) {
                 console.error("metadata file input upload missing");
                 response.status(400).send("metadata file input upload missing");
-                next(new InputException("metadata file input upload missing"));
+                return next(new InputException("metadata file input upload missing"));
             }
 
             let tdei_record_id = await oswService.processUploadRequest(uploadRequest);
+            response.setHeader('Location', `/upload/status/${tdei_record_id}`);
             return response.status(202).send(tdei_record_id);
 
         } catch (error) {

@@ -21,7 +21,7 @@ export class PublishFormattingRequestWorkflow implements IWorkflowRegister {
             //Compose the meessage
             let queueMessage = QueueMessage.from({
                 messageId: message.messageId,
-                messageType: "", //will be set by the publish handler with params defined in config
+                messageType: "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW", //will be set by the publish handler with params defined in config
                 data: {
                     file_upload_path: osw_version.download_osw_url
                 }

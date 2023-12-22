@@ -24,7 +24,7 @@ export async function metajsonValidator(req: Request, res: Response, next: NextF
         }
         else {
             console.log('metajsonValidator middleware error');
-            next(error);
+            next(new InputException("metadata file input upload missing"));
         }
     }
 }

@@ -25,7 +25,7 @@ export class OrchestratorContext {
 }
 
 export interface Workflow {
-    worflow_group: string;
+    workflow_group: string;
     worflow_stage: string;
     worflow_type: string;
     worflow_identifier?: string;
