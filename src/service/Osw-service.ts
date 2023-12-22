@@ -6,7 +6,7 @@ import dbClient from "../database/data-source";
 import { OswVersions } from "../database/entity/osw-version-entity";
 import UniqueKeyDbException from "../exceptions/db/database-exceptions";
 import HttpException from "../exceptions/http/http-base-exception";
-import { DuplicateException, InputException, JobIdNotFoundException } from "../exceptions/http/http-exceptions";
+import { DuplicateException, InputException, JobIdNotFoundException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { IOswService } from "./interface/Osw-service-interface";
@@ -25,6 +25,9 @@ import appContext from "../server";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { OswValidationJobs } from "../database/entity/osw-validate-jobs";
 import workflowDatabaseService from "../orchestrator/services/wrokflow-database-service";
+import { Utility } from "../utility/utility";
+import { environment } from "../environment/environment";
+import fetch from "node-fetch";
 
 class OswService implements IOswService {
     constructor() { }
@@ -35,8 +38,19 @@ class OswService implements IOswService {
    */
     async processPublishRequest(user_id: string, tdei_record_id: string): Promise<void> {
         try {
-            //
             let osw_version = await this.getOSWRecordById(tdei_record_id);
+            let osw_metadata = await this.getOSWMetadataById(tdei_record_id);
+
+            if (osw_version.status === 'Published')
+                throw new InputException(`${tdei_record_id} already publised.`)
+
+            // Check if there is a record with the same date
+            const queryResult = await dbClient.query(osw_metadata.getOverlapQuery(osw_version.tdei_project_group_id, osw_version.tdei_service_id));
+            if (queryResult.rowCount && queryResult.rowCount > 0) {
+                const recordId = queryResult.rows[0]["tdei_record_id"];
+                throw new OverlapException(recordId);
+            }
+
             //Compose the meessage
             let workflow_identifier = "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
@@ -110,6 +124,14 @@ class OswService implements IOswService {
     */
     async processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string> {
         try {
+
+            //Validate service_id 
+            const serviceExists = await this.checkServiceIdExists(uploadRequestObject.tdei_service_id, uploadRequestObject.tdei_project_group_id);
+            if (!serviceExists) {
+                // Service not found exception.
+                throw new ServiceNotFoundException(uploadRequestObject.tdei_service_id);
+            }
+
             //Validate metadata
             const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
             const oswdto = OswUploadMeta.from(metadata);
@@ -169,6 +191,35 @@ class OswService implements IOswService {
             return Promise.resolve(uid);
         } catch (error) {
             throw error;
+        }
+    }
+
+    /**
+     * Gets the service details for given projectGroupId and serviceid
+     * @param serviceId service id uniquely represented by TDEI system
+     * @param projectGroupId oraganization id uniquely represented by TDEI system
+     * @returns 
+     */
+    async checkServiceIdExists(serviceId: string, projectGroupId: string): Promise<Boolean> {
+        try {
+            const secretToken = await Utility.generateSecret();
+            const result = await fetch(`${environment.serviceUrl}?tdei_service_id=${serviceId}&tdei_project_group_id=${projectGroupId}&type=osw&page_no=1&page_size=1`, {
+                method: 'get',
+                headers: { 'Content-Type': 'application/json', 'x-secret': secretToken }
+            });
+
+            const data: [] = await result.json();
+
+            if (result.status != undefined && result.status != 200)
+                throw new Error(await result.json());
+
+            if (data.length == 0)
+                throw new Error();
+
+            return Promise.resolve(true);
+        } catch (error: any) {
+            console.error(error);
+            return Promise.resolve(false);
         }
     }
 
@@ -352,6 +403,25 @@ class OswService implements IOswService {
         return osw;
     }
 
+    /**
+     * Fetches osw metadata for given tdei_record_id
+     * @param id 
+     * @returns 
+     */
+    async getOSWMetadataById(id: string): Promise<OswMetadataEntity> {
+        const query = {
+            text: 'Select * from osw_metadata WHERE tdei_record_id = $1',
+            values: [id],
+        }
+
+        const result = await dbClient.query(query);
+        if (result.rowCount == 0)
+            throw new HttpException(404, "Record not found");
+        const record = result.rows[0];
+        const metadata = OswMetadataEntity.from(record);
+        return metadata;
+    }
+
     async createOSWConfidenceJob(info: OswConfidenceJob): Promise<string> {
         try {
             const query = info.getInsertQuery()
@@ -466,3 +536,4 @@ class OswService implements IOswService {
 
 const oswService: IOswService = new OswService();
 export default oswService;
+

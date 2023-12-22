@@ -56,6 +56,7 @@
     "nodets-ms-core": "0.0.10",
     "pg": "^8.8.0",
     "reflect-metadata": "^0.1.13",
+    "node-fetch": "^2.6.7",
     "supertest": "^6.3.3"
   }
 }
