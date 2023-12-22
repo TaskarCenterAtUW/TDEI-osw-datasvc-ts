@@ -52,21 +52,29 @@ export class OswVersions extends BaseDto {
      * @returns QueryConfig object
      */
     getInsertQuery(): QueryConfig {
+
         const queryObject = {
             text: `INSERT INTO public.osw_versions(
-                tdei_record_id, 
+                tdei_record_id,
                 tdei_service_id, 
                 tdei_project_group_id,
-                download_osw_url, 
+                download_osw_url,
                 uploaded_by, 
-                uploaded_timestamp, 
                 derived_from_dataset_id, 
-                status)
-                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6, $7)`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.tdei_service_id, this.tdei_project_group_id, this.download_osw_url
-                , this.uploaded_by, this.derived_from_dataset_id, this.status],
+                status,
+                uploaded_timestamp,
+                download_changeset_url,
+                download_metadata_url)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`.replace(/\n/g, ""),
+            values: [this.tdei_record_id, this.tdei_service_id, this.tdei_project_group_id,
+            this.download_osw_url
+                , this.uploaded_by,
+            this.derived_from_dataset_id ?? null,
+            this.status,
+            new Date(),
+            this.download_changeset_url ?? null,
+            this.download_metadata_url]
         }
-
         return queryObject;
     }
 
@@ -82,7 +90,7 @@ export class OswVersions extends BaseDto {
 
     static getPublishRecordQuery(tdei_record_id: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_versions SET status = 'Published' , uploaded_timestamp = CURRENT_TIMESTAMP
+            text: `UPDATE public.osw_versions SET status = 'Publish' , uploaded_timestamp = CURRENT_TIMESTAMP
             WHERE tdei_record_id = $1`,
             values: [tdei_record_id]
         }

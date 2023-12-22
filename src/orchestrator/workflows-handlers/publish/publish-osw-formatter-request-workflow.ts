@@ -18,12 +18,14 @@ export class PublishFormattingRequestWorkflow implements IWorkflowRegister {
 
         try {
             let osw_version = await oswService.getOSWRecordById(message.messageId);
+
             //Compose the meessage
             let queueMessage = QueueMessage.from({
                 messageId: message.messageId,
                 messageType: "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW", //will be set by the publish handler with params defined in config
                 data: {
-                    file_upload_path: osw_version.download_osw_url
+                    file_upload_path: osw_version.download_osw_url,
+                    tdei_project_group_id: osw_version.tdei_project_group_id
                 }
             });
 

@@ -16,7 +16,7 @@ export class PublishFormattingResponseWorkflow implements IWorkflowRegister {
         console.log("Triggered OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW :", message.messageType);
         //do any pre-requisite task
 
-        //trigger handlers
-        appContext.orchestratorServiceInstance.delegateWorkflowHandlers(message);
+        if (message.data.success)//trigger handlers
+            appContext.orchestratorServiceInstance.delegateWorkflowHandlers(message);
     }
 }

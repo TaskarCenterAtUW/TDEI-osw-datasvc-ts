@@ -3,7 +3,7 @@ import { DynamicQueryObject, SqlORder } from "../database/dynamic-query-object";
 import { InputException } from "../exceptions/http/http-exceptions";
 import { Utility } from "../utility/utility";
 
-enum RecordStatus {
+export enum RecordStatus {
     "Publish" = "Publish",
     "Pre-Release" = "Pre-Release",
     "All" = "All"
@@ -45,15 +45,24 @@ export class OswQueryParams {
    * Builds the parameterized sql query.
    * @returns DynamicQueryObject
    */
-    getQueryObject() {
+    getQueryObject(projectGroupIds: string[]) {
         const queryObject: DynamicQueryObject = new DynamicQueryObject();
         queryObject.buildSelect("osw_versions", ["ST_AsGeoJSON(dataset_area) as polygon2, *"]);
         queryObject.buildInnerJoin("osw_versions", "osw_metadata", "tdei_record_id");
         queryObject.buildPagination(this.page_no, this.page_size);
         queryObject.buildOrder("uploaded_timestamp", SqlORder.DESC);
+
         //Add conditions
-        if (this.status)
+        if (this.status && this.status == RecordStatus["Pre-Release"] && projectGroupIds.length) {
+            queryObject.condition(` status = 'Pre-Release' AND tdei_project_group_id in ($${queryObject.paramCouter++}) `, projectGroupIds.join(","));
+        } else if (this.status && this.status == RecordStatus["All"] && projectGroupIds.length) {
+            queryObject.condition(` status = 'Publish' or (status ='Pre-Release' AND tdei_project_group_id in ($${queryObject.paramCouter++})) `, projectGroupIds.join(","));
+        }
+        else if (this.status && this.status == RecordStatus["All"] && projectGroupIds.length == 0) {
+            queryObject.condition(` status = $${queryObject.paramCouter++} `, RecordStatus.Publish.toString());
+        } else if (this.status)
             queryObject.condition(` status = $${queryObject.paramCouter++} `, this.status.toString());
+
         if (this.name)
             queryObject.condition(` name = $${queryObject.paramCouter++} `, this.name);
         if (this.version)

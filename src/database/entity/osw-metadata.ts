@@ -120,7 +120,7 @@ export class OswMetadataEntity extends BaseDto {
     */
     getOverlapQuery(tdei_project_group_id: string, tdei_service_id: string): QueryConfig {
         const fromDate = new Date(this.valid_from);
-        const toDate = new Date(this.valid_to);
+        const toDate = this.valid_to ? new Date(this.valid_to) : new Date();
 
         const queryObject = {
             text: `SELECT ov.tdei_record_id from public.osw_metadata om

@@ -34,26 +34,45 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
      * @param message 
      * @returns 
      */
-    async logWorkflowHistory(workflow_group: string, worflow_stage: string, message: QueueMessage): Promise<boolean> {
+    async logWorkflowHistory(workflow_group: string, workflow_stage: string, message: QueueMessage): Promise<boolean> {
         try {
             let data = {
                 reference_id: message.messageId,
                 request_message: message,
                 workflow_group: workflow_group,
-                worflow_stage: worflow_stage
+                workflow_stage: workflow_stage
             }
 
-            const queryObject = {
-                text: `INSERT INTO public.osw_workflow_history(
-                    reference_id, 
-                    workflow_group,
-                    workflow_stage,
-                    request_message)
-                    VALUES ($1, $2, $3, $4)`.replace(/\n/g, ""),
-                values: [data.reference_id, data.workflow_group, data.worflow_stage, data.request_message],
+            const querySelectObject = {
+                text: `SELECT id FROM public.osw_workflow_history WHERE 
+                reference_id=$1 AND workflow_group=$2 AND workflow_stage=$3 AND obsolete is not true`.replace(/\n/g, ""),
+                values: [data.reference_id, data.workflow_group, data.workflow_stage],
             }
+            let entry = await dbClient.query(querySelectObject);
+            if (entry.rowCount == 0) {
+                const queryObject = {
+                    text: `INSERT INTO public.osw_workflow_history(
+                        reference_id, 
+                        workflow_group,
+                        workflow_stage,
+                        request_message)
+                        VALUES ($1, $2, $3, $4)`.replace(/\n/g, ""),
+                    values: [data.reference_id, data.workflow_group, data.workflow_stage, data.request_message],
+                }
 
-            await dbClient.query(queryObject);
+                await dbClient.query(queryObject);
+            }
+            else {
+                //This is the case where queue message self retries 
+                const queryObject = {
+                    text: `UPDATE public.osw_workflow_history SET
+                            request_message=$1
+                        WHERE  id=$2`.replace(/\n/g, ""),
+                    values: [data.request_message, entry.rows[0].id],
+                }
+
+                await dbClient.query(queryObject);
+            }
 
             return Promise.resolve(true);
         } catch (error) {
@@ -79,7 +98,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
                 text: `UPDATE public.osw_workflow_history SET
                     response_message=$1, 
                     updated_timestamp= CURRENT_TIMESTAMP 
-                    WHERE  reference_id=$2 AND workflow_stage=$3`.replace(/\n/g, ""),
+                    WHERE  reference_id=$2 AND workflow_stage=$3 AND obsolete is not true`.replace(/\n/g, ""),
                 values: [data.response_message, data.reference_id, data.workflow_stage],
             }
 

@@ -8,7 +8,7 @@ import UniqueKeyDbException from "../exceptions/db/database-exceptions";
 import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException, InputException, JobIdNotFoundException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
-import { OswQueryParams } from "../model/osw-get-query-params";
+import { OswQueryParams, RecordStatus } from "../model/osw-get-query-params";
 import { IOswService } from "./interface/Osw-service-interface";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceResponse } from "../model/osw-confidence-response";
@@ -28,6 +28,8 @@ import workflowDatabaseService from "../orchestrator/services/wrokflow-database-
 import { Utility } from "../utility/utility";
 import { environment } from "../environment/environment";
 import fetch from "node-fetch";
+import { ServiceDto } from "../model/service-dto";
+import { ProjectGroupRoleDto } from "../model/project-group-role-dto";
 
 class OswService implements IOswService {
     constructor() { }
@@ -41,7 +43,7 @@ class OswService implements IOswService {
             let osw_version = await this.getOSWRecordById(tdei_record_id);
             let osw_metadata = await this.getOSWMetadataById(tdei_record_id);
 
-            if (osw_version.status === 'Published')
+            if (osw_version.status === 'Publish')
                 throw new InputException(`${tdei_record_id} already publised.`)
 
             // Check if there is a record with the same date
@@ -126,10 +128,13 @@ class OswService implements IOswService {
         try {
 
             //Validate service_id 
-            const serviceExists = await this.checkServiceIdExists(uploadRequestObject.tdei_service_id, uploadRequestObject.tdei_project_group_id);
-            if (!serviceExists) {
+            const service = await this.getServiceById(uploadRequestObject.tdei_service_id, uploadRequestObject.tdei_project_group_id);
+            if (!service) {
                 // Service not found exception.
                 throw new ServiceNotFoundException(uploadRequestObject.tdei_service_id);
+            }
+            else if (service.tdei_project_group_id != uploadRequestObject.tdei_project_group_id) {
+                throw new InputException(`${uploadRequestObject.tdei_project_group_id} id not associated with the tdei_service_id`);
             }
 
             //Validate metadata
@@ -138,13 +143,14 @@ class OswService implements IOswService {
             await this.validateMetadata(oswdto);
 
             //Check for unique name and version combination
-            await this.checkMetaNameAndVersionUnique(metadata.name, metadata.version);
+            if (await this.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
+                throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
 
             // Generate unique UUID for the upload request 
             const uid = storageService.generateRandomUUID();
 
             //Upload the files to the storage
-            const storageFolderPath = storageService.getFolderPath(uploadRequestObject.tdei_service_id, uid);
+            const storageFolderPath = storageService.getFolderPath(uploadRequestObject.tdei_project_group_id, uid);
             // Upload dataset file
             const uploadStoragePath = path.join(storageFolderPath, uploadRequestObject.datasetFile[0].originalname)
             const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(uploadRequestObject.datasetFile[0].buffer))
@@ -158,20 +164,25 @@ class OswService implements IOswService {
                 changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'text/plain', Readable.from(uploadRequestObject.changesetFile[0].buffer));
             }
 
+            // Insert osw version into database
+            const oswEntity = new OswVersions();
+            oswEntity.tdei_record_id = uid;
+            oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
+            oswEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
+            oswEntity.download_changeset_url = changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "";
+            oswEntity.download_metadata_url = decodeURIComponent(metadataUploadUrl);
+            oswEntity.download_osw_url = decodeURIComponent(datasetUploadUrl);
+            oswEntity.uploaded_by = uploadRequestObject.user_id;
+            await this.createOsw(oswEntity);
+
             // Insert metadata into database
             const oswMetadataEntity = OswMetadataEntity.from(metadata);
             oswMetadataEntity.tdei_record_id = uid;
             await this.createOswMetadata(oswMetadataEntity);
 
-            // Insert osw version into database
-            const oswEntity = new OswVersions();
-            oswEntity.tdei_record_id = uid;
-            oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
-            oswEntity.download_changeset_url = changesetUploadUrl ?? null;
-            oswEntity.download_metadata_url = metadataUploadUrl;
-            oswEntity.download_osw_url = datasetUploadUrl;
-            oswEntity.uploaded_by = uploadRequestObject.user_id;
-            await this.createOsw(oswEntity);
+            //TODO:: test data to be removed while PR
+            let temp_tdei_project_group_id = 'c552d5d1-0719-4647-b86d-6ae9b25327b7';
+            uploadRequestObject.tdei_project_group_id = temp_tdei_project_group_id;
 
             //Compose the meessage
             let workflow_identifier = "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW";
@@ -200,10 +211,10 @@ class OswService implements IOswService {
      * @param projectGroupId oraganization id uniquely represented by TDEI system
      * @returns 
      */
-    async checkServiceIdExists(serviceId: string, projectGroupId: string): Promise<Boolean> {
+    async getServiceById(serviceId: string, projectGroupId: string): Promise<ServiceDto | undefined> {
         try {
             const secretToken = await Utility.generateSecret();
-            const result = await fetch(`${environment.serviceUrl}?tdei_service_id=${serviceId}&tdei_project_group_id=${projectGroupId}&type=osw&page_no=1&page_size=1`, {
+            const result = await fetch(`${environment.serviceUrl}?tdei_service_id=${serviceId}&tdei_project_group_id=${projectGroupId}&service_type=osw&page_no=1&page_size=1`, {
                 method: 'get',
                 headers: { 'Content-Type': 'application/json', 'x-secret': secretToken }
             });
@@ -216,10 +227,44 @@ class OswService implements IOswService {
             if (data.length == 0)
                 throw new Error();
 
-            return Promise.resolve(true);
+            return Promise.resolve(ServiceDto.from(data.pop()));
         } catch (error: any) {
             console.error(error);
-            return Promise.resolve(false);
+            return Promise.resolve(undefined);
+        }
+    }
+
+    /**
+    * Gets the user associated project groups
+    * @param user_id 
+    * @returns 
+    */
+    async getUserProjectGroups(user_id: string): Promise<ProjectGroupRoleDto[] | undefined> {
+        try {
+            const secretToken = await Utility.generateSecret();
+            const result = await fetch(`${environment.userProjectGroupRolesUrl}/${user_id}`, {
+                method: 'get',
+                headers: { 'Content-Type': 'application/json', 'x-secret': secretToken }
+            });
+
+            const data: [] = await result.json();
+
+            if (result.status != undefined && result.status != 200)
+                throw new Error(await result.json());
+
+            if (data.length == 0)
+                throw new Error();
+
+            let projectGroupRoleList: ProjectGroupRoleDto[] = [];
+
+            data.forEach(x => {
+                projectGroupRoleList.push(new ProjectGroupRoleDto(x));
+            });
+
+            return Promise.resolve(projectGroupRoleList);
+        } catch (error: any) {
+            console.error(error);
+            return Promise.resolve(undefined);
         }
     }
 
@@ -240,15 +285,19 @@ class OswService implements IOswService {
         }
     }
 
-    async getAllOsw(params: OswQueryParams): Promise<OswDTO[]> {
+    async getAllOsw(user_id: string, params: OswQueryParams): Promise<OswDTO[]> {
         //Builds the query object. All the query consitions can be build in getQueryObject()
-        const queryObject = params.getQueryObject();
+        let userProjectGroups = await this.getUserProjectGroups(user_id);
+
+        if (params.status == RecordStatus["Pre-Release"] && !userProjectGroups)
+            throw new InputException("To fetch `Pre-Release` versions, User should belong to Project group/s");
+
+        const queryObject = params.getQueryObject(userProjectGroups!.map(x => x.tdei_project_group_id));
 
         const queryConfig = <QueryConfig>{
             text: queryObject.getQuery(),
             values: queryObject.getValues()
         }
-
         const result = await dbClient.query(queryConfig);
 
         const list: OswDTO[] = [];
@@ -326,12 +375,12 @@ class OswService implements IOswService {
 
             //If record exists then throw error
             if (result.rowCount)
-                throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
+                return Promise.resolve(true);
 
-            return Promise.resolve(true);
+            return Promise.resolve(false);
         } catch (error) {
-            console.error("Error saving the osw version", error);
-            return Promise.reject(false);
+            console.error("Error checking the name and version", error);
+            return Promise.resolve(true);
         }
     }
 
@@ -369,6 +418,10 @@ class OswService implements IOswService {
             await dbClient.query(oswMetadataEntity.getInsertQuery());
             return Promise.resolve();
         } catch (error) {
+            if (error instanceof UniqueKeyDbException) {
+                throw new DuplicateException(oswMetadataEntity.tdei_record_id);
+            }
+
             console.error("Error saving the osw metadata", error);
             return Promise.reject(error);
         }

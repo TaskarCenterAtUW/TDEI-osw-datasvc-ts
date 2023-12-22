@@ -30,7 +30,6 @@ export default [
     UploadValidationResponseHandler,
     UploadValidationResponseWorkflow,
     UploadValidationRequestWorkflow,
-    PublishConfidenceRequestWorkflow,
     ValidationOnlyValidationResponseHandler,
     ValidationOnlyValidationRequestWorkflow,
     ValidationOnlyValidationResponseWorkflow,

@@ -101,10 +101,10 @@ export class OrchestratorService {
         let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow_identifier);
         if (trigger_workflow?.worflow_type == "TRIGGER") {
             //Log/Insert the workflow history
-            await workflowDatabaseService.logWorkflowHistory(
-                trigger_workflow.workflow_group,
-                trigger_workflow.worflow_stage,
-                message);
+            // await workflowDatabaseService.logWorkflowHistory(
+            //     trigger_workflow.workflow_group,
+            //     trigger_workflow.worflow_stage,
+            //     message);
             message.messageType = workflow_identifier;
             //trigger workflow
             this.workflowEvent.emit(workflow_identifier, message);
@@ -141,11 +141,18 @@ export class OrchestratorService {
      * Delegates workflow handlers
      * @param message 
      */
-    delegateWorkflowHandlers = (message: QueueMessage): void => {
+    delegateWorkflowHandlers = async (message: QueueMessage): Promise<void> => {
         let identifier = message.messageType;
 
         //Find the workflow to trigger
         let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(identifier);
+        if (trigger_workflow?.worflow_type == "TRIGGER") {
+            //Log/Insert the workflow history
+            await workflowDatabaseService.logWorkflowHistory(
+                trigger_workflow.workflow_group,
+                trigger_workflow.worflow_stage,
+                message);
+        }
         //Trigger all workflow handlers
         trigger_workflow?.handlers?.forEach(handler => {
             //Dereference the message object
@@ -170,15 +177,16 @@ export class OrchestratorService {
             delegateWorkflows.forEach(async workflow => {
                 message.messageType = workflow;
 
-                let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow);
-                if (trigger_workflow?.worflow_type == "TRIGGER") {
-                    //Log/Insert the workflow history
-                    await workflowDatabaseService.logWorkflowHistory(
-                        trigger_workflow.workflow_group,
-                        trigger_workflow.worflow_stage,
-                        message);
-                }
+                // let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow);
+                // if (trigger_workflow?.worflow_type == "TRIGGER") {
+                //     //Log/Insert the workflow history
+                //     await workflowDatabaseService.logWorkflowHistory(
+                //         trigger_workflow.workflow_group,
+                //         trigger_workflow.worflow_stage,
+                //         message);
+                // }
                 //trigger workflow
+                console.log("delegateWorkflowIfAny :", workflow)
                 this.workflowEvent.emit(workflow, message);
             });
         }

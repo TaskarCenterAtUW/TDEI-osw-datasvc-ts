@@ -54,7 +54,8 @@ class App {
             this.orchestratorService = new OrchestratorService(orchestratorConfig, this.workflowEvent);
         //Register all handlers and workflow
         console.log("Registering the orchestration workflow and handlers");
-        handlers.forEach(x => {
+        const uniqueArray = [...new Set(handlers)];
+        uniqueArray.forEach(x => {
             let handler: IWorkflowRegister = new x(this.workflowEvent);
             handler.register();
         });

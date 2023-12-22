@@ -32,7 +32,7 @@ export class DynamicQueryObject {
     }
 
     buildInnerJoin(sourceTableName: string, destinationTableName: string, joinColumn: string) {
-        this._select = ` INNER JOIN ${destinationTableName} on ${destinationTableName}.${joinColumn} = ${sourceTableName}.${joinColumn} `;
+        this._select += ` INNER JOIN ${destinationTableName} on ${destinationTableName}.${joinColumn} = ${sourceTableName}.${joinColumn} `;
     }
 
     private buildWhere() {

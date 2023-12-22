@@ -21,7 +21,7 @@ export interface IOswService {
      * Gets the OSW details
      * @param params Query params
      */
-    getAllOsw(params: OswQueryParams): Promise<OswDTO[]>;
+    getAllOsw(user_id: string, params: OswQueryParams): Promise<OswDTO[]>;
     /**
     * 
     * @param id Record Id of the OSW file to be downloaded
