@@ -10,7 +10,6 @@ import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
 import path from "path";
-import { EventBusService } from "../service/event-bus-service";
 import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
@@ -70,8 +69,6 @@ class GtfsOSWController implements IController {
     constructor() {
         this.intializeRoutes();
     }
-
-    eventBusService = new EventBusService();
 
     public intializeRoutes() {
         this.router.get(this.path, authenticate, this.getAllOsw);

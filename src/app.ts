@@ -19,7 +19,6 @@ export interface IAppContext {
 class App {
     public app: express.Application;
     public port: number;
-    //private eventBusService!: EventBusService;
     private orchestratorService: IOrchestratorService | undefined;
     workflowEvent = new EventEmitter();
 
@@ -31,7 +30,6 @@ class App {
 
         this.initializeMiddlewares();
         this.initializeControllers(controllers);
-        this.subscribeUpload();
         this.initializeLibraries();
         dbClient.initializaDatabase();
         this.initializeOrchestrator();
@@ -71,12 +69,6 @@ class App {
 
     private initializeLibraries() {
         Core.initialize();
-    }
-
-    private subscribeUpload() {
-        // this.eventBusService = new EventBusService();
-        // this.eventBusService.subscribeUpload();
-        // this.eventBusService.subscribeConfidenceMetric();
     }
 
     private initializeMiddlewares() {
