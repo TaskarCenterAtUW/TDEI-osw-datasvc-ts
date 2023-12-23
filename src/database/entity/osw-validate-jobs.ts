@@ -32,7 +32,7 @@ export class OswValidationJobs extends BaseDto {
             text: `INSERT INTO public.osw_validation_jobs(
                 upload_url,
                 status
-            ) VALUES($1, $2)`.replace(/\n/g, ""),
+            ) VALUES($1, $2) RETURNING *`.replace(/\n/g, ""),
             values: [this.upload_url, this.status]
         }
         return queryObject;

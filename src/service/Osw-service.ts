@@ -87,8 +87,8 @@ class OswService implements IOswService {
             const uid = storageService.generateRandomUUID();
             const storageFolderPath = storageService.getValidationJobPath(uid);
             // Upload dataset file
-            const uploadStoragePath = path.join(storageFolderPath, datasetFile[0].originalname)
-            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile[0].buffer))
+            const uploadStoragePath = path.join(storageFolderPath, datasetFile.originalname)
+            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer))
 
 
             let validationJob = OswValidationJobs.from({
@@ -99,7 +99,7 @@ class OswService implements IOswService {
             const insertQuery = validationJob.getInsertQuery();
 
             const result = await dbClient.query(insertQuery);
-            const job_id = result.rows[0]['job_id'];
+            const job_id = result.rows[0].job_id;
 
             //Compose the meessage
             let workflow_identifier = "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";

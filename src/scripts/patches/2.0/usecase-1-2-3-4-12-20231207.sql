@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.osw_validation_jobs
     job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
     upload_url character varying COLLATE pg_catalog."default" NOT NULL,
     status character varying COLLATE pg_catalog."default" NOT NULL,
-    validation_result character varying COLLATE pg_catalog."default" NOT NULL,
+    validation_result character varying COLLATE pg_catalog."default",
     created_at  timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
      CONSTRAINT "PK_validation_job_id" PRIMARY KEY (job_id)
