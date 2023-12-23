@@ -30,10 +30,116 @@ import { environment } from "../environment/environment";
 import fetch from "node-fetch";
 import { ServiceDto } from "../model/service-dto";
 import { ProjectGroupRoleDto } from "../model/project-group-role-dto";
+import { OSWConfidenceRequest } from "../model/osw-confidence-request";
+import { OswFormatJobRequest } from "../model/osw-format-job-request";
 
 class OswService implements IOswService {
     constructor() { }
 
+    /**
+         * On-demand format request
+         * @param source 
+         * @param target 
+         * @param uploadedFile 
+         * @param user_id 
+         */
+    async processFormatRequest(source: string, target: string, uploadedFile: Express.Multer.File, user_id: any): Promise<string> {
+        try {
+            // Get the upload path
+            const uid = storageService.generateRandomUUID();
+            const folderPath = storageService.getFormatJobPath(uid);
+            const uploadPath = path.join(folderPath, uploadedFile!.originalname)
+            const extension = path.extname(uploadedFile!.originalname)
+            let fileType = 'application/xml'
+            if (extension == 'zip') {
+                fileType = 'application/zip'
+            }
+            const remoteUrl = await storageService.uploadFile(uploadPath, fileType, Readable.from(uploadedFile!.buffer))
+            console.log('Uplaoded to ', remoteUrl);
+            const oswformatJob = new OswFormatJob();
+            oswformatJob.created_at = new Date();
+            oswformatJob.source = source; //TODO: Validate the input enums 
+            oswformatJob.target = target; //TODO: Validate the input enums
+            oswformatJob.source_url = remoteUrl;
+            oswformatJob.status = 'started';
+
+            const jobId = await this.createOSWFormatJob(oswformatJob);
+            // Send the same to service bus.
+            oswformatJob.jobId = parseInt(jobId);
+
+            //Compose the meessage
+            let workflow_identifier = "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW";
+            const oswFormatRequest = OswFormatJobRequest.from({
+                jobId: oswformatJob.jobId.toString(),
+                source: oswformatJob.source,
+                target: oswformatJob.target,
+                sourceUrl: oswformatJob.source_url
+            });
+            let queueMessage = QueueMessage.from({
+                messageId: jobId,
+                messageType: workflow_identifier,
+                data: oswFormatRequest
+            });
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+
+            // Send the jobId back to the user.
+            return Promise.resolve(jobId);
+
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Calculates on-demand confidence matrics for given tdei_record_id
+     */
+    async calculateConfidence(tdeiRecordId: string, user_id: string): Promise<string> {
+        // Check and get the record for the same in the database
+        try {
+            const oswRecord = await this.getOSWRecordById(tdeiRecordId)
+            // Create a job in the database for the same.
+            //TODO: Have to add these based on some of the input data.
+            const confidence_job = new OswConfidenceJob()
+            confidence_job.tdei_record_id = tdeiRecordId;
+            confidence_job.trigger_type = 'manual';
+            confidence_job.created_at = new Date();
+            confidence_job.updated_at = new Date();
+            confidence_job.status = 'started';
+            confidence_job.cm_last_calculated_at = new Date();
+            confidence_job.user_id = user_id;
+            confidence_job.cm_version = 'v1.0';
+            const jobId = await oswService.createOSWConfidenceJob(confidence_job);
+
+            // Send the details to the confidence metric.
+            //TODO: Fill based on the metadata received
+            const confidenceRequestMsg = new OSWConfidenceRequest();
+            confidenceRequestMsg.jobId = jobId; // skip tdei-record-id
+            confidenceRequestMsg.data_file = oswRecord.download_osw_url;
+            //TODO: Once this is done, get the things moved.
+            confidenceRequestMsg.meta_file = oswRecord.download_metadata_url;
+            confidenceRequestMsg.trigger_type = 'manual' //release
+            //this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
+
+            //Compose the meessage
+            let workflow_identifier = "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: tdeiRecordId,
+                messageType: workflow_identifier,
+                data: confidenceRequestMsg
+            });
+
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+
+            // Send the jobId back to the user.
+            return Promise.resolve(jobId);
+        }
+        catch (error) {
+            console.log("Error calculating confidence ", error);
+            return Promise.reject(error);
+        }
+    }
     /**
    * Publishes the osw record
    * @param tdei_record_id 
@@ -427,20 +533,6 @@ class OswService implements IOswService {
         }
     }
 
-    // async updateOsw(oswInfo: OswVersions): Promise<OswDTO> {
-    //     try {
-    //         oswInfo.download_osw_url = decodeURIComponent(oswInfo.download_osw_url!);
-    //         oswInfo.download_osm_url = decodeURIComponent(oswInfo.download_osm_url!);
-
-    //         await dbClient.query(oswInfo.getUpdateQuery());
-
-    //         const osw = OswDTO.from(oswInfo);
-    //         return Promise.resolve(osw);
-    //     } catch (error) {
-    //         console.error("Error updating the osw version", error);
-    //         return Promise.reject(error);
-    //     }
-    // }
     async getOSWRecordById(id: string): Promise<OswVersions> {
         const query = {
             text: 'Select * from osw_versions WHERE tdei_record_id = $1',

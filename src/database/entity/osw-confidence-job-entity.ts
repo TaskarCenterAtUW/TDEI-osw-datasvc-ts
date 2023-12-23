@@ -25,12 +25,12 @@ export class OswConfidenceJob extends BaseDto {
     updated_at!: Date;
     @Prop()
     @IsNotEmpty()
-    status!:string;
+    status!: string;
     @Prop()
     @IsOptional()
-    user_id:string = '';
+    user_id: string = '';
     @Prop()
-    cm_version!:string;
+    cm_version!: string;
     @Prop()
     cm_last_calculated_at!: Date;
 
@@ -56,16 +56,16 @@ export class OswConfidenceJob extends BaseDto {
             values: [this.tdei_record_id, this.trigger_type, this.created_at, this.updated_at
                 , this.status, this.user_id, this.cm_version, this.cm_last_calculated_at],
         }
-        
+
         return queryObject;
     }
 
-    getUpdateStatusQuery(status:string): QueryConfig {
-        const queryObject = {
-            text:`UPDATE public.osw_confidence_jobs SET status = $1 WHERE jobid = $2`,
-            values:[status,this.jobId]
-        }
-        return queryObject;
-    }
+    // getUpdateStatusQuery(status:string): QueryConfig {
+    //     const queryObject = {
+    //         text:`UPDATE public.osw_confidence_jobs SET status = $1 WHERE jobid = $2`,
+    //         values:[status,this.jobId]
+    //     }
+    //     return queryObject;
+    // }
 
 }

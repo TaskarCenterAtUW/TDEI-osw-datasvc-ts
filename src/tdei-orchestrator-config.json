@@ -151,6 +151,60 @@
                     "params": {}
                 }
             ]
+        },
+        {
+            "workflow_group": "OSW_ON_DEMAND_FORMATTING",
+            "worflow_stage": "FORMATTING",
+            "worflow_type": "TRIGGER",
+            "worflow_identifier": "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW",
+            "handlers": [
+                {
+                    "name": "PUBLISH_HANDLER",
+                    "params": {
+                        "identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
+                        "topic": "osw-formatting-request"
+                    }
+                }
+            ]
+        },
+        {
+            "workflow_group": "OSW_ON_DEMAND_FORMATTING",
+            "worflow_stage": "FORMATTING",
+            "worflow_type": "HANDLER",
+            "worflow_identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
+            "handlers": [
+                {
+                    "name": "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "workflow_group": "OSW_ON_DEMAND_CONFIDENCE_METRIC",
+            "worflow_stage": "CONFIDENCE_METRIC",
+            "worflow_type": "TRIGGER",
+            "worflow_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW",
+            "handlers": [
+                {
+                    "name": "PUBLISH_HANDLER",
+                    "params": {
+                        "identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
+                        "topic": "osw-confidence-request"
+                    }
+                }
+            ]
+        },
+        {
+            "workflow_group": "OSW_ON_DEMAND_CONFIDENCE_METRIC",
+            "worflow_stage": "CONFIDENCE_METRIC",
+            "worflow_type": "HANDLER",
+            "worflow_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
+            "handlers": [
+                {
+                    "name": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
         }
     ],
     "subscriptions": [

@@ -37,56 +37,56 @@ export class EventBusService implements IEventBusServiceInterface {
 
     }
     // Methods for handling the confidence response
-    subscribeConfidenceMetric(): void {
-        const responseSubscription = environment.eventBus.confidenceResponseSubscription as string
-        this.confidenceResTopic.subscribe(responseSubscription,
-            {
-                onReceive: this.processConfidenceReceived,
-                onError: this.processConfidenceFailed
-            })
-    }
+    // subscribeConfidenceMetric(): void {
+    //     const responseSubscription = environment.eventBus.confidenceResponseSubscription as string
+    //     this.confidenceResTopic.subscribe(responseSubscription,
+    //         {
+    //             onReceive: this.processConfidenceReceived,
+    //             onError: this.processConfidenceFailed
+    //         })
+    // }
 
-    public processConfidenceReceived(msg: QueueMessage) {
-        console.log('received confidence calculation message')
-        const confidenceResponse = OSWConfidenceResponse.from(msg.data)
-        console.log(confidenceResponse);
-        // Do the database transaction
-        oswService.updateConfidenceMetric(confidenceResponse);
-    }
+    // public processConfidenceReceived(msg: QueueMessage) {
+    //     console.log('received confidence calculation message')
+    //     const confidenceResponse = OSWConfidenceResponse.from(msg.data)
+    //     console.log(confidenceResponse);
+    //     // Do the database transaction
+    //     oswService.updateConfidenceMetric(confidenceResponse);
+    // }
 
-    public processConfidenceFailed(error: Error) {
-        console.log('received confidence calculation failed message')
-        console.log(error)
-    }
-    /**
-     * Publishes confidence request
-     * @param req 
-     */
-    public publishConfidenceRequest(req: OSWConfidenceRequest) {
-        this.confidenceReqTopic.publish(QueueMessage.from({
-            messageType: 'osw-confidence-request',
-            data: req
-        }))
-    }
+    // public processConfidenceFailed(error: Error) {
+    //     console.log('received confidence calculation failed message')
+    //     console.log(error)
+    // }
+    // /**
+    //  * Publishes confidence request
+    //  * @param req 
+    //  */
+    // public publishConfidenceRequest(req: OSWConfidenceRequest) {
+    //     this.confidenceReqTopic.publish(QueueMessage.from({
+    //         messageType: 'osw-confidence-request',
+    //         data: req
+    //     }))
+    // }
 
-    /**
-     * Publishes the ondemand format message to `validationTopic`
-     * @param info 
-     */
-    publishOnDemandFormat(info: OswFormatJob): void {
-        const oswFormatRequest = OswFormatJobRequest.from({
-            jobId: info.jobId.toString(),
-            source: info.source,
-            target: info.target,
-            sourceUrl: info.source_url
-        });
+    // /**
+    //  * Publishes the ondemand format message to `validationTopic`
+    //  * @param info 
+    //  */
+    // publishOnDemandFormat(info: OswFormatJob): void {
+    //     const oswFormatRequest = OswFormatJobRequest.from({
+    //         jobId: info.jobId.toString(),
+    //         source: info.source,
+    //         target: info.target,
+    //         sourceUrl: info.source_url
+    //     });
 
-        const message = QueueMessage.from({
-            messageType: "osw-formatter-request",
-            data: oswFormatRequest
-        });
-        console.log(message);
-        // Publish the same
-        this.validationTopic.publish(message);
-    }
+    //     const message = QueueMessage.from({
+    //         messageType: "osw-formatter-request",
+    //         data: oswFormatRequest
+    //     });
+    //     console.log(message);
+    //     // Publish the same
+    //     this.validationTopic.publish(message);
+    // }
 }

@@ -15,6 +15,12 @@ import { ValidationOnlyValidationResponseHandler } from "./validation-only/valid
 import { ValidationOnlyValidationRequestWorkflow } from "./validation-only/validation-only-osw-validation-request-workflow";
 import { ValidationOnlyValidationResponseWorkflow } from "./validation-only/validation-only-osw-validation-response-workflow";
 import { PublishDatabaseWorkflow } from "./publish/publish-osw-database-publish-workflow";
+import { OswOnDemandConfidenceRequestWorkflow } from "./on-demand-confidence-metric/osw-on-demand-confidence-metric-request-workflow";
+import { OswOnDemandConfidenceResponseWorkflow } from "./on-demand-confidence-metric/osw-on-demand-confidence-metric-response-workflow";
+import { OswOnDemandConfidenceResponseHandler } from "./on-demand-confidence-metric/osw-on-demand-confidence-metric-response-handler";
+import { OswOnDemandFormattingRequestWorkflow } from "./on-demand-formatting/osw-on-demand-formatting-request-workflow";
+import { OswOnDemandFormattingResponseHandler } from "./on-demand-formatting/osw-on-demand-formatting-response-handler";
+import { OswOnDemandFormattingResponseWorkflow } from "./on-demand-formatting/osw-on-demand-formatting-response-workflow";
 
 export default [
     PublishHandler,
@@ -33,5 +39,11 @@ export default [
     ValidationOnlyValidationResponseHandler,
     ValidationOnlyValidationRequestWorkflow,
     ValidationOnlyValidationResponseWorkflow,
-    PublishDatabaseWorkflow
+    PublishDatabaseWorkflow,
+    OswOnDemandConfidenceRequestWorkflow,
+    OswOnDemandConfidenceResponseWorkflow,
+    OswOnDemandConfidenceResponseHandler,
+    OswOnDemandFormattingRequestWorkflow,
+    OswOnDemandFormattingResponseHandler,
+    OswOnDemandFormattingResponseWorkflow
 ];

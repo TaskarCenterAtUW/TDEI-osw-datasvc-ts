@@ -9,13 +9,8 @@ import { InputException, FileTypeException } from "../exceptions/http/http-excep
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
-import storageService from "../service/storage-service";
 import path from "path";
-import { Readable } from "stream";
 import { EventBusService } from "../service/event-bus-service";
-import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
-import { OSWConfidenceRequest } from "../model/osw-confidence-request";
-import { OswFormatJob } from "../database/entity/osw-format-job-entity";
 import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
@@ -104,6 +99,12 @@ class GtfsOSWController implements IController {
         response.status(200).send(versionsList);
     }
 
+    /**
+     * Gets the list of OSW versions
+     * @param request 
+     * @param response 
+     * @param next 
+     */
     getAllOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             const params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
@@ -125,6 +126,13 @@ class GtfsOSWController implements IController {
         }
     }
 
+    /**
+     * Given the tdei_record_id api downloads the zip file containing osw files.
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
     getOswById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
@@ -287,45 +295,26 @@ class GtfsOSWController implements IController {
      * @param next 
      */
     calculateConfidence = async (request: Request, response: express.Response, next: NextFunction) => {
-        const tdeiRecordId = request.body['tdeiRecordId']
-        console.log(tdeiRecordId)
-        if (tdeiRecordId == undefined) {
-            response.status(400).send('Please add tdeiRecordId in payload')
-            return next()
-        }
-        // Check and get the record for the same in the database
+
         try {
-            const oswRecord = await oswService.getOSWRecordById(tdeiRecordId)
-            // Create a job in the database for the same.
-            //TODO: Have to add these based on some of the input data.
-            const confidence_job = new OswConfidenceJob()
-            confidence_job.tdei_record_id = tdeiRecordId;
-            confidence_job.trigger_type = 'manual';
-            confidence_job.created_at = new Date();
-            confidence_job.updated_at = new Date();
-            confidence_job.status = 'started';
-            confidence_job.cm_last_calculated_at = new Date();
-            confidence_job.user_id = '';
-            confidence_job.cm_version = 'v1.0';
-            const jobId = await oswService.createOSWConfidenceJob(confidence_job);
+            const tdei_record_id = request.body['tdei_record_id'];
+            if (tdei_record_id == undefined) {
+                response.status(400).send('Please add tdei_record_id in payload')
+                return next()
+            }
+            let jobId = await oswService.calculateConfidence(tdei_record_id, request.body.user_id,);
+            response.setHeader('Location', `/confidence/status/${jobId}`);
+            return response.status(202).send({ 'job_id': jobId, 'tdei_record_id': tdei_record_id });
 
-            // Send the details to the confidence metric.
-            //TODO: Fill based on the metadata received
-            const confidenceRequestMsg = new OSWConfidenceRequest();
-            confidenceRequestMsg.jobId = jobId; // skip tdei-record-id
-            confidenceRequestMsg.data_file = oswRecord.download_osw_url;
-            //TODO: Once this is done, get the things moved.
-            confidenceRequestMsg.meta_file = oswRecord.download_metadata_url;
-            confidenceRequestMsg.trigger_type = 'manual' //release
-            this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
-            // Send the jobId back to the user.
-            return response.status(200).send({ 'jobId': jobId, 'tdeiRecordId': tdeiRecordId });
+        } catch (error) {
+            console.error("Error while processing the calculate Confidence request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the calculate Confidence request");
+            next(new HttpException(500, "Error while processing the calculate Confidence request"));
         }
-        catch (error) {
-            console.log(error);
-        }
-
-        response.status(200).send('ok');
     }
 
     getConfidenceJobStatus = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -347,36 +336,34 @@ class GtfsOSWController implements IController {
         }
     }
 
+    /**
+     * On-demand formatting request for convert osw file
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
     createFormatRequest = async (request: Request, response: express.Response, next: NextFunction) => {
-        // Get the file
+        try {
+            const uploadedFile = request.file;
+            if (uploadedFile == undefined) {
+                throw new InputException("Missing upload file input");
+            }
+            let source = request.body['source']; //TODO: Validate the input enums 
+            let target = request.body['target'];
+            let jobId = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id,);
+            response.setHeader('Location', `/format/status/${jobId}`);
+            return response.status(202).send({ 'job_id': jobId });
 
-        const uploadedFile = request.file;
-        // Get the upload path
-        const uid = storageService.generateRandomUUID();
-        const folderPath = storageService.getFormatJobPath(uid);
-        const uploadPath = path.join(folderPath, uploadedFile!.originalname)
-        const extension = path.extname(uploadedFile!.originalname)
-        let fileType = 'application/xml'
-        if (extension == 'zip') {
-            fileType = 'application/zip'
+        } catch (error) {
+            console.error("Error while processing the format request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the format request");
+            next(new HttpException(500, "Error while processing the format request"));
         }
-        const remoteUrl = await storageService.uploadFile(uploadPath, fileType, Readable.from(uploadedFile!.buffer))
-        console.log('Uplaoded to ', remoteUrl);
-        const oswformatJob = new OswFormatJob();
-        oswformatJob.created_at = new Date();
-        oswformatJob.source = request.body['source']; //TODO: Validate the input enums 
-        oswformatJob.target = request.body['target']; //TODO: Validate the input enums
-        oswformatJob.source_url = remoteUrl;
-        oswformatJob.status = 'started'
-
-        const jobId = await oswService.createOSWFormatJob(oswformatJob);
-        console.log('JobId created ', jobId)
-
-        // Send the same to service bus.
-        oswformatJob.jobId = parseInt(jobId);
-        this.eventBusService.publishOnDemandFormat(oswformatJob);
-
-        response.status(200).send({ 'jobId': jobId })
     }
 
     getFormatStatus = async (request: Request, response: express.Response, next: NextFunction) => {

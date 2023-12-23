@@ -9,7 +9,18 @@ import { IUploadRequest } from "./upload-request-interface";
 import { OswVersions } from "../../database/entity/osw-version-entity";
 
 export interface IOswService {
-
+    /**
+     * On-demand format request
+     * @param source 
+     * @param target 
+     * @param uploadedFile 
+     * @param user_id 
+     */
+    processFormatRequest(source: string, target: string, uploadedFile: Express.Multer.File, user_id: any): Promise<string>;
+    /**
+     * Calculates on-demand confidence matrics for given tdei_record_id
+     */
+    calculateConfidence(tdeiRecordId: string, user_id: string): Promise<string>;
     /**
      * Creates the new version of osw file in the TDEI system
      * @param oswInfo 

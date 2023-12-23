@@ -23,15 +23,22 @@ export class ValidationOnlyValidationResponseHandler implements IWorkflowRegiste
     private async handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
         console.log("Triggered OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER :", message.messageType);
 
-        //Update the validation job table
-        let job_id = message.messageId;
-        let status = message.data.success ? "Validation Completed" : "Validation Failed";
-        let response_message = message.data.message;
+        if (message.data.success) {
+            try {
+                //Update the validation job table
+                let job_id = message.messageId;
+                let status = message.data.success ? "Validation Completed" : "Validation Failed";
+                let response_message = message.data.message;
 
-        let updateQuery = OswValidationJobs.getUpdateStatusQuery(job_id, status, response_message);
+                let updateQuery = OswValidationJobs.getUpdateStatusQuery(job_id, status, response_message);
 
-        const result = await dbClient.query(updateQuery);
+                await dbClient.query(updateQuery);
 
-        appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
+                appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
+
+            } catch (error) {
+                console.error("Error while processing the OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER ", error)
+            }
+        }
     }
 }
