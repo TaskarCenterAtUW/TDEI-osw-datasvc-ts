@@ -207,7 +207,7 @@ class GtfsOSWController implements IController {
             }
 
             let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
-            response.setHeader('Location', `/validation/status/${job_id}`);
+            response.setHeader('Location', `/api/v1/osw/validation/status/${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -233,7 +233,7 @@ class GtfsOSWController implements IController {
             let tdei_record_id = request.params["tdei_record_id"];
             await oswService.processPublishRequest(request.body.user_id, tdei_record_id);
 
-            response.setHeader('Location', `/publish/status/${tdei_record_id}`);
+            response.setHeader('Location', `/api/v1/osw/publish/status/${tdei_record_id}`);
             return response.status(202).send(tdei_record_id);
 
         } catch (error) {
@@ -278,7 +278,7 @@ class GtfsOSWController implements IController {
             }
 
             let tdei_record_id = await oswService.processUploadRequest(uploadRequest);
-            response.setHeader('Location', `/upload/status/${tdei_record_id}`);
+            response.setHeader('Location', `/api/v1/osw/upload/status/${tdei_record_id}`);
             return response.status(202).send(tdei_record_id);
 
         } catch (error) {
@@ -305,9 +305,9 @@ class GtfsOSWController implements IController {
                 response.status(400).send('Please add tdei_record_id in payload')
                 return next()
             }
-            let jobId = await oswService.calculateConfidence(tdei_record_id, request.body.user_id,);
-            response.setHeader('Location', `/confidence/status/${jobId}`);
-            return response.status(202).send({ 'job_id': jobId, 'tdei_record_id': tdei_record_id });
+            let job_id = await oswService.calculateConfidence(tdei_record_id, request.body.user_id,);
+            response.setHeader('Location', `/api/v1/osw/confidence/status/${job_id}`);
+            return response.status(202).send({ 'job_id': job_id, 'tdei_record_id': tdei_record_id });
 
         } catch (error) {
             console.error("Error while processing the calculate Confidence request", error);
@@ -354,9 +354,9 @@ class GtfsOSWController implements IController {
             }
             let source = request.body['source']; //TODO: Validate the input enums 
             let target = request.body['target'];
-            let jobId = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id,);
-            response.setHeader('Location', `/format/status/${jobId}`);
-            return response.status(202).send({ 'job_id': jobId });
+            let job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id,);
+            response.setHeader('Location', `/api/v1/osw/convert/status/${job_id}`);
+            return response.status(202).send({ 'job_id': job_id });
 
         } catch (error) {
             console.error("Error while processing the format request", error);
