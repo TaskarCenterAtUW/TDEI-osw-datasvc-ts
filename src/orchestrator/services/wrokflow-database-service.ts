@@ -1,6 +1,7 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import dbClient from "../../database/data-source";
 import { QueryConfig } from "pg";
+import { WorkflowHistoryEntity } from "../../database/entity/workflow-history-entity";
 
 
 export interface IWorkflowDatabaseService {
@@ -24,6 +25,13 @@ export interface IWorkflowDatabaseService {
      * @returns 
      */
     obseleteAnyExistingWorkflowHistory(reference_id: string, workflow_group: string): Promise<boolean>;
+
+    /**
+     * Get the latest publish workflow hostory
+     * @param reference_id 
+     * @returns 
+     */
+    getLatestWorkflowHistory(reference_id: string, workflow_group: string): Promise<WorkflowHistoryEntity | undefined>;
 }
 
 class WorkflowDatabaseService implements IWorkflowDatabaseService {
@@ -138,6 +146,27 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
         } catch (error) {
             console.error("Error updating the osw workflow history", error);
             return Promise.reject(false);
+        }
+    }
+    /**
+     * Get the latest publish workflow hostory
+     * @param reference_id 
+     * @returns 
+     */
+    async getLatestWorkflowHistory(reference_id: string, workflow_group: string): Promise<WorkflowHistoryEntity | undefined> {
+        try {
+            const queryObject = {
+                text: `SELECT * FROM public.osw_workflow_history 
+                    WHERE  reference_id=$1 AND workflow_group=$2 AND obsolete is not true ORDER BY id DESC LIMIT 1`.replace(/\n/g, ""),
+                values: [reference_id, workflow_group],
+            }
+
+            let result = await dbClient.query(queryObject);
+
+            return Promise.resolve(new WorkflowHistoryEntity(result.rows[0]));
+        } catch (error) {
+            console.error("Error updating the osw workflow history", error);
+            return Promise.resolve(undefined);
         }
     }
 }

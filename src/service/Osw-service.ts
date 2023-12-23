@@ -32,6 +32,7 @@ import { ServiceDto } from "../model/service-dto";
 import { ProjectGroupRoleDto } from "../model/project-group-role-dto";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 import { OswFormatJobRequest } from "../model/osw-format-job-request";
+import { WorkflowHistoryEntity } from "../database/entity/workflow-history-entity";
 
 class OswService implements IOswService {
     constructor() { }

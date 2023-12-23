@@ -17,6 +17,7 @@ import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
 import fs from 'fs';
+import workflowDatabaseService from "../orchestrator/services/wrokflow-database-service";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -85,9 +86,11 @@ class GtfsOSWController implements IController {
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
         this.router.post(`${this.path}/confidence/calculate`, authenticate, this.calculateConfidence); // Confidence calculation
         this.router.get(`${this.path}/confidence/status/:job_id`, authenticate, this.getConfidenceJobStatus);
-        this.router.post(`${this.path}/format/upload`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        this.router.get(`${this.path}/format/status/:job_id`, authenticate, this.getFormatStatus);
+        this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
+        this.router.get(`${this.path}/convert/status/:job_id`, authenticate, this.getFormatStatus);
         this.router.get(`${this.path}/validate/status/:job_id`, authenticate, this.getValidateStatus);
+        this.router.get(`${this.path}/upload/status/:tdei_record_id`, authenticate, this.getUploadStatus);
+        this.router.get(`${this.path}/publish/status/:tdei_record_id`, authenticate, this.getPublishStatus);
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -331,6 +334,7 @@ class GtfsOSWController implements IController {
             };
             response.status(200).send(responseData);
         } catch (error) {
+            console.log("Error processing confidence status api", error);
             return next(error);
         }
     }
@@ -404,8 +408,6 @@ class GtfsOSWController implements IController {
     * @returns 
     */
     getValidateStatus = async (request: Request, response: express.Response, next: NextFunction) => {
-
-        console.log('Requested status for format jobInfo ')
         try {
             const job_id = request.params['job_id'];
             if (job_id == undefined || job_id == '') {
@@ -422,6 +424,76 @@ class GtfsOSWController implements IController {
         } catch (error) {
             return next(error);
 
+        }
+    }
+
+    /**
+    * Gets the status for the publish record 
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    getPublishStatus = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const tdei_record_id = request.params['tdei_record_id'];
+            if (tdei_record_id == undefined || tdei_record_id == '') {
+                return next(new InputException('tdei_record_id not provided'));
+            }
+            let workflowRow = await workflowDatabaseService.getLatestWorkflowHistory(tdei_record_id, "PUBLISH_OSW");
+            if (!workflowRow)
+                throw new InputException(`Publish record not initiated for the ${tdei_record_id}`);
+
+            const oswRecord = await oswService.getOSWRecordById(tdei_record_id);
+            const responseData = {
+                'tdei_record_id': workflowRow.reference_id,
+                'stage': workflowRow.workflow_stage,
+                'status': workflowRow.status != "" ? workflowRow.status : "Pending",
+                'completed': oswRecord.status == "Publish" ? true : false
+            };
+            response.status(200).send(responseData);
+        } catch (error) {
+            console.error("Error processing the publish status api", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            return next(error);
+        }
+    }
+
+    /**
+    * Gets the status for upload record
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    getUploadStatus = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const tdei_record_id = request.params['tdei_record_id'];
+            if (tdei_record_id == undefined || tdei_record_id == '') {
+                return next(new InputException('tdei_record_id not provided'));
+            }
+
+            let workflowRow = await workflowDatabaseService.getLatestWorkflowHistory(tdei_record_id, "UPLOAD_OSW");
+            if (!workflowRow)
+                throw new InputException(`Publish record not initiated for the ${tdei_record_id}`);
+
+            const responseData = {
+                'tdei_record_id': workflowRow.reference_id,
+                'stage': workflowRow.workflow_stage,
+                'status': workflowRow.status == "Success" ? workflowRow.status : workflowRow.message,
+                'completed': workflowRow.status != "" ? true : false
+            };
+            response.status(200).send(responseData);
+        } catch (error) {
+            console.error("Error processing the publish status api", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            return next(error);
         }
     }
 }

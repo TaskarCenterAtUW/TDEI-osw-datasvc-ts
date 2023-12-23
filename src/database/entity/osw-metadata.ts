@@ -126,7 +126,7 @@ export class OswMetadataEntity extends BaseDto {
             text: `SELECT ov.tdei_record_id from public.osw_metadata om
             INNER JOIN  public.osw_versions ov on ov.tdei_record_id = om.tdei_record_id
             WHERE 
-            ov.status = 'Published'
+            ov.status = 'Publish'
             AND ov.tdei_project_group_id = $1 
             AND ov.tdei_service_id = $2 
             AND (valid_from,valid_to) OVERLAPS ($3 , $4)`,

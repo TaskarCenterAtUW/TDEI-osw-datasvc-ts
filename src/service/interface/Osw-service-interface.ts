@@ -8,9 +8,9 @@ import { OswFormatJobResponse } from "../../model/osw-format-job-response";
 import { IUploadRequest } from "./upload-request-interface";
 import { OswVersions } from "../../database/entity/osw-version-entity";
 import { OswValidationJobs } from "../../database/entity/osw-validate-jobs";
+import { WorkflowHistoryEntity } from "../../database/entity/workflow-history-entity";
 
 export interface IOswService {
-
     /**
      * Gets the status of the on-demand validation job
      * @param job_id 
