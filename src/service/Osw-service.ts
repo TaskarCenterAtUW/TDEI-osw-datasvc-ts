@@ -657,7 +657,6 @@ class OswService implements IOswService {
     }
 
     async getOSWFormatJob(jobId: string): Promise<OswFormatJob> {
-
         try {
             const query = {
                 text: 'SELECT * from public.osw_formatting_jobs where jobId = $1',
@@ -669,13 +668,35 @@ class OswService implements IOswService {
             }
             const job = OswFormatJob.from(result.rows[0])
             return job;
-
         }
         catch (error) {
             console.log(error);
             return Promise.reject(error);
         }
+    }
 
+    /**
+     * Gets the status of the on-demand validation job
+     * @param job_id 
+     * @returns 
+     */
+    async getOSWValidationJob(job_id: string): Promise<OswValidationJobs> {
+        try {
+            const query = {
+                text: 'SELECT * from public.osw_validation_jobs where job_id = $1',
+                values: [job_id],
+            }
+            const result = await dbClient.query(query);
+            if (result.rowCount == 0) {
+                return Promise.reject(new JobIdNotFoundException(job_id))
+            }
+            const job = OswValidationJobs.from(result.rows[0])
+            return job;
+        }
+        catch (error) {
+            console.log(error);
+            return Promise.reject(error);
+        }
     }
 }
 

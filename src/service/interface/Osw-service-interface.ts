@@ -7,8 +7,17 @@ import { OswFormatJob } from "../../database/entity/osw-format-job-entity";
 import { OswFormatJobResponse } from "../../model/osw-format-job-response";
 import { IUploadRequest } from "./upload-request-interface";
 import { OswVersions } from "../../database/entity/osw-version-entity";
+import { OswValidationJobs } from "../../database/entity/osw-validate-jobs";
 
 export interface IOswService {
+
+    /**
+     * Gets the status of the on-demand validation job
+     * @param job_id 
+     * @returns 
+     */
+    getOSWValidationJob(job_id: string): Promise<OswValidationJobs>;
+
     /**
      * On-demand format request
      * @param source 

@@ -84,9 +84,10 @@ class GtfsOSWController implements IController {
         this.router.post(`${this.path}/publish/:tdei_record_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
         this.router.post(`${this.path}/confidence/calculate`, authenticate, this.calculateConfidence); // Confidence calculation
-        this.router.get(`${this.path}/confidence/status/:jobId`, authenticate, this.getConfidenceJobStatus);
+        this.router.get(`${this.path}/confidence/status/:job_id`, authenticate, this.getConfidenceJobStatus);
         this.router.post(`${this.path}/format/upload`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        this.router.get(`${this.path}/format/status/:jobId`, authenticate, this.getFormatStatus);
+        this.router.get(`${this.path}/format/status/:job_id`, authenticate, this.getFormatStatus);
+        this.router.get(`${this.path}/validate/status/:job_id`, authenticate, this.getValidateStatus);
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -295,7 +296,6 @@ class GtfsOSWController implements IController {
      * @param next 
      */
     calculateConfidence = async (request: Request, response: express.Response, next: NextFunction) => {
-
         try {
             const tdei_record_id = request.body['tdei_record_id'];
             if (tdei_record_id == undefined) {
@@ -320,10 +320,10 @@ class GtfsOSWController implements IController {
     getConfidenceJobStatus = async (request: Request, response: express.Response, next: NextFunction) => {
         console.log('Requested status for jobInfo ')
         try {
-            const jobId = request.params['jobId']
-            const jobInfo = await oswService.getOSWConfidenceJob(jobId)
+            const job_id = request.params['job_id']
+            const jobInfo = await oswService.getOSWConfidenceJob(job_id)
             const responseData = {
-                'jobId': jobId,
+                'job_id': job_id,
                 'confidenceValue': jobInfo.confidence_metric,
                 'status': jobInfo.status,
                 'updatedAt': jobInfo.updated_at,
@@ -332,7 +332,6 @@ class GtfsOSWController implements IController {
             response.status(200).send(responseData);
         } catch (error) {
             return next(error);
-
         }
     }
 
@@ -366,22 +365,58 @@ class GtfsOSWController implements IController {
         }
     }
 
+    /**
+     * Gets the status for the on-demand formatting job
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
     getFormatStatus = async (request: Request, response: express.Response, next: NextFunction) => {
 
         console.log('Requested status for format jobInfo ')
         try {
-            const jobId = request.params['jobId'];
-            if (jobId == undefined || jobId == '') {
-                return next(new InputException('jobId not provided'));
+            const job_id = request.params['job_id'];
+            if (job_id == undefined || job_id == '') {
+                return next(new InputException('job_id not provided'));
             }
-            const jobInfo = await oswService.getOSWFormatJob(jobId);
+            const jobInfo = await oswService.getOSWFormatJob(job_id);
             const responseData = {
-                'jobId': jobId,
+                'job_id': job_id,
                 'sourceUrl': jobInfo.source_url,
                 'targetUrl': jobInfo.target_url,
                 'conversion': jobInfo.source + '-' + jobInfo.target,
                 'status': jobInfo.status,
                 'message': jobInfo.message
+            };
+            response.status(200).send(responseData);
+        } catch (error) {
+            return next(error);
+
+        }
+    }
+
+    /**
+    * Gets the status for the on-demand validating job
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    getValidateStatus = async (request: Request, response: express.Response, next: NextFunction) => {
+
+        console.log('Requested status for format jobInfo ')
+        try {
+            const job_id = request.params['job_id'];
+            if (job_id == undefined || job_id == '') {
+                return next(new InputException('job_id not provided'));
+            }
+            const jobInfo = await oswService.getOSWValidationJob(job_id);
+            const responseData = {
+                'job_id': job_id,
+                'status': jobInfo.status,
+                'validation_result': jobInfo.validation_result == "" ? "Valid" : jobInfo.validation_result,
+                'updated_at': jobInfo.updated_at
             };
             response.status(200).send(responseData);
         } catch (error) {
