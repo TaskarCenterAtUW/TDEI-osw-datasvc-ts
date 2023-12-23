@@ -6,6 +6,12 @@ import { WorkflowHistoryEntity } from "../../database/entity/workflow-history-en
 
 export interface IWorkflowDatabaseService {
     /**
+    * Updates the existing workflow request message
+    * @param message 
+    * @returns 
+    */
+    updateWorkflowRequest(stage: string, message: QueueMessage): Promise<boolean>;
+    /**
      * Inserts new entry to workflow history table
      * @param message 
      * @returns 
@@ -105,6 +111,36 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
             const queryObject = {
                 text: `UPDATE public.osw_workflow_history SET
                     response_message=$1, 
+                    updated_timestamp= CURRENT_TIMESTAMP 
+                    WHERE  reference_id=$2 AND workflow_stage=$3 AND obsolete is not true`.replace(/\n/g, ""),
+                values: [data.response_message, data.reference_id, data.workflow_stage],
+            }
+
+            await dbClient.query(queryObject);
+
+            return Promise.resolve(true);
+        } catch (error) {
+            console.error("Error updating the osw workflow history", error);
+            return Promise.reject(false);
+        }
+    }
+
+    /**
+    * Updates the existing workflow request message
+    * @param message 
+    * @returns 
+    */
+    async updateWorkflowRequest(stage: string, message: QueueMessage): Promise<boolean> {
+        try {
+            let data = {
+                workflow_stage: stage,
+                reference_id: message.messageId,
+                response_message: message
+            }
+
+            const queryObject = {
+                text: `UPDATE public.osw_workflow_history SET
+                    request_message=$1, 
                     updated_timestamp= CURRENT_TIMESTAMP 
                     WHERE  reference_id=$2 AND workflow_stage=$3 AND obsolete is not true`.replace(/\n/g, ""),
                 values: [data.response_message, data.reference_id, data.workflow_stage],
