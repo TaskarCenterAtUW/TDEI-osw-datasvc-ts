@@ -1,0 +1,6 @@
+{
+    "sql-file": true,
+    "configFile": "./db-management/database.json",
+    "table": "tdei_migration",
+    "migrations-dir": "./db-management/migrations"
+}

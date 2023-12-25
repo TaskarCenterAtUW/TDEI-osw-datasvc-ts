@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.osw_metadata
     dataset_area geometry,
     CONSTRAINT "PK_metadata_id" PRIMARY KEY (id),
     CONSTRAINT unq_name_version UNIQUE (name, version),
-    CONSTRAINT unq_record_id UNIQUE (tdei_record_id)
+    CONSTRAINT unq_metadata_record_id UNIQUE (tdei_record_id)
 )
 
 TABLESPACE pg_default;

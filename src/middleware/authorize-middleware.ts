@@ -5,9 +5,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { Core } from 'nodets-ms-core';
 import { environment } from "../environment/environment";
-import { PermissionRequest } from 'nodets-ms-core/lib/core/auth/model/permission_request';
 import { UnAuthenticated } from '../exceptions/http/http-exceptions';
 import oswService from '../service/Osw-service';
+import { PermissionRequest } from 'nodets-ms-core/lib/core/auth/model/permission_request';
 
 /**
  * Authorizes the request with provided allowed roles and tdei_project_group_id
