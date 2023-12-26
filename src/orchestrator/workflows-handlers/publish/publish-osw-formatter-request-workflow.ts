@@ -1,5 +1,5 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../server";
+import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import oswService from "../../../service/Osw-service";
@@ -30,7 +30,7 @@ export class PublishFormattingRequestWorkflow implements IWorkflowRegister {
             });
 
             //trigger handlers
-            appContext.orchestratorServiceInstance.delegateWorkflowHandlers(queueMessage);
+            appContext.orchestratorServiceInstance!.delegateWorkflowHandlers(queueMessage);
         }
         catch (error) {
             console.error("Error in handling the formatting request workflow", error);

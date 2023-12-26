@@ -1,9 +1,7 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../server";
+import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
-import { OswValidationJobs } from "../../../database/entity/osw-validate-jobs";
-import dbClient from "../../../database/data-source";
 import { OSWConfidenceResponse } from "../../../model/osw-confidence-response";
 import oswService from "../../../service/Osw-service";
 
@@ -33,6 +31,6 @@ export class OswOnDemandConfidenceResponseHandler implements IWorkflowRegister {
         }
 
         if (message.data.success)
-            appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
+            appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

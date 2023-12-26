@@ -1,5 +1,5 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../server";
+import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OswVersions } from "../../../database/entity/osw-version-entity";
@@ -29,7 +29,7 @@ export class PublishFormattingResponseHandler implements IWorkflowRegister {
             try {
                 download_osm_url = decodeURIComponent(download_osm_url!);
                 await dbClient.query(OswVersions.getUpdateFormatUrlQuery(message.messageId, download_osm_url));
-                appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
+                appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
             } catch (error) {
                 console.error("Error updating the osw version formatting results", error);
                 return;

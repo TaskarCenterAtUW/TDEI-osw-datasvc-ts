@@ -64,7 +64,7 @@ export class OswQueryParams {
             queryObject.condition(` status = $${queryObject.paramCouter++} `, this.status.toString());
 
         if (this.name)
-            queryObject.condition(` name = $${queryObject.paramCouter++} `, this.name);
+            queryObject.condition(` name ILIKE $${queryObject.paramCouter++} `, this.name + '%');
         if (this.version)
             queryObject.condition(` version = $${queryObject.paramCouter++} `, this.version);
         if (this.osw_schema_version)

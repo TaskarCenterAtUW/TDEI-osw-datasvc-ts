@@ -21,7 +21,7 @@ import path from "path";
 import { Readable } from "stream";
 import storageService from "./storage-service";
 import { OswMetadataEntity } from "../database/entity/osw-metadata";
-import appContext from "../server";
+import appContext from "../app-context";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { OswValidationJobs } from "../database/entity/osw-validate-jobs";
 import workflowDatabaseService from "../orchestrator/services/wrokflow-database-service";
@@ -32,7 +32,6 @@ import { ServiceDto } from "../model/service-dto";
 import { ProjectGroupRoleDto } from "../model/project-group-role-dto";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 import { OswFormatJobRequest } from "../model/osw-format-job-request";
-import { WorkflowHistoryEntity } from "../database/entity/workflow-history-entity";
 
 class OswService implements IOswService {
     constructor() { }
@@ -82,7 +81,7 @@ class OswService implements IOswService {
                 data: oswFormatRequest
             });
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
             // Send the jobId back to the user.
             return Promise.resolve(jobId);
@@ -131,7 +130,7 @@ class OswService implements IOswService {
             });
 
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
             // Send the jobId back to the user.
             return Promise.resolve(jobId);
@@ -172,10 +171,10 @@ class OswService implements IOswService {
                 }
             });
             //Delete exisitng workflow if exists
-            let trigger_workflow = appContext.orchestratorServiceInstance.orchestratorContext.getWorkflowByIdentifier(workflow_identifier);
+            let trigger_workflow = appContext.orchestratorServiceInstance!.orchestratorContext.getWorkflowByIdentifier(workflow_identifier);
             workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_record_id, trigger_workflow?.workflow_group!);
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
             return Promise.resolve();
         } catch (error) {
@@ -219,7 +218,7 @@ class OswService implements IOswService {
                 }
             });
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
             return Promise.resolve(job_id);
         } catch (error) {
@@ -303,7 +302,7 @@ class OswService implements IOswService {
                 }
             });
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
             //Return the tdei_record_id
             return Promise.resolve(uid);
@@ -379,7 +378,7 @@ class OswService implements IOswService {
      * Validates the metadata
      * @param metadataObj 
      */
-    private async validateMetadata(metadataObj: OswUploadMeta) {
+    async validateMetadata(metadataObj: OswUploadMeta): Promise<void> {
 
         const metadata_result = await validate(metadataObj);
 
@@ -396,7 +395,7 @@ class OswService implements IOswService {
         //Builds the query object. All the query consitions can be build in getQueryObject()
         let userProjectGroups = await this.getUserProjectGroups(user_id);
 
-        if (params.status == RecordStatus["Pre-Release"] && !userProjectGroups)
+        if (params.status && params.status == RecordStatus["Pre-Release"] && !userProjectGroups)
             throw new InputException("To fetch `Pre-Release` versions, User should belong to Project group/s");
 
         const queryObject = params.getQueryObject(userProjectGroups!.map(x => x.tdei_project_group_id));
@@ -450,16 +449,17 @@ class OswService implements IOswService {
             else
                 throw new HttpException(404, "Requested OSM file format not found");
         } else if (format == "osw") {
-            url = decodeURIComponent(osw.rows[0].file_upload_path);
+            url = decodeURIComponent(osw.rows[0].download_osw_url);
         }
         else {
             //default osw
-            url = decodeURIComponent(osw.rows[0].file_upload_path);
+            url = decodeURIComponent(osw.rows[0].download_osw_url);
         }
 
         fileEntities.push(await storageClient.getFileFromUrl(url));
         fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].download_metadata_url)));
-        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].download_changeset_url)));
+        if (osw.rows[0].download_changeset_url && osw.rows[0].download_changeset_url != "" && osw.rows[0].download_changeset_url != null)
+            fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].download_changeset_url)));
 
         return fileEntities;
     }
@@ -470,7 +470,7 @@ class OswService implements IOswService {
      * @param version 
      * @returns 
      */
-    private async checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean> {
+    async checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean> {
         try {
             const queryObject = {
                 text: `Select * FROM public.osw_metadata 
@@ -520,7 +520,7 @@ class OswService implements IOswService {
      * @param oswMetadataEntity 
      * @returns 
      */
-    private async createOswMetadata(oswMetadataEntity: OswMetadataEntity): Promise<void> {
+    async createOswMetadata(oswMetadataEntity: OswMetadataEntity): Promise<void> {
         try {
             await dbClient.query(oswMetadataEntity.getInsertQuery());
             return Promise.resolve();
@@ -573,6 +573,9 @@ class OswService implements IOswService {
             const query = info.getInsertQuery()
             const result = await dbClient.query(query)
             const inserted_jobId = result.rows[0]['jobid']; // Get the jobId and return it back
+            if (inserted_jobId == undefined) {
+                throw new Error("Confidence job creation failed");
+            }
             return inserted_jobId;
         } catch (error) {
             return Promise.reject(error);
@@ -604,19 +607,26 @@ class OswService implements IOswService {
             console.log('Updating status for ', info.jobId);
             const updateQuery = info.getUpdateJobQuery();
             const result = await dbClient.query(updateQuery);
+
+            if (result.rowCount === 0) {
+                // Handle the case when no rows were updated. Write appropriate logic here.
+                console.error('No rows were updated during the formatter job update.');
+                throw new Error("Error updating confidence job");
+            }
+
             const tdeiRecordId = result.rows[0]['tdei_record_id'];
             if (tdeiRecordId != undefined) {
                 console.log('Updating OSW records');
                 const oswUpdateQuery = info.getRecordUpdateQuery(tdeiRecordId);
-                const queryResult = await dbClient.query(oswUpdateQuery);
+                await dbClient.query(oswUpdateQuery);
             }
 
             return info.jobId.toString();
         }
         catch (error) {
-            Promise.reject(error);
+            console.error('Error updating the formatter job.', error);
+            return Promise.reject(error);
         }
-        return ''
     }
 
     async createOSWFormatJob(info: OswFormatJob): Promise<string> {
@@ -628,7 +638,7 @@ class OswService implements IOswService {
             const result = await dbClient.query(insertQuery);
             const jobId = result.rows[0]['jobid'];
             if (jobId == undefined) {
-                return ''; //TODO: Throw insert exception
+                throw new Error("Formatting job creation failed");
             }
             return jobId;
         }
@@ -645,14 +655,14 @@ class OswService implements IOswService {
 
             if (result.rowCount === 0) {
                 // Handle the case when no rows were updated. Write appropriate logic here.
-                console.log('No rows were updated during the formatter job update.');
-                return;
+                console.error('No rows were updated during the formatter job update.');
+                throw new Error("Error updating formatting job");
             }
 
             console.log(`Formatter job successfully updated with jobId: ${info.jobId}`);
+            return Promise.resolve();
         } catch (error) {
-            console.error('Error while updating formatter job');
-            console.error(error);
+            console.error('Error while updating formatter job', error);
             return Promise.reject(error);
         }
     }

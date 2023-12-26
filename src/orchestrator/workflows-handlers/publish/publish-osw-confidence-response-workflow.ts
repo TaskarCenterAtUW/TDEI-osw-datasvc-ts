@@ -1,5 +1,5 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../server";
+import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 
@@ -17,6 +17,6 @@ export class PublishConfidenceResponseWorkflow implements IWorkflowRegister {
         //do any pre-requisite task
 
         if (message.data.success)//trigger handlers
-            appContext.orchestratorServiceInstance.delegateWorkflowHandlers(message);
+            appContext.orchestratorServiceInstance!.delegateWorkflowHandlers(message);
     }
 }

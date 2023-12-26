@@ -12,15 +12,13 @@ import orchestratorConfig from "./tdei-orchestrator-config.json";
 import handlers from "./orchestrator/workflows-handlers";
 import { IWorkflowRegister } from "./orchestrator/models/config-model";
 import EventEmitter from "events";
+import appContext from "./app-context";
 
-export interface IAppContext {
-    orchestratorServiceInstance: IOrchestratorService;
-}
 class App {
-    public app: express.Application;
-    public port: number;
+    private app: express.Application;
+    private port: number;
     private orchestratorService: IOrchestratorService | undefined;
-    workflowEvent = new EventEmitter();
+    private workflowEvent = new EventEmitter();
 
     constructor(controllers: IController[], port: number) {
         this.app = express();
@@ -44,7 +42,7 @@ class App {
             else {
                 res.status(500).send('Application error occured');
             }
-        })
+        });
     }
 
     private initializeOrchestrator() {
@@ -59,6 +57,8 @@ class App {
         });
         //Validate the workflow and handlers defined in configuration are registered in the Orchestrator engine
         this.orchestratorService.validateDeclaredVsRegisteredWorkflowHandlers();
+
+        appContext.orchestratorServiceInstance = this.orchestratorService;
     }
 
     public get orchestratorServiceInstance() {

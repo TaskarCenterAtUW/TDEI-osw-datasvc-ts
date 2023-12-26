@@ -1,5 +1,5 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../server";
+import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OswValidationJobs } from "../../../database/entity/osw-validate-jobs";
@@ -27,13 +27,13 @@ export class OswOnDemandFormattingResponseHandler implements IWorkflowRegister {
 
         try {
             const response = OswFormatJobResponse.from(message.data);
-            oswService.updateOSWFormatJob(response);
+            await oswService.updateOSWFormatJob(response);
         } catch (error) {
             console.error("Error while processing the OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER ", error);
             return;
         }
 
         if (message.data.success)
-            appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
+            appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

@@ -19,11 +19,11 @@ export async function metajsonValidator(req: Request, res: Response, next: NextF
     }
     catch (error) {
         if (error instanceof SyntaxError) {
-            console.log("Metadata json parse error");
+            console.error("Metadata json parse error");
             next(new InputException(error.message));
         }
         else {
-            console.log('metajsonValidator middleware error');
+            console.error('metajsonValidator middleware error');
             next(new InputException("metadata file input upload missing"));
         }
     }

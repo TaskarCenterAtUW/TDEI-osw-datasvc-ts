@@ -18,7 +18,7 @@ import { PermissionRequest } from 'nodets-ms-core/lib/core/auth/model/permission
  */
 export const authorize = (approvedRoles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
-
+        console.log("authorize middleware");
         if (!req.body.user_id)
             return next(new UnAuthenticated());
 

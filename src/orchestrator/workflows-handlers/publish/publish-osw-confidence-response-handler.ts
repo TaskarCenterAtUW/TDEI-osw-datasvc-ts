@@ -1,5 +1,5 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../server";
+import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OSWConfidenceResponse } from "../../../model/osw-confidence-response";
@@ -28,7 +28,7 @@ export class PublishConfidenceResponseHandler implements IWorkflowRegister {
                 const confidenceResponse = OSWConfidenceResponse.from(message.data);
                 const oswUpdateQuery = confidenceResponse.getRecordUpdateQuery(message.messageId);
                 await dbClient.query(oswUpdateQuery);
-                appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
+                appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
             } catch (error) {
                 console.error("Error updating the osw version confidence details", error);
                 return;

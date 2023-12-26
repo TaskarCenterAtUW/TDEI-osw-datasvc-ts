@@ -8,9 +8,43 @@ import { OswFormatJobResponse } from "../../model/osw-format-job-response";
 import { IUploadRequest } from "./upload-request-interface";
 import { OswVersions } from "../../database/entity/osw-version-entity";
 import { OswValidationJobs } from "../../database/entity/osw-validate-jobs";
-import { WorkflowHistoryEntity } from "../../database/entity/workflow-history-entity";
+import { ProjectGroupRoleDto } from "../../model/project-group-role-dto";
+import { OswMetadataEntity } from "../../database/entity/osw-metadata";
+import { OswUploadMeta } from "../../model/osw-upload-meta";
+import { ServiceDto } from "../../model/service-dto";
 
 export interface IOswService {
+    /**
+     * Gets the service details for given projectGroupId and serviceid
+     * @param serviceId service id uniquely represented by TDEI system
+     * @param projectGroupId oraganization id uniquely represented by TDEI system
+     * @returns 
+     */
+    getServiceById(serviceId: string, projectGroupId: string): Promise<ServiceDto | undefined>;
+    /**
+     * Validates the metadata
+     * @param metadataObj 
+     */
+    validateMetadata(metadataObj: OswUploadMeta): Promise<void>;
+    /**
+    * Validates the unique name and version combination
+    * @param name 
+    * @param version 
+    * @returns 
+    */
+    checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean>;
+    /**
+     * Fetches osw metadata for given tdei_record_id
+     * @param id 
+     * @returns 
+     */
+    getOSWMetadataById(id: string): Promise<OswMetadataEntity>;
+    /**
+     * Creates the metadata entry for new osw version
+     * @param oswMetadataEntity 
+     * @returns 
+     */
+    createOswMetadata(oswMetadataEntity: OswMetadataEntity): Promise<void>;
     /**
      * Gets the status of the on-demand validation job
      * @param job_id 
@@ -108,4 +142,11 @@ export interface IOswService {
    * @param tdei_record_id 
    */
     processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
+
+    /**
+    * Gets the user associated project groups
+    * @param user_id 
+    * @returns 
+    */
+    getUserProjectGroups(user_id: string): Promise<ProjectGroupRoleDto[] | undefined>
 }

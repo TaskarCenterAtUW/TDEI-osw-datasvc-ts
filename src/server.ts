@@ -1,4 +1,4 @@
-import App, { IAppContext } from './app';
+import App from './app';
 import dotenv from 'dotenv';
 import "reflect-metadata";
 import oswController from './controller/osw-controller';
@@ -18,5 +18,3 @@ const appContext = new App(
     PORT,
 );
 appContext.listen();
-
-export default appContext as IAppContext;

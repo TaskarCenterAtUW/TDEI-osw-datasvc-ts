@@ -1,5 +1,5 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../server";
+import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OswValidationJobs } from "../../../database/entity/osw-validate-jobs";
@@ -34,7 +34,7 @@ export class ValidationOnlyValidationResponseHandler implements IWorkflowRegiste
 
                 await dbClient.query(updateQuery);
 
-                appContext.orchestratorServiceInstance.delegateWorkflowIfAny(delegate_worflow, message);
+                appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
 
             } catch (error) {
                 console.error("Error while processing the OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER ", error)

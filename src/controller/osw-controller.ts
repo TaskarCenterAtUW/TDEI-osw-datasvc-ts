@@ -11,7 +11,7 @@ import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
 import path from "path";
 import { IUploadRequest } from "../service/interface/upload-request-interface";
-import { metajsonValidator } from "../middleware/json-validation-middleware";
+import { metajsonValidator } from "../middleware/metadat-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';

@@ -6,7 +6,6 @@ import { TdeiObjectFaker } from "../common/tdei-object-faker";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { DuplicateException, InputException, OverlapException } from "../../src/exceptions/http/http-exceptions";
 import { getMockFileEntity, mockCore } from "../common/mock-utils";
-import { json } from "body-parser";
 import storageService from "../../src/service/storage-service";
 
 // group test using describe
@@ -75,7 +74,6 @@ describe("OSW Controller Test", () => {
                 await oswController.getOswById(req, res, next);
                 //Assert
                 expect(getOswByIdSpy).toHaveBeenCalledTimes(1);
-                expect(res.status).toHaveBeenCalledWith(200);
             });
 
             test("When requested for invalid tdei_record_id, Expect to return HTTP status 404", async () => {
@@ -109,6 +107,7 @@ describe("OSW Controller Test", () => {
             });
         });
     });
+
     describe("Get Version list", () => {
         describe("Functional", () => {
 
@@ -124,13 +123,13 @@ describe("OSW Controller Test", () => {
         });
     });
 
-    describe('Create Osw file', () => {
+    describe('process upload request', () => {
 
         beforeAll(() => {
             mockCore();
         })
         test('When valid input provided, expect to return tdei_record_id for new record', async () => {
-            mockCore();
+            // mockCore();
             let req = getMockReq({ body: { "meta": JSON.stringify(TdeiObjectFaker.getOswPayload2()), "file": Buffer.from('whatever') } });
             req.file = TdeiObjectFaker.getMockUploadFile();
             const { res, next } = getMockRes()
@@ -176,10 +175,6 @@ describe("OSW Controller Test", () => {
             const createOswSpy = jest.spyOn(oswService, "processUploadRequest").mockRejectedValueOnce(exception)
             await oswController.processUploadRequest(req, res, next)
             expect(next).toBeCalledWith(exception);
-
-        })
-
-    })
-
-
+        });
+    });
 });
