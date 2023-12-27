@@ -11,4 +11,5 @@ RUN npm run build
 
 EXPOSE 8080
 
-CMD [ "node", "./build/server.js" ]
+# CMD [ "node", "./build/server.js" ]
+CMD [ "npm", "run", "start-prod" ]
