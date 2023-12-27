@@ -42,7 +42,7 @@ export const authorize = (approvedRoles: string[]) => {
         const authProvider = Core.getAuthorizer({ provider: "Hosted", apiUrl: environment.authPermissionUrl });
         const permissionRequest = new PermissionRequest({
             userId: req.body.user_id as string,
-            projectGroupId: req.body.projectGroupId,
+            projectGroupId: req.body.tdei_project_group_id,
             permssions: approvedRoles,
             shouldSatisfyAll: false
         });
