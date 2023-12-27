@@ -9,7 +9,9 @@
     "test:watch": "jest --watchAll",
     "test:coverage": "jest --coverage",
     "build": "rimraf ./build && tsc",
-    "start": "npx db-migrate up && npm run build  && npm run copy:assets && node build/src/server.js",
+    "migrate": "npx db-migrate up",
+    "start": "npm run migrate && npm run build  && npm run copy:assets && node build/src/server.js",
+    "start-prod": "npm run migrate && node build/src/server.js",
     "start:dev": "nodemon",
     "copy:assets": "cp -r 'src/assets/' 'build/src/assets/'",
     "lint": "eslint \"**/*.{ts,tsx}\""

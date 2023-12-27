@@ -27,6 +27,7 @@ Application configuration is read from .env file. Below are the list of environe
 |POSTGRES_USER| Database user |
 |POSTGRES_PASSWORD| Database user password|
 |GATEWAY_URL | Gateway Url|
+|USER_MANAGEMENT_HOST | User management url |
 
 ## Local Postgresql database setup
 
