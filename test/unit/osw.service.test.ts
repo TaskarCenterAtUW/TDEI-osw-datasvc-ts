@@ -1,7 +1,7 @@
 import { QueryResult } from "pg";
 import fetchMock from "jest-fetch-mock";
 import dbClient from "../../src/database/data-source";
-import oswService from "../../src/service/Osw-service";
+import oswService from "../../src/service/osw-service";
 import { TdeiObjectFaker } from "../common/tdei-object-faker";
 import { OswQueryParams, RecordStatus } from "../../src/model/osw-get-query-params";
 import { OswDTO } from "../../src/model/osw-dto";
@@ -21,7 +21,7 @@ import { OswValidationJobs } from "../../src/database/entity/osw-validate-jobs";
 import { OSWConfidenceResponse } from "../../src/model/osw-confidence-response";
 import storageService from "../../src/service/storage-service";
 import appContext from "../../src/app-context";
-import workflowDatabaseService from "../../src/orchestrator/services/wrokflow-database-service";
+import workflowDatabaseService from "../../src/orchestrator/services/workflow-database-service";
 import { IUploadRequest } from "../../src/service/interface/upload-request-interface";
 import { ServiceDto } from "../../src/model/service-dto";
 import { Utility } from "../../src/utility/utility";

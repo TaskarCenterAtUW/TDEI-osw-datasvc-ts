@@ -2,7 +2,7 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
-import oswService from "../../../service/Osw-service";
+import oswService from "../../../service/osw-service";
 
 export class PublishFormattingRequestWorkflow implements IWorkflowRegister {
 

@@ -2,7 +2,7 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
-import oswService from "../../../service/Osw-service";
+import oswService from "../../../service/osw-service";
 import { OSWConfidenceRequest } from "../../../model/osw-confidence-request";
 
 export class PublishConfidenceRequestWorkflow implements IWorkflowRegister {

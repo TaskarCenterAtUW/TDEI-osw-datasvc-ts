@@ -3,7 +3,7 @@ import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OSWConfidenceResponse } from "../../../model/osw-confidence-response";
-import oswService from "../../../service/Osw-service";
+import oswService from "../../../service/osw-service";
 
 export class OswOnDemandConfidenceResponseHandler implements IWorkflowRegister {
 

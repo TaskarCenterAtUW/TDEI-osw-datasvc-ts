@@ -3,7 +3,7 @@ import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { OrchestratorContext } from "../models/config-model";
 import { EventEmitter } from 'events';
-import workflowDatabaseService from "./wrokflow-database-service";
+import workflowDatabaseService from "./workflow-database-service";
 
 export interface IOrchestratorService {
 
@@ -35,10 +35,10 @@ export interface IOrchestratorService {
 
     /**
      * Triggers the workflow of type "TRIGGER"
-     * @param workflow_identifier 
+     * @param workflowIdentifier 
      * @param message 
      */
-    triggerWorkflow(workflow_identifier: string, message: QueueMessage): Promise<void>;
+    triggerWorkflow(workflowIdentifier: string, message: QueueMessage): Promise<void>;
 
     //Workflow configuration context
     orchestratorContext: OrchestratorContext;
@@ -51,7 +51,7 @@ export class OrchestratorService {
     constructor(orchestratorConfig: any, private readonly workflowEvent: EventEmitter) {
         console.log("Initializing TDEI Orchetrator service");
         this.orchestratorContext = new OrchestratorContext(orchestratorConfig);
-        this.initializeOrhchestrator();
+        this.initializeOrchestrator();
         this.validateWorkflows();
     }
 
@@ -71,7 +71,7 @@ export class OrchestratorService {
     /**
      * Initializes the workflows
      */
-    private initializeOrhchestrator() {
+    private initializeOrchestrator() {
         this.subscribe();
     }
 
@@ -94,20 +94,20 @@ export class OrchestratorService {
 
     /**
      * Triggers the workflow of type "TRIGGER"
-     * @param workflow_identifier 
+     * @param workflowIdentifier 
      * @param message 
      */
-    async triggerWorkflow(workflow_identifier: string, message: QueueMessage): Promise<void> {
-        let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow_identifier);
+    async triggerWorkflow(workflowIdentifier: string, message: QueueMessage): Promise<void> {
+        let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflowIdentifier);
         if (trigger_workflow?.worflow_type == "TRIGGER") {
             //Log/Insert the workflow history
             // await workflowDatabaseService.logWorkflowHistory(
             //     trigger_workflow.workflow_group,
             //     trigger_workflow.worflow_stage,
             //     message);
-            message.messageType = workflow_identifier;
+            message.messageType = workflowIdentifier;
             //trigger workflow
-            this.workflowEvent.emit(workflow_identifier, message);
+            this.workflowEvent.emit(workflowIdentifier, message);
         }
         else {
             return Promise.reject("Workflow with type 'Trigger' only allowed. Workflow with type HANDLER cannot be triggered");

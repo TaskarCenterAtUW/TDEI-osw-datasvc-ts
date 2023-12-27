@@ -3,7 +3,7 @@ import express from "express";
 import { IController } from "./interface/IController";
 import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
-import oswService from "../service/Osw-service";
+import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, FileTypeException } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
@@ -11,12 +11,12 @@ import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
 import path from "path";
 import { IUploadRequest } from "../service/interface/upload-request-interface";
-import { metajsonValidator } from "../middleware/metadat-json-validation-middleware";
+import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
 import fs from 'fs';
-import workflowDatabaseService from "../orchestrator/services/wrokflow-database-service";
+import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder

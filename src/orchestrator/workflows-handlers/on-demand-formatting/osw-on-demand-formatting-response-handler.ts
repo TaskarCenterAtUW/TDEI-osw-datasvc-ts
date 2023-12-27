@@ -4,7 +4,7 @@ import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OswValidationJobs } from "../../../database/entity/osw-validate-jobs";
 import dbClient from "../../../database/data-source";
-import oswService from "../../../service/Osw-service";
+import oswService from "../../../service/osw-service";
 import { OswFormatJobResponse } from "../../../model/osw-format-job-response";
 
 export class OswOnDemandFormattingResponseHandler implements IWorkflowRegister {

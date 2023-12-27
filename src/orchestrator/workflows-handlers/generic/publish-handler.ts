@@ -2,7 +2,7 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
 import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
-import workflowDatabaseService from "../../services/wrokflow-database-service";
+import workflowDatabaseService from "../../services/workflow-database-service";
 
 export class PublishHandler implements IWorkflowRegister {
 

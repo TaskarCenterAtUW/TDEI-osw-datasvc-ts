@@ -9,7 +9,6 @@ import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException, InputException, JobIdNotFoundException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { OswDTO } from "../model/osw-dto";
 import { OswQueryParams, RecordStatus } from "../model/osw-get-query-params";
-import { IOswService } from "./interface/Osw-service-interface";
 import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
 import { OSWConfidenceResponse } from "../model/osw-confidence-response";
 import { OswFormatJob } from "../database/entity/osw-format-job-entity";
@@ -24,7 +23,7 @@ import { OswMetadataEntity } from "../database/entity/osw-metadata";
 import appContext from "../app-context";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { OswValidationJobs } from "../database/entity/osw-validate-jobs";
-import workflowDatabaseService from "../orchestrator/services/wrokflow-database-service";
+import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
 import { Utility } from "../utility/utility";
 import { environment } from "../environment/environment";
 import fetch from "node-fetch";
@@ -32,6 +31,7 @@ import { ServiceDto } from "../model/service-dto";
 import { ProjectGroupRoleDto } from "../model/project-group-role-dto";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 import { OswFormatJobRequest } from "../model/osw-format-job-request";
+import { IOswService } from "./interface/osw-service-interface";
 
 class OswService implements IOswService {
     constructor() { }

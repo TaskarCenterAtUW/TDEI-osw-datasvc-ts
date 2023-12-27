@@ -1,7 +1,7 @@
 import { getMockReq, getMockRes } from "@jest-mock/express"
 import { UnAuthenticated } from "../../../src/exceptions/http/http-exceptions"
 import { mockCoreAuth } from "../../common/mock-utils";
-import oswService from "../../../src/service/Osw-service";
+import oswService from "../../../src/service/osw-service";
 import { authorize } from "../../../src/middleware/authorize-middleware";
 
 jest.mock('../../../src/service/Osw-service');

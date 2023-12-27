@@ -1,5 +1,5 @@
 import { getMockReq, getMockRes } from "@jest-mock/express"
-import { metajsonValidator } from "../../../src/middleware/metadat-json-validation-middleware"
+import { metajsonValidator } from "../../../src/middleware/metadata-json-validation-middleware"
 import { InputException } from "../../../src/exceptions/http/http-exceptions"
 
 /**
