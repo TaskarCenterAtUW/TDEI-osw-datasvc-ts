@@ -1,5 +1,4 @@
 -- Alter scripts
-ALTER TABLE IF EXISTS public.osw_versions DROP COLUMN IF EXISTS file_upload_path;
 
 ALTER TABLE IF EXISTS public.osw_versions DROP COLUMN IF EXISTS collected_by;
 
@@ -21,7 +20,7 @@ ALTER TABLE IF EXISTS public.osw_versions
     ALTER COLUMN tdei_project_group_id DROP NOT NULL;
 
 ALTER TABLE IF EXISTS public.osw_versions
-    ADD COLUMN download_osw_url character varying COLLATE pg_catalog."default" NOT NULL;
+    RENAME COLUMN file_upload_path TO download_osw_url;
 
 ALTER TABLE IF EXISTS public.osw_versions
     ADD COLUMN uploaded_timestamp timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;
