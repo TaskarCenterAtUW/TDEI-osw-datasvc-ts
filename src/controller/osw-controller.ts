@@ -373,8 +373,7 @@ class GtfsOSWController implements IController {
             const jobInfo = await oswService.getOSWFormatJob(job_id);
             const responseData = {
                 'job_id': job_id,
-                'sourceUrl': jobInfo.source_url,
-                'targetUrl': '/api/v1/osw/convert/download/'+job_id,
+                'downloadUrl': '/api/v1/osw/convert/download/'+job_id,
                 'conversion': jobInfo.source + '-' + jobInfo.target,
                 'status': jobInfo.status,
                 'message': jobInfo.message

@@ -374,8 +374,7 @@ Response:
     "jobId":"<jobId>",
     "status":"<started/completed/failed>",
     "message":"<any error message. will be blank for completed or started>",
-    "sourceUrl":"<url to the source dataset>",
-    "targetUrl":"<url to download the formatted set>",
+    "downloadUrl":"<url to download the formatted set>",
     "conversion":"<type of conversion> osm-osw or osw-osm"
 }
 
