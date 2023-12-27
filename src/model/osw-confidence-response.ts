@@ -21,50 +21,48 @@ export class OSWConfidenceResponse extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    confidence_level!:string
+    confidence_level!: string
 
     @Prop()
     @IsNotEmpty()
-    confidence_library_version!:string
+    confidence_library_version!: string
 
     @Prop()
     @IsNotEmpty()
-    status!:string
+    status!: string
 
     @Prop()
-    message:string = ''
+    message: string = ''
 
-    constructor(init?:Partial<OSWConfidenceResponse>){
+    constructor(init?: Partial<OSWConfidenceResponse>) {
         super();
-        Object.assign(this,init);
+        Object.assign(this, init);
     }
 
-    getUpdateJobQuery():QueryConfig {
+    getUpdateJobQuery(): QueryConfig {
         // The query returns the tdei_record_id and confidence metric
         const queryObject = {
-            text:`UPDATE public.osw_confidence_jobs SET status = $1, 
+            text: `UPDATE public.osw_confidence_jobs SET status = $1, 
             confidence_metric = $2, 
             cm_version = $3,
             cm_last_calculated_at = $4
             WHERE jobid = $5 RETURNING tdei_record_id,confidence_metric`,
-            values:[this.status,this.confidence_level,this.confidence_library_version,new Date(),this.jobId]
+            values: [this.status, this.confidence_level, this.confidence_library_version, new Date(), this.jobId]
         }
         return queryObject;
     }
 
-    getRecordUpdateQuery(recordId:string):QueryConfig {
+    getRecordUpdateQuery(tdei_record_id: string): QueryConfig {
         const queryObject = {
-            text:`UPDATE public.osw_versions SET 
+            text: `UPDATE public.osw_versions SET 
             confidence_level = $1,
             cm_version= $2, 
             cm_last_calculated_at=$3 
             WHERE 
             tdei_record_id=$4 
             RETURNING tdei_record_id`,
-            values:[this.confidence_level, this.confidence_library_version,new Date(),recordId]
+            values: [this.confidence_level, this.confidence_library_version, new Date(), tdei_record_id]
         }
         return queryObject;
-        
     }
-
 }

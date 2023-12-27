@@ -1,0 +1,112 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Schema for tdei orchestrator config",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "workflows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "worflow_type": {
+                        "type": "string",
+                        "anyOf": [
+                            {
+                                "const": "TRIGGER",
+                                "title": "Defines that the worklow can be triggered via orchestrator"
+                            },
+                            {
+                                "const": "HANDLER",
+                                "title": "Defines that the worklow can handle the response messages and cannot be triggered via orchestrator"
+                            }
+                        ]
+                    },
+                    "worflow_stage": {
+                        "type": "string",
+                        "description": "Defines the workflow stage"
+                    },
+                    "workflow_group": {
+                        "type": "string",
+                        "description": "Defines the workflow group"
+                    },
+                    "worflow_identifier": {
+                        "type": "string",
+                        "description": "Uniquely identifies the workflow."
+                    },
+                    "handlers": {
+                        "type": "array",
+                        "description": "Defines the handlers to respond to the workflow request",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "description": "Name of the handler"
+                                },
+                                "params": {
+                                    "type": "object",
+                                    "properties": {
+                                        "identifier": {
+                                            "type": "string",
+                                            "description": "Workflow identifier"
+                                        },
+                                        "topic": {
+                                            "type": "string",
+                                            "description": "Topic to publish the message"
+                                        }
+                                    },
+                                    "required": []
+                                },
+                                "delegate_worflow": {
+                                    "type": "array"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "params"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "worflow_type",
+                    "worflow_stage",
+                    "workflow_group",
+                    "worflow_identifier"
+                ]
+            }
+        },
+        "subscriptions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "Free text description"
+                    },
+                    "topic": {
+                        "type": "string",
+                        "description": "Topic name where the message are posted"
+                    },
+                    "subscription": {
+                        "type": "string",
+                        "description": "Subscription name to listen to topic messages"
+                    }
+                },
+                "required": [
+                    "description",
+                    "topic",
+                    "subscription"
+                ]
+            }
+        }
+    },
+    "required": [
+        "workflows",
+        "subscriptions"
+    ]
+}

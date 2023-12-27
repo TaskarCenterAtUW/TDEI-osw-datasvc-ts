@@ -10,10 +10,11 @@ dotenv.config()
 
 const PORT: number = environment.appPort;
 
-new App(
+const appContext = new App(
     [
         oswController,
         healthController
     ],
     PORT,
-).listen();
+);
+appContext.listen();

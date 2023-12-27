@@ -5,6 +5,8 @@ import { FileEntity, StorageClient, StorageContainer } from "nodets-ms-core/lib/
 import { Readable } from "stream"
 import { QueueMessageContent } from "../../src/model/queue-message-model";
 import { NextFunction, Request, Response } from "express";
+import appContext from "../../src/app-context";
+import { OrchestratorContext } from "../../src/orchestrator/models/config-model";
 
 
 export function getMockFileEntity() {
@@ -63,6 +65,17 @@ export function getMockTopic() {
     }
 
     return mockTopic;
+}
+
+export function mockAppContext() {
+    appContext.orchestratorServiceInstance = {
+        publishMessage: jest.fn(),
+        delegateWorkflowHandlers: jest.fn(),
+        delegateWorkflowIfAny: jest.fn(),
+        validateDeclaredVsRegisteredWorkflowHandlers: jest.fn(),
+        triggerWorkflow: jest.fn(),
+        orchestratorContext: new OrchestratorContext({}),
+    };
 }
 
 export function getMockAuthorizer(result: boolean) {

@@ -18,19 +18,26 @@ class StorageService {
      * @param recordId ID of the record
      * @returns string with path
      */
-    getFolderPath(tdeiProjectGroupId: string, recordId: string): string {
+    getFolderPath(projectGroupId: string, recordId: string): string {
         const today = new Date();
         const year = today.getFullYear();
         const month = today.getMonth() + 1;
 
-        return year + '/' + month + '/' + tdeiProjectGroupId + '/' + recordId;
+        return year + '/' + month + '/' + projectGroupId + '/' + recordId;
     }
 
-    getFormatJobPath(uid:string): string {
+    getFormatJobPath(uid: string): string {
         const today = new Date();
         const year = today.getFullYear();
         const month = today.getMonth() + 1;
-        return 'jobs/'+year+'/'+month+'/'+uid;
+        return 'jobs/formatting/' + year + '/' + month + '/' + uid;
+    }
+
+    getValidationJobPath(uid: string): string {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        return 'jobs/validation/' + year + '/' + month + '/' + uid;
     }
 
     /**

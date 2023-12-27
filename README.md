@@ -20,21 +20,13 @@ Application configuration is read from .env file. Below are the list of environe
 |QUEUECONNECTION | Queue connection string |
 |STORAGECONNECTION | Storage connection string|
 |PORT |Port on which application will run|
-|VALIDATION_SUBSCRIPTION | Upload topic subscription name|
-|VALIDATION_TOPIC | Validation topic name|
-|AUTH_PERMISSION_URL | Authentication/Authorization url|
+|AUTH_HOST | Authentication/Authorization url|
 |DATASVC_TOPIC | Data service publishing topic|
 |POSTGRES_DB | Database name|
 |POSTGRES_HOST| Link to the database host |
 |POSTGRES_USER| Database user |
 |POSTGRES_PASSWORD| Database user password|
 |GATEWAY_URL | Gateway Url|
-|CONF_REQ_TOPIC| Confidence requested topic |
-|CONF_RES_TOPIC | Confidence calculated topic |
-|CONF_RES_SUB | Confidence calculated topic subscription |
-|UPLOAD_TOPIC | Upload topic for the osw file type |
-|FORMATTER_TOPIC | Topic for formatter |
-| FORMATTER_SUBSCRIPTION | Subscription for fomatter service output |
 
 ## Local Postgresql database setup
 

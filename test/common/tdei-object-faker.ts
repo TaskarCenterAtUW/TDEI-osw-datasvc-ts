@@ -3,23 +3,32 @@ import { Readable } from "stream";
 import { OswVersions } from "../../src/database/entity/osw-version-entity";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import oswValidationSuccessMessage from "../test-data/osw-validation-success.message.json";
+import { OswMetadataEntity } from "../../src/database/entity/osw-metadata";
 
 export class TdeiObjectFaker {
     static getOswVersion() {
         return {
-            polygon: this.getPolygon(),
             tdei_record_id: "test_record_id",
             confidence_level: 0,
-            tdei_project_group_id: "test_user",
-            file_upload_path: "test_path",
-            uploaded_by: "test",
+            tdei_service_id: "test_user",
+            download_osw_url: "test_path",
+            uploaded_by: "test"
+        } as OswVersions;
+    }
+
+    static getOswMetadataSample() {
+        return {
+            tdei_record_id: "test_record_id",
+            name: "test",
+            version: "v1",
             collected_by: "test",
             collection_date: new Date(),
             collection_method: "manual",
-            publication_date: new Date(),
+            valid_from: new Date(),
+            valid_to: new Date(),
             data_source: "InHouse",
             osw_schema_version: "v0.1"
-        } as OswVersions;
+        } as OswMetadataEntity;
     }
 
     static getOswVersionFromDB() {

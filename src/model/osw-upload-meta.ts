@@ -1,11 +1,30 @@
-import { IsIn, IsISO8601, IsNotEmpty } from "class-validator";
+import { IsIn, IsISO8601, IsNotEmpty, IsObject, isObject, IsOptional } from "class-validator";
 import { FeatureCollection } from "geojson";
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 import { Readable } from "stream";
 import { IsValidPolygon } from "../validators/polygon-validator";
 
-
 export class OswUploadMeta extends AbstractDomainEntity {
+
+    @Prop()
+    @IsNotEmpty()
+    name!: string;
+
+    @Prop()
+    @IsOptional()
+    description!: string;
+
+    @Prop()
+    @IsNotEmpty()
+    version!: string;
+
+    @Prop()
+    @IsOptional()
+    derived_from_dataset_id!: string;
+
+    @Prop()
+    @IsOptional()
+    custom_metadata!: Object;
 
     @Prop()
     @IsNotEmpty()
@@ -17,17 +36,18 @@ export class OswUploadMeta extends AbstractDomainEntity {
     collection_date!: Date;
 
     @Prop()
+    @IsOptional()
     @IsISO8601()
-    @IsNotEmpty()
-    publication_date!: Date;
+    valid_from!: Date;
 
     @Prop()
-    @IsNotEmpty()
-    tdei_project_group_id!: string;
+    @IsOptional()
+    @IsISO8601()
+    valid_to!: Date;
 
     @Prop()
-    @IsNotEmpty()
-    @IsIn(['manual', 'transform', 'generated', 'others'])
+    @IsOptional()
+    @IsIn(['manual', 'transform', 'generated', 'AV', 'others'])
     collection_method!: string;
 
     @Prop()
@@ -36,10 +56,15 @@ export class OswUploadMeta extends AbstractDomainEntity {
     data_source!: string;
 
     @Prop()
+    @IsOptional()
+    @IsNotEmpty()
+    @IsObject()
     @IsValidPolygon()
-    polygon!: FeatureCollection;
+    dataset_area!: FeatureCollection;
 
     @Prop()
+    @IsNotEmpty()
+    @IsIn(['v0.1'])
     osw_schema_version!: string;
 
     /**
