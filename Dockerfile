@@ -5,6 +5,7 @@ COPY package.json ./
 #COPY .env ./
 COPY tsconfig.json ./
 COPY src ./src
+COPY src ./db-management
 RUN ls -a
 RUN npm install
 RUN npm run build
