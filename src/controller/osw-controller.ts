@@ -17,6 +17,7 @@ import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
 import fs from 'fs';
 import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
+import { FileEntityStream } from "../utility/utility";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -138,41 +139,28 @@ class GtfsOSWController implements IController {
 
         try {
             let format = request.query.format as string ?? 'osw';
-
+            
             const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format);
 
             const zipFileName = 'osw.zip';
 
-            // Create a writable stream for the zip file
-            const zipStream = fs.createWriteStream(zipFileName);
-
-            // Create a new zip archive
+            // // Create a new zip archive
             const archive = archiver('zip', { zlib: { level: 9 } });
+            response.setHeader('Content-Type', 'application/zip');
+            response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
+            archive.pipe(response);
 
-            // Pipe the archive to the zip stream
-            archive.pipe(zipStream);
-
-            // Add files to the zip archive
+            // // Add files to the zip archive
             for (const filee of fileEntities) {
-                let stream = await filee.getStream();
-                archive.append(stream.read(), { name: filee.fileName });
+                // Read into a stream
+                const fileEntityReader = new FileEntityStream(filee)
+                
+                archive.append(fileEntityReader, { name: filee.fileName });
             }
 
-            // Finalize the archive and close the zip stream
+            // // Finalize the archive and close the zip stream
             archive.finalize();
-            zipStream.on('close', () => {
-                // Set the response headers for downloading the zip file
-                response.setHeader('Content-Type', 'application/zip');
-                response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-
-                // Pipe the zip file to the response
-                const zipFile = fs.createReadStream(zipFileName);
-                zipFile.pipe(response);
-                response.status(200);
-
-                // Delete the generated zip file after sending
-                zipFile.on('close', () => fs.unlinkSync(zipFileName));
-            });
+            
         } catch (error: any) {
             console.error('Error while getting the file stream');
             console.error(error);
