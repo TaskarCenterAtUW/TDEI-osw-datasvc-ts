@@ -706,6 +706,12 @@ class OswService implements IOswService {
             return Promise.reject(error);
         }
     }
+    
+    getFileEntity(fullUrl: string): Promise<FileEntity> {
+        const storageClient = Core.getStorageClient();
+        return storageClient!.getFileFromUrl(fullUrl);
+        
+    }
 }
 
 const oswService: IOswService = new OswService();

@@ -5,7 +5,7 @@ import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, FileTypeException } from "../exceptions/http/http-exceptions";
+import { InputException, FileTypeException, JobIncompleteException } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
@@ -89,6 +89,7 @@ class GtfsOSWController implements IController {
         this.router.get(`${this.path}/validate/status/:job_id`, authenticate, this.getValidateStatus);
         this.router.get(`${this.path}/upload/status/:tdei_record_id`, authenticate, this.getUploadStatus);
         this.router.get(`${this.path}/publish/status/:tdei_record_id`, authenticate, this.getPublishStatus);
+        this.router.get(`${this.path}/convert/download/:job_id`, authenticate, this.getFormatDownloadFile); // Download the formatted file
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -373,12 +374,54 @@ class GtfsOSWController implements IController {
             const responseData = {
                 'job_id': job_id,
                 'sourceUrl': jobInfo.source_url,
-                'targetUrl': jobInfo.target_url,
+                'targetUrl': '/api/v1/osw/convert/download/'+job_id,
                 'conversion': jobInfo.source + '-' + jobInfo.target,
                 'status': jobInfo.status,
                 'message': jobInfo.message
             };
             response.status(200).send(responseData);
+        } catch (error) {
+            return next(error);
+
+        }
+    }
+    /**
+     * Gives the downloadable stream for the job status
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
+    getFormatDownloadFile = async (request: Request, response: express.Response, next: NextFunction) => {
+
+        console.log('Download formatted file for jobInfo ')
+        try {
+            const job_id = request.params['job_id'];
+            if (job_id == undefined || job_id == '') {
+                return next(new InputException('job_id not provided'));
+            }
+            const jobInfo = await oswService.getOSWFormatJob(job_id);
+
+            if (jobInfo.status != 'completed'){
+                throw new JobIncompleteException(job_id);
+            }
+            // Get the file entity for the file
+            const fileEntity = await oswService.getFileEntity(jobInfo.target_url);
+            if (jobInfo.target == 'osm') {
+                // OSM implies xml file
+            response.setHeader('Content-Type', 'application/xml');
+            response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
+            (await fileEntity.getStream()).pipe(response);
+
+            }
+            else if (jobInfo.target == 'osw') {
+                response.setHeader('Content-Type', 'application/zip');
+                response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
+                (await fileEntity.getStream()).pipe(response);
+            }
+            else {
+                response.status(400).send(`Unkown target type ${jobInfo.target} `)
+            }
         } catch (error) {
             return next(error);
 
