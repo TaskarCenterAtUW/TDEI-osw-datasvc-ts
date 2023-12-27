@@ -506,4 +506,21 @@ describe("OSW Controller Test", () => {
             expect(mockNext).toHaveBeenCalledWith(mockError);
         });
     });
+
+    describe('Download the file after formatting getFormatDownloadFile', () => {
+
+        it('should throw jobId not found if not found', async () => {
+
+        })
+        it('should throw job incomplete if the status is not completed', async () => {
+
+        })
+        it('should send 400 error if the format is not the right one', async () => {
+
+        })
+        it('should throw input exception if job_id is not given', async () => {
+
+        })
+
+    })
 });
