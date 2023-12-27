@@ -358,9 +358,6 @@ class OswService implements IOswService {
             if (result.status != undefined && result.status != 200)
                 throw new Error(await result.json());
 
-            if (data.length == 0)
-                throw new Error();
-
             let projectGroupRoleList: ProjectGroupRoleDto[] = [];
 
             data.forEach(x => {
@@ -398,7 +395,7 @@ class OswService implements IOswService {
         if (params.status && params.status == RecordStatus["Pre-Release"] && !userProjectGroups)
             throw new InputException("To fetch `Pre-Release` versions, User should belong to Project group/s");
 
-        const queryObject = params.getQueryObject(userProjectGroups!.map(x => x.tdei_project_group_id));
+        const queryObject = params.getQueryObject(userProjectGroups ? userProjectGroups!.map(x => x.tdei_project_group_id) : []);
 
         const queryConfig = <QueryConfig>{
             text: queryObject.getQuery(),
