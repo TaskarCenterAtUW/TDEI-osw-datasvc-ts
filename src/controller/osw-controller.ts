@@ -139,7 +139,7 @@ class GtfsOSWController implements IController {
 
         try {
             let format = request.query.format as string ?? 'osw';
-            
+
             const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format);
 
             const zipFileName = 'osw.zip';
@@ -154,13 +154,13 @@ class GtfsOSWController implements IController {
             for (const filee of fileEntities) {
                 // Read into a stream
                 const fileEntityReader = new FileEntityStream(filee)
-                
-                archive.append(fileEntityReader, { name: filee.fileName });
+
+                archive.append(fileEntityReader, { name: filee.fileName, store: true });
             }
 
             // // Finalize the archive and close the zip stream
             archive.finalize();
-            
+
         } catch (error: any) {
             console.error('Error while getting the file stream');
             console.error(error);
