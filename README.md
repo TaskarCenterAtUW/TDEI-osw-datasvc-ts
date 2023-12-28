@@ -339,7 +339,7 @@ On demand formatting is done by uploading a type of format.
 
 ### On demand format upload API 
 
-PATH: `/api/v1/format/upload`
+PATH: `/api/v1/convert/upload`
 
 Method : POST
 
@@ -363,7 +363,7 @@ Response:
 
 ### Status request API
 
-Path: `/api/v1/osw/format/status/<jobId>`
+Path: `/api/v1/osw/convert/status/<jobId>`
 
 Method: `GET`
 
@@ -374,9 +374,19 @@ Response:
     "jobId":"<jobId>",
     "status":"<started/completed/failed>",
     "message":"<any error message. will be blank for completed or started>",
-    "sourceUrl":"<url to the source dataset>",
-    "targetUrl":"<url to the formatted dataset>",
+    "downloadUrl":"<url to download the formatted set>",
     "conversion":"<type of conversion> osm-osw or osw-osm"
 }
 
 ```
+
+### Formatted file download API
+
+Path : `/api/v1/osw/convert/download/<jobId>`
+Method: `GET`
+
+Response:
+
+File content with the name as per the conversion parameters.
+For osm, output is in .xml format
+For osw, output is in .zip format
