@@ -1,17 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OswVersions } from "../../../database/entity/osw-version-entity";
 import dbClient from "../../../database/data-source";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base";
 
-export class PublishFormattingResponseHandler implements IWorkflowRegister {
+export class PublishFormattingResponseHandler extends WorkflowHandlerBase {
 
-    constructor(private workflowEvent: EventEmitter) {
-    }
-
-    register(): void {
-        this.workflowEvent.on("OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER", this.handleMessage);
+    constructor(workflowEvent: EventEmitter) {
+        super(workflowEvent, "OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER");
     }
 
     /**
@@ -20,7 +17,7 @@ export class PublishFormattingResponseHandler implements IWorkflowRegister {
      * @param delegate_worflow 
      * @param params 
      */
-    private async handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
+    override async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
         console.log("Triggered OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER");
         if (message.data.success) {
 

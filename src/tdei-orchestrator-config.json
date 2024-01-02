@@ -2,55 +2,55 @@
     "$schema": "./tdei-orchestrator.schema.json",
     "workflows": [
         {
-            "workflow_group": "UPLOAD_OSW",
-            "worflow_stage": "VALIDATION",
-            "worflow_type": "TRIGGER",
-            "worflow_identifier": "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW",
-            "handlers": [
+            "group": "UPLOAD_OSW",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "PUBLISH_HANDLER",
+                    "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
                         "topic": "osw-validation-request"
                     }
                 }
             ]
         },
         {
-            "workflow_group": "UPLOAD_OSW",
-            "worflow_stage": "VALIDATION",
-            "worflow_type": "HANDLER",
-            "worflow_identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
-            "handlers": [
+            "group": "UPLOAD_OSW",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER",
                     "params": {}
                 }
             ]
         },
         {
-            "workflow_group": "PUBLISH_OSW",
-            "worflow_stage": "VALIDATION",
-            "worflow_type": "TRIGGER",
-            "worflow_identifier": "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
-            "handlers": [
+            "group": "PUBLISH_OSW",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "PUBLISH_HANDLER",
+                    "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
                         "topic": "osw-validation-request"
                     }
                 }
             ]
         },
         {
-            "workflow_group": "PUBLISH_OSW",
-            "worflow_stage": "VALIDATION",
-            "worflow_type": "HANDLER",
-            "worflow_identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-            "handlers": [
+            "group": "PUBLISH_OSW",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "OSW_PUBLISH_VALIDATION_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
                         "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW"
@@ -59,28 +59,28 @@
             ]
         },
         {
-            "workflow_group": "PUBLISH_OSW",
-            "worflow_stage": "FILE_FORMATTING",
-            "worflow_type": "TRIGGER",
-            "worflow_identifier": "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW",
-            "handlers": [
+            "group": "PUBLISH_OSW",
+            "stage": "FILE_FORMATTING",
+            "type": "TRIGGER",
+            "identifier": "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "PUBLISH_HANDLER",
+                    "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "identifier": "OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW",
                         "topic": "osw-formatting-request"
                     }
                 }
             ]
         },
         {
-            "workflow_group": "PUBLISH_OSW",
-            "worflow_stage": "FILE_FORMATTING",
-            "worflow_type": "HANDLER",
-            "worflow_identifier": "OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW",
-            "handlers": [
+            "group": "PUBLISH_OSW",
+            "stage": "FILE_FORMATTING",
+            "type": "HANDLER",
+            "identifier": "OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
                         "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW"
@@ -89,28 +89,28 @@
             ]
         },
         {
-            "workflow_group": "PUBLISH_OSW",
-            "worflow_stage": "CONFIDENCE_METRIC",
-            "worflow_type": "TRIGGER",
-            "worflow_identifier": "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW",
-            "handlers": [
+            "group": "PUBLISH_OSW",
+            "stage": "CONFIDENCE_METRIC",
+            "type": "TRIGGER",
+            "identifier": "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "PUBLISH_HANDLER",
+                    "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW",
                         "topic": "osw-confidence-request"
                     }
                 }
             ]
         },
         {
-            "workflow_group": "PUBLISH_OSW",
-            "worflow_stage": "CONFIDENCE_METRIC",
-            "worflow_type": "HANDLER",
-            "worflow_identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW",
-            "handlers": [
+            "group": "PUBLISH_OSW",
+            "stage": "CONFIDENCE_METRIC",
+            "type": "HANDLER",
+            "identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
                         "OSW_PUBLISH_DATABASE_WORKFLOW"
@@ -119,89 +119,89 @@
             ]
         },
         {
-            "workflow_group": "PUBLISH_OSW",
-            "worflow_stage": "DATABASE_PUBLISH",
-            "worflow_type": "HANDLER",
-            "worflow_identifier": "OSW_PUBLISH_DATABASE_WORKFLOW",
-            "handlers": []
+            "group": "PUBLISH_OSW",
+            "stage": "DATABASE_PUBLISH",
+            "type": "HANDLER",
+            "identifier": "OSW_PUBLISH_DATABASE_WORKFLOW",
+            "next_steps": []
         },
         {
-            "workflow_group": "VALIDATION_ONLY_OSW",
-            "worflow_stage": "VALIDATION",
-            "worflow_type": "TRIGGER",
-            "worflow_identifier": "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW",
-            "handlers": [
+            "group": "VALIDATION_ONLY_OSW",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "PUBLISH_HANDLER",
+                    "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
                         "topic": "osw-validation-request"
                     }
                 }
             ]
         },
         {
-            "workflow_group": "VALIDATION_ONLY_OSW",
-            "worflow_stage": "VALIDATION",
-            "worflow_type": "HANDLER",
-            "worflow_identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
-            "handlers": [
+            "group": "VALIDATION_ONLY_OSW",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER",
                     "params": {}
                 }
             ]
         },
         {
-            "workflow_group": "OSW_ON_DEMAND_FORMATTING",
-            "worflow_stage": "FORMATTING",
-            "worflow_type": "TRIGGER",
-            "worflow_identifier": "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW",
-            "handlers": [
+            "group": "OSW_ON_DEMAND_FORMATTING",
+            "stage": "FORMATTING",
+            "type": "TRIGGER",
+            "identifier": "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "PUBLISH_HANDLER",
+                    "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
                         "topic": "osw-formatting-request"
                     }
                 }
             ]
         },
         {
-            "workflow_group": "OSW_ON_DEMAND_FORMATTING",
-            "worflow_stage": "FORMATTING",
-            "worflow_type": "HANDLER",
-            "worflow_identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
-            "handlers": [
+            "group": "OSW_ON_DEMAND_FORMATTING",
+            "stage": "FORMATTING",
+            "type": "HANDLER",
+            "identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER",
                     "params": {}
                 }
             ]
         },
         {
-            "workflow_group": "OSW_ON_DEMAND_CONFIDENCE_METRIC",
-            "worflow_stage": "CONFIDENCE_METRIC",
-            "worflow_type": "TRIGGER",
-            "worflow_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW",
-            "handlers": [
+            "group": "OSW_ON_DEMAND_CONFIDENCE_METRIC",
+            "stage": "CONFIDENCE_METRIC",
+            "type": "TRIGGER",
+            "identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "PUBLISH_HANDLER",
+                    "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
                         "topic": "osw-confidence-request"
                     }
                 }
             ]
         },
         {
-            "workflow_group": "OSW_ON_DEMAND_CONFIDENCE_METRIC",
-            "worflow_stage": "CONFIDENCE_METRIC",
-            "worflow_type": "HANDLER",
-            "worflow_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
-            "handlers": [
+            "group": "OSW_ON_DEMAND_CONFIDENCE_METRIC",
+            "stage": "CONFIDENCE_METRIC",
+            "type": "HANDLER",
+            "identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
+            "next_steps": [
                 {
-                    "name": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER",
                     "params": {}
                 }
             ]

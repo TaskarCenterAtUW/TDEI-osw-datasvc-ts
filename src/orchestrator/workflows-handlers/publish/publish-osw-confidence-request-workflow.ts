@@ -1,17 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import oswService from "../../../service/osw-service";
 import { OSWConfidenceRequest } from "../../../model/osw-confidence-request";
+import { WorkflowBase } from "../../models/orchestrator-base";
 
-export class PublishConfidenceRequestWorkflow implements IWorkflowRegister {
+export class PublishConfidenceRequestWorkflow extends WorkflowBase {
 
-    constructor(private workflowEvent: EventEmitter) {
-    }
-
-    register(): void {
-        this.workflowEvent.on("OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW", this.handleWorkflow);
+    constructor(workflowEvent: EventEmitter) {
+        super(workflowEvent, "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any) {

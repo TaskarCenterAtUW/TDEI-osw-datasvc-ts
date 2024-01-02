@@ -1,17 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OSWConfidenceResponse } from "../../../model/osw-confidence-response";
 import dbClient from "../../../database/data-source";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base";
 
-export class PublishConfidenceResponseHandler implements IWorkflowRegister {
+export class PublishConfidenceResponseHandler extends WorkflowHandlerBase {
 
-    constructor(private workflowEvent: EventEmitter) {
-    }
-
-    register(): void {
-        this.workflowEvent.on("OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER", this.handleMessage);
+    constructor(workflowEvent: EventEmitter) {
+        super(workflowEvent, "OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER");
     }
 
     /**
@@ -20,7 +17,7 @@ export class PublishConfidenceResponseHandler implements IWorkflowRegister {
      * @param delegate_worflow 
      * @param params 
      */
-    private async handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
+    override async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
         console.log("Triggered OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER :", message.messageType);
 
         if (message.data.success) {

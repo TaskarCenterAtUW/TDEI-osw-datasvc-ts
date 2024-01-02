@@ -11,7 +11,7 @@
             "items": {
                 "type": "object",
                 "properties": {
-                    "worflow_type": {
+                    "type": {
                         "type": "string",
                         "anyOf": [
                             {
@@ -24,32 +24,32 @@
                             }
                         ]
                     },
-                    "worflow_stage": {
+                    "stage": {
                         "type": "string",
                         "description": "Defines the workflow stage"
                     },
-                    "workflow_group": {
+                    "group": {
                         "type": "string",
                         "description": "Defines the workflow group"
                     },
-                    "worflow_identifier": {
+                    "identifier": {
                         "type": "string",
                         "description": "Uniquely identifies the workflow."
                     },
-                    "handlers": {
+                    "next_steps": {
                         "type": "array",
                         "description": "Defines the handlers to respond to the workflow request",
                         "items": {
                             "type": "object",
                             "properties": {
-                                "name": {
+                                "process_identifier": {
                                     "type": "string",
-                                    "description": "Name of the handler"
+                                    "description": "Name of the process handler"
                                 },
                                 "params": {
                                     "type": "object",
                                     "properties": {
-                                        "identifier": {
+                                        "response_message_identifier": {
                                             "type": "string",
                                             "description": "Workflow identifier"
                                         },
@@ -65,17 +65,17 @@
                                 }
                             },
                             "required": [
-                                "name",
+                                "process_identifier",
                                 "params"
                             ]
                         }
                     }
                 },
                 "required": [
-                    "worflow_type",
-                    "worflow_stage",
-                    "workflow_group",
-                    "worflow_identifier"
+                    "type",
+                    "stage",
+                    "group",
+                    "identifier"
                 ]
             }
         },

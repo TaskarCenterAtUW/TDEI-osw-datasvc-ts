@@ -1,7 +1,7 @@
 import { Core } from "nodets-ms-core";
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import { OrchestratorContext } from "../models/config-model";
+import { OrchestratorConfigContext } from "../models/config-model";
 import { EventEmitter } from 'events';
 import workflowDatabaseService from "./workflow-database-service";
 
@@ -41,16 +41,16 @@ export interface IOrchestratorService {
     triggerWorkflow(workflowIdentifier: string, message: QueueMessage): Promise<void>;
 
     //Workflow configuration context
-    orchestratorContext: OrchestratorContext;
+    orchestratorContext: OrchestratorConfigContext;
 }
 
 export class OrchestratorService {
     private topicCollection = new Map<string, Topic>();
-    orchestratorContext: OrchestratorContext = new OrchestratorContext({});
+    orchestratorContext: OrchestratorConfigContext = new OrchestratorConfigContext({});
 
     constructor(orchestratorConfig: any, private readonly workflowEvent: EventEmitter) {
         console.log("Initializing TDEI Orchetrator service");
-        this.orchestratorContext = new OrchestratorContext(orchestratorConfig);
+        this.orchestratorContext = new OrchestratorConfigContext(orchestratorConfig);
         this.initializeOrchestrator();
         this.validateWorkflows();
     }
@@ -64,6 +64,7 @@ export class OrchestratorService {
         let topic = this.topicCollection.get(topicName);
         if (!topic) {
             topic = Core.getTopic(topicName);
+            this.topicCollection.set(topicName, topic);
         }
         return topic;
     }
@@ -81,14 +82,12 @@ export class OrchestratorService {
     private subscribe() {
         console.log("Subscribing TDEI orchestrator subscriptions");
         this.orchestratorContext.subscriptions.forEach(subscription => {
-            var topic = Core.getTopic(subscription.topic as string);
+            var topic = this.getTopicInstance(subscription.topic as string);
             topic.subscribe(subscription.subscription as string,
                 {
                     onReceive: this.handleMessage,
                     onError: this.handleFailedMessages
                 });
-            //Store the topics into collection 
-            this.orchestratorContext.topics.push(topic);
         });
     }
 
@@ -99,12 +98,8 @@ export class OrchestratorService {
      */
     async triggerWorkflow(workflowIdentifier: string, message: QueueMessage): Promise<void> {
         let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflowIdentifier);
-        if (trigger_workflow?.worflow_type == "TRIGGER") {
-            //Log/Insert the workflow history
-            // await workflowDatabaseService.logWorkflowHistory(
-            //     trigger_workflow.workflow_group,
-            //     trigger_workflow.worflow_stage,
-            //     message);
+        if (trigger_workflow?.type == "TRIGGER") {
+
             message.messageType = workflowIdentifier;
             //trigger workflow
             this.workflowEvent.emit(workflowIdentifier, message);
@@ -127,7 +122,7 @@ export class OrchestratorService {
             //Update the workflow history
             let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(identifier);
             if (trigger_workflow) {
-                workflowDatabaseService.updateWorkflowHistory(trigger_workflow?.worflow_stage!, message);
+                workflowDatabaseService.updateWorkflowHistory(trigger_workflow?.stage!, message);
                 //trigger workflow
                 this.workflowEvent.emit(identifier, message);
             }
@@ -146,20 +141,20 @@ export class OrchestratorService {
 
         //Find the workflow to trigger
         let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(identifier);
-        if (trigger_workflow?.worflow_type == "TRIGGER") {
+        if (trigger_workflow?.type == "TRIGGER") {
             //Log/Insert the workflow history
             await workflowDatabaseService.logWorkflowHistory(
-                trigger_workflow.workflow_group,
-                trigger_workflow.worflow_stage,
+                trigger_workflow.group,
+                trigger_workflow.stage,
                 message);
         }
         //Trigger all workflow handlers
-        trigger_workflow?.handlers?.forEach(handler => {
+        trigger_workflow?.next_steps?.forEach(handler => {
             //Dereference the message object
             let { ...def_message } = message;
             //Delegate handler
             try {
-                this.workflowEvent.emit(handler.name, def_message, handler.delegate_worflow, handler.params);
+                this.workflowEvent.emit(handler.process_identifier, def_message, handler.delegate_worflow, handler.params);
             } catch (error) {
                 console.error("Error invoking handlers", error);
             }
@@ -176,15 +171,6 @@ export class OrchestratorService {
         if (delegateWorkflows) {
             delegateWorkflows.forEach(async workflow => {
                 message.messageType = workflow;
-
-                // let trigger_workflow = this.orchestratorContext.getWorkflowByIdentifier(workflow);
-                // if (trigger_workflow?.worflow_type == "TRIGGER") {
-                //     //Log/Insert the workflow history
-                //     await workflowDatabaseService.logWorkflowHistory(
-                //         trigger_workflow.workflow_group,
-                //         trigger_workflow.worflow_stage,
-                //         message);
-                // }
                 //trigger workflow
                 console.log("delegateWorkflowIfAny :", workflow)
                 this.workflowEvent.emit(workflow, message);
@@ -219,7 +205,7 @@ export class OrchestratorService {
         const duplicateWorkflowIdentifiers = this.orchestratorContext.workflows
             .map((el, i) => {
                 return this.orchestratorContext.workflows.find((element, index) => {
-                    if (i !== index && element.worflow_identifier === el.worflow_identifier) {
+                    if (i !== index && element.identifier === el.identifier) {
                         return el
                     }
                 })
@@ -246,9 +232,9 @@ export class OrchestratorService {
         //3. Validate deligate workflow exists
         const workflowsWithDelegateNotExists = this.orchestratorContext.workflows
             .map(workflow =>
-                workflow.handlers?.some(handler =>
+                workflow.next_steps?.some(handler =>
                     handler.delegate_worflow?.some(delegate =>
-                        !this.orchestratorContext.workflows.find(x => x.worflow_identifier === delegate)
+                        !this.orchestratorContext.workflows.find(x => x.identifier === delegate)
                     )
                 )
                     ? workflow
@@ -271,7 +257,7 @@ export class OrchestratorService {
      * Validate declared vs registered workflow & handlers
      */
     validateDeclaredVsRegisteredWorkflowHandlers(): void {
-        let listOfWorkflowsConfigured = this.orchestratorContext.workflows.map(x => x.worflow_identifier);
+        let listOfWorkflowsConfigured = this.orchestratorContext.workflows.map(x => x.identifier);
 
         let wokflowNotRegistered = listOfWorkflowsConfigured.filter(wh => !this.workflowEvent.eventNames().find(x => x === wh));
 
@@ -282,7 +268,7 @@ export class OrchestratorService {
         const listOfHandlersConfigured = Array.from(
             new Set(
                 this.orchestratorContext.workflows
-                    .flatMap(workflow => workflow.handlers?.map(handler => handler.name) || [])
+                    .flatMap(workflow => workflow.next_steps?.map(handler => handler.process_identifier) || [])
                     .filter(Boolean)
             )
         );

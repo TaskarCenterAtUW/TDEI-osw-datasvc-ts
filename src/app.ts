@@ -10,7 +10,6 @@ import HttpException from "./exceptions/http/http-base-exception";
 import { IOrchestratorService, OrchestratorService } from "./orchestrator/services/orchestrator-service";
 import orchestratorConfig from "./tdei-orchestrator-config.json";
 import handlers from "./orchestrator/workflows-handlers";
-import { IWorkflowRegister } from "./orchestrator/models/config-model";
 import EventEmitter from "events";
 import appContext from "./app-context";
 
@@ -52,8 +51,7 @@ class App {
         console.log("Registering the orchestration workflow and handlers");
         const uniqueArray = [...new Set(handlers)];
         uniqueArray.forEach(x => {
-            let handler: IWorkflowRegister = new x(this.workflowEvent);
-            handler.register();
+            let handler = new x(this.workflowEvent);
         });
         //Validate the workflow and handlers defined in configuration are registered in the Orchestrator engine
         this.orchestratorService.validateDeclaredVsRegisteredWorkflowHandlers();

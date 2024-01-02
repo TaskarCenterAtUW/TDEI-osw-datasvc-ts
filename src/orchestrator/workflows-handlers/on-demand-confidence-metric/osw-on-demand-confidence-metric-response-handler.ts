@@ -1,17 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OSWConfidenceResponse } from "../../../model/osw-confidence-response";
 import oswService from "../../../service/osw-service";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base";
 
-export class OswOnDemandConfidenceResponseHandler implements IWorkflowRegister {
+export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
 
-    constructor(private workflowEvent: EventEmitter) {
-    }
-
-    register(): void {
-        this.workflowEvent.on("OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER", this.handleMessage);
+    constructor(workflowEvent: EventEmitter) {
+        super(workflowEvent, "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER");
     }
 
     /**
@@ -20,7 +17,7 @@ export class OswOnDemandConfidenceResponseHandler implements IWorkflowRegister {
      * @param delegate_worflow 
      * @param params 
      */
-    private async handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
+    override async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
         console.log("Triggered OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER :", message.messageType);
 
         try {

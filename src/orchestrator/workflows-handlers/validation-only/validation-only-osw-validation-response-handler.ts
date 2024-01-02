@@ -1,17 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import { OswValidationJobs } from "../../../database/entity/osw-validate-jobs";
 import dbClient from "../../../database/data-source";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base";
 
-export class ValidationOnlyValidationResponseHandler implements IWorkflowRegister {
+export class ValidationOnlyValidationResponseHandler extends WorkflowHandlerBase {
 
-    constructor(private workflowEvent: EventEmitter) {
-    }
-
-    register(): void {
-        this.workflowEvent.on("OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER", this.handleMessage);
+    constructor(workflowEvent: EventEmitter) {
+        super(workflowEvent, "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER");
     }
 
     /**
@@ -20,7 +17,7 @@ export class ValidationOnlyValidationResponseHandler implements IWorkflowRegiste
      * @param delegate_worflow 
      * @param params 
      */
-    private async handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
+    override async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
         console.log("Triggered OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER :", message.messageType);
 
         if (message.data.success) {

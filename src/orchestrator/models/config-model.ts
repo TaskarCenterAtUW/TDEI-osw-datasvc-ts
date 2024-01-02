@@ -1,14 +1,8 @@
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 
-export interface IWorkflowRegister {
-    register(): void;
-}
+export class OrchestratorConfigContext {
 
-export class OrchestratorContext {
-    //Topic instance store
-    topics: Topic[] = [];
-
-    constructor(config: Partial<OrchestratorContext>) {
+    constructor(config: Partial<OrchestratorConfigContext>) {
         Object.assign(this, config);
     }
 
@@ -16,7 +10,7 @@ export class OrchestratorContext {
     subscriptions: Subscription[] = [];
 
     getWorkflowByIdentifier(identifier: string): Workflow | undefined {
-        var wokflow = this.workflows.find(x => x.worflow_identifier == identifier);
+        var wokflow = this.workflows.find(x => x.identifier == identifier);
         if (!wokflow)
             console.error("getWorkflowByIdentifier : workflow not found ", identifier);
 
@@ -25,15 +19,15 @@ export class OrchestratorContext {
 }
 
 export interface Workflow {
-    workflow_group: string;
-    worflow_stage: string;
-    worflow_type: string;
-    worflow_identifier?: string;
-    handlers?: Handler[];
+    group: string;
+    stage: string;
+    type: string;
+    identifier?: string;
+    next_steps?: WorkflowSteps[];
 }
 
-export interface Handler {
-    name: string;
+export interface WorkflowSteps {
+    process_identifier: string;
     params: any;
     delegate_worflow?: string[];
 }

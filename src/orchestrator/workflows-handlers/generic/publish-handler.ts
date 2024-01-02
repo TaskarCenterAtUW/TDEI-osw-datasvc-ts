@@ -1,30 +1,26 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
 import workflowDatabaseService from "../../services/workflow-database-service";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base";
 
-export class PublishHandler implements IWorkflowRegister {
-
-    constructor(private workflowEvent: EventEmitter) {
+export class PublishHandler extends WorkflowHandlerBase {
+    constructor(workflowEvent: EventEmitter) {
+        super(workflowEvent, "PUBLISH_HANDLER");
     }
 
-    register(): void {
-        this.workflowEvent.on("PUBLISH_HANDLER", this.handleWorkflow);
-    }
     /**
      * 
      * @param message 
      * @param delegate_worflow 
      * @param params 
      */
-    private async handleWorkflow(message: QueueMessage, delegate_worflow: string[], params: any) {
+    public async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
         console.log("Triggered PUBLISH_HANDLER :", message.messageType);
-        message.messageType = params.identifier;
-        //TODO:: Update the workflow history with latest message type
+        message.messageType = params.response_message_identifier;
 
         let trigger_workflow = appContext.orchestratorServiceInstance!.orchestratorContext.getWorkflowByIdentifier(message.messageType);
-        workflowDatabaseService.updateWorkflowRequest(trigger_workflow?.worflow_stage!, message);
+        workflowDatabaseService.updateWorkflowRequest(trigger_workflow?.stage!, message);
 
         await appContext.orchestratorServiceInstance!.publishMessage(params.topic, message)
         appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
