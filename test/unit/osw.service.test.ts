@@ -25,7 +25,6 @@ import workflowDatabaseService from "../../src/orchestrator/services/workflow-da
 import { IUploadRequest } from "../../src/service/interface/upload-request-interface";
 import { ServiceDto } from "../../src/model/service-dto";
 import { Utility } from "../../src/utility/utility";
-import exp from "constants";
 
 // group test using describe
 describe("OSW Service Test", () => {
