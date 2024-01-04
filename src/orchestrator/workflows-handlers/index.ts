@@ -13,8 +13,10 @@ import { ValidationOnlyValidationResponseHandler } from "./validation-only/valid
 import { PublishDatabaseWorkflow } from "./publish/publish-osw-database-publish-workflow";
 import { OswOnDemandConfidenceResponseHandler } from "./on-demand-confidence-metric/osw-on-demand-confidence-metric-response-handler";
 import { OswOnDemandFormattingResponseHandler } from "./on-demand-formatting/osw-on-demand-formatting-response-handler";
+import { GenericWorkflow } from "./generic/generic-workflow";
 
 export default [
+    GenericWorkflow,
     PublishHandler,
     PublishConfidenceResponseHandler,
     PublishConfidenceResponseWorkflow,

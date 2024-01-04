@@ -6,7 +6,6 @@ import { IOrchestratorService } from "../../services/orchestrator-service";
 // This is the generic workflow handler. 
 //It is used to handle all the workflows that are not handled by the other workflow handlers.
 export class GenericWorkflow extends WorkflowBase {
-
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
         super(workflowEvent, orchestratorServiceInstance, GENERIC_WORKFLOW_IDENTIFIER);
     }

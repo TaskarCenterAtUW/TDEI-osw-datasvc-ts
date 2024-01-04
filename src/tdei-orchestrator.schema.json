@@ -36,7 +36,7 @@
                         "type": "string",
                         "description": "Uniquely identifies the workflow."
                     },
-                    "is_generic": {
+                    "generic_workflow": {
                         "type": "boolean",
                         "description": "If 'true', confirms workflow to execute generic workflow, which forwards the message to the next step without any processing and not required to define Workflow request/response class"
                     },

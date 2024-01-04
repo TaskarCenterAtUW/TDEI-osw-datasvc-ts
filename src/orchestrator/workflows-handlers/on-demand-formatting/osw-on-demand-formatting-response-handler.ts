@@ -17,7 +17,7 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
      * @param delegate_worflow 
      * @param params 
      */
-    override async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
+    async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {

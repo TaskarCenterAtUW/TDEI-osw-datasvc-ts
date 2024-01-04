@@ -4,9 +4,8 @@ import { IOrchestratorService } from "../services/orchestrator-service";
 
 //Base class for all workflows
 export abstract class WorkflowBase {
-
-    constructor(private workflowEvent: EventEmitter, public orchestratorServiceInstance: IOrchestratorService, public eventName: string) {
-        this.workflowEvent.on(eventName, this.handleWorkflow);
+    constructor(private workflowEvent: EventEmitter, private orchestratorServiceInstance: IOrchestratorService, public eventName: string) {
+        this.workflowEvent.on(eventName, this.handleWorkflow.bind(this));
     }
 
     /**
@@ -37,7 +36,7 @@ export abstract class WorkflowBase {
 export abstract class WorkflowHandlerBase {
 
     constructor(private workflowEvent: EventEmitter, public orchestratorServiceInstance: IOrchestratorService, public eventName: string) {
-        this.workflowEvent.on(eventName, this.handleRequest);
+        this.workflowEvent.on(eventName, this.handleRequest.bind(this));
     }
 
     /**
@@ -46,7 +45,7 @@ export abstract class WorkflowHandlerBase {
      * @param message 
      */
     readonly delegateWorkflowIfAny = (delegate_worflow: string[], message: QueueMessage) => {
-        this.delegateWorkflowIfAny(delegate_worflow, message);
+        this.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
     }
 
     /**
@@ -60,6 +59,6 @@ export abstract class WorkflowHandlerBase {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         if (message.data.success)
-            this.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
+            this.delegateWorkflowIfAny(delegate_worflow, message);
     }
 } 

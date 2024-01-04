@@ -24,7 +24,7 @@ export interface Workflow {
     stage: string;
     type: string;
     identifier?: string;
-    is_generic?: boolean;
+    generic_workflow?: boolean;
     next_steps?: WorkflowSteps[];
 }
 

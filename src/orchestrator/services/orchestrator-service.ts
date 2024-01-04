@@ -141,8 +141,14 @@ export class OrchestratorService {
         if (trigger_workflow?.type == "TRIGGER") {
 
             message.messageType = workflowIdentifier;
-            //trigger workflow
-            this.workflowEvent.emit(workflowIdentifier, message);
+            if (trigger_workflow?.generic_workflow) {
+                //trigger generic workflow
+                this.workflowEvent.emit(GENERIC_WORKFLOW_IDENTIFIER, message);
+            }
+            else {
+                //trigger workflow
+                this.workflowEvent.emit(workflowIdentifier, message);
+            }
         }
         else {
             return Promise.reject("Workflow with type 'Trigger' only allowed. Workflow with type HANDLER cannot be triggered");
@@ -164,7 +170,7 @@ export class OrchestratorService {
             if (trigger_workflow) {
                 workflowDatabaseService.updateWorkflowHistory(trigger_workflow?.stage!, message);
 
-                if (trigger_workflow.is_generic) {
+                if (trigger_workflow.generic_workflow) {
                     //trigger generic workflow
                     this.workflowEvent.emit(GENERIC_WORKFLOW_IDENTIFIER, message);
                 }
@@ -222,7 +228,7 @@ export class OrchestratorService {
                 console.log("delegateWorkflowIfAny :", workflow);
 
                 let trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(workflow);
-                if (trigger_workflow?.is_generic) {
+                if (trigger_workflow?.generic_workflow) {
                     //trigger generic workflow
                     this.workflowEvent.emit(GENERIC_WORKFLOW_IDENTIFIER, message);
                 }
@@ -313,7 +319,7 @@ export class OrchestratorService {
      * Validate declared vs registered workflow & handlers
      */
     validateDeclaredVsRegisteredWorkflowHandlers(): void {
-        let listOfWorkflowsConfigured = this.orchestratorConfigContext.workflows.filter(f => !f.is_generic).map(x => x.identifier);
+        let listOfWorkflowsConfigured = this.orchestratorConfigContext.workflows.filter(f => !f.generic_workflow).map(x => x.identifier);
 
         let wokflowNotRegistered = listOfWorkflowsConfigured.filter(wh => !this.workflowEvent.eventNames().find(x => x === wh));
 

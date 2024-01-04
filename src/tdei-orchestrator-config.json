@@ -6,7 +6,7 @@
             "stage": "VALIDATION",
             "type": "TRIGGER",
             "identifier": "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW",
-            "is_generic": true,
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "PUBLISH_HANDLER",
@@ -22,7 +22,7 @@
             "stage": "VALIDATION",
             "type": "HANDLER",
             "identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
-            "is_generic": true,
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER",
@@ -132,7 +132,7 @@
             "stage": "VALIDATION",
             "type": "TRIGGER",
             "identifier": "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW",
-            "is_generic": true,
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "PUBLISH_HANDLER",
@@ -148,7 +148,7 @@
             "stage": "VALIDATION",
             "type": "HANDLER",
             "identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
-            "is_generic": true,
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER",
@@ -161,7 +161,7 @@
             "stage": "FORMATTING",
             "type": "TRIGGER",
             "identifier": "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW",
-            "is_generic": true,
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "PUBLISH_HANDLER",
@@ -177,7 +177,7 @@
             "stage": "FORMATTING",
             "type": "HANDLER",
             "identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
-            "is_generic": true,
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER",
@@ -190,7 +190,7 @@
             "stage": "CONFIDENCE_METRIC",
             "type": "TRIGGER",
             "identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW",
-            "is_generic": true,
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "PUBLISH_HANDLER",
@@ -206,7 +206,7 @@
             "stage": "CONFIDENCE_METRIC",
             "type": "HANDLER",
             "identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
-            "is_generic": true,
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER",
