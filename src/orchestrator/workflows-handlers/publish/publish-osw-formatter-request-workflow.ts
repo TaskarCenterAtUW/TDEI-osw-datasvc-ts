@@ -1,17 +1,17 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
 import EventEmitter from "events";
 import oswService from "../../../service/osw-service";
-import { WorkflowBase } from "../../models/orchestrator-base";
+import { WorkflowBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
 export class PublishFormattingRequestWorkflow extends WorkflowBase {
 
-    constructor(workflowEvent: EventEmitter) {
-        super(workflowEvent, "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW");
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
-        console.log("Triggered OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW :", message.messageType);
+        console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
             let osw_version = await oswService.getOSWRecordById(message.messageId);
@@ -27,7 +27,7 @@ export class PublishFormattingRequestWorkflow extends WorkflowBase {
             });
 
             //trigger handlers
-            appContext.orchestratorServiceInstance!.delegateWorkflowHandlers(queueMessage);
+            this.delegateWorkflowHandlers(queueMessage);
         }
         catch (error) {
             console.error("Error in handling the formatting request workflow", error);

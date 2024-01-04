@@ -1,20 +1,20 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
 import EventEmitter from "events";
-import { WorkflowBase } from "../../models/orchestrator-base";
+import { WorkflowBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
 
 export class PublishConfidenceResponseWorkflow extends WorkflowBase {
 
-    constructor(workflowEvent: EventEmitter) {
-        super(workflowEvent, "OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW");
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
-        console.log("Triggered OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW :", message.messageType);
+        console.log(`Triggered ${this.eventName} :`, message.messageType);
         //do any pre-requisite task
 
         if (message.data.success)//trigger handlers
-            appContext.orchestratorServiceInstance!.delegateWorkflowHandlers(message);
+            this.delegateWorkflowHandlers(message);
     }
 }

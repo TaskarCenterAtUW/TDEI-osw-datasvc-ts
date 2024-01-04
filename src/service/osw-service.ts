@@ -171,7 +171,7 @@ class OswService implements IOswService {
                 }
             });
             //Delete exisitng workflow if exists
-            let trigger_workflow = appContext.orchestratorServiceInstance!.orchestratorContext.getWorkflowByIdentifier(workflow_identifier);
+            let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
             workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_record_id, trigger_workflow?.group!);
             //Trigger the workflow
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);

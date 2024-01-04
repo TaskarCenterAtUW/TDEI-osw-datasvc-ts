@@ -9,7 +9,7 @@ import dbClient from "./database/data-source";
 import HttpException from "./exceptions/http/http-base-exception";
 import { IOrchestratorService, OrchestratorService } from "./orchestrator/services/orchestrator-service";
 import orchestratorConfig from "./tdei-orchestrator-config.json";
-import handlers from "./orchestrator/workflows-handlers";
+import workflows from "./orchestrator/workflows-handlers";
 import EventEmitter from "events";
 import appContext from "./app-context";
 
@@ -17,7 +17,6 @@ class App {
     private app: express.Application;
     private port: number;
     private orchestratorService: IOrchestratorService | undefined;
-    private workflowEvent = new EventEmitter();
 
     constructor(controllers: IController[], port: number) {
         this.app = express();
@@ -46,17 +45,11 @@ class App {
 
     private initializeOrchestrator() {
         if (!this.orchestratorService)
-            this.orchestratorService = new OrchestratorService(orchestratorConfig, this.workflowEvent);
-        //Register all handlers and workflow
-        console.log("Registering the orchestration workflow and handlers");
-        const uniqueArray = [...new Set(handlers)];
-        uniqueArray.forEach(x => {
-            let handler = new x(this.workflowEvent);
-        });
-        //Validate the workflow and handlers defined in configuration are registered in the Orchestrator engine
-        this.orchestratorService.validateDeclaredVsRegisteredWorkflowHandlers();
+            this.orchestratorService = new OrchestratorService(orchestratorConfig);
 
+        this.orchestratorService.initialize(workflows);
         appContext.orchestratorServiceInstance = this.orchestratorService;
+
     }
 
     public get orchestratorServiceInstance() {

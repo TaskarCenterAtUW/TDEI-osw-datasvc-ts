@@ -1,14 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
 import EventEmitter from "events";
 import { OswValidationJobs } from "../../../database/entity/osw-validate-jobs";
 import dbClient from "../../../database/data-source";
-import { WorkflowHandlerBase } from "../../models/orchestrator-base";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
 export class ValidationOnlyValidationResponseHandler extends WorkflowHandlerBase {
 
-    constructor(workflowEvent: EventEmitter) {
-        super(workflowEvent, "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER");
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER");
     }
 
     /**
@@ -18,7 +18,7 @@ export class ValidationOnlyValidationResponseHandler extends WorkflowHandlerBase
      * @param params 
      */
     override async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
-        console.log("Triggered OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER :", message.messageType);
+        console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         if (message.data.success) {
             try {
@@ -31,7 +31,7 @@ export class ValidationOnlyValidationResponseHandler extends WorkflowHandlerBase
 
                 await dbClient.query(updateQuery);
 
-                appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
+                this.delegateWorkflowIfAny(delegate_worflow, message);
 
             } catch (error) {
                 console.error("Error while processing the OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER ", error)

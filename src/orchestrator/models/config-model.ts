@@ -1,4 +1,3 @@
-import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 
 export class OrchestratorConfigContext {
 
@@ -18,11 +17,14 @@ export class OrchestratorConfigContext {
     }
 }
 
+export const GENERIC_WORKFLOW_IDENTIFIER = "GENERIC_WORKFLOW_IDENTIFIER";
+
 export interface Workflow {
     group: string;
     stage: string;
     type: string;
     identifier?: string;
+    is_generic?: boolean;
     next_steps?: WorkflowSteps[];
 }
 

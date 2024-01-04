@@ -1,12 +1,12 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
 import EventEmitter from "events";
 import workflowDatabaseService from "../../services/workflow-database-service";
-import { WorkflowHandlerBase } from "../../models/orchestrator-base";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
 export class PublishHandler extends WorkflowHandlerBase {
-    constructor(workflowEvent: EventEmitter) {
-        super(workflowEvent, "PUBLISH_HANDLER");
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "PUBLISH_HANDLER");
     }
 
     /**
@@ -19,10 +19,10 @@ export class PublishHandler extends WorkflowHandlerBase {
         console.log("Triggered PUBLISH_HANDLER :", message.messageType);
         message.messageType = params.response_message_identifier;
 
-        let trigger_workflow = appContext.orchestratorServiceInstance!.orchestratorContext.getWorkflowByIdentifier(message.messageType);
+        let trigger_workflow = this.orchestratorServiceInstance!.getWorkflowByIdentifier(message.messageType);
         workflowDatabaseService.updateWorkflowRequest(trigger_workflow?.stage!, message);
 
-        await appContext.orchestratorServiceInstance!.publishMessage(params.topic, message)
-        appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
+        await this.orchestratorServiceInstance!.publishMessage(params.topic, message)
+        this.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

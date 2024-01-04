@@ -1,14 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
 import EventEmitter from "events";
 import oswService from "../../../service/osw-service";
 import { OswFormatJobResponse } from "../../../model/osw-format-job-response";
-import { WorkflowHandlerBase } from "../../models/orchestrator-base";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
 export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
 
-    constructor(workflowEvent: EventEmitter) {
-        super(workflowEvent, "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER");
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER");
     }
 
     /**
@@ -18,7 +18,7 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
      * @param params 
      */
     override async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
-        console.log("Triggered OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER :", message.messageType);
+        console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
             const response = OswFormatJobResponse.from(message.data);
@@ -29,6 +29,6 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
         }
 
         if (message.data.success)
-            appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
+            this.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

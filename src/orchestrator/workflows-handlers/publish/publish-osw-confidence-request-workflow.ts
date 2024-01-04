@@ -1,18 +1,18 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
 import EventEmitter from "events";
 import oswService from "../../../service/osw-service";
 import { OSWConfidenceRequest } from "../../../model/osw-confidence-request";
-import { WorkflowBase } from "../../models/orchestrator-base";
+import { WorkflowBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
 export class PublishConfidenceRequestWorkflow extends WorkflowBase {
 
-    constructor(workflowEvent: EventEmitter) {
-        super(workflowEvent, "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW");
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any) {
-        console.log("Triggered OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW :", message.messageType);
+        console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
             let tdei_record_id = message.messageId;
             const oswRecord = await oswService.getOSWRecordById(tdei_record_id)
@@ -29,7 +29,7 @@ export class PublishConfidenceRequestWorkflow extends WorkflowBase {
                 data: confidenceRequestMsg
             });
             //trigger handlers
-            appContext.orchestratorServiceInstance!.delegateWorkflowHandlers(queueMessage);
+            this.delegateWorkflowHandlers(queueMessage);
         }
         catch (error) {
             console.error("Error in handling the confidence request workflow", error);
