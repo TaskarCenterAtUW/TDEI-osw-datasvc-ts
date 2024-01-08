@@ -16,61 +16,53 @@
                         "anyOf": [
                             {
                                 "const": "TRIGGER",
-                                "title": "Defines that the worklow can be triggered via orchestrator"
+                                "title": "Represents the workflow that initiates a process"
                             },
                             {
                                 "const": "HANDLER",
-                                "title": "Defines that the worklow can handle the response messages and cannot be triggered via orchestrator"
+                                "title": "Represents the workflow that manages or processes data"
                             }
                         ]
                     },
                     "stage": {
                         "type": "string",
-                        "description": "Defines the workflow stage"
+                        "description": "Specifies the stage of the workflow. Stages are used to categorize the steps in a workflow process"
                     },
                     "group": {
                         "type": "string",
-                        "description": "Defines the workflow group"
+                        "description": "Specifies the group of the workflow. Groups are used to categorize related workflows"
                     },
                     "identifier": {
                         "type": "string",
-                        "description": "Uniquely identifies the workflow."
+                        "description": "Uniquely identifies the workflow. This is used to reference the workflow in the system"
                     },
                     "generic_workflow": {
                         "type": "boolean",
-                        "description": "If 'true', confirms workflow to execute generic workflow, which forwards the message to the next step without any processing and not required to define Workflow request/response class"
+                        "description": "A boolean that indicates whether the workflow is generic. If true, the workflow forwards the message to the next step without any processing and does not require a Workflow request/response class to be defined"
                     },
                     "next_steps": {
                         "type": "array",
-                        "description": "Defines the handlers to respond to the workflow request",
+                        "description": "An array that specifies the next steps to respond to the workflow request",
                         "items": {
                             "type": "object",
                             "properties": {
                                 "process_identifier": {
                                     "type": "string",
-                                    "description": "Name of the process handler"
+                                    "description": "A string that names the process handler. The process handler is the function or method that handles the processing for this step of the workflow"
                                 },
                                 "params": {
                                     "type": "object",
-                                    "properties": {
-                                        "response_message_identifier": {
-                                            "type": "string",
-                                            "description": "Workflow identifier"
-                                        },
-                                        "topic": {
-                                            "type": "string",
-                                            "description": "Topic to publish the message"
-                                        }
-                                    },
+                                    "description": "An object that contains parameters to be passed to the process handler",
+                                    "properties": {},
                                     "required": []
                                 },
                                 "delegate_worflow": {
+                                    "description": "An Array, used to delegate process to other workflows",
                                     "type": "array"
                                 }
                             },
                             "required": [
-                                "process_identifier",
-                                "params"
+                                "process_identifier"
                             ]
                         }
                     }
@@ -90,11 +82,11 @@
                 "properties": {
                     "description": {
                         "type": "string",
-                        "description": "Free text description"
+                        "description": "A string that provides a free text description of the subscription. This could be used to give more context or details about the subscription"
                     },
                     "topic": {
                         "type": "string",
-                        "description": "Topic name where the message are posted"
+                        "description": "A string that specifies the name of the topic where the messages are posted. In a publish-subscribe pattern, a topic is a category or a label that acts as a 'bucket' where publishers send messages and subscribers receive messages."
                     },
                     "subscription": {
                         "type": "string",
@@ -102,7 +94,6 @@
                     }
                 },
                 "required": [
-                    "description",
                     "topic",
                     "subscription"
                 ]
