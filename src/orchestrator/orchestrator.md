@@ -197,7 +197,9 @@ For new workflow please follow below steps
 Workflow of type `TRIGGER` can only be triggered.
 
 ```typescript
-//Compose the meesage
+//Compose the message
+// referenceId : record/job reference id
+// workflow_identifier : workflow identifier
  let queueMessage = QueueMessage.from({
                 messageId: referenceId,
                 messageType: workflow_identifier,
