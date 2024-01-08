@@ -1,22 +1,19 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
+import { WorkflowBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
-export class PublishFormattingResponseWorkflow implements IWorkflowRegister {
+export class PublishFormattingResponseWorkflow extends WorkflowBase {
 
-    constructor(private workflowEvent: EventEmitter) {
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW");
     }
 
-    register(): void {
-        this.workflowEvent.on("OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW", this.handleWorkflow);
-    }
-
-    handleWorkflow(message: QueueMessage, params: any) {
-        console.log("Triggered OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW :", message.messageType);
+    async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
+        console.log(`Triggered ${this.eventName} :`, message.messageType);
         //do any pre-requisite task
 
         if (message.data.success)//trigger handlers
-            appContext.orchestratorServiceInstance!.delegateWorkflowHandlers(message);
+            this.delegateWorkflowHandlers(message);
     }
 }

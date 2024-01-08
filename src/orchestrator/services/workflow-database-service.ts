@@ -1,6 +1,5 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import dbClient from "../../database/data-source";
-import { QueryConfig } from "pg";
 import { WorkflowHistoryEntity } from "../../database/entity/workflow-history-entity";
 
 

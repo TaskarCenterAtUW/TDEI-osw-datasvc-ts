@@ -1,22 +1,10 @@
-import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
+import { WorkflowBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
-export class PublishValidationRequestWorkflow implements IWorkflowRegister {
+export class PublishValidationRequestWorkflow extends WorkflowBase {
 
-    constructor(private workflowEvent: EventEmitter) {
-    }
-
-    register(): void {
-        this.workflowEvent.on("OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW", this.handleWorkflow);
-    }
-
-    handleWorkflow(message: QueueMessage, params: any) {
-        console.log("Triggered OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW");
-        //do any pre-requisite tasks
-
-        //trigger handlers
-        appContext.orchestratorServiceInstance!.delegateWorkflowHandlers(message);
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW");
     }
 }

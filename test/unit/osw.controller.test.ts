@@ -2,11 +2,9 @@ import oswController from "../../src/controller/osw-controller";
 import { OswDTO } from "../../src/model/osw-dto";
 import oswService from "../../src/service/osw-service";
 import { getMockReq, getMockRes } from "@jest-mock/express";
-import { TdeiObjectFaker } from "../common/tdei-object-faker";
 import HttpException from "../../src/exceptions/http/http-base-exception";
-import { DuplicateException, InputException, OverlapException } from "../../src/exceptions/http/http-exceptions";
-import { getMockFileEntity, mockCore } from "../common/mock-utils";
-import storageService from "../../src/service/storage-service";
+import { InputException } from "../../src/exceptions/http/http-exceptions";
+import { getMockFileEntity } from "../common/mock-utils";
 
 // group test using describe
 describe("OSW Controller Test", () => {

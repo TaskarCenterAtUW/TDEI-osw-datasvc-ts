@@ -340,6 +340,14 @@ class GtfsOSWController implements IController {
             }
             let source = request.body['source']; //TODO: Validate the input enums 
             let target = request.body['target'];
+            if (source == undefined || target == undefined) {
+                throw new InputException("Missing source/target input");
+            }
+
+            if (source == target) {
+                throw new InputException("Source and Target value cannot be same");
+            }
+
             let job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id,);
             response.setHeader('Location', `/api/v1/osw/convert/status/${job_id}`);
             return response.status(202).send({ 'job_id': job_id });

@@ -1,19 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import appContext from "../../../app-context";
-import { IWorkflowRegister } from "../../models/config-model";
 import EventEmitter from "events";
-import { OswValidationJobs } from "../../../database/entity/osw-validate-jobs";
-import dbClient from "../../../database/data-source";
 import oswService from "../../../service/osw-service";
 import { OswFormatJobResponse } from "../../../model/osw-format-job-response";
+import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
 
-export class OswOnDemandFormattingResponseHandler implements IWorkflowRegister {
+export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
 
-    constructor(private workflowEvent: EventEmitter) {
-    }
-
-    register(): void {
-        this.workflowEvent.on("OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER", this.handleMessage);
+    constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
+        super(workflowEvent, orchestratorServiceInstance, "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER");
     }
 
     /**
@@ -22,8 +17,8 @@ export class OswOnDemandFormattingResponseHandler implements IWorkflowRegister {
      * @param delegate_worflow 
      * @param params 
      */
-    private async handleMessage(message: QueueMessage, delegate_worflow: string[], params: any) {
-        console.log("Triggered OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER :", message.messageType);
+    async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
+        console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
             const response = OswFormatJobResponse.from(message.data);
@@ -34,6 +29,6 @@ export class OswOnDemandFormattingResponseHandler implements IWorkflowRegister {
         }
 
         if (message.data.success)
-            appContext.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
+            this.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

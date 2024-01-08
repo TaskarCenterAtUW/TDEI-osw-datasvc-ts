@@ -12,7 +12,6 @@ import { ProjectGroupRoleDto } from "../../model/project-group-role-dto";
 import { OswMetadataEntity } from "../../database/entity/osw-metadata";
 import { OswUploadMeta } from "../../model/osw-upload-meta";
 import { ServiceDto } from "../../model/service-dto";
-import { File } from "buffer";
 
 export interface IOswService {
     /**
@@ -156,5 +155,5 @@ export interface IOswService {
      * @param fullUrl - full URL of the file
      * @returns Promise containing FileEntity
      */
-    getFileEntity(fullUrl:string): Promise<FileEntity>
+    getFileEntity(fullUrl: string): Promise<FileEntity>
 }
