@@ -53,7 +53,7 @@ export class OswQueryParams {
         queryObject.buildOrder("uploaded_timestamp", SqlORder.DESC);
 
         //Do not serve deleted records
-        queryObject.condition(` status != $${queryObject.paramCouter++} `, 'Invalid');
+        queryObject.condition(` status != $${queryObject.paramCouter++} `, 'Deleted');
 
         //Add conditions
         if (this.status && this.status == RecordStatus["Pre-Release"] && projectGroupIds.length) {

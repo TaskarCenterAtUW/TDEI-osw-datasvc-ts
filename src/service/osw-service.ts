@@ -43,7 +43,7 @@ class OswService implements IOswService {
      */
     async invalidateRecordRequest(user_id: any, tdei_record_id: string): Promise<boolean> {
         try {
-            const queryResult = await dbClient.query(OswVersions.getInvalidateRecordQuery(tdei_record_id, user_id));
+            const queryResult = await dbClient.query(OswVersions.getDeleteRecordQuery(tdei_record_id, user_id));
             if (queryResult.rowCount && queryResult.rowCount > 0) {
                 return Promise.resolve(true);
             }
@@ -459,7 +459,7 @@ class OswService implements IOswService {
         if (osw.rowCount == 0)
             throw new HttpException(404, "File not found");
 
-        if (osw.rows[0].status == "Invalid")
+        if (osw.rows[0].status == "Deleted")
             throw new HttpException(404, "Request record is deleted");
 
         const storageClient = Core.getStorageClient();
@@ -567,7 +567,7 @@ class OswService implements IOswService {
         if (result.rowCount == 0)
             throw new HttpException(404, "Record not found");
 
-        if (result.rows[0].status == "Invalid")
+        if (result.rows[0].status == "Deleted")
             throw new HttpException(400, "Request record is invalid/deleted");
 
         const record = result.rows[0];

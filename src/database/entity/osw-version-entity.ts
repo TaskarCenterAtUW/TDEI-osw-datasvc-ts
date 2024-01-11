@@ -103,9 +103,9 @@ export class OswVersions extends BaseDto {
         return queryObject;
     }
 
-    static getInvalidateRecordQuery(tdei_record_id: string, user_id: string): QueryConfig {
+    static getDeleteRecordQuery(tdei_record_id: string, user_id: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_versions SET status = 'Invalid' , updated_at = CURRENT_TIMESTAMP, updated_by = $1   
+            text: `UPDATE public.osw_versions SET status = 'Deleted' , updated_at = CURRENT_TIMESTAMP, updated_by = $1   
             WHERE tdei_record_id = $2`,
             values: [user_id, tdei_record_id]
         }
