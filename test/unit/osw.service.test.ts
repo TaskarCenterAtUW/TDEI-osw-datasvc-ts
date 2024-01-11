@@ -1065,15 +1065,14 @@ describe("OSW Service Test", () => {
             const user_id = "mock-user-id";
             const tdei_record_id = "mock-tdei-record-id";
             const dummyResponse = <QueryResult<any>>{ rowCount: 0 };
+            const error = new InputException("mock-tdei-record-id not found.");
             const dbspy = jest
                 .spyOn(dbClient, "query")
                 .mockResolvedValueOnce(dummyResponse);
             // Act
-            const result = await oswService.invalidateRecordRequest(user_id, tdei_record_id);
-
             // Assert
+            await expect(oswService.invalidateRecordRequest(user_id, tdei_record_id)).rejects.toThrow(error);
             expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
-            expect(result).toBe(false);
         });
 
         it("should throw an error if an error occurs while invalidating the record", async () => {
