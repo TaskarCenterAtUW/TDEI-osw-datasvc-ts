@@ -48,7 +48,7 @@ class OswService implements IOswService {
                 return Promise.resolve(true);
             }
 
-            return Promise.resolve(false);
+            throw new InputException(`${tdei_record_id} not found.`);
 
         } catch (error) {
             console.error("Error invalidating the record", error);
