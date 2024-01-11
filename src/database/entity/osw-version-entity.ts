@@ -41,6 +41,10 @@ export class OswVersions extends BaseDto {
     status: string = "Pre-Release";
     @Prop()
     uploaded_timestamp!: Date;
+    @Prop()
+    updated_at!: string;
+    @Prop()
+    updated_by!: string;
 
     constructor(init?: Partial<OswVersions>) {
         super();
@@ -64,8 +68,9 @@ export class OswVersions extends BaseDto {
                 status,
                 uploaded_timestamp,
                 download_changeset_url,
-                download_metadata_url)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`.replace(/\n/g, ""),
+                download_metadata_url,
+                updated_by)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`.replace(/\n/g, ""),
             values: [this.tdei_record_id, this.tdei_service_id, this.tdei_project_group_id,
             this.download_osw_url
                 , this.uploaded_by,
@@ -73,7 +78,8 @@ export class OswVersions extends BaseDto {
             this.status,
             new Date(),
             this.download_changeset_url ?? null,
-            this.download_metadata_url]
+            this.download_metadata_url,
+            this.updated_by]
         }
         return queryObject;
     }
@@ -81,7 +87,7 @@ export class OswVersions extends BaseDto {
 
     static getUpdateFormatUrlQuery(tdei_record_id: string, download_osm_url: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_versions SET download_osm_url = $1 , uploaded_timestamp = CURRENT_TIMESTAMP
+            text: `UPDATE public.osw_versions SET download_osm_url = $1 , updated_at = CURRENT_TIMESTAMP 
             WHERE tdei_record_id = $2`,
             values: [download_osm_url, tdei_record_id]
         }
@@ -90,9 +96,18 @@ export class OswVersions extends BaseDto {
 
     static getPublishRecordQuery(tdei_record_id: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_versions SET status = 'Publish' , uploaded_timestamp = CURRENT_TIMESTAMP
+            text: `UPDATE public.osw_versions SET status = 'Publish' , updated_at = CURRENT_TIMESTAMP 
             WHERE tdei_record_id = $1`,
             values: [tdei_record_id]
+        }
+        return queryObject;
+    }
+
+    static getInvalidateRecordQuery(tdei_record_id: string, user_id: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE public.osw_versions SET status = 'Invalid' , updated_at = CURRENT_TIMESTAMP, updated_by = $1   
+            WHERE tdei_record_id = $2`,
+            values: [user_id, tdei_record_id]
         }
         return queryObject;
     }

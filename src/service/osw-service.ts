@@ -37,6 +37,26 @@ class OswService implements IOswService {
     constructor() { }
 
     /**
+     * Invalidate the record
+     * @param user_id 
+     * @param tdei_record_id 
+     */
+    async invalidateRecordRequest(user_id: any, tdei_record_id: string): Promise<boolean> {
+        try {
+            const queryResult = await dbClient.query(OswVersions.getInvalidateRecordQuery(tdei_record_id, user_id));
+            if (queryResult.rowCount && queryResult.rowCount > 0) {
+                return Promise.resolve(true);
+            }
+
+            return Promise.resolve(false);
+
+        } catch (error) {
+            console.error("Error invalidating the record", error);
+            throw error;
+        }
+    }
+
+    /**
          * On-demand format request
          * @param source 
          * @param target 
@@ -62,6 +82,7 @@ class OswService implements IOswService {
             oswformatJob.target = target; //TODO: Validate the input enums
             oswformatJob.source_url = remoteUrl;
             oswformatJob.status = 'started';
+            oswformatJob.requested_by = user_id;
 
             const jobId = await this.createOSWFormatJob(oswformatJob);
             // Send the same to service bus.
@@ -109,7 +130,7 @@ class OswService implements IOswService {
             confidence_job.cm_last_calculated_at = new Date();
             confidence_job.user_id = user_id;
             confidence_job.cm_version = 'v1.0';
-            const jobId = await oswService.createOSWConfidenceJob(confidence_job);
+            const jobId = await this.createOSWConfidenceJob(confidence_job);
 
             // Send the details to the confidence metric.
             //TODO: Fill based on the metadata received
@@ -199,7 +220,8 @@ class OswService implements IOswService {
 
             let validationJob = OswValidationJobs.from({
                 upload_url: datasetUploadUrl,
-                status: "In-progress"
+                status: "In-progress",
+                requested_by: user_id
             });
 
             const insertQuery = validationJob.getInsertQuery();
@@ -279,6 +301,7 @@ class OswService implements IOswService {
             oswEntity.download_metadata_url = decodeURIComponent(metadataUploadUrl);
             oswEntity.download_osw_url = decodeURIComponent(datasetUploadUrl);
             oswEntity.uploaded_by = uploadRequestObject.user_id;
+            oswEntity.updated_by = uploadRequestObject.user_id;
             await this.createOsw(oswEntity);
 
             // Insert metadata into database
@@ -427,7 +450,7 @@ class OswService implements IOswService {
     async getOswStreamById(id: string, format: string = "osw"): Promise<FileEntity[]> {
         let fileEntities: FileEntity[] = [];
         const query = {
-            text: 'Select download_osw_url, download_osm_url, download_changeset_url, download_metadata_url from osw_versions WHERE tdei_record_id = $1',
+            text: 'Select status,download_osw_url, download_osm_url, download_changeset_url, download_metadata_url from osw_versions WHERE tdei_record_id = $1',
             values: [id],
         }
 
@@ -435,6 +458,9 @@ class OswService implements IOswService {
 
         if (osw.rowCount == 0)
             throw new HttpException(404, "File not found");
+
+        if (osw.rows[0].status == "Invalid")
+            throw new HttpException(404, "Request record is deleted");
 
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
@@ -540,6 +566,10 @@ class OswService implements IOswService {
         const result = await dbClient.query(query);
         if (result.rowCount == 0)
             throw new HttpException(404, "Record not found");
+
+        if (result.rows[0].status == "Invalid")
+            throw new HttpException(404, "Request record is deleted");
+
         const record = result.rows[0];
         const osw = OswVersions.from(record);
 
@@ -706,11 +736,11 @@ class OswService implements IOswService {
             return Promise.reject(error);
         }
     }
-    
+
     getFileEntity(fullUrl: string): Promise<FileEntity> {
         const storageClient = Core.getStorageClient();
         return storageClient!.getFileFromUrl(fullUrl);
-        
+
     }
 }
 

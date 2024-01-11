@@ -52,6 +52,9 @@ export class OswQueryParams {
         queryObject.buildPagination(this.page_no, this.page_size);
         queryObject.buildOrder("uploaded_timestamp", SqlORder.DESC);
 
+        //Do not serve deleted records
+        queryObject.condition(` status != $${queryObject.paramCouter++} `, 'Invalid');
+
         //Add conditions
         if (this.status && this.status == RecordStatus["Pre-Release"] && projectGroupIds.length) {
             queryObject.condition(` status = 'Pre-Release' AND tdei_project_group_id in ($${queryObject.paramCouter++}) `, projectGroupIds.join(","));

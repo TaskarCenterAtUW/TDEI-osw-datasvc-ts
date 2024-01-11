@@ -20,6 +20,8 @@ export class OswValidationJobs extends BaseDto {
     created_at!: Date;
     @Prop()
     updated_at!: Date;
+    @Prop()
+    requested_by!: Date;
 
     constructor(init?: Partial<OswValidationJobs>) {
         super();
@@ -31,9 +33,10 @@ export class OswValidationJobs extends BaseDto {
         const queryObject = {
             text: `INSERT INTO public.osw_validation_jobs(
                 upload_url,
-                status
-            ) VALUES($1, $2) RETURNING *`.replace(/\n/g, ""),
-            values: [this.upload_url, this.status]
+                status,
+                requested_by
+            ) VALUES($1, $2, $3) RETURNING *`.replace(/\n/g, ""),
+            values: [this.upload_url, this.status, this.requested_by]
         }
         return queryObject;
     }

@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS public.osw_versions
     cm_version character varying COLLATE pg_catalog."default",
     cm_last_calculated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     download_osm_url character varying COLLATE pg_catalog."default",
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_by character varying,
     status character varying COLLATE pg_catalog."default",
     CONSTRAINT "PK_id" PRIMARY KEY (id),
     CONSTRAINT unq_record_id UNIQUE (tdei_record_id)
@@ -74,6 +76,8 @@ CREATE TABLE IF NOT EXISTS public.osw_formatting_jobs
     status character varying COLLATE pg_catalog."default" NOT NULL,
     source_url character varying COLLATE pg_catalog."default" NOT NULL,
     target_url character varying COLLATE pg_catalog."default" NOT NULL,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    requested_by character varying,
     message character varying COLLATE pg_catalog."default" NOT NULL,
     created_at  timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
      CONSTRAINT "PK_jobId" PRIMARY KEY (jobId)
@@ -87,6 +91,7 @@ CREATE TABLE IF NOT EXISTS public.osw_validation_jobs
     validation_result character varying COLLATE pg_catalog."default",
     created_at  timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    requested_by character varying,
      CONSTRAINT "PK_validation_job_id" PRIMARY KEY (job_id)
 )
 

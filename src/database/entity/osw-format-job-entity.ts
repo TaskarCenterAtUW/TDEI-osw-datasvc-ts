@@ -31,32 +31,37 @@ export class OswFormatJob extends BaseDto {
     message: string = ''
     @Prop()
     created_at!: Date;
+    @Prop()
+    requested_by!: Date;
+    @Prop()
+    updated_at!: Date;
 
-    constructor(init?: Partial<OswFormatJob>){
+    constructor(init?: Partial<OswFormatJob>) {
         super();
-        Object.assign(this,init);
+        Object.assign(this, init);
     }
 
     getInsertQuery(): QueryConfig {
 
         const queryObject = {
-            text:`INSERT INTO public.osw_formatting_jobs(
+            text: `INSERT INTO public.osw_formatting_jobs(
                 source,
                 target,
                 status,
                 source_url,
                 target_url,
                 message,
-                created_at
-            ) VALUES($1, $2, $3, $4, '','',$5) RETURNING *`.replace(/\n/g,""),
-            values:[this.source, this.target, this.status, this.source_url,this.created_at]
+                created_at,
+                requested_by
+            ) VALUES($1, $2, $3, $4, '','',$5, $6) RETURNING *`.replace(/\n/g, ""),
+            values: [this.source, this.target, this.status, this.source_url, this.created_at, this.requested_by]
         }
         return queryObject;
     }
 
-    static getUpdateStatusQuery(jobId:string ,status:string, target_url:string, message:string): QueryConfig {
+    static getUpdateStatusQuery(jobId: string, status: string, target_url: string, message: string): QueryConfig {
         const queryObject = {
-            text:`UPDATE public.osw_formatting_jobs SET status = $1, target_url = $2, message = $3
+            text: `UPDATE public.osw_formatting_jobs SET status = $1, target_url = $2, message = $3, updated_at = CURRENT_TIMESTAMP  
             WHERE jobid = $4`,
             values: [status, target_url, message, jobId]
         }
