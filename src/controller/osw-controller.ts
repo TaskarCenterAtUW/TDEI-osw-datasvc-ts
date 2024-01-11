@@ -84,7 +84,7 @@ class GtfsOSWController implements IController {
         this.router.post(`${this.path}/confidence/calculate`, authenticate, this.calculateConfidence); // Confidence calculation
         this.router.get(`${this.path}/confidence/status/:job_id`, authenticate, this.getConfidenceJobStatus);
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        this.router.delete(`${this.path}/:tdei_record_id`, authenticate, this.invalidateRecordRequest);
+        this.router.delete(`${this.path}/:tdei_record_id`, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
         this.router.get(`${this.path}/convert/status/:job_id`, authenticate, this.getFormatStatus);
         this.router.get(`${this.path}/validate/status/:job_id`, authenticate, this.getValidateStatus);
         this.router.get(`${this.path}/upload/status/:tdei_record_id`, authenticate, this.getUploadStatus);

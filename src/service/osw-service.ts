@@ -568,7 +568,7 @@ class OswService implements IOswService {
             throw new HttpException(404, "Record not found");
 
         if (result.rows[0].status == "Invalid")
-            throw new HttpException(404, "Request record is deleted");
+            throw new HttpException(400, "Request record is invalid/deleted");
 
         const record = result.rows[0];
         const osw = OswVersions.from(record);
