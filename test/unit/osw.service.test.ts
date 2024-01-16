@@ -1040,5 +1040,54 @@ describe("OSW Service Test", () => {
         });
 
     });
+
+    describe("Invalidate Record Request", () => {
+        it("should invalidate the record and return true if query result has rowCount > 0", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_record_id = "mock-tdei-record-id";
+
+            const dummyResponse = <QueryResult<any>>{ rowCount: 1 };
+            const dbspy = jest
+                .spyOn(dbClient, "query")
+                .mockResolvedValueOnce(dummyResponse);
+
+            // Act
+            const result = await oswService.invalidateRecordRequest(user_id, tdei_record_id);
+
+            // Assert
+            expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
+            expect(result).toBe(true);
+        });
+
+        it("should not invalidate the record and return false if query result has rowCount <= 0", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_record_id = "mock-tdei-record-id";
+            const dummyResponse = <QueryResult<any>>{ rowCount: 0 };
+            const error = new InputException("mock-tdei-record-id not found.");
+            const dbspy = jest
+                .spyOn(dbClient, "query")
+                .mockResolvedValueOnce(dummyResponse);
+            // Act
+            // Assert
+            await expect(oswService.invalidateRecordRequest(user_id, tdei_record_id)).rejects.toThrow(error);
+            expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
+        });
+
+        it("should throw an error if an error occurs while invalidating the record", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_record_id = "mock-tdei-record-id";
+            const error = new Error("Database error");
+            const dbspy = jest
+                .spyOn(dbClient, "query")
+                .mockRejectedValueOnce(error);
+
+            // Act & Assert
+            await expect(oswService.invalidateRecordRequest(user_id, tdei_record_id)).rejects.toThrow(error);
+            expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
+        });
+    });
 });
 

@@ -26,10 +26,6 @@ export class OswMetadataEntity extends BaseDto {
 
     @Prop()
     @IsOptional()
-    derived_from_dataset_id!: string;
-
-    @Prop()
-    @IsOptional()
     custom_metadata!: Object;
 
     @Prop()

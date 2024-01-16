@@ -15,7 +15,6 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
-import fs from 'fs';
 import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
 import { FileEntityStream } from "../utility/utility";
 /**
@@ -85,6 +84,7 @@ class GtfsOSWController implements IController {
         this.router.post(`${this.path}/confidence/calculate`, authenticate, this.calculateConfidence); // Confidence calculation
         this.router.get(`${this.path}/confidence/status/:job_id`, authenticate, this.getConfidenceJobStatus);
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
+        this.router.delete(`${this.path}/:tdei_record_id`, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
         this.router.get(`${this.path}/convert/status/:job_id`, authenticate, this.getFormatStatus);
         this.router.get(`${this.path}/validate/status/:job_id`, authenticate, this.getValidateStatus);
         this.router.get(`${this.path}/upload/status/:tdei_record_id`, authenticate, this.getUploadStatus);
@@ -230,6 +230,32 @@ class GtfsOSWController implements IController {
             }
             response.status(500).send("Error while processing the publish request");
             next(new HttpException(500, "Error while processing the publish request"));
+        }
+    }
+
+
+    /**
+    * Invalidates the tdei record 
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    invalidateRecordRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            let tdei_record_id = request.params["tdei_record_id"];
+            await oswService.invalidateRecordRequest(request.body.user_id, tdei_record_id);
+
+            return response.status(200).send(true);
+
+        } catch (error) {
+            console.error("Error while processing the invalidate request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the invalidate request");
+            next(new HttpException(500, "Error while processing the invalidate request"));
         }
     }
 
@@ -381,7 +407,7 @@ class GtfsOSWController implements IController {
             const jobInfo = await oswService.getOSWFormatJob(job_id);
             const responseData = {
                 'job_id': job_id,
-                'downloadUrl': '/api/v1/osw/convert/download/'+job_id,
+                'downloadUrl': '/api/v1/osw/convert/download/' + job_id,
                 'conversion': jobInfo.source + '-' + jobInfo.target,
                 'status': jobInfo.status,
                 'message': jobInfo.message
@@ -409,16 +435,16 @@ class GtfsOSWController implements IController {
             }
             const jobInfo = await oswService.getOSWFormatJob(job_id);
 
-            if (jobInfo.status != 'completed'){
+            if (jobInfo.status != 'completed') {
                 throw new JobIncompleteException(job_id);
             }
             // Get the file entity for the file
             const fileEntity = await oswService.getFileEntity(jobInfo.target_url);
             if (jobInfo.target == 'osm') {
                 // OSM implies xml file
-            response.setHeader('Content-Type', 'application/xml');
-            response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
-            (await fileEntity.getStream()).pipe(response);
+                response.setHeader('Content-Type', 'application/xml');
+                response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
+                (await fileEntity.getStream()).pipe(response);
 
             }
             else if (jobInfo.target == 'osw') {

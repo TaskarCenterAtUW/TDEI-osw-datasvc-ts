@@ -57,7 +57,8 @@ export class OSWConfidenceResponse extends AbstractDomainEntity {
             text: `UPDATE public.osw_versions SET 
             confidence_level = $1,
             cm_version= $2, 
-            cm_last_calculated_at=$3 
+            cm_last_calculated_at=$3,
+            updated_at= CURRENT_TIMESTAMP  
             WHERE 
             tdei_record_id=$4 
             RETURNING tdei_record_id`,

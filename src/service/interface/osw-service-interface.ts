@@ -15,6 +15,12 @@ import { ServiceDto } from "../../model/service-dto";
 
 export interface IOswService {
     /**
+     * Invalidate the record
+     * @param user_id 
+     * @param tdei_record_id 
+     */
+    invalidateRecordRequest(user_id: any, tdei_record_id: string): Promise<boolean>;
+    /**
      * Gets the service details for given projectGroupId and serviceid
      * @param serviceId service id uniquely represented by TDEI system
      * @param projectGroupId oraganization id uniquely represented by TDEI system

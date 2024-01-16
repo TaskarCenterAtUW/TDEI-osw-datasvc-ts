@@ -446,7 +446,7 @@ describe("OSW Controller Test", () => {
         let mockNext: jest.Mock;
 
         beforeEach(() => {
-            mockRequest = {
+            mockRequest = getMockReq({
                 body: {
                     user_id: 'mock-user-id',
                     source: 'mock-source',
@@ -455,8 +455,8 @@ describe("OSW Controller Test", () => {
                 file: {
                     originalname: 'mock-file.txt',
                     buffer: Buffer.from('Mock file content'),
-                },
-            };
+                }
+            });
 
             mockResponse = {
                 status: jest.fn().mockReturnThis(),
@@ -502,6 +502,73 @@ describe("OSW Controller Test", () => {
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the format request');
             expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+    });
+
+    describe('Invalidate the record', () => {
+
+        test("When requested to invalidate a record, Expect to return http status 200 and true if successful", async () => {
+            // Arrange
+            const req = getMockReq({ body: { user_id: "user_id" }, params: { tdei_record_id: "record_id" } });
+            const { res, next } = getMockRes();
+            const invalidateRecordRequestSpy = jest.spyOn(oswService, "invalidateRecordRequest").mockResolvedValueOnce(true);
+
+            // Act
+            await oswController.invalidateRecordRequest(req, res, next);
+
+            // Assert
+            expect(invalidateRecordRequestSpy).toHaveBeenCalledWith(req.body.user_id, req.params.tdei_record_id);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(true);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When an error occurs while processing the invalidate request, Expect to return http status 500 and error message", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_record_id: "record_id"
+                },
+                body: {
+                    user_id: "user_id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new Error("Error while processing the invalidate request");
+            const invalidateRecordRequestSpy = jest.spyOn(oswService, "invalidateRecordRequest").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.invalidateRecordRequest(req, res, next);
+
+            // Assert
+            expect(invalidateRecordRequestSpy).toHaveBeenCalledWith(req.body.user_id, req.params.tdei_record_id);
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the invalidate request");
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When an HttpException occurs while processing the invalidate request, Expect to return corresponding http status and error message", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_record_id: "record_id"
+                },
+                body: {
+                    user_id: "user_id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new HttpException(400, "Bad request");
+            const invalidateRecordRequestSpy = jest.spyOn(oswService, "invalidateRecordRequest").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.invalidateRecordRequest(req, res, next);
+
+            // Assert
+            expect(invalidateRecordRequestSpy).toHaveBeenCalledWith(req.body.user_id, req.params.tdei_record_id);
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
         });
     });
 

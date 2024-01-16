@@ -8,6 +8,7 @@ import { environment } from "../environment/environment";
 import { UnAuthenticated } from '../exceptions/http/http-exceptions';
 import oswService from '../service/osw-service';
 import { PermissionRequest } from 'nodets-ms-core/lib/core/auth/model/permission_request';
+import HttpException from '../exceptions/http/http-base-exception';
 
 /**
  * Authorizes the request with provided allowed roles and tdei_project_group_id
@@ -24,8 +25,15 @@ export const authorize = (approvedRoles: string[]) => {
 
         if (req.params["tdei_record_id"]) {
             //Fetch tdei_project_group_id from tdei_record_id
-            let osw = await oswService.getOSWRecordById(req.params["tdei_record_id"]);
-            req.body.tdei_project_group_id = osw.tdei_project_group_id;
+            try {
+                let osw = await oswService.getOSWRecordById(req.params["tdei_record_id"]);
+                req.body.tdei_project_group_id = osw.tdei_project_group_id;
+            } catch (error) {
+                if (error instanceof HttpException) {
+                    return next(error);
+                }
+                return next(new HttpException(500, "Error processing the request"));
+            }
         }
         else if (req.params["tdei_project_group_id"]) {
             req.body.tdei_project_group_id = req.params["tdei_project_group_id"];

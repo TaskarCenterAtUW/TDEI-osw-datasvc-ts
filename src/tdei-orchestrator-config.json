@@ -1,5 +1,5 @@
 {
-    "$schema": "./tdei-orchestrator.schema.json",
+    "$schema": "../schema/tdei-orchestrator.schema.json",
     "workflows": [
         {
             "group": "UPLOAD_OSW",
