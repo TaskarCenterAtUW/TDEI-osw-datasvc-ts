@@ -6,6 +6,7 @@ COPY package.json ./
 COPY tsconfig.json ./
 COPY src ./src
 COPY db-management ./db-management
+COPY schema ./schema
 COPY .db-migraterc ./
 RUN ls -a
 RUN npm install
