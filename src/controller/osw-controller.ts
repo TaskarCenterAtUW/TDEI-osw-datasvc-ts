@@ -510,7 +510,7 @@ class GtfsOSWController implements IController {
                 'tdei_record_id': workflowRow.reference_id,
                 'stage': workflowRow.workflow_stage,
                 'status': workflowRow.status != "" ? workflowRow.status : "Pending",
-                'completed': oswRecord.status == "Publish" ? true : false
+                'completed': oswRecord.status == "Publish"
             };
             response.status(200).send(responseData);
         } catch (error) {
@@ -539,13 +539,13 @@ class GtfsOSWController implements IController {
 
             let workflowRow = await workflowDatabaseService.getLatestWorkflowHistory(tdei_record_id, "UPLOAD_OSW");
             if (!workflowRow)
-                throw new InputException(`Publish record not initiated for the ${tdei_record_id}`);
+                throw new InputException(`Publish record not initiated for the tdei_record_id ${tdei_record_id}`);
 
             const responseData = {
                 'tdei_record_id': workflowRow.reference_id,
                 'stage': workflowRow.workflow_stage,
                 'status': workflowRow.status == "Success" ? workflowRow.status : workflowRow.message,
-                'completed': workflowRow.status != "" ? true : false
+                'completed': (workflowRow.status != "" && workflowRow.status == "Success")
             };
             response.status(200).send(responseData);
         } catch (error) {

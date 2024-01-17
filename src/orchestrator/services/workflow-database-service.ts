@@ -197,8 +197,11 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
             }
 
             let result = await dbClient.query(queryObject);
-
-            return Promise.resolve(new WorkflowHistoryEntity(result.rows[0]));
+            if (result.rowCount == 0) {
+                return Promise.resolve(undefined);
+            } else {
+                return Promise.resolve(new WorkflowHistoryEntity(result.rows[0]));
+            }
         } catch (error) {
             console.error("Error updating the osw workflow history", error);
             return Promise.resolve(undefined);
