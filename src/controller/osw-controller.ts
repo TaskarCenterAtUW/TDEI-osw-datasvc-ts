@@ -510,7 +510,7 @@ class GtfsOSWController implements IController {
                 'tdei_record_id': workflowRow.reference_id,
                 'stage': workflowRow.workflow_stage,
                 'status': workflowRow.status != "" ? workflowRow.status : "Pending",
-                'completed': oswRecord.status == "Publish"
+                'published': oswRecord.status == "Publish"
             };
             response.status(200).send(responseData);
         } catch (error) {
