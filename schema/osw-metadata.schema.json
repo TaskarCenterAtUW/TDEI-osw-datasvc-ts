@@ -24,10 +24,22 @@
             "type": "string"
         },
         "collection_method": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+                "manual",
+                "transform",
+                "generated",
+                "AV",
+                "others"
+            ]
         },
         "data_source": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+                "3rdParty",
+                "TDEITools",
+                "InHouse"
+            ]
         },
         "osw_schema_version": {
             "type": "string"

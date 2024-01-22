@@ -921,6 +921,7 @@ describe("OSW Service Test", () => {
             tdei_service_id: 'service-id',
             tdei_project_group_id: 'project-group-id',
             user_id: 'user-id',
+            derived_from_dataset_id: "",
             datasetFile: [
                 {
                     originalname: 'dataset.zip',
