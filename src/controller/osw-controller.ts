@@ -273,7 +273,7 @@ class GtfsOSWController implements IController {
                 user_id: request.body.user_id,
                 tdei_project_group_id: request.params["tdei_project_group_id"],
                 tdei_service_id: request.params['tdei_service_id'],
-                derived_from_dataset_id: request.query.derived_from_dataset_id ? request.query.derived_from_dataset_id as string : "",
+                derived_from_dataset_id: request.query?.derived_from_dataset_id ? request.query?.derived_from_dataset_id as string : "",
                 datasetFile: (request.files as any)['dataset'],
                 metadataFile: (request.files as any)['metadata'],
                 changesetFile: (request.files as any)['changeset']
