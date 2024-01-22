@@ -4,6 +4,7 @@ import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
 import { IsValidPolygon } from '../../validators/polygon-validator';
+import { Utility } from '../../utility/utility';
 
 export class OswMetadataEntity extends BaseDto {
 
@@ -90,16 +91,14 @@ export class OswMetadataEntity extends BaseDto {
                 dataset_area)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`.replace(/\n/g, ""),
             values: [this.tdei_record_id, this.name, this.version, this.description,
-            this.custom_metadata, this.collected_by, this.collection_date, this.collection_method,
-            this.valid_from ? this.valid_from : new Date(), this.valid_to,
+            this.custom_metadata, this.collected_by, Utility.getUTCDate(this.collection_date), this.collection_method,
+            this.valid_from ? Utility.getUTCDate(this.valid_from) : Utility.getUTCDate(), Utility.getUTCDate(this.valid_to),
             this.data_source, this.osw_schema_version,
             this.dataset_area ? JSON.stringify(this.dataset_area.features[0].geometry) : null],
         }
 
         return queryObject;
     }
-
-
 
     /**
     * Query where the valid_from and valid_to dates are overlapping
@@ -115,8 +114,8 @@ export class OswMetadataEntity extends BaseDto {
     *  input_valid_from >= record_valid_from && input_valid_to 
     */
     getOverlapQuery(tdei_project_group_id: string, tdei_service_id: string): QueryConfig {
-        const fromDate = new Date(this.valid_from);
-        const toDate = this.valid_to ? new Date(this.valid_to) : new Date();
+        const fromDate = Utility.getUTCDate(this.valid_from);
+        const toDate = this.valid_to ? Utility.getUTCDate(this.valid_to) : Utility.getUTCDate();
 
         const queryObject = {
             text: `SELECT ov.tdei_record_id from public.osw_metadata om

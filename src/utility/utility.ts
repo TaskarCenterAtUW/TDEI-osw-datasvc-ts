@@ -6,6 +6,16 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 
 export class Utility {
 
+    /**
+     * Date to UTC string
+     * @param date 
+     * @returns 
+     */
+    public static getUTCDate(date?: Date): string {
+        if (!date) return (new Date()).toISOString();
+        return (new Date(date)).toISOString();
+    }
+
     public static dateIsValid(dateStr: any): boolean {
         try {
             const date = new Date(dateStr);
