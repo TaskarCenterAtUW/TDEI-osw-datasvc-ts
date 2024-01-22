@@ -255,6 +255,19 @@ class OswService implements IOswService {
     async processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string> {
         try {
 
+            //validate derived dataset id
+            if (uploadRequestObject.derived_from_dataset_id.length > 0) {
+                const query = {
+                    text: 'Select * from osw_versions WHERE tdei_record_id = $1',
+                    values: [uploadRequestObject.derived_from_dataset_id],
+                }
+
+                const result = await dbClient.query(query);
+                if (result.rowCount == 0) {
+                    throw new InputException("Derived dataset id not found");
+                }
+            }
+
             //Validate service_id 
             const service = await this.getServiceById(uploadRequestObject.tdei_service_id, uploadRequestObject.tdei_project_group_id);
             if (!service) {
@@ -297,6 +310,7 @@ class OswService implements IOswService {
             oswEntity.tdei_record_id = uid;
             oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
             oswEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
+            oswEntity.derived_from_dataset_id = uploadRequestObject.derived_from_dataset_id;
             oswEntity.download_changeset_url = changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "";
             oswEntity.download_metadata_url = decodeURIComponent(metadataUploadUrl);
             oswEntity.download_osw_url = decodeURIComponent(datasetUploadUrl);

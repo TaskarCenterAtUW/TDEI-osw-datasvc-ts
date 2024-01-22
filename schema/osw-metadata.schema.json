@@ -26,13 +26,11 @@
         "collection_method": {
             "type": "string",
             "enum": [
-                [
-                    "manual",
-                    "transform",
-                    "generated",
-                    "AV",
-                    "others"
-                ]
+                "manual",
+                "transform",
+                "generated",
+                "AV",
+                "others"
             ]
         },
         "data_source": {
