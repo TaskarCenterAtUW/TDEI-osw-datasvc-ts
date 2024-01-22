@@ -22,7 +22,7 @@ export async function metajsonValidator(req: Request, res: Response, next: NextF
         const metadata = JSON.parse(metadataFile[0].buffer);
         const valid = validate(metadata);
         if (!valid) {
-            const message = validate.errors?.map((error: ErrorObject) => error.message).join(", \n");
+            const message = validate.errors?.map((error: ErrorObject) => error.instancePath.replace('/', "") + " " + error.message).join(", \n");
             console.error("Metadata json validation error : ", message);
             next(new InputException(message as string));
         }
