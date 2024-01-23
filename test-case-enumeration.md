@@ -25,9 +25,9 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 ### Jest code pattern
 
 ```javascript
-describe("{{Component}}", () => {
-	describe("{{Feature Under Test}}", () => {
-		describe("{{Test Target}}", () => {  
+describe("User Controller", () => {
+	describe("Get List", () => {
+		describe("Functional", () => {  
 			const getTestData => return {};
 			it('{{Scenario}}, {{Expectation}}', () => {
 				//Arrange

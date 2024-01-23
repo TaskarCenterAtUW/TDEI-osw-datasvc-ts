@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 
 jest.mock('jsonwebtoken');
 
-describe('authenticate', () => {
+describe('Authenticate', () => {
 
     it('should call next() and set user_id if authorization header is valid', async () => {
         const req = getMockReq()
