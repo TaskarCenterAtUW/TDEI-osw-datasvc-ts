@@ -2,6 +2,7 @@ import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional } from "class-validator
 import { DynamicQueryObject, SqlORder } from "../database/dynamic-query-object";
 import { InputException } from "../exceptions/http/http-exceptions";
 import { Utility } from "../utility/utility";
+import { TdeiDate } from "../utility/tdei-date";
 
 export enum RecordStatus {
     "Publish" = "Publish",
@@ -16,9 +17,21 @@ export class OswQueryParams {
     @IsOptional()
     version: string | undefined;
     @IsOptional()
+    collection_method: string | undefined;
+    @IsOptional()
+    collected_by: string | undefined;
+    @IsOptional()
+    data_source: string | undefined;
+    @IsOptional()
+    derived_from_dataset_id: string | undefined;
+    @IsOptional()
+    collection_date: Date | undefined;
+    @IsOptional()
     osw_schema_version: string | undefined;
     @IsOptional()
-    date_time: string | undefined;
+    valid_to: string | undefined;
+    @IsOptional()
+    valid_from: string | undefined;
     @IsOptional()
     tdei_project_group_id: string | undefined;
     @IsOptional()
@@ -36,6 +49,8 @@ export class OswQueryParams {
     @ArrayMinSize(4)
     @ArrayMaxSize(4)
     bbox: Array<number> = [];
+
+    isAdmin = false;
 
     constructor(init?: Partial<OswQueryParams>) {
         Object.assign(this, init);
@@ -56,10 +71,12 @@ export class OswQueryParams {
         queryObject.condition(` status != $${queryObject.paramCouter++} `, 'Deleted');
 
         //Add conditions
-        if (this.status && this.status == RecordStatus["Pre-Release"] && projectGroupIds.length) {
+        if (this.status && this.status == RecordStatus["All"] && this.isAdmin) {
+            queryObject.condition(` (status = $${queryObject.paramCouter++} or status = 'Pre-Release') `, RecordStatus.Publish.toString());
+        } else if (this.status && this.status == RecordStatus["Pre-Release"] && projectGroupIds.length) {
             queryObject.condition(` status = 'Pre-Release' AND tdei_project_group_id in ($${queryObject.paramCouter++}) `, projectGroupIds.join(","));
         } else if (this.status && this.status == RecordStatus["All"] && projectGroupIds.length) {
-            queryObject.condition(` status = 'Publish' or (status ='Pre-Release' AND tdei_project_group_id in ($${queryObject.paramCouter++})) `, projectGroupIds.join(","));
+            queryObject.condition(` (status = 'Publish' or (status ='Pre-Release' AND tdei_project_group_id in ($${queryObject.paramCouter++}))) `, projectGroupIds.join(","));
         }
         else if (this.status && this.status == RecordStatus["All"] && projectGroupIds.length == 0) {
             queryObject.condition(` status = $${queryObject.paramCouter++} `, RecordStatus.Publish.toString());
@@ -70,6 +87,14 @@ export class OswQueryParams {
             queryObject.condition(` name ILIKE $${queryObject.paramCouter++} `, this.name + '%');
         if (this.version)
             queryObject.condition(` version = $${queryObject.paramCouter++} `, this.version);
+        if (this.confidence_level)
+            queryObject.condition(` confidence_level > $${queryObject.paramCouter++} `, this.confidence_level);
+        if (this.data_source)
+            queryObject.condition(` data_source = $${queryObject.paramCouter++} `, this.data_source);
+        if (this.collected_by)
+            queryObject.condition(` collected_by = $${queryObject.paramCouter++} `, this.collected_by);
+        if (this.collection_method)
+            queryObject.condition(` collection_method = $${queryObject.paramCouter++} `, this.collection_method);
         if (this.osw_schema_version)
             queryObject.condition(` osw_schema_version = $${queryObject.paramCouter++} `, this.osw_schema_version);
         if (this.tdei_project_group_id)
@@ -78,10 +103,20 @@ export class OswQueryParams {
             queryObject.condition(` tdei_service_id = $${queryObject.paramCouter++} `, this.tdei_service_id);
         if (this.tdei_record_id)
             queryObject.condition(` osw_versions.tdei_record_id = $${queryObject.paramCouter++} `, this.tdei_record_id);
-        if (this.date_time && Utility.dateIsValid(this.date_time))
-            queryObject.condition(` valid_to > $${queryObject.paramCouter++} `, (new Date(this.date_time).toISOString()));
-        else if (this.date_time && !Utility.dateIsValid(this.date_time))
-            throw new InputException("Invalid date provided." + this.date_time);
+        if (this.derived_from_dataset_id)
+            queryObject.condition(` osw_versions.derived_from_dataset_id = $${queryObject.paramCouter++} `, this.derived_from_dataset_id);
+        if (this.valid_to && TdeiDate.isValid(this.valid_to))
+            queryObject.condition(` valid_to > $${queryObject.paramCouter++} `, TdeiDate.UTC(this.valid_to));
+        else if (this.valid_to && !TdeiDate.isValid(this.valid_to))
+            throw new InputException("Invalid date provided." + this.valid_to);
+        if (this.valid_from && TdeiDate.isValid(this.valid_from))
+            queryObject.condition(` valid_from > $${queryObject.paramCouter++} `, TdeiDate.UTC(this.valid_from));
+        else if (this.valid_from && !TdeiDate.isValid(this.valid_from))
+            throw new InputException("Invalid date provided." + this.valid_from);
+        if (this.collection_date && TdeiDate.isValid(this.collection_date))
+            queryObject.condition(` collection_date > $${queryObject.paramCouter++} `, TdeiDate.UTC(this.collection_date));
+        else if (this.collection_date && !TdeiDate.isValid(this.collection_date))
+            throw new InputException("Invalid date provided." + this.collection_date);
         if (this.bbox && this.bbox.length > 0 && this.bbox.length == 4) {
             queryObject.condition(`polygon && ST_MakeEnvelope($${queryObject.paramCouter++},$${queryObject.paramCouter++},$${queryObject.paramCouter++},$${queryObject.paramCouter++}, 4326)`,
                 this.bbox);

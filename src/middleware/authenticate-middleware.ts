@@ -3,7 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import { UnAuthenticated } from '../exceptions/http/http-exceptions';
 
 /**
@@ -30,12 +30,13 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
             return
         }
         // Decode the token
-        const jwtOutput = jwt.decode(bearer);
+        const jwtOutput = jwt.decode(bearer) as JwtPayload;
         if (jwtOutput == null) {
             next(new UnAuthenticated());
             return
         }
         req.body.user_id = jwtOutput?.sub;
+        req.body.isAdmin = jwtOutput?.realm_access?.roles.includes('tdei-admin');
         next();
     }
 }

@@ -42,7 +42,10 @@
             ]
         },
         "osw_schema_version": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+                "v0.1"
+            ]
         },
         "valid_from": {
             "type": "string"

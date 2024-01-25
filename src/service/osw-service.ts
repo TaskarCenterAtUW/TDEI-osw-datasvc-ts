@@ -429,7 +429,7 @@ class OswService implements IOswService {
         //Builds the query object. All the query consitions can be build in getQueryObject()
         let userProjectGroups = await this.getUserProjectGroups(user_id);
 
-        if (params.status && params.status == RecordStatus["Pre-Release"] && !userProjectGroups)
+        if (params.status && params.status == RecordStatus["Pre-Release"] && !userProjectGroups && !params.isAdmin)
             throw new InputException("To fetch `Pre-Release` versions, User should belong to Project group/s");
 
         const queryObject = params.getQueryObject(userProjectGroups ? userProjectGroups!.map(x => x.tdei_project_group_id) : []);

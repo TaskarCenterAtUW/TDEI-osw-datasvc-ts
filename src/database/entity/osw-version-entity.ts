@@ -2,7 +2,7 @@ import { IsNotEmpty } from 'class-validator';
 import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
-import { Utility } from '../../utility/utility';
+import { TdeiDate } from '../../utility/tdei-date';
 
 export class OswVersions extends BaseDto {
 
@@ -77,7 +77,7 @@ export class OswVersions extends BaseDto {
                 , this.uploaded_by,
             this.derived_from_dataset_id ?? null,
             this.status,
-            Utility.getUTCDate(),
+            TdeiDate.UTC(),
             this.download_changeset_url ?? null,
             this.download_metadata_url,
             this.updated_by]
