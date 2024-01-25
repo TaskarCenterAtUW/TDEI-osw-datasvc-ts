@@ -64,7 +64,7 @@ Follow the steps to install the node packages required for testing the applicati
 
 ## Test Enumeration
 
-When new test cases are written, it is advise to run `npm run generate-test-enumeration` which will update the test-enumeration.md file with latest test case changes.
+When new test cases are written, it is required to run `npm run generate-test-enumeration` which will update the test-enumeration.md file with latest test case changes.
 
 ## System flow
 ---
@@ -149,7 +149,7 @@ Path : `/api/v1/osw`
 
 Method : `POST`
 
-Form data : Contains two requred and one optional file
+Form data : Contains two required and one optional file
 
 `metadata`: Payload in JSON format 
 
