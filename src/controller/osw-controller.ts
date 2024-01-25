@@ -111,6 +111,7 @@ class GtfsOSWController implements IController {
     getAllOsw = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             const params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
+            params.isAdmin = request.body.isAdmin;
             const osw = await oswService.getAllOsw(request.body.user_id, params);
             osw.forEach(x => {
                 x.download_url = `${this.path}/${x.tdei_record_id}`;

@@ -62,6 +62,10 @@ Follow the steps to install the node packages required for testing the applicati
     ```
 2. To start testing suits, use the command `npm test` , this command will execute all the unit test suites defined for application.
 
+## Test Enumeration
+
+When new test cases are written, it is required to run `npm run generate-test-enumeration` which will update the test-enumeration.md file with latest test case changes.
+
 ## System flow
 ---
 
@@ -145,60 +149,67 @@ Path : `/api/v1/osw`
 
 Method : `POST`
 
-Form data : Contains two parts
+Form data : Contains two required and one optional file
 
-`meta`: Payload in JSON format 
+`metadata`: Payload in JSON format 
 
-`file`: The zip file for osw
+`dataset`: The zip file for osw
 
-Example for meta 
+`changeset`: Optional, file containing upload details
+
+Example for metadata 
 
 ```json
 
 {
-  "tdei_project_group_id": "4e991e7a-5c16-4ebf-ad31-3a3625bcca10",
-  "collected_by": "See best practices document",
-  "collection_date": "2018-02-10T09:30Z",
-  "collection_method": "manual",
-  "publication_date": "2023-03-02T04:22:42.493Z",
-  "data_source": "3rdParty",
-  "polygon": {
-    "type": "FeatureCollection",
-    "features": [
-      {
-        "type": "Feature",
-        "id": "string",
-        "properties": {},
-        "geometry": {
-          "type": "string",
-          "coordinates": [
-            [
-              [
-                77.58700584031209,
-                12.97544246408998
-              ],
-              [
-                77.58670678771239,
-                12.974635462667848
-              ],
-              [
-                77.58782248394829,
-                12.974489753799247
-              ],
-              [
-                77.58813303857153,
-                12.97529675569426
-              ],
-              [
-                77.58700584031209,
-                12.97544246408998
-              ]]]
-          
-        }
-      }
-    ]
-  },
-  "osw_schema_version": "v0.1"
+    "name": "Sample OSW Upload",
+    "version": "1.0.2",
+    "description": "This is a sample OSW upload.",
+    "custom_metadata": {},
+    "collected_by": "John Doe",
+    "collection_date": "2024-01-18 21:17:48.357173-08",
+    "collection_method": "transform",
+    "data_source": "3rdParty",
+    "osw_schema_version": "v0.1",
+    "valid_from": "2024-01-18 21:17:48.357173-08",
+    "valid_to": "2024-01-19 22:17:48.357173-08",
+    "dataset_area": {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "id": "1",
+                "properties": {},
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [
+                                30.0,
+                                10.0
+                            ],
+                            [
+                                40.0,
+                                40.0
+                            ],
+                            [
+                                20.0,
+                                40.0
+                            ],
+                            [
+                                10.0,
+                                20.0
+                            ],
+                            [
+                                30.0,
+                                10.0
+                            ]
+                        ]
+                    ]
+                }
+            }
+        ]
+    }
 }
 
 ```

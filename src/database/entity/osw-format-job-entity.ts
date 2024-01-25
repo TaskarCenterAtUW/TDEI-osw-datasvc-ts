@@ -2,7 +2,7 @@ import { Prop } from "nodets-ms-core/lib/models";
 import { BaseDto } from "../../model/base-dto";
 import { IsNotEmpty, IsOptional } from "class-validator";
 import { QueryConfig } from "pg";
-import { Utility } from "../../utility/utility";
+import { TdeiDate } from "../../utility/tdei-date";
 
 
 /**
@@ -55,7 +55,7 @@ export class OswFormatJob extends BaseDto {
                 created_at,
                 requested_by
             ) VALUES($1, $2, $3, $4, '','',$5, $6) RETURNING *`.replace(/\n/g, ""),
-            values: [this.source, this.target, this.status, this.source_url, Utility.getUTCDate(this.created_at), this.requested_by]
+            values: [this.source, this.target, this.status, this.source_url, TdeiDate.UTC(this.created_at), this.requested_by]
         }
         return queryObject;
     }

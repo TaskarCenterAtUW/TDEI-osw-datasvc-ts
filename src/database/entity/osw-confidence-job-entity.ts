@@ -5,7 +5,7 @@ import { BaseDto } from '../../model/base-dto';
 import { Prop } from 'nodets-ms-core/lib/models';
 import { IsNotEmpty, IsOptional } from 'class-validator';
 import { QueryConfig } from 'pg';
-import { Utility } from '../../utility/utility';
+import { TdeiDate } from '../../utility/tdei-date';
 
 export class OswConfidenceJob extends BaseDto {
 
@@ -54,8 +54,8 @@ export class OswConfidenceJob extends BaseDto {
                 cm_version, 
                 cm_last_calculated_at)
                 VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8) RETURNING *`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.trigger_type, Utility.getUTCDate(this.created_at), Utility.getUTCDate(this.updated_at)
-                , this.status, this.user_id, this.cm_version, Utility.getUTCDate(this.cm_last_calculated_at)],
+            values: [this.tdei_record_id, this.trigger_type, TdeiDate.UTC(this.created_at), TdeiDate.UTC(this.updated_at)
+                , this.status, this.user_id, this.cm_version, TdeiDate.UTC(this.cm_last_calculated_at)],
         }
 
         return queryObject;

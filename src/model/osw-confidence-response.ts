@@ -2,6 +2,7 @@ import { IsNotEmpty, isNotEmpty } from "class-validator";
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 import { QueryConfig } from "pg";
 import { Utility } from "../utility/utility";
+import { TdeiDate } from "../utility/tdei-date";
 
 /**
  * Class that holds data response from the confidence metric service
@@ -48,7 +49,7 @@ export class OSWConfidenceResponse extends AbstractDomainEntity {
             cm_version = $3,
             cm_last_calculated_at = $4
             WHERE jobid = $5 RETURNING tdei_record_id,confidence_metric`,
-            values: [this.status, this.confidence_level, this.confidence_library_version, Utility.getUTCDate(), this.jobId]
+            values: [this.status, this.confidence_level, this.confidence_library_version, TdeiDate.UTC(), this.jobId]
         }
         return queryObject;
     }
@@ -63,7 +64,7 @@ export class OSWConfidenceResponse extends AbstractDomainEntity {
             WHERE 
             tdei_record_id=$4 
             RETURNING tdei_record_id`,
-            values: [this.confidence_level, this.confidence_library_version, Utility.getUTCDate(), tdei_record_id]
+            values: [this.confidence_level, this.confidence_library_version, TdeiDate.UTC(), tdei_record_id]
         }
         return queryObject;
     }

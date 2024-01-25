@@ -5,7 +5,7 @@ import oswService from "../../../src/service/osw-service";
 import { authorize } from "../../../src/middleware/authorize-middleware";
 
 jest.mock('../../../src/service/osw-service');
-describe('authorize middleware', () => {
+describe('Authorize Middleware', () => {
 
     beforeEach(() => {
     });

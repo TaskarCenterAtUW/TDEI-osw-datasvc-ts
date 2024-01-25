@@ -7,7 +7,7 @@ import { InputException } from "../../../src/exceptions/http/http-exceptions"
  */
 
 
-describe('metajsonValidator', () => {
+describe('Metadata JSON Validator', () => {
     let reqData: any = {
         files: {
             metadata: [
