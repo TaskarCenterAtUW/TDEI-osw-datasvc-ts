@@ -10,10 +10,10 @@ import { TdeiDate } from '../../utility/tdei-date';
 export class OswConfidenceJob extends BaseDto {
 
     @Prop()
-    jobId!: number;
+    job_id!: number;
     @Prop()
     @IsNotEmpty()
-    tdei_record_id!: string;
+    tdei_dataset_id!: string;
     @Prop()
     confidence_metric = 0;
     @Prop()
@@ -43,8 +43,8 @@ export class OswConfidenceJob extends BaseDto {
     getInsertQuery(): QueryConfig {
         // const polygonExists = this.polygon ? true : false;
         const queryObject = {
-            text: `INSERT INTO public.osw_confidence_jobs(
-                tdei_record_id, 
+            text: `INSERT INTO content.confidence_job(
+                tdei_dataset_id, 
                 confidence_metric, 
                 trigger_type, 
                 created_at, 
@@ -54,19 +54,10 @@ export class OswConfidenceJob extends BaseDto {
                 cm_version, 
                 cm_last_calculated_at)
                 VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8) RETURNING *`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.trigger_type, TdeiDate.UTC(this.created_at), TdeiDate.UTC(this.updated_at)
+            values: [this.tdei_dataset_id, this.trigger_type, TdeiDate.UTC(this.created_at), TdeiDate.UTC(this.updated_at)
                 , this.status, this.user_id, this.cm_version, TdeiDate.UTC(this.cm_last_calculated_at)],
         }
 
         return queryObject;
     }
-
-    // getUpdateStatusQuery(status:string): QueryConfig {
-    //     const queryObject = {
-    //         text:`UPDATE public.osw_confidence_jobs SET status = $1 WHERE jobid = $2`,
-    //         values:[status,this.jobId]
-    //     }
-    //     return queryObject;
-    // }
-
 }

@@ -86,12 +86,12 @@ class OswService implements IOswService {
 
             const jobId = await this.createOSWFormatJob(oswformatJob);
             // Send the same to service bus.
-            oswformatJob.jobId = parseInt(jobId);
+            oswformatJob.job_id = parseInt(jobId);
 
             //Compose the meessage
             let workflow_identifier = "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW";
             const oswFormatRequest = OswFormatJobRequest.from({
-                jobId: oswformatJob.jobId.toString(),
+                jobId: oswformatJob.job_id.toString(),
                 source: oswformatJob.source,
                 target: oswformatJob.target,
                 sourceUrl: oswformatJob.source_url
@@ -122,7 +122,7 @@ class OswService implements IOswService {
             // Create a job in the database for the same.
             //TODO: Have to add these based on some of the input data.
             const confidence_job = new OswConfidenceJob()
-            confidence_job.tdei_record_id = tdeiRecordId;
+            confidence_job.tdei_dataset_id = tdeiRecordId;
             confidence_job.trigger_type = 'manual';
             confidence_job.created_at = new Date();
             confidence_job.updated_at = new Date();
@@ -136,9 +136,9 @@ class OswService implements IOswService {
             //TODO: Fill based on the metadata received
             const confidenceRequestMsg = new OSWConfidenceRequest();
             confidenceRequestMsg.jobId = jobId; // skip tdei-record-id
-            confidenceRequestMsg.data_file = oswRecord.download_osw_url;
+            confidenceRequestMsg.data_file = oswRecord.dataset_url;
             //TODO: Once this is done, get the things moved.
-            confidenceRequestMsg.meta_file = oswRecord.download_metadata_url;
+            confidenceRequestMsg.meta_file = oswRecord.metadata_url;
             confidenceRequestMsg.trigger_type = 'manual' //release
             //this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
 
@@ -188,7 +188,7 @@ class OswService implements IOswService {
                 data: {
                     user_id: user_id, // Required field for message authorization
                     tdei_project_group_id: osw_version.tdei_project_group_id,// Required field for message authorization
-                    file_upload_path: osw_version.download_osw_url
+                    file_upload_path: osw_version.dataset_url
                 }
             });
             //Delete exisitng workflow if exists
@@ -258,7 +258,7 @@ class OswService implements IOswService {
             //validate derived dataset id
             if (uploadRequestObject.derived_from_dataset_id.length > 0) {
                 const query = {
-                    text: 'Select * from osw_versions WHERE tdei_record_id = $1',
+                    text: 'Select * from content.dataset WHERE tdei_dataset_id = $1',
                     values: [uploadRequestObject.derived_from_dataset_id],
                 }
 
@@ -307,20 +307,20 @@ class OswService implements IOswService {
 
             // Insert osw version into database
             const oswEntity = new OswVersions();
-            oswEntity.tdei_record_id = uid;
+            oswEntity.tdei_dataset_id = uid;
             oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
             oswEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
             oswEntity.derived_from_dataset_id = uploadRequestObject.derived_from_dataset_id;
-            oswEntity.download_changeset_url = changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "";
-            oswEntity.download_metadata_url = decodeURIComponent(metadataUploadUrl);
-            oswEntity.download_osw_url = decodeURIComponent(datasetUploadUrl);
+            oswEntity.changeset_url = changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "";
+            oswEntity.metadata_url = decodeURIComponent(metadataUploadUrl);
+            oswEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             oswEntity.uploaded_by = uploadRequestObject.user_id;
             oswEntity.updated_by = uploadRequestObject.user_id;
             await this.createOsw(oswEntity);
 
             // Insert metadata into database
             const oswMetadataEntity = OswMetadataEntity.from(metadata);
-            oswMetadataEntity.tdei_record_id = uid;
+            oswMetadataEntity.tdei_dataset_id = uid;
             await this.createOswMetadata(oswMetadataEntity);
 
             //TODO:: test data to be removed while PR
@@ -464,7 +464,7 @@ class OswService implements IOswService {
     async getOswStreamById(id: string, format: string = "osw"): Promise<FileEntity[]> {
         let fileEntities: FileEntity[] = [];
         const query = {
-            text: 'Select status,download_osw_url, download_osm_url, download_changeset_url, download_metadata_url from osw_versions WHERE tdei_record_id = $1',
+            text: 'Select status, dataset_url, osm_url, changeset_url, metadata_url from content.dataset WHERE tdei_dataset_id = $1',
             values: [id],
         }
 
@@ -481,22 +481,22 @@ class OswService implements IOswService {
 
         var url: string = '';
         if (format == "osm") {
-            if (osw.rows[0].download_osm_url && osw.rows[0].download_osm_url != '')
-                url = decodeURIComponent(osw.rows[0].download_osm_url);
+            if (osw.rows[0].osm_url && osw.rows[0].osm_url != '')
+                url = decodeURIComponent(osw.rows[0].osm_url);
             else
                 throw new HttpException(404, "Requested OSM file format not found");
         } else if (format == "osw") {
-            url = decodeURIComponent(osw.rows[0].download_osw_url);
+            url = decodeURIComponent(osw.rows[0].dataset_url);
         }
         else {
             //default osw
-            url = decodeURIComponent(osw.rows[0].download_osw_url);
+            url = decodeURIComponent(osw.rows[0].dataset_url);
         }
 
         fileEntities.push(await storageClient.getFileFromUrl(url));
-        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].download_metadata_url)));
-        if (osw.rows[0].download_changeset_url && osw.rows[0].download_changeset_url != "" && osw.rows[0].download_changeset_url != null)
-            fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].download_changeset_url)));
+        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].metadata_url)));
+        if (osw.rows[0].changeset_url && osw.rows[0].changeset_url != "" && osw.rows[0].changeset_url != null)
+            fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].changeset_url)));
 
         return fileEntities;
     }
@@ -510,7 +510,7 @@ class OswService implements IOswService {
     async checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean> {
         try {
             const queryObject = {
-                text: `Select * FROM public.osw_metadata 
+                text: `Select * FROM content.metadata 
                 WHERE name=$1 AND version=$2`.replace(/\n/g, ""),
                 values: [name, version],
             }
@@ -535,7 +535,7 @@ class OswService implements IOswService {
      */
     async createOsw(oswInfo: OswVersions): Promise<OswDTO> {
         try {
-            oswInfo.download_osw_url = decodeURIComponent(oswInfo.download_osw_url!);
+            oswInfo.dataset_url = decodeURIComponent(oswInfo.dataset_url!);
 
             await dbClient.query(oswInfo.getInsertQuery());
 
@@ -544,7 +544,7 @@ class OswService implements IOswService {
         } catch (error) {
 
             if (error instanceof UniqueKeyDbException) {
-                throw new DuplicateException(oswInfo.tdei_record_id);
+                throw new DuplicateException(oswInfo.tdei_dataset_id);
             }
 
             console.error("Error saving the osw version", error);
@@ -563,7 +563,7 @@ class OswService implements IOswService {
             return Promise.resolve();
         } catch (error) {
             if (error instanceof UniqueKeyDbException) {
-                throw new DuplicateException(oswMetadataEntity.tdei_record_id);
+                throw new DuplicateException(oswMetadataEntity.tdei_dataset_id);
             }
 
             console.error("Error saving the osw metadata", error);
@@ -573,7 +573,7 @@ class OswService implements IOswService {
 
     async getOSWRecordById(id: string): Promise<OswVersions> {
         const query = {
-            text: 'Select * from osw_versions WHERE tdei_record_id = $1',
+            text: 'Select * from content.dataset WHERE tdei_dataset_id = $1',
             values: [id],
         }
 
@@ -597,7 +597,7 @@ class OswService implements IOswService {
      */
     async getOSWMetadataById(id: string): Promise<OswMetadataEntity> {
         const query = {
-            text: 'Select * from osw_metadata WHERE tdei_record_id = $1',
+            text: 'Select * from metadata WHERE tdei_dataset_id = $1',
             values: [id],
         }
 
@@ -626,7 +626,7 @@ class OswService implements IOswService {
     async getOSWConfidenceJob(jobId: string): Promise<OswConfidenceJob> {
         try {
             const query = {
-                text: 'SELECT * from public.osw_confidence_jobs where jobId = $1',
+                text: 'SELECT * from content.confidence_job where job_id = $1',
                 values: [jobId],
             }
             const result = await dbClient.query(query);
@@ -711,7 +711,7 @@ class OswService implements IOswService {
     async getOSWFormatJob(jobId: string): Promise<OswFormatJob> {
         try {
             const query = {
-                text: 'SELECT * from public.osw_formatting_jobs where jobId = $1',
+                text: 'SELECT * from content.formatting_job where job_id = $1',
                 values: [jobId],
             }
             const result = await dbClient.query(query);
@@ -735,7 +735,7 @@ class OswService implements IOswService {
     async getOSWValidationJob(job_id: string): Promise<OswValidationJobs> {
         try {
             const query = {
-                text: 'SELECT * from public.osw_validation_jobs where job_id = $1',
+                text: 'SELECT * from content.validation_job where job_id = $1',
                 values: [job_id],
             }
             const result = await dbClient.query(query);

@@ -42,29 +42,29 @@ export class OSWConfidenceResponse extends AbstractDomainEntity {
     }
 
     getUpdateJobQuery(): QueryConfig {
-        // The query returns the tdei_record_id and confidence metric
+        // The query returns the tdei_dataset_id and confidence metric
         const queryObject = {
-            text: `UPDATE public.osw_confidence_jobs SET status = $1, 
+            text: `UPDATE content.confidence_job SET status = $1, 
             confidence_metric = $2, 
             cm_version = $3,
             cm_last_calculated_at = $4
-            WHERE jobid = $5 RETURNING tdei_record_id,confidence_metric`,
+            WHERE job_id = $5 RETURNING tdei_dataset_id,confidence_metric`,
             values: [this.status, this.confidence_level, this.confidence_library_version, TdeiDate.UTC(), this.jobId]
         }
         return queryObject;
     }
 
-    getRecordUpdateQuery(tdei_record_id: string): QueryConfig {
+    getRecordUpdateQuery(tdei_dataset_id: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_versions SET 
+            text: `UPDATE content.dataset SET 
             confidence_level = $1,
             cm_version= $2, 
             cm_last_calculated_at=$3,
             updated_at= CURRENT_TIMESTAMP  
             WHERE 
-            tdei_record_id=$4 
-            RETURNING tdei_record_id`,
-            values: [this.confidence_level, this.confidence_library_version, TdeiDate.UTC(), tdei_record_id]
+            tdei_dataset_id=$4 
+            RETURNING tdei_dataset_id`,
+            values: [this.confidence_level, this.confidence_library_version, TdeiDate.UTC(), tdei_dataset_id]
         }
         return queryObject;
     }

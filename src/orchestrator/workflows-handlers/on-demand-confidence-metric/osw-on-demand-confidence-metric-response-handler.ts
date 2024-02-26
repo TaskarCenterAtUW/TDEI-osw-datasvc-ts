@@ -24,7 +24,7 @@ export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
             const confidenceResponse = OSWConfidenceResponse.from(message.data)
             oswService.updateConfidenceMetric(confidenceResponse);
         } catch (error) {
-            console.error("Error while processing the OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER ", error);
+            console.error(`Error while processing the ${this.eventName} `, error);
         }
 
         if (message.data.success)

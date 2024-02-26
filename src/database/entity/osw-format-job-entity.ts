@@ -12,7 +12,7 @@ import { TdeiDate } from "../../utility/tdei-date";
 export class OswFormatJob extends BaseDto {
 
     @Prop()
-    jobId!: number;
+    job_id!: number;
     @Prop()
     @IsNotEmpty()
     source!: string;
@@ -45,7 +45,7 @@ export class OswFormatJob extends BaseDto {
     getInsertQuery(): QueryConfig {
 
         const queryObject = {
-            text: `INSERT INTO public.osw_formatting_jobs(
+            text: `INSERT INTO content.formatting_job(
                 source,
                 target,
                 status,
@@ -62,8 +62,8 @@ export class OswFormatJob extends BaseDto {
 
     static getUpdateStatusQuery(jobId: string, status: string, target_url: string, message: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_formatting_jobs SET status = $1, target_url = $2, message = $3, updated_at = CURRENT_TIMESTAMP  
-            WHERE jobid = $4`,
+            text: `UPDATE content.formatting_job SET status = $1, target_url = $2, message = $3, updated_at = CURRENT_TIMESTAMP  
+            WHERE job_id = $4`,
             values: [status, target_url, message, jobId]
         }
         return queryObject;

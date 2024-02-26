@@ -213,6 +213,64 @@
                     "params": {}
                 }
             ]
+        },
+        {
+            "group": "OSW_EXTRACT_LOAD",
+            "stage": "EXTRACT_LOAD",
+            "type": "TRIGGER",
+            "identifier": "OSW_EXTRACT_LOAD_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_EXTRACT_LOAD_RESPONSE_WORKFLOW",
+                        "topic": "extract-load-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "OSW_EXTRACT_LOAD",
+            "stage": "EXTRACT_LOAD",
+            "type": "HANDLER",
+            "identifier": "OSW_EXTRACT_LOAD_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_EXTRACT_LOAD_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "group": "ON_DEMAND_EXTRACT_LOAD",
+            "stage": "EXTRACT_LOAD",
+            "type": "TRIGGER",
+            "identifier": "ON_DEMAND_EXTRACT_LOAD_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "ON_DEMAND_EXTRACT_LOAD_RESPONSE_WORKFLOW",
+                        "topic": "extract-load-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "ON_DEMAND_EXTRACT_LOAD",
+            "stage": "EXTRACT_LOAD",
+            "type": "HANDLER",
+            "identifier": "ON_DEMAND_EXTRACT_LOAD_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "ON_DEMAND_EXTRACT_LOAD_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
         }
     ],
     "subscriptions": [
@@ -229,6 +287,11 @@
         {
             "description": "Subscription for osw confidence completion",
             "topic": "osw-confidence-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for extract load request completion",
+            "topic": "extract-load-response",
             "subscription": "res-handler"
         }
     ]

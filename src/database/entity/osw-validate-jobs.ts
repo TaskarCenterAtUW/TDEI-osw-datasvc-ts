@@ -31,7 +31,7 @@ export class OswValidationJobs extends BaseDto {
     getInsertQuery(): QueryConfig {
 
         const queryObject = {
-            text: `INSERT INTO public.osw_validation_jobs(
+            text: `INSERT INTO content.validation_job(
                 upload_url,
                 status,
                 requested_by
@@ -43,7 +43,7 @@ export class OswValidationJobs extends BaseDto {
 
     static getUpdateStatusQuery(job_id: string, status: string, validation_result: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE public.osw_validation_jobs SET status = $1, validation_result = $2, updated_at = CURRENT_TIMESTAMP
+            text: `UPDATE content.validation_job SET status = $1, validation_result = $2, updated_at = CURRENT_TIMESTAMP
             WHERE job_id = $3`,
             values: [status, validation_result, job_id]
         }

@@ -57,14 +57,14 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
             }
 
             const querySelectObject = {
-                text: `SELECT id FROM public.osw_workflow_history WHERE 
+                text: `SELECT history_id FROM content.workflow_history WHERE 
                 reference_id=$1 AND workflow_group=$2 AND workflow_stage=$3 AND obsolete is not true`.replace(/\n/g, ""),
                 values: [data.reference_id, data.workflow_group, data.workflow_stage],
             }
             let entry = await dbClient.query(querySelectObject);
             if (entry.rowCount == 0) {
                 const queryObject = {
-                    text: `INSERT INTO public.osw_workflow_history(
+                    text: `INSERT INTO content.workflow_history(
                         reference_id, 
                         workflow_group,
                         workflow_stage,
@@ -78,10 +78,10 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
             else {
                 //This is the case where queue message self retries 
                 const queryObject = {
-                    text: `UPDATE public.osw_workflow_history SET
+                    text: `UPDATE content.workflow_history SET
                             request_message=$1
-                        WHERE  id=$2`.replace(/\n/g, ""),
-                    values: [data.request_message, entry.rows[0].id],
+                        WHERE  history_id=$2`.replace(/\n/g, ""),
+                    values: [data.request_message, entry.rows[0].history_id],
                 }
 
                 await dbClient.query(queryObject);
@@ -108,7 +108,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
             }
 
             const queryObject = {
-                text: `UPDATE public.osw_workflow_history SET
+                text: `UPDATE content.workflow_history SET
                     response_message=$1, 
                     updated_timestamp= CURRENT_TIMESTAMP 
                     WHERE  reference_id=$2 AND workflow_stage=$3 AND obsolete is not true`.replace(/\n/g, ""),
@@ -138,7 +138,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
             }
 
             const queryObject = {
-                text: `UPDATE public.osw_workflow_history SET
+                text: `UPDATE content.workflow_history SET
                     request_message=$1, 
                     updated_timestamp= CURRENT_TIMESTAMP 
                     WHERE  reference_id=$2 AND workflow_stage=$3 AND obsolete is not true`.replace(/\n/g, ""),
@@ -169,7 +169,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
             }
 
             const queryObject = {
-                text: `UPDATE public.osw_workflow_history SET
+                text: `UPDATE content.workflow_history SET
                     obsolete = true 
                     WHERE  reference_id=$1 AND workflow_group=$2`.replace(/\n/g, ""),
                 values: [data.reference_id, data.workflow_group],
@@ -191,8 +191,8 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
     async getLatestWorkflowHistory(reference_id: string, workflow_group: string): Promise<WorkflowHistoryEntity | undefined> {
         try {
             const queryObject = {
-                text: `SELECT * FROM public.osw_workflow_history 
-                    WHERE  reference_id=$1 AND workflow_group=$2 AND obsolete is not true ORDER BY id DESC LIMIT 1`.replace(/\n/g, ""),
+                text: `SELECT * FROM content.workflow_history 
+                    WHERE  reference_id=$1 AND workflow_group=$2 AND obsolete is not true ORDER BY history_id DESC LIMIT 1`.replace(/\n/g, ""),
                 values: [reference_id, workflow_group],
             }
 

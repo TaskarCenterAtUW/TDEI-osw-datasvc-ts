@@ -21,7 +21,7 @@ export class PublishFormattingRequestWorkflow extends WorkflowBase {
                 messageId: message.messageId,
                 messageType: "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW", //will be set by the publish handler with params defined in config
                 data: {
-                    file_upload_path: osw_version.download_osw_url,
+                    file_upload_path: osw_version.dataset_url,
                     tdei_project_group_id: osw_version.tdei_project_group_id
                 }
             });

@@ -8,17 +8,17 @@ import { OswMetadataEntity } from "../../src/database/entity/osw-metadata";
 export class TdeiObjectFaker {
     static getOswVersion() {
         return {
-            tdei_record_id: "test_record_id",
+            tdei_dataset_id: "test_record_id",
             confidence_level: 0,
             tdei_service_id: "test_user",
-            download_osw_url: "test_path",
+            dataset_url: "test_path",
             uploaded_by: "test"
         } as OswVersions;
     }
 
     static getOswMetadataSample() {
         return {
-            tdei_record_id: "test_record_id",
+            tdei_dataset_id: "test_record_id",
             name: "test",
             version: "v1",
             collected_by: "test",
@@ -27,7 +27,7 @@ export class TdeiObjectFaker {
             valid_from: new Date(),
             valid_to: new Date(),
             data_source: "InHouse",
-            osw_schema_version: "v0.1"
+            schema_version: "v0.1"
         } as OswMetadataEntity;
     }
 
