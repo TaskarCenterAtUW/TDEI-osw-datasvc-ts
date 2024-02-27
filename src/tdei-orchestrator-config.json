@@ -115,6 +115,36 @@
                     "process_identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
+                        "OSW_PUBLISH_DATASET_FLATTENING_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "PUBLISH_OSW",
+            "stage": "DATASET_FLATTENING",
+            "type": "TRIGGER",
+            "identifier": "OSW_PUBLISH_DATASET_FLATTENING_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_PUBLISH_DATASET_FLATTENING_RESPONSE_WORKFLOW",
+                        "topic": "extract-load-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "PUBLISH_OSW",
+            "stage": "DATASET_FLATTENING",
+            "type": "HANDLER",
+            "identifier": "OSW_PUBLISH_DATASET_FLATTENING_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_PUBLISH_DATASET_FLATTENING_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
                         "OSW_PUBLISH_DATABASE_WORKFLOW"
                     ]
                 }
