@@ -245,7 +245,8 @@ class OswService implements IOswService {
             //Create job 
             let flatterningJob = DatasetFlatteningJob.from({
                 status: "IN-PROGRESS",
-                requested_by: user_id
+                requested_by: user_id,
+                tdei_dataset_id: tdei_record_id
             });
 
             const insertQuery = flatterningJob.getInsertQuery();
@@ -260,7 +261,8 @@ class OswService implements IOswService {
                 messageType: workflow_identifier,
                 data: {
                     data_type: "osw",
-                    file_upload_path: osw_version.dataset_url
+                    file_upload_path: osw_version.dataset_url,
+                    tdei_dataset_id: tdei_record_id
                 }
             });
 
@@ -284,12 +286,12 @@ class OswService implements IOswService {
         try {
 
             //Create job 
-            let flatterningJob = DatasetFlatteningJob.from({
+            let backendJob = BackendJob.from({
                 status: "IN-PROGRESS",
                 requested_by: backendRequest.user_id
             });
 
-            const insertQuery = flatterningJob.getInsertQuery();
+            const insertQuery = backendJob.getInsertQuery();
 
             const result = await dbClient.query(insertQuery);
             const job_id = result.rows[0].job_id;
@@ -300,7 +302,7 @@ class OswService implements IOswService {
                 messageId: job_id,
                 messageType: workflow_identifier,
                 data: {
-                    servicee: backendRequest.service,
+                    service: backendRequest.service,
                     user_id: backendRequest.user_id,
                     parameters: backendRequest.parameters
                 }
@@ -685,7 +687,7 @@ class OswService implements IOswService {
 
     async getOSWRecordById(id: string): Promise<OswVersions> {
         const query = {
-            text: 'Select * from content.dataset WHERE tdei_dataset_id = $1',
+            text: `Select * from content.dataset WHERE tdei_dataset_id = $1`,
             values: [id],
         }
 

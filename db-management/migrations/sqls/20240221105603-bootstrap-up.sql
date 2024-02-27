@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS content.dataset
 (
-    tdei_dataset_id UUID DEFAULT uuid_generate_v4(),
+    tdei_dataset_id character varying(40) DEFAULT uuid_generate_v4(),
     data_type character varying(20) COLLATE pg_catalog."default" NOT NULL,
     tdei_project_group_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
     tdei_service_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
@@ -116,7 +116,6 @@ CREATE TABLE IF NOT EXISTS content.confidence_job
 CREATE TABLE IF NOT EXISTS content.backend_job
 (
     job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    tdei_dataset_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
     status character varying(40) COLLATE pg_catalog."default" NOT NULL,
     message character varying COLLATE pg_catalog."default",
     download_url character varying COLLATE pg_catalog."default",

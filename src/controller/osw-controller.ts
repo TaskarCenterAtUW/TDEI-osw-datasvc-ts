@@ -258,7 +258,7 @@ class GtfsOSWController implements IController {
                 user_id: request.body.user_id,
                 service: "bbox_intersect",
                 parameters: {
-                    tdei_dataset_id: requestService.tdei_dataset_id,
+                    tdei_dataset_id: requestService.tdei_record_id,
                     bbox: requestService.bbox
                 }
             }
@@ -295,7 +295,7 @@ class GtfsOSWController implements IController {
             const responseData = {
                 'job_id': job_id,
                 'status': jobInfo.status,
-                'download_url': '/api/v1/osw/dataset-bbox/download/' + job_id,
+                'download_url': jobInfo.status != 'FAILED' ? '/api/v1/osw/dataset-bbox/download/' + job_id : "",
                 'message': jobInfo.message
             };
             response.status(200).send(responseData);
@@ -325,7 +325,7 @@ class GtfsOSWController implements IController {
             }
             const jobInfo = await oswService.getBackendJob(job_id);
 
-            if (jobInfo.status != 'completed') {
+            if (jobInfo.status != 'COMPLETED') {
                 throw new JobIncompleteException(job_id);
             }
             // Get the file entity for the file

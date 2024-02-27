@@ -32,9 +32,10 @@ export class BackendJob extends BaseDto {
 
         const queryObject = {
             text: `INSERT INTO content.backend_job(
-                requested_by
-            ) VALUES($1) RETURNING *`.replace(/\n/g, ""),
-            values: [this.requested_by]
+                requested_by,
+                status
+            ) VALUES($1,$2) RETURNING *`.replace(/\n/g, ""),
+            values: [this.requested_by, this.status]
         }
         return queryObject;
     }

@@ -293,6 +293,11 @@
             "description": "Subscription for extract load request completion",
             "topic": "extract-load-response",
             "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for backend service completion",
+            "topic": "backend-response",
+            "subscription": "res-handler"
         }
     ]
 }

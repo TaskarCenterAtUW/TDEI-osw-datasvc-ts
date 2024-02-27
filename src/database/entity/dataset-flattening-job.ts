@@ -4,7 +4,8 @@ import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
 
 export class DatasetFlatteningJob extends BaseDto {
-
+    @Prop()
+    tdei_dataset_id!: string;
     @Prop()
     job_id!: number;
     @Prop()
@@ -29,9 +30,11 @@ export class DatasetFlatteningJob extends BaseDto {
 
         const queryObject = {
             text: `INSERT INTO content.dataset_flattern_job(
-                requested_by
-            ) VALUES($1) RETURNING *`.replace(/\n/g, ""),
-            values: [this.requested_by]
+                requested_by,
+                tdei_dataset_id,
+                status
+            ) VALUES($1, $2, $3) RETURNING *`.replace(/\n/g, ""),
+            values: [this.requested_by, this.tdei_dataset_id, this.status]
         }
         return queryObject;
     }
