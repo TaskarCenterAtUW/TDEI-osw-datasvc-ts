@@ -1,13 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
-import { OSWConfidenceResponse } from "../../../model/osw-confidence-response";
 import oswService from "../../../service/osw-service";
 import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../services/orchestrator-service";
+import { DataFlatteningJobResponse } from "../../../model/data-flattening-job-response";
 
-export class OswExtractLoadResponseHandler extends WorkflowHandlerBase {
+export class OnDemandFlatteningResponseHandler extends WorkflowHandlerBase {
+
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "OSW_EXTRACT_LOAD_RESPONSE_HANDLER");
+        super(workflowEvent, orchestratorServiceInstance, "ON_DEMAND_DATASET_FLATTENING_RESPONSE_HANDLER");
     }
 
     /**
@@ -20,8 +21,10 @@ export class OswExtractLoadResponseHandler extends WorkflowHandlerBase {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
-            const confidenceResponse = OSWConfidenceResponse.from(message.data)
-            oswService.updateConfidenceMetric(confidenceResponse);
+            const dataFlatteningJobResponse = DataFlatteningJobResponse.from(message.data);
+            dataFlatteningJobResponse.ref_id = message.messageId;
+            dataFlatteningJobResponse.status = message.data.success ? "COMPLETED" : "FAILED";
+            oswService.updateDatasetFlatteningJob(dataFlatteningJobResponse);
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} `, error);
         }

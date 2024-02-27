@@ -126,6 +126,19 @@ CREATE TABLE IF NOT EXISTS content.backend_job
     CONSTRAINT "PK_backend_job_id" PRIMARY KEY (job_id)
 );
 
+
+CREATE TABLE IF NOT EXISTS content.dataset_flattern_job
+(
+    job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    tdei_dataset_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
+    status character varying(40) COLLATE pg_catalog."default" NOT NULL,
+    message character varying COLLATE pg_catalog."default",
+    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    requested_by character varying(40) COLLATE pg_catalog."default",
+    CONSTRAINT "PK_dataset_flattern_job_id" PRIMARY KEY (job_id)
+);
+
 CREATE TABLE IF NOT EXISTS content.edge
 (
     id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),

@@ -1,14 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
-import { OSWConfidenceResponse } from "../../../model/osw-confidence-response";
 import oswService from "../../../service/osw-service";
 import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../services/orchestrator-service";
+import { BackendServiceJobResponse } from "../../../model/backend-service-job-response";
 
-export class OnDemandExtractLoadResponseHandler extends WorkflowHandlerBase {
+export class OnBackendServiceResponseHandler extends WorkflowHandlerBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "ON_DEMAND_EXTRACT_LOAD_RESPONSE_HANDLER");
+        super(workflowEvent, orchestratorServiceInstance, "BACKEND_SERVICE_RESPONSE_HANDLER");
     }
 
     /**
@@ -21,8 +21,11 @@ export class OnDemandExtractLoadResponseHandler extends WorkflowHandlerBase {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
-            const confidenceResponse = OSWConfidenceResponse.from(message.data)
-            oswService.updateConfidenceMetric(confidenceResponse);
+            const backendServiceResponse = BackendServiceJobResponse.from(message.data);
+            backendServiceResponse.file_upload_path = decodeURIComponent(backendServiceResponse.file_upload_path!);
+            backendServiceResponse.job_id = message.messageId;
+            backendServiceResponse.status = message.data.success ? "COMPLETED" : "FAILED";
+            oswService.updateBackendServiceJob(backendServiceResponse);
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} `, error);
         }

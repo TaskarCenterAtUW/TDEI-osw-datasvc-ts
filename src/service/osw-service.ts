@@ -32,6 +32,11 @@ import { ProjectGroupRoleDto } from "../model/project-group-role-dto";
 import { OSWConfidenceRequest } from "../model/osw-confidence-request";
 import { OswFormatJobRequest } from "../model/osw-format-job-request";
 import { IOswService } from "./interface/osw-service-interface";
+import { DatasetFlatteningJob } from "../database/entity/dataset-flattening-job";
+import { BackendJob } from "../database/entity/backend-job";
+import { ServiceRequest } from "../model/backend-request-interface";
+import { BackendServiceJobResponse } from "../model/backend-service-job-response";
+import { DataFlatteningJobResponse } from "../model/data-flattening-job-response";
 
 class OswService implements IOswService {
     constructor() { }
@@ -198,6 +203,113 @@ class OswService implements IOswService {
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
             return Promise.resolve();
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Processes the dataset flattening request
+     * @param user_id 
+     * @param tdei_record_id 
+     * @param override 
+     * @returns 
+     */
+    async processDatasetFlatteningRequest(user_id: string, tdei_record_id: string, override: boolean): Promise<string> {
+        try {
+            let osw_version = await this.getOSWRecordById(tdei_record_id);
+            if (!override) {
+                const checkRecordsQueryObject = {
+                    text: `SELECT id  
+                    from content.edge 
+                    WHERE 
+                    tdei_dataset_id = $1 LIMIT 1`.replace(/\n/g, ""),
+                    values: [tdei_record_id]
+                };
+
+                // Check if there is a record with the same date
+                const queryResult = await dbClient.query(checkRecordsQueryObject);
+                if (queryResult.rowCount && queryResult.rowCount > 0) {
+                    throw new InputException(`${tdei_record_id} already flattened. If you want to override, please use the override flag.`);
+                }
+            }
+            else {
+                //Delete the existing records
+                const deleteRecordsQueryObject = {
+                    text: `SELECT delete_dataset_records_by_id($1)`.replace(/\n/g, ""),
+                    values: [tdei_record_id]
+                };
+                await dbClient.query(deleteRecordsQueryObject);
+            }
+
+            //Create job 
+            let flatterningJob = DatasetFlatteningJob.from({
+                status: "IN-PROGRESS",
+                requested_by: user_id
+            });
+
+            const insertQuery = flatterningJob.getInsertQuery();
+
+            const result = await dbClient.query(insertQuery);
+            const job_id = result.rows[0].job_id;
+
+            //Compose the meessage
+            let workflow_identifier = "ON_DEMAND_DATASET_FLATTENING_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: job_id,
+                messageType: workflow_identifier,
+                data: {
+                    data_type: "osw",
+                    file_upload_path: osw_version.dataset_url
+                }
+            });
+
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+
+            return Promise.resolve(job_id);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Processes the dataset flattening request
+     * @param user_id 
+     * @param tdei_record_id 
+     * @param override 
+     * @returns 
+     */
+    async processBackendRequest(backendRequest: ServiceRequest): Promise<string> {
+        try {
+
+            //Create job 
+            let flatterningJob = DatasetFlatteningJob.from({
+                status: "IN-PROGRESS",
+                requested_by: backendRequest.user_id
+            });
+
+            const insertQuery = flatterningJob.getInsertQuery();
+
+            const result = await dbClient.query(insertQuery);
+            const job_id = result.rows[0].job_id;
+
+            //Compose the meessage
+            let workflow_identifier = "BACKEND_SERVICE_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: job_id,
+                messageType: workflow_identifier,
+                data: {
+                    servicee: backendRequest.service,
+                    user_id: backendRequest.user_id,
+                    parameters: backendRequest.parameters
+                }
+            });
+
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+
+            return Promise.resolve(job_id);
         } catch (error) {
             throw error;
         }
@@ -643,6 +755,44 @@ class OswService implements IOswService {
         }
     }
 
+    async getDatasetFlatteningJob(jobId: string): Promise<DatasetFlatteningJob> {
+        try {
+            const query = {
+                text: 'SELECT * from content.dataset_flattern_job where job_id = $1',
+                values: [jobId],
+            }
+            const result = await dbClient.query(query);
+            if (result.rowCount == 0) {
+                return Promise.reject(new JobIdNotFoundException(jobId))
+            }
+            const job = DatasetFlatteningJob.from(result.rows[0])
+            return job;
+        }
+        catch (error) {
+            console.log(error);
+            return Promise.reject(error);
+        }
+    }
+
+    async getBackendJob(jobId: string): Promise<BackendJob> {
+        try {
+            const query = {
+                text: 'SELECT * from content.backend_job where job_id = $1',
+                values: [jobId],
+            }
+            const result = await dbClient.query(query);
+            if (result.rowCount == 0) {
+                return Promise.reject(new JobIdNotFoundException(jobId))
+            }
+            const job = BackendJob.from(result.rows[0])
+            return job;
+        }
+        catch (error) {
+            console.log(error);
+            return Promise.reject(error);
+        }
+    }
+
     async updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string> {
         try {
             console.log('Updating status for ', info.jobId);
@@ -684,6 +834,46 @@ class OswService implements IOswService {
             return jobId;
         }
         catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    async updateBackendServiceJob(info: BackendServiceJobResponse): Promise<void> {
+        console.log('Updating formatter job info');
+        try {
+            const updateQuery = BackendJob.getUpdateStatusQuery(info.job_id, info.status, info.file_upload_path, info.message);
+            const result = await dbClient.query(updateQuery);
+
+            if (result.rowCount === 0) {
+                // Handle the case when no rows were updated. Write appropriate logic here.
+                console.error('No rows were updated during the backend service job update.');
+                throw new Error("Error updating backend service job");
+            }
+
+            console.log(`Backend service job successfully updated with jobId: ${info.job_id}`);
+            return Promise.resolve();
+        } catch (error) {
+            console.error('Error while updating backend service job', error);
+            return Promise.reject(error);
+        }
+    }
+
+    async updateDatasetFlatteningJob(info: DataFlatteningJobResponse): Promise<void> {
+        console.log('Updating formatter job info');
+        try {
+            const updateQuery = DatasetFlatteningJob.getUpdateStatusQuery(info.ref_id, info.status, info.message);
+            const result = await dbClient.query(updateQuery);
+
+            if (result.rowCount === 0) {
+                // Handle the case when no rows were updated. Write appropriate logic here.
+                console.error('No rows were updated during the dataset flattening job update.');
+                throw new Error("Error updating formatting job");
+            }
+
+            console.log(`Dataset flattening job successfully updated with jobId: ${info.ref_id}`);
+            return Promise.resolve();
+        } catch (error) {
+            console.error('Error while updating dataset flattening job', error);
             return Promise.reject(error);
         }
     }

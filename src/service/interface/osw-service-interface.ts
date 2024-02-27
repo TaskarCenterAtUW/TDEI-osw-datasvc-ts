@@ -12,8 +12,45 @@ import { ProjectGroupRoleDto } from "../../model/project-group-role-dto";
 import { OswMetadataEntity } from "../../database/entity/osw-metadata";
 import { OswUploadMeta } from "../../model/osw-upload-meta";
 import { ServiceDto } from "../../model/service-dto";
+import { DatasetFlatteningJob } from "../../database/entity/dataset-flattening-job";
+import { BackendJob } from "../../database/entity/backend-job";
+import { ServiceRequest } from "../../model/backend-request-interface";
+import { BackendServiceJobResponse } from "../../model/backend-service-job-response";
+import { DataFlatteningJobResponse } from "../../model/data-flattening-job-response";
 
 export interface IOswService {
+    /**
+    * Updates the dataset flattening job
+    * @param info 
+    */
+    updateDatasetFlatteningJob(info: DataFlatteningJobResponse): Promise<void>;
+    /**
+     * Updates the backend service job
+     * @param info 
+     */
+    updateBackendServiceJob(info: BackendServiceJobResponse): Promise<void>;
+    /**
+     * Gets the backend job details
+     * @param job_id 
+     */
+    getBackendJob(job_id: string): Promise<BackendJob>;
+    /**
+     * Processes the backend request
+     * @param backendRequest 
+     */
+    processBackendRequest(backendRequest: ServiceRequest): Promise<string>;
+
+    /**
+     * Gets the flattening job details
+     * @param job_id 
+     */
+    getDatasetFlatteningJob(job_id: string): Promise<DatasetFlatteningJob>;
+    /**
+     * Flattern the record
+     * @param user_id 
+     * @param tdei_record_id 
+     */
+    processDatasetFlatteningRequest(user_id: any, tdei_record_id: string, override: boolean): Promise<string>;
     /**
      * Invalidate the record
      * @param user_id 
