@@ -5,7 +5,7 @@ import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../services/orchestrator-service";
 import { BackendServiceJobResponse } from "../../../model/backend-service-job-response";
 
-export class OnBackendServiceResponseHandler extends WorkflowHandlerBase {
+export class BackendServiceResponseHandler extends WorkflowHandlerBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
         super(workflowEvent, orchestratorServiceInstance, "BACKEND_SERVICE_RESPONSE_HANDLER");
