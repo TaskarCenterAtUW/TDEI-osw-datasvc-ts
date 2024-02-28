@@ -436,6 +436,7 @@ class OswService implements IOswService {
             // Insert metadata into database
             const oswMetadataEntity = OswMetadataEntity.from(metadata);
             oswMetadataEntity.tdei_dataset_id = uid;
+            oswMetadataEntity.schema_version = metadata.osw_schema_version;
             await this.createOswMetadata(oswMetadataEntity);
 
             //TODO:: test data to be removed while PR
@@ -542,6 +543,7 @@ class OswService implements IOswService {
 
     async getAllOsw(user_id: string, params: OswQueryParams): Promise<OswDTO[]> {
         //Builds the query object. All the query consitions can be build in getQueryObject()
+        //TODO:: QUERY FROM UNIFY DB
         let userProjectGroups = await this.getUserProjectGroups(user_id);
 
         if (params.status && params.status == RecordStatus["Pre-Release"] && !userProjectGroups && !params.isAdmin)
