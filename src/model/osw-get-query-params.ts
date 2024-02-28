@@ -1,7 +1,6 @@
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional } from "class-validator";
 import { DynamicQueryObject, SqlORder } from "../database/dynamic-query-object";
 import { InputException } from "../exceptions/http/http-exceptions";
-import { Utility } from "../utility/utility";
 import { TdeiDate } from "../utility/tdei-date";
 
 export enum RecordStatus {
@@ -62,8 +61,8 @@ export class OswQueryParams {
    */
     getQueryObject(projectGroupIds: string[]) {
         const queryObject: DynamicQueryObject = new DynamicQueryObject();
-        queryObject.buildSelect("osw_versions", ["ST_AsGeoJSON(dataset_area) as polygon2, *"]);
-        queryObject.buildInnerJoin("osw_versions", "osw_metadata", "tdei_record_id");
+        queryObject.buildSelect("dataset", ["ST_AsGeoJSON(dataset_area) as polygon2, *"]);
+        queryObject.buildInnerJoin("dataset", "metadata", "tdei_dataset_id");
         queryObject.buildPagination(this.page_no, this.page_size);
         queryObject.buildOrder("uploaded_timestamp", SqlORder.DESC);
 
@@ -84,7 +83,7 @@ export class OswQueryParams {
             queryObject.condition(` status = $${queryObject.paramCouter++} `, this.status.toString());
 
         if (this.name)
-            queryObject.condition(` name ILIKE $${queryObject.paramCouter++} `, this.name + '%');
+            queryObject.condition(` name ILIKE $${queryObject.paramCouter++} `, '%' + this.name + '%');
         if (this.version)
             queryObject.condition(` version = $${queryObject.paramCouter++} `, this.version);
         if (this.confidence_level)
@@ -96,15 +95,15 @@ export class OswQueryParams {
         if (this.collection_method)
             queryObject.condition(` collection_method = $${queryObject.paramCouter++} `, this.collection_method);
         if (this.osw_schema_version)
-            queryObject.condition(` osw_schema_version = $${queryObject.paramCouter++} `, this.osw_schema_version);
+            queryObject.condition(` schema_version = $${queryObject.paramCouter++} `, this.osw_schema_version);
         if (this.tdei_project_group_id)
             queryObject.condition(` tdei_project_group_id = $${queryObject.paramCouter++} `, this.tdei_project_group_id);
         if (this.tdei_service_id)
             queryObject.condition(` tdei_service_id = $${queryObject.paramCouter++} `, this.tdei_service_id);
         if (this.tdei_record_id)
-            queryObject.condition(` osw_versions.tdei_record_id = $${queryObject.paramCouter++} `, this.tdei_record_id);
+            queryObject.condition(` dataset.tdei_dataset_id = $${queryObject.paramCouter++} `, this.tdei_record_id);
         if (this.derived_from_dataset_id)
-            queryObject.condition(` osw_versions.derived_from_dataset_id = $${queryObject.paramCouter++} `, this.derived_from_dataset_id);
+            queryObject.condition(` dataset.derived_from_dataset_id = $${queryObject.paramCouter++} `, this.derived_from_dataset_id);
         if (this.valid_to && TdeiDate.isValid(this.valid_to))
             queryObject.condition(` valid_to > $${queryObject.paramCouter++} `, TdeiDate.UTC(this.valid_to));
         else if (this.valid_to && !TdeiDate.isValid(this.valid_to))
@@ -118,7 +117,7 @@ export class OswQueryParams {
         else if (this.collection_date && !TdeiDate.isValid(this.collection_date))
             throw new InputException("Invalid date provided." + this.collection_date);
         if (this.bbox && this.bbox.length > 0 && this.bbox.length == 4) {
-            queryObject.condition(`polygon && ST_MakeEnvelope($${queryObject.paramCouter++},$${queryObject.paramCouter++},$${queryObject.paramCouter++},$${queryObject.paramCouter++}, 4326)`,
+            queryObject.condition(` (metadata.dataset_area && ST_MakeEnvelope($${queryObject.paramCouter++},$${queryObject.paramCouter++},$${queryObject.paramCouter++},$${queryObject.paramCouter++}, 4326))`,
                 this.bbox);
         } else if (this.bbox.length > 0 && this.bbox.length != 4) {
             throw new InputException("Bounding box constraints not satisfied.");

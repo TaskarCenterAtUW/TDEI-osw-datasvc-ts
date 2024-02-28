@@ -14,6 +14,11 @@ import { PublishDatabaseWorkflow } from "./publish/publish-osw-database-publish-
 import { OswOnDemandConfidenceResponseHandler } from "./on-demand-confidence-metric/osw-on-demand-confidence-metric-response-handler";
 import { OswOnDemandFormattingResponseHandler } from "./on-demand-formatting/osw-on-demand-formatting-response-handler";
 import { GenericWorkflow } from "./generic/generic-workflow";
+import { PublishFlatteningRequestWorkflow } from "./publish/publish-osw-flattening-request-workflow";
+import { PublishFlatteningResponseWorkflow } from "./publish/publish-osw-flattening-response-workflow";
+import { PublishFlatteningResponseHandler } from "./publish/publish-osw-flattening-response-handler";
+import { OnDemandFlatteningResponseHandler } from "./on-demand-flattening/on-demand-flattening-response-handler";
+import { BackendServiceResponseHandler } from "./backend-service/backend-service-response-handler";
 
 export default [
     GenericWorkflow,
@@ -27,9 +32,14 @@ export default [
     PublishValidationResponseHandler,
     PublishValidationRequestWorkflow,
     PublishValidationResponseWorkflow,
+    PublishFlatteningRequestWorkflow,
+    PublishFlatteningResponseWorkflow,
+    PublishFlatteningResponseHandler,
     UploadValidationResponseHandler,
     ValidationOnlyValidationResponseHandler,
     PublishDatabaseWorkflow,
     OswOnDemandConfidenceResponseHandler,
-    OswOnDemandFormattingResponseHandler
+    OswOnDemandFormattingResponseHandler,
+    OnDemandFlatteningResponseHandler,
+    BackendServiceResponseHandler
 ];

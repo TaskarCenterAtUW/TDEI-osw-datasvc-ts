@@ -3,16 +3,14 @@ import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
 
-export class OswValidationJobs extends BaseDto {
-
+export class DatasetFlatteningJob extends BaseDto {
+    @Prop()
+    tdei_dataset_id!: string;
     @Prop()
     job_id!: number;
     @Prop()
     @IsNotEmpty()
-    validation_result!: string;
-    @Prop()
-    @IsNotEmpty()
-    upload_url!: string;
+    message!: string;
     @Prop()
     @IsNotEmpty()
     status!: string;
@@ -23,7 +21,7 @@ export class OswValidationJobs extends BaseDto {
     @Prop()
     requested_by!: Date;
 
-    constructor(init?: Partial<OswValidationJobs>) {
+    constructor(init?: Partial<DatasetFlatteningJob>) {
         super();
         Object.assign(this, init);
     }
@@ -31,21 +29,21 @@ export class OswValidationJobs extends BaseDto {
     getInsertQuery(): QueryConfig {
 
         const queryObject = {
-            text: `INSERT INTO content.validation_job(
-                upload_url,
-                status,
-                requested_by
+            text: `INSERT INTO content.dataset_flattern_job(
+                requested_by,
+                tdei_dataset_id,
+                status
             ) VALUES($1, $2, $3) RETURNING *`.replace(/\n/g, ""),
-            values: [this.upload_url, this.status, this.requested_by]
+            values: [this.requested_by, this.tdei_dataset_id, this.status]
         }
         return queryObject;
     }
 
-    static getUpdateStatusQuery(job_id: string, status: string, validation_result: string): QueryConfig {
+    static getUpdateStatusQuery(job_id: string, status: string, meessage: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE content.validation_job SET status = $1, validation_result = $2, updated_at = CURRENT_TIMESTAMP
+            text: `UPDATE content.dataset_flattern_job SET status = $1, message = $2, updated_at = CURRENT_TIMESTAMP
             WHERE job_id = $3`,
-            values: [status, validation_result, job_id]
+            values: [status, meessage, job_id]
         }
         return queryObject;
     }

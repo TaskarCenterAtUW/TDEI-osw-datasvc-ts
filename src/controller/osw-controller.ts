@@ -17,6 +17,7 @@ import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
 import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
 import { FileEntityStream } from "../utility/utility";
+import { ServiceRequest } from "../model/backend-request-interface";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -90,6 +91,11 @@ class GtfsOSWController implements IController {
         this.router.get(`${this.path}/upload/status/:tdei_record_id`, authenticate, this.getUploadStatus);
         this.router.get(`${this.path}/publish/status/:tdei_record_id`, authenticate, this.getPublishStatus);
         this.router.get(`${this.path}/convert/download/:job_id`, authenticate, this.getFormatDownloadFile); // Download the formatted file
+        this.router.post(`${this.path}/dataset-flattern/:tdei_record_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
+        this.router.get(`${this.path}/dataset-flattern/status/:job_id`, authenticate, this.getDatasetFlatteningStatus);
+        this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
+        this.router.get(`${this.path}/dataset-bbox/status/:job_id`, authenticate, this.getDatasetBboxStatus);
+        this.router.get(`${this.path}/dataset-bbox/download/:job_id`, authenticate, this.getDatasetBboxDownloadFile); // Download the formatted file
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -231,6 +237,164 @@ class GtfsOSWController implements IController {
             }
             response.status(500).send("Error while processing the publish request");
             next(new HttpException(500, "Error while processing the publish request"));
+        }
+    }
+
+    /**
+    * Flatterning the tdei record 
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    processDatasetBboxRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+
+            const requestService = JSON.parse(JSON.stringify(request.query));
+            if (!requestService) {
+                return next(new InputException('request body is empty'));
+            }
+            let backendRequest: ServiceRequest = {
+                user_id: request.body.user_id,
+                service: "bbox_intersect",
+                parameters: {
+                    tdei_dataset_id: requestService.tdei_record_id,
+                    bbox: requestService.bbox
+                }
+            }
+
+            let job_id = await oswService.processBackendRequest(backendRequest);
+            response.setHeader('Location', `/api/v1/osw/dataset-bbox/status/${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing the dataset bbox request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the dataset bbox request");
+            next(new HttpException(500, "Error while processing the dataset bbox request"));
+        }
+    }
+
+    /**
+    * Gets the status for the flattening job
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    getDatasetBboxStatus = async (request: Request, response: express.Response, next: NextFunction) => {
+
+        try {
+            const job_id = request.params['job_id'];
+            if (job_id == undefined || job_id == '') {
+                return next(new InputException('job_id not provided'));
+            }
+            const jobInfo = await oswService.getBackendJob(job_id);
+            const responseData = {
+                'job_id': job_id,
+                'status': jobInfo.status,
+                'download_url': jobInfo.status != 'FAILED' ? '/api/v1/osw/dataset-bbox/download/' + job_id : "",
+                'message': jobInfo.message
+            };
+            response.status(200).send(responseData);
+        } catch (error) {
+            console.error("Error while processing the dataset bbox status request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the dataset bbox status request");
+            next(new HttpException(500, "Error while processing the dataset bbox status request"));
+        }
+    }
+
+    /**
+     * Gives the downloadable stream for the job status
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
+    getDatasetBboxDownloadFile = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const job_id = request.params['job_id'];
+            if (job_id == undefined || job_id == '') {
+                return next(new InputException('job_id not provided'));
+            }
+            const jobInfo = await oswService.getBackendJob(job_id);
+
+            if (jobInfo.status != 'COMPLETED') {
+                throw new JobIncompleteException(job_id);
+            }
+            // Get the file entity for the file
+            const fileEntity = await oswService.getFileEntity(jobInfo.download_url);
+            response.setHeader('Content-Type', 'application/zip');
+            response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
+            (await fileEntity.getStream()).pipe(response);
+
+        } catch (error) {
+            console.error("Error while processing the dataset bbox download request", error);
+            return next(error);
+        }
+    }
+
+    /**
+    * Flatterning the tdei record 
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    processFlatteningRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            let tdei_record_id = request.params["tdei_record_id"];
+            let override = Boolean(request.query.override as string) ? true : false;
+
+            let job_id = await oswService.processDatasetFlatteningRequest(request.body.user_id, tdei_record_id, override);
+            response.setHeader('Location', `/api/v1/osw/flattern/status/${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing the flattening request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the flattening request");
+            next(new HttpException(500, "Error while processing the flattening request"));
+        }
+    }
+
+    /**
+    * Gets the status for the flattening job
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    getDatasetFlatteningStatus = async (request: Request, response: express.Response, next: NextFunction) => {
+
+        try {
+            const job_id = request.params['job_id'];
+            if (job_id == undefined || job_id == '') {
+                return next(new InputException('job_id not provided'));
+            }
+            const jobInfo = await oswService.getDatasetFlatteningJob(job_id);
+            const responseData = {
+                'job_id': job_id,
+                'status': jobInfo.status,
+                'message': jobInfo.message
+            };
+            response.status(200).send(responseData);
+        } catch (error) {
+            console.error("Error while processing the flattening request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the flattening request");
+            next(new HttpException(500, "Error while processing the flattening request"));
         }
     }
 
@@ -428,11 +592,10 @@ class GtfsOSWController implements IController {
      * @returns 
      */
     getFormatDownloadFile = async (request: Request, response: express.Response, next: NextFunction) => {
-
         console.log('Download formatted file for jobInfo ')
         try {
             const job_id = request.params['job_id'];
-            if (job_id == undefined || job_id == '') {
+            if (!job_id) {
                 return next(new InputException('job_id not provided'));
             }
             const jobInfo = await oswService.getOSWFormatJob(job_id);
@@ -440,26 +603,20 @@ class GtfsOSWController implements IController {
             if (jobInfo.status != 'completed') {
                 throw new JobIncompleteException(job_id);
             }
-            // Get the file entity for the file
-            const fileEntity = await oswService.getFileEntity(jobInfo.target_url);
-            if (jobInfo.target == 'osm') {
-                // OSM implies xml file
-                response.setHeader('Content-Type', 'application/xml');
-                response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
-                (await fileEntity.getStream()).pipe(response);
 
-            }
-            else if (jobInfo.target == 'osw') {
-                response.setHeader('Content-Type', 'application/zip');
+            if (['osm', 'osw'].includes(jobInfo.target)) {
+                // Get the file entity for the file
+                const fileEntity = await oswService.getFileEntity(jobInfo.target_url);
+                const contentType = jobInfo.target == 'osm' ? 'application/xml' : 'application/zip';
+                response.setHeader('Content-Type', contentType);
                 response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
                 (await fileEntity.getStream()).pipe(response);
-            }
-            else {
-                response.status(400).send(`Unkown target type ${jobInfo.target} `)
+            } else {
+                response.status(400).send(`Unknown target type ${jobInfo.target} `)
             }
         } catch (error) {
+            console.error("Error while processing the format download request", error);
             return next(error);
-
         }
     }
 

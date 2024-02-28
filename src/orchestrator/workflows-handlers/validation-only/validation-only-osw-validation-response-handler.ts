@@ -34,7 +34,7 @@ export class ValidationOnlyValidationResponseHandler extends WorkflowHandlerBase
                 this.delegateWorkflowIfAny(delegate_worflow, message);
 
             } catch (error) {
-                console.error("Error while processing the OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER ", error)
+                console.error(`Error while processing the ${this.eventName} `, error);
             }
         }
     }

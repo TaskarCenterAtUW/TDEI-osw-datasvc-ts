@@ -1,6 +1,6 @@
 ## Database Management
 
-- The `create-tables-master-script.sql` file comprises the most current create table scripts. It should be regularly updated with the latest create table script whenever there are additions, deletions, or modifications to any tables.
+- The `master-script` folder comprises the most current create tables/functions/indexes/types scripts. It should be regularly updated with the latest create scripts whenever there are additions, deletions, or modifications to any tables/functions/indexes/types.
 
 - For new features or releases, generate new migrations using the following command:
 
@@ -20,7 +20,7 @@
 - Avoid adding owner scripts to migrations. For instance:
 
   ```sql
-  ALTER TABLE IF EXISTS public.osw_formatting_jobs
+  ALTER TABLE IF EXISTS content.formatting_job
       OWNER to tdeiadmin;
   ```
 

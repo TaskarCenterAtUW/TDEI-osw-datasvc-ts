@@ -1,14 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
 import oswService from "../../../service/osw-service";
-import { OswFormatJobResponse } from "../../../model/osw-format-job-response";
 import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../services/orchestrator-service";
+import { DataFlatteningJobResponse } from "../../../model/data-flattening-job-response";
 
-export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
+export class OnDemandFlatteningResponseHandler extends WorkflowHandlerBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER");
+        super(workflowEvent, orchestratorServiceInstance, "ON_DEMAND_DATASET_FLATTENING_RESPONSE_HANDLER");
     }
 
     /**
@@ -21,11 +21,12 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
-            const response = OswFormatJobResponse.from(message.data);
-            await oswService.updateOSWFormatJob(response);
+            const dataFlatteningJobResponse = DataFlatteningJobResponse.from(message.data);
+            dataFlatteningJobResponse.ref_id = message.messageId;
+            dataFlatteningJobResponse.status = message.data.success ? "COMPLETED" : "FAILED";
+            oswService.updateDatasetFlatteningJob(dataFlatteningJobResponse);
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} `, error);
-            return;
         }
 
         if (message.data.success)

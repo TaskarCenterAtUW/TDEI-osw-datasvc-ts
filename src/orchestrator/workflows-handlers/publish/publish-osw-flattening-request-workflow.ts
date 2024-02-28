@@ -4,10 +4,10 @@ import oswService from "../../../service/osw-service";
 import { WorkflowBase } from "../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../services/orchestrator-service";
 
-export class PublishFormattingRequestWorkflow extends WorkflowBase {
+export class PublishFlatteningRequestWorkflow extends WorkflowBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW");
+        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_DATASET_FLATTENING_REQUEST_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
@@ -19,10 +19,10 @@ export class PublishFormattingRequestWorkflow extends WorkflowBase {
             //Compose the meessage
             let queueMessage = QueueMessage.from({
                 messageId: message.messageId,
-                messageType: "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW", //will be set by the publish handler with params defined in config
+                messageType: `${this.eventName}`, //will be set by the publish handler with params defined in config
                 data: {
                     file_upload_path: osw_version.dataset_url,
-                    tdei_project_group_id: osw_version.tdei_project_group_id
+                    data_type: "osw"
                 }
             });
 
@@ -30,7 +30,7 @@ export class PublishFormattingRequestWorkflow extends WorkflowBase {
             this.delegateWorkflowHandlers(queueMessage);
         }
         catch (error) {
-            console.error("Error in handling the formatting request workflow", error);
+            console.error("Error in handling the dataset flattening request workflow", error);
         }
     }
 }

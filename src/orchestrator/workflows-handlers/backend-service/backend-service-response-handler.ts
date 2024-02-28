@@ -1,14 +1,14 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
 import oswService from "../../../service/osw-service";
-import { OswFormatJobResponse } from "../../../model/osw-format-job-response";
 import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../services/orchestrator-service";
+import { BackendServiceJobResponse } from "../../../model/backend-service-job-response";
 
-export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
+export class BackendServiceResponseHandler extends WorkflowHandlerBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER");
+        super(workflowEvent, orchestratorServiceInstance, "BACKEND_SERVICE_RESPONSE_HANDLER");
     }
 
     /**
@@ -21,11 +21,13 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
-            const response = OswFormatJobResponse.from(message.data);
-            await oswService.updateOSWFormatJob(response);
+            const backendServiceResponse = BackendServiceJobResponse.from(message.data);
+            backendServiceResponse.file_upload_path = decodeURIComponent(backendServiceResponse.file_upload_path!);
+            backendServiceResponse.job_id = message.messageId;
+            backendServiceResponse.status = message.data.success ? "COMPLETED" : "FAILED";
+            oswService.updateBackendServiceJob(backendServiceResponse);
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} `, error);
-            return;
         }
 
         if (message.data.success)

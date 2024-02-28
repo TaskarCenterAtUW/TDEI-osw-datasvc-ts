@@ -9,10 +9,10 @@ import { TdeiDate } from '../../utility/tdei-date';
 export class OswMetadataEntity extends BaseDto {
 
     @Prop()
-    id!: number;
+    metadata_id!: number;
     @Prop()
     @IsNotEmpty()
-    tdei_record_id!: string;
+    tdei_dataset_id!: string;
     @Prop()
     @IsNotEmpty()
     name!: string;
@@ -62,7 +62,7 @@ export class OswMetadataEntity extends BaseDto {
 
     @Prop()
     @IsNotEmpty()
-    osw_schema_version!: string;
+    schema_version!: string;
 
     constructor(init?: Partial<OswMetadataEntity>) {
         super();
@@ -75,8 +75,8 @@ export class OswMetadataEntity extends BaseDto {
      */
     getInsertQuery(): QueryConfig {
         const queryObject = {
-            text: `INSERT INTO public.osw_metadata(
-                tdei_record_id, 
+            text: `INSERT INTO content.metadata(
+                tdei_dataset_id, 
                 name, 
                 version, 
                 description, 
@@ -87,13 +87,13 @@ export class OswMetadataEntity extends BaseDto {
                 valid_from, 
                 valid_to, 
                 data_source, 
-                osw_schema_version, 
+                schema_version, 
                 dataset_area)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.name, this.version, this.description,
+            values: [this.tdei_dataset_id, this.name, this.version, this.description,
             this.custom_metadata, this.collected_by, TdeiDate.UTC(this.collection_date), this.collection_method,
             this.valid_from ? TdeiDate.UTC(this.valid_from) : TdeiDate.UTC(), TdeiDate.UTC(this.valid_to),
-            this.data_source, this.osw_schema_version,
+            this.data_source, this.schema_version,
             this.dataset_area ? JSON.stringify(this.dataset_area.features[0].geometry) : null],
         }
 
@@ -118,8 +118,8 @@ export class OswMetadataEntity extends BaseDto {
         const toDate = this.valid_to ? TdeiDate.UTC(this.valid_to) : TdeiDate.UTC();
 
         const queryObject = {
-            text: `SELECT ov.tdei_record_id from public.osw_metadata om
-            INNER JOIN  public.osw_versions ov on ov.tdei_record_id = om.tdei_record_id
+            text: `SELECT ov.tdei_dataset_id from content.metadata om
+            INNER JOIN  content.dataset ov on ov.tdei_dataset_id = om.tdei_dataset_id
             WHERE 
             ov.status = 'Publish'
             AND ov.tdei_project_group_id = $1 

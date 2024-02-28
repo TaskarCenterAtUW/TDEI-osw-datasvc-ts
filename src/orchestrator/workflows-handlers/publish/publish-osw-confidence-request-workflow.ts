@@ -19,8 +19,8 @@ export class PublishConfidenceRequestWorkflow extends WorkflowBase {
             // Send the details to the confidence metric.
             const confidenceRequestMsg = new OSWConfidenceRequest();
             confidenceRequestMsg.jobId = tdei_record_id;
-            confidenceRequestMsg.data_file = oswRecord.download_osw_url;
-            confidenceRequestMsg.meta_file = oswRecord.download_metadata_url;
+            confidenceRequestMsg.data_file = oswRecord.dataset_url;
+            confidenceRequestMsg.meta_file = oswRecord.metadata_url;
             confidenceRequestMsg.trigger_type = 'release';
 
             let queueMessage = QueueMessage.from({

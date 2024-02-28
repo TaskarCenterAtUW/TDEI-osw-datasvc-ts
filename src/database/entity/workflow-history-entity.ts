@@ -5,7 +5,7 @@ import { BaseDto } from '../../model/base-dto';
 export class WorkflowHistoryEntity extends BaseDto {
 
     @Prop()
-    id!: number;
+    history_id!: number;
     @Prop()
     @IsNotEmpty()
     reference_id!: string;
