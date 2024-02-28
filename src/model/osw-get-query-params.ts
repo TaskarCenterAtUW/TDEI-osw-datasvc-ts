@@ -61,8 +61,8 @@ export class OswQueryParams {
    */
     getQueryObject(projectGroupIds: string[]) {
         const queryObject: DynamicQueryObject = new DynamicQueryObject();
-        queryObject.buildSelect("dataset", ["ST_AsGeoJSON(dataset_area) as polygon2, *"]);
-        queryObject.buildInnerJoin("dataset", "metadata", "tdei_dataset_id");
+        queryObject.buildSelect("content.dataset", ["ST_AsGeoJSON(dataset_area) as polygon2, *"]);
+        queryObject.buildInnerJoin("content.dataset", "content.metadata", "tdei_dataset_id");
         queryObject.buildPagination(this.page_no, this.page_size);
         queryObject.buildOrder("uploaded_timestamp", SqlORder.DESC);
 

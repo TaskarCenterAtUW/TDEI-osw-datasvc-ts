@@ -422,6 +422,7 @@ class OswService implements IOswService {
             // Insert osw version into database
             const oswEntity = new OswVersions();
             oswEntity.tdei_dataset_id = uid;
+            oswEntity.data_type = 'osw';
             oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
             oswEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
             oswEntity.derived_from_dataset_id = uploadRequestObject.derived_from_dataset_id;
@@ -435,6 +436,7 @@ class OswService implements IOswService {
             // Insert metadata into database
             const oswMetadataEntity = OswMetadataEntity.from(metadata);
             oswMetadataEntity.tdei_dataset_id = uid;
+            oswMetadataEntity.schema_version = metadata.osw_schema_version;
             await this.createOswMetadata(oswMetadataEntity);
 
             //TODO:: test data to be removed while PR
@@ -541,6 +543,7 @@ class OswService implements IOswService {
 
     async getAllOsw(user_id: string, params: OswQueryParams): Promise<OswDTO[]> {
         //Builds the query object. All the query consitions can be build in getQueryObject()
+        //TODO:: QUERY FROM UNIFY DB
         let userProjectGroups = await this.getUserProjectGroups(user_id);
 
         if (params.status && params.status == RecordStatus["Pre-Release"] && !userProjectGroups && !params.isAdmin)
@@ -557,6 +560,8 @@ class OswService implements IOswService {
         const list: OswDTO[] = [];
         result.rows.forEach(x => {
             const osw = OswDTO.from(x);
+            osw.tdei_record_id = x.tdei_dataset_id;
+            osw.osw_schema_version = x.schema_version;
             if (osw.dataset_area) {
                 const polygon = JSON.parse(x.polygon2) as Geometry;
                 osw.dataset_area = {
