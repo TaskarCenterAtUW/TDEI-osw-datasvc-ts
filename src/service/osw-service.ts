@@ -422,6 +422,7 @@ class OswService implements IOswService {
             // Insert osw version into database
             const oswEntity = new OswVersions();
             oswEntity.tdei_dataset_id = uid;
+            oswEntity.data_type = 'osw';
             oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
             oswEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
             oswEntity.derived_from_dataset_id = uploadRequestObject.derived_from_dataset_id;

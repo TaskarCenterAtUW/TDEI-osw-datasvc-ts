@@ -10,6 +10,9 @@ export class OswVersions extends BaseDto {
     tdei_dataset_id!: string;
     @Prop()
     @IsNotEmpty()
+    data_type!: string;
+    @Prop()
+    @IsNotEmpty()
     tdei_service_id!: string;
     @Prop()
     @IsNotEmpty()
