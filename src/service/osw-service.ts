@@ -560,6 +560,8 @@ class OswService implements IOswService {
         const list: OswDTO[] = [];
         result.rows.forEach(x => {
             const osw = OswDTO.from(x);
+            osw.tdei_record_id = x.tdei_dataset_id;
+            osw.osw_schema_version = x.schema_version;
             if (osw.dataset_area) {
                 const polygon = JSON.parse(x.polygon2) as Geometry;
                 osw.dataset_area = {
