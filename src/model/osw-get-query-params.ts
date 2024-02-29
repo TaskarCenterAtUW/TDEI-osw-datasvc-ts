@@ -73,9 +73,9 @@ export class OswQueryParams {
         if (this.status && this.status == RecordStatus["All"] && this.isAdmin) {
             queryObject.condition(` (status = $${queryObject.paramCouter++} or status = 'Pre-Release') `, RecordStatus.Publish.toString());
         } else if (this.status && this.status == RecordStatus["Pre-Release"] && projectGroupIds.length) {
-            queryObject.condition(` status = 'Pre-Release' AND tdei_project_group_id in ($${queryObject.paramCouter++}) `, projectGroupIds.join(","));
+            queryObject.condition(` status = 'Pre-Release' AND tdei_project_group_id in (${projectGroupIds.map(id => `'${id}'`).join(",")}) `, null);
         } else if (this.status && this.status == RecordStatus["All"] && projectGroupIds.length) {
-            queryObject.condition(` (status = 'Publish' or (status ='Pre-Release' AND tdei_project_group_id in ($${queryObject.paramCouter++}))) `, projectGroupIds.join(","));
+            queryObject.condition(` (status = 'Publish' or (status ='Pre-Release' AND tdei_project_group_id in (${projectGroupIds.map(id => `'${id}'`).join(",")}))) `, null);
         }
         else if (this.status && this.status == RecordStatus["All"] && projectGroupIds.length == 0) {
             queryObject.condition(` status = $${queryObject.paramCouter++} `, RecordStatus.Publish.toString());
