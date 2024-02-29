@@ -716,7 +716,7 @@ class OswService implements IOswService {
      */
     async getOSWMetadataById(id: string): Promise<OswMetadataEntity> {
         const query = {
-            text: 'Select * from metadata WHERE tdei_dataset_id = $1',
+            text: 'Select * from content.metadata WHERE tdei_dataset_id = $1',
             values: [id],
         }
 

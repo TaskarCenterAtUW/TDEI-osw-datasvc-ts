@@ -72,7 +72,7 @@ export class OswVersions extends BaseDto {
                 changeset_url,
                 metadata_url,
                 updated_by)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`.replace(/\n/g, ""),
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`.replace(/\n/g, ""),
             values: [this.tdei_dataset_id, this.tdei_service_id, this.tdei_project_group_id, this.data_type,
             this.dataset_url
                 , this.uploaded_by,
