@@ -19,7 +19,7 @@ export class PublishFlatteningRequestWorkflow extends WorkflowBase {
             //Compose the meessage
             let queueMessage = QueueMessage.from({
                 messageId: message.messageId,
-                messageType: `${this.eventName}`, //will be set by the publish handler with params defined in config
+                messageType: `${this.eventName}`, // will be set by the publish handler with params defined in config
                 data: {
                     tdei_dataset_id: message.messageId,
                     file_upload_path: osw_version.dataset_url,
