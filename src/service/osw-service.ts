@@ -732,7 +732,7 @@ class OswService implements IOswService {
         try {
             const query = info.getInsertQuery()
             const result = await dbClient.query(query)
-            const inserted_jobId = result.rows[0]['jobid']; // Get the jobId and return it back
+            const inserted_jobId = result.rows[0]['job_id']; // Get the jobId and return it back
             if (inserted_jobId == undefined) {
                 throw new Error("Confidence job creation failed");
             }
@@ -834,7 +834,7 @@ class OswService implements IOswService {
             const insertQuery = info.getInsertQuery();
 
             const result = await dbClient.query(insertQuery);
-            const jobId = result.rows[0]['jobid'];
+            const jobId = result.rows[0]['job_id'];
             if (jobId == undefined) {
                 throw new Error("Formatting job creation failed");
             }

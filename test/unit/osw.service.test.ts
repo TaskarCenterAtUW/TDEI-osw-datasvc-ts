@@ -482,7 +482,7 @@ describe("OSW Service Test", () => {
         it('should resolve with the inserted job ID', async () => {
             const mockInfo = new OswConfidenceJob();
             const mockQueryResult = <QueryResult<any>>{
-                rows: [{ jobid: 'someJobId' }],
+                rows: [{ job_id: 'someJobId' }],
             };
             jest.spyOn(dbClient, "query")
                 .mockResolvedValueOnce(mockQueryResult);
@@ -546,7 +546,7 @@ describe("OSW Service Test", () => {
         it('should resolve with the created job ID if the insertion is successful', async () => {
             const mockInfo = new OswFormatJob();
             const mockQueryResult = <QueryResult<any>>{
-                rows: [{ jobid: 'someJobId' }],
+                rows: [{ job_id: 'someJobId' }],
             };
             jest.spyOn(dbClient, "query")
                 .mockResolvedValueOnce(mockQueryResult);
