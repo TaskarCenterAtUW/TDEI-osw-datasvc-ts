@@ -295,7 +295,7 @@ class GtfsOSWController implements IController {
             const responseData = {
                 'job_id': job_id,
                 'status': jobInfo.status,
-                'download_url': jobInfo.status != 'FAILED' ? '/api/v1/osw/dataset-bbox/download/' + job_id : "",
+                'download_url': jobInfo.status == 'COMPLETED' ? '/api/v1/osw/dataset-bbox/download/' + job_id : "",
                 'message': jobInfo.message
             };
             response.status(200).send(responseData);
