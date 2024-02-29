@@ -17,6 +17,7 @@ export class DynamicQueryObject {
     */
     condition(clouse: string, value: any) {
         this.conditions.push(clouse);
+        if (value == null) return;
         if (value instanceof Array) {
             value.forEach(element => {
                 this.values.push(element);
