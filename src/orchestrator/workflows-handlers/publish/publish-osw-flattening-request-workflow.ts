@@ -21,6 +21,7 @@ export class PublishFlatteningRequestWorkflow extends WorkflowBase {
                 messageId: message.messageId,
                 messageType: `${this.eventName}`, //will be set by the publish handler with params defined in config
                 data: {
+                    tdei_dataset_id: message.messageId,
                     file_upload_path: osw_version.dataset_url,
                     data_type: "osw"
                 }
