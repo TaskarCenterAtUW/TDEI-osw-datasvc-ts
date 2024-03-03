@@ -252,7 +252,7 @@ class GtfsOSWController implements IController {
 
             const requestService = JSON.parse(JSON.stringify(request.query));
             if (!requestService) {
-                return next(new InputException('request body is empty'));
+                return next(new InputException('request body is empty', response));
             }
             let backendRequest: ServiceRequest = {
                 user_id: request.body.user_id,
@@ -289,7 +289,7 @@ class GtfsOSWController implements IController {
         try {
             const job_id = request.params['job_id'];
             if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided'));
+                return next(new InputException('job_id not provided', response));
             }
             const jobInfo = await oswService.getBackendJob(job_id);
             const responseData = {
@@ -321,12 +321,12 @@ class GtfsOSWController implements IController {
         try {
             const job_id = request.params['job_id'];
             if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided'));
+                return next(new InputException('job_id not provided', response));
             }
             const jobInfo = await oswService.getBackendJob(job_id);
 
             if (jobInfo.status != 'COMPLETED') {
-                throw new JobIncompleteException(job_id);
+                return next(new JobIncompleteException(job_id, response));
             }
             // Get the file entity for the file
             const fileEntity = await oswService.getFileEntity(jobInfo.download_url);

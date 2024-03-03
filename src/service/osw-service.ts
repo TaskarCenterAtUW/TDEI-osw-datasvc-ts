@@ -271,7 +271,7 @@ class OswService implements IOswService {
 
             return Promise.resolve(job_id);
         } catch (error) {
-            throw error;
+            return Promise.reject(error);
         }
     }
 
