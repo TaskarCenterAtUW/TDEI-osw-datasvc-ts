@@ -5,7 +5,7 @@ import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, FileTypeException, JobIncompleteException } from "../exceptions/http/http-exceptions";
+import { InputException, FileTypeException, JobIncompleteException, JobFailedException } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
@@ -325,6 +325,9 @@ class GtfsOSWController implements IController {
             }
             const jobInfo = await oswService.getBackendJob(job_id);
 
+            if (jobInfo.status == 'FAILED') {
+                return next(new JobFailedException(job_id, response));
+            }
             if (jobInfo.status != 'COMPLETED') {
                 return next(new JobIncompleteException(job_id, response));
             }

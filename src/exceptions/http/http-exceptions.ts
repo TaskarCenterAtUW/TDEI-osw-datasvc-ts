@@ -67,3 +67,11 @@ export class JobIncompleteException extends HttpException {
     }
 }
 
+export class JobFailedException extends HttpException {
+    constructor(jobId: string, response?: Response) {
+        let message = `Job with ID ${jobId} is failed`;
+        response?.status(400).send(message);
+        super(404, message);
+    }
+}
+
