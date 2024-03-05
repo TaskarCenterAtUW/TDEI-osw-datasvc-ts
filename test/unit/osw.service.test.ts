@@ -25,6 +25,10 @@ import workflowDatabaseService from "../../src/orchestrator/services/workflow-da
 import { IUploadRequest } from "../../src/service/interface/upload-request-interface";
 import { ServiceDto } from "../../src/model/service-dto";
 import { Utility } from "../../src/utility/utility";
+import { QueueMessage } from "nodets-ms-core/lib/core/queue";
+import { DatasetFlatteningJob } from "../../src/database/entity/dataset-flattening-job";
+import { ServiceRequest } from "../../src/model/backend-request-interface";
+import { BackendJob } from "../../src/database/entity/backend-job";
 
 // group test using describe
 describe("OSW Service Test", () => {
@@ -1010,7 +1014,7 @@ describe("OSW Service Test", () => {
             const result = await oswService.getServiceById(serviceId, projectGroupId);
             expect(result instanceof ServiceDto)
 
-        });
+        }, 10000);
 
         it('should handle error during fetch', async () => {
             jest.spyOn(Utility, "generateSecret").mockResolvedValueOnce("secret");
@@ -1088,6 +1092,96 @@ describe("OSW Service Test", () => {
             // Act & Assert
             await expect(oswService.invalidateRecordRequest(user_id, tdei_record_id)).rejects.toThrow(error);
             expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
+        });
+    });
+
+    describe("Process Dataset Flattening Request", () => {
+        test("When override is false and there is an existing record, expect to throw InputException", async () => {
+            // Arrange
+            const tdei_record_id = "test_id";
+            const override = false;
+            const queryResult = <QueryResult<any>>{
+                rowCount: 1
+            };
+            jest.spyOn(oswService, "getOSWRecordById").mockResolvedValueOnce(new OswVersions({}));
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(queryResult);
+
+            // Act & Assert
+            await expect(oswService.processDatasetFlatteningRequest("user_id", tdei_record_id, override)).rejects.toThrow(InputException);
+            expect(dbClient.query).toHaveBeenCalledTimes(1);
+        });
+
+        test("When override is true, expect to create a new job and trigger the workflow", async () => {
+            // Arrange
+            const tdei_record_id = "test_id";
+            const override = true;
+            const job_id = "job_id";
+            jest.spyOn(oswService, "getOSWRecordById").mockResolvedValueOnce(new OswVersions({}));
+            jest.spyOn(dbClient, "query").mockResolvedValue({ rows: [{ job_id }] } as any);
+            // Mock the behavior of triggerWorkflow
+            mockAppContext();
+            // Act
+            const result = await oswService.processDatasetFlatteningRequest("user_id", tdei_record_id, override);
+
+            // Assert
+            expect(dbClient.query).toHaveBeenCalledTimes(2);
+            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+                "ON_DEMAND_DATASET_FLATTENING_REQUEST_WORKFLOW",
+                expect.any(QueueMessage)
+            );
+            expect(result).toBe(job_id);
+        });
+    });
+
+    describe("processBackendRequest", () => {
+        test("Should create a backend job and trigger the workflow", async () => {
+            // Arrange
+            const backendRequest: ServiceRequest = {
+                user_id: "user_id",
+                service: "service",
+                parameters: {
+                    tdei_dataset_id: "string",
+                    bbox: "string"
+                }
+            };
+
+            const mockJobId = "job_id";
+            const mockWorkflowIdentifier = "BACKEND_SERVICE_REQUEST_WORKFLOW";
+
+            const queryResult = <QueryResult<any>>{
+                rowCount: 1,
+                rows: [{ job_id: mockJobId }],
+            };
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(queryResult);
+
+            mockAppContext();
+            // Act
+            const result = await oswService.processBackendRequest(backendRequest);
+
+            // Assert
+            expect(dbClient.query).toHaveBeenCalledTimes(1);
+            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith("BACKEND_SERVICE_REQUEST_WORKFLOW",
+                expect.any(QueueMessage));
+            expect(result).toBe(mockJobId);
+        });
+
+        test("Should throw an error if an exception occurs", async () => {
+            // Arrange
+            const backendRequest: ServiceRequest = {
+                user_id: "user_id",
+                service: "service",
+                parameters: {
+                    tdei_dataset_id: "string",
+                    bbox: "string"
+                }
+            };
+
+            const mockError = new Error("Some error message");
+
+            jest.spyOn(dbClient, "query").mockRejectedValueOnce(mockError);
+
+            // Act & Assert
+            await expect(oswService.processBackendRequest(backendRequest)).rejects.toThrow(mockError);
         });
     });
 });

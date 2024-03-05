@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS content.edge
 	footway character varying GENERATED ALWAYS AS ((feature->'properties'->>'footway')::text) STORED,
 	foot character varying GENERATED ALWAYS AS ((feature->'properties'->>'foot')::text) STORED,
 	description character varying GENERATED ALWAYS AS ((feature->'properties'->>'description')::text) STORED,
-	incline integer GENERATED ALWAYS AS ((feature->'properties'->>'foot')::integer) STORED,
+	incline real GENERATED ALWAYS AS ((feature->'properties'->>'incline')::real) STORED,
 	surface character varying GENERATED ALWAYS AS ((feature->'properties'->>'surface')::text) STORED,
 	length real GENERATED ALWAYS AS ((feature->'properties'->>'length')::real) STORED,
 	width real GENERATED ALWAYS AS ((feature->'properties'->>'width')::real) STORED,

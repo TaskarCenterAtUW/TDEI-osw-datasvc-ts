@@ -5,7 +5,7 @@ import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, FileTypeException, JobIncompleteException } from "../exceptions/http/http-exceptions";
+import { InputException, FileTypeException, JobIncompleteException, JobFailedException } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
@@ -252,7 +252,7 @@ class GtfsOSWController implements IController {
 
             const requestService = JSON.parse(JSON.stringify(request.query));
             if (!requestService) {
-                return next(new InputException('request body is empty'));
+                return next(new InputException('request body is empty', response));
             }
             let backendRequest: ServiceRequest = {
                 user_id: request.body.user_id,
@@ -289,13 +289,13 @@ class GtfsOSWController implements IController {
         try {
             const job_id = request.params['job_id'];
             if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided'));
+                return next(new InputException('job_id not provided', response));
             }
             const jobInfo = await oswService.getBackendJob(job_id);
             const responseData = {
                 'job_id': job_id,
                 'status': jobInfo.status,
-                'download_url': jobInfo.status != 'FAILED' ? '/api/v1/osw/dataset-bbox/download/' + job_id : "",
+                'download_url': jobInfo.status == 'COMPLETED' ? '/api/v1/osw/dataset-bbox/download/' + job_id : "",
                 'message': jobInfo.message
             };
             response.status(200).send(responseData);
@@ -321,12 +321,15 @@ class GtfsOSWController implements IController {
         try {
             const job_id = request.params['job_id'];
             if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided'));
+                return next(new InputException('job_id not provided', response));
             }
             const jobInfo = await oswService.getBackendJob(job_id);
 
+            if (jobInfo.status == 'FAILED') {
+                return next(new JobFailedException(job_id, response));
+            }
             if (jobInfo.status != 'COMPLETED') {
-                throw new JobIncompleteException(job_id);
+                return next(new JobIncompleteException(job_id, response));
             }
             // Get the file entity for the file
             const fileEntity = await oswService.getFileEntity(jobInfo.download_url);

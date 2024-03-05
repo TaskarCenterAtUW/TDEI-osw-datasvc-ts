@@ -1,4 +1,5 @@
 import HttpException from "./http-base-exception";
+import { Response } from "express";
 
 export class DuplicateException extends HttpException {
     constructor(name: string) {
@@ -37,14 +38,17 @@ export class UserNotFoundException extends HttpException {
 }
 
 export class InputException extends HttpException {
-    constructor(message: string) {
+    constructor(message: string, response?: Response) {
+        response?.status(400).send(message);
         super(400, message);
     }
 }
 
 export class JobIdNotFoundException extends HttpException {
-    constructor(jobId: string) {
-        super(404, `JobId with ID ${jobId} not found`)
+    constructor(jobId: string, response?: Response) {
+        let message = `JobId with ID ${jobId} not found`;
+        response?.status(404).send(message);
+        super(404, message);
     }
 }
 
@@ -56,8 +60,18 @@ export class ServiceNotFoundException extends HttpException {
 
 
 export class JobIncompleteException extends HttpException {
-    constructor(jobId: string) {
-        super(404, `JobId with ID ${jobId} not completed`)
+    constructor(jobId: string, response?: Response) {
+        let message = `Job with ID ${jobId} is not completed yet`;
+        response?.status(400).send(message);
+        super(404, message);
+    }
+}
+
+export class JobFailedException extends HttpException {
+    constructor(jobId: string, response?: Response) {
+        let message = `Job with ID ${jobId} is failed`;
+        response?.status(400).send(message);
+        super(404, message);
     }
 }
 
