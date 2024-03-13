@@ -1,4 +1,5 @@
 import HttpException from "./http-base-exception";
+import { Response } from "express";
 
 export class DuplicateException extends HttpException {
     constructor(name: string) {
@@ -18,15 +19,15 @@ export class ForeignKeyException extends HttpException {
     }
 }
 
-export class FileTypeException extends HttpException{
-    constructor(){
-        super(400,'Invalid file type.');
+export class FileTypeException extends HttpException {
+    constructor() {
+        super(400, 'Invalid file type.');
     }
 }
 
 export class OverlapException extends HttpException {
-    constructor(name:string){
-        super(400,`Given record overlaps with tdeirecord ${name} in the system.`);
+    constructor(name: string) {
+        super(400, `Given record overlaps with tdeirecord ${name} in the system.`);
     }
 }
 
@@ -37,10 +38,40 @@ export class UserNotFoundException extends HttpException {
 }
 
 export class InputException extends HttpException {
-    constructor(message: string) {
+    constructor(message: string, response?: Response) {
+        response?.status(400).send(message);
         super(400, message);
     }
 }
 
+export class JobIdNotFoundException extends HttpException {
+    constructor(jobId: string, response?: Response) {
+        let message = `JobId with ID ${jobId} not found`;
+        response?.status(404).send(message);
+        super(404, message);
+    }
+}
 
+export class ServiceNotFoundException extends HttpException {
+    constructor(serviceId: string) {
+        super(404, `Service ID ${serviceId} is not found or inactive`);
+    }
+}
+
+
+export class JobIncompleteException extends HttpException {
+    constructor(jobId: string, response?: Response) {
+        let message = `Job with ID ${jobId} is not completed yet`;
+        response?.status(400).send(message);
+        super(404, message);
+    }
+}
+
+export class JobFailedException extends HttpException {
+    constructor(jobId: string, response?: Response) {
+        let message = `Job with ID ${jobId} is failed`;
+        response?.status(400).send(message);
+        super(404, message);
+    }
+}
 

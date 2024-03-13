@@ -20,15 +20,14 @@ Application configuration is read from .env file. Below are the list of environe
 |QUEUECONNECTION | Queue connection string |
 |STORAGECONNECTION | Storage connection string|
 |PORT |Port on which application will run|
-|VALIDATION_SUBSCRIPTION | Upload topic subscription name|
-|VALIDATION_TOPIC | Validation topic name|
-|AUTH_PERMISSION_URL | Authentication/Authorization url|
+|AUTH_HOST | Authentication/Authorization url|
 |DATASVC_TOPIC | Data service publishing topic|
 |POSTGRES_DB | Database name|
 |POSTGRES_HOST| Link to the database host |
 |POSTGRES_USER| Database user |
 |POSTGRES_PASSWORD| Database user password|
 |GATEWAY_URL | Gateway Url|
+|USER_MANAGEMENT_HOST | User management url |
 
 ## Local Postgresql database setup
 
@@ -62,6 +61,10 @@ Follow the steps to install the node packages required for testing the applicati
     npm install
     ```
 2. To start testing suits, use the command `npm test` , this command will execute all the unit test suites defined for application.
+
+## Test Enumeration
+
+When new test cases are written, it is required to run `npm run generate-test-enumeration` which will update the test-enumeration.md file with latest test case changes.
 
 ## System flow
 ---
@@ -146,60 +149,67 @@ Path : `/api/v1/osw`
 
 Method : `POST`
 
-Form data : Contains two parts
+Form data : Contains two required and one optional file
 
-`meta`: Payload in JSON format 
+`metadata`: Payload in JSON format 
 
-`file`: The zip file for osw
+`dataset`: The zip file for osw
 
-Example for meta 
+`changeset`: Optional, file containing upload details
+
+Example for metadata 
 
 ```json
 
 {
-  "tdei_project_group_id": "4e991e7a-5c16-4ebf-ad31-3a3625bcca10",
-  "collected_by": "See best practices document",
-  "collection_date": "2018-02-10T09:30Z",
-  "collection_method": "manual",
-  "publication_date": "2023-03-02T04:22:42.493Z",
-  "data_source": "3rdParty",
-  "polygon": {
-    "type": "FeatureCollection",
-    "features": [
-      {
-        "type": "Feature",
-        "id": "string",
-        "properties": {},
-        "geometry": {
-          "type": "string",
-          "coordinates": [
-            [
-              [
-                77.58700584031209,
-                12.97544246408998
-              ],
-              [
-                77.58670678771239,
-                12.974635462667848
-              ],
-              [
-                77.58782248394829,
-                12.974489753799247
-              ],
-              [
-                77.58813303857153,
-                12.97529675569426
-              ],
-              [
-                77.58700584031209,
-                12.97544246408998
-              ]]]
-          
-        }
-      }
-    ]
-  },
-  "osw_schema_version": "v0.1"
+    "name": "Sample OSW Upload",
+    "version": "1.0.2",
+    "description": "This is a sample OSW upload.",
+    "custom_metadata": {},
+    "collected_by": "John Doe",
+    "collection_date": "2024-01-18 21:17:48.357173-08",
+    "collection_method": "transform",
+    "data_source": "3rdParty",
+    "osw_schema_version": "v0.1",
+    "valid_from": "2024-01-18 21:17:48.357173-08",
+    "valid_to": "2024-01-19 22:17:48.357173-08",
+    "dataset_area": {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "id": "1",
+                "properties": {},
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [
+                                30.0,
+                                10.0
+                            ],
+                            [
+                                40.0,
+                                40.0
+                            ],
+                            [
+                                20.0,
+                                40.0
+                            ],
+                            [
+                                10.0,
+                                20.0
+                            ],
+                            [
+                                30.0,
+                                10.0
+                            ]
+                        ]
+                    ]
+                }
+            }
+        ]
+    }
 }
 
 ```
@@ -275,3 +285,119 @@ The database is ready to be connected to the service
 
 ### Edit the host in .env file
 In the `.env` file, `POSTGRES_HOST=localhost` and run the service with `npm run start`
+
+## Confidence metric implementation and APIs
+
+There are two APIs exposed for calculating the confidence metric for record
+
+### Initiate  Confidence metric calculation
+
+PATH : `/api/v1/osw/confidence/calculate`
+
+Method: POST
+
+Body:
+
+```json
+{
+      "tdeiRecordId":"<tdeiRecord ID>"
+}
+
+```
+
+Response:
+
+```json
+{
+  "tdeiRecordId":"<tdeiRecord ID>",
+  "jobId":"<jobId>",
+  "statusUrl":"<status URL>"
+}
+
+```
+
+### Get status of the confidence metric job
+
+PATH: `/api/v1/osw/confidence/status/<jobId>`
+
+Method: GET
+
+Response:
+
+```json
+{
+    "jobId":"<jobId>",
+    "confidenceValue":"float or 0 if not calculated",
+    "status":"started/calculated/failed",
+    "updatedAt":"Date time of the last update of the status",
+    "message":"Response message containing error or status information"
+}
+
+```
+
+The status can be any of `started`, `calculated` or `failed`
+
+| Status | Description |
+|-|-|
+| started | Initiated the calculation. Waiting for confidence service to respond|
+| calculated| Calculation done. The value is in `confidenceValue` |
+| failed | Confidence service failed to calculate. `message` will have the error |
+
+
+## On demand formatting for osw
+
+On demand formatting is done by uploading a type of format.
+
+### On demand format upload API 
+
+PATH: `/api/v1/convert/upload`
+
+Method : POST
+
+Body: (multipart-form-data)
+
+|Key | Description|
+|-|-|
+|source| From format (osw or osm) |
+| target | To format (osw or osm) should not be same as source |
+| file | input file  to be converted|
+
+Response:
+
+```json
+{
+    "jobId":"<jobId>",
+    "statusUrl":"<status url >"
+}
+
+```
+
+### Status request API
+
+Path: `/api/v1/osw/convert/status/<jobId>`
+
+Method: `GET`
+
+Response:
+
+```json
+{
+    "jobId":"<jobId>",
+    "status":"<started/completed/failed>",
+    "message":"<any error message. will be blank for completed or started>",
+    "downloadUrl":"<url to download the formatted set>",
+    "conversion":"<type of conversion> osm-osw or osw-osm"
+}
+
+```
+
+### Formatted file download API
+
+Path : `/api/v1/osw/convert/download/<jobId>`
+Method: `GET`
+
+Response:
+
+File content with the name as per the conversion parameters.
+For osm, output is in .xml format
+For osw, output is in .zip format

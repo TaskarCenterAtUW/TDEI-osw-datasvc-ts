@@ -1,50 +1,51 @@
-import { IsNotEmpty, IsOptional } from 'class-validator';
-import { FeatureCollection } from 'geojson';
+import { IsNotEmpty } from 'class-validator';
 import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
-import { IsValidPolygon } from '../../validators/polygon-validator';
+import { TdeiDate } from '../../utility/tdei-date';
 
 export class OswVersions extends BaseDto {
-
-    @Prop()
-    id!: number;
     @Prop()
     @IsNotEmpty()
-    tdei_record_id!: string;
+    tdei_dataset_id!: string;
     @Prop()
-    confidence_level = 0;
+    @IsNotEmpty()
+    data_type!: string;
+    @Prop()
+    @IsNotEmpty()
+    tdei_service_id!: string;
     @Prop()
     @IsNotEmpty()
     tdei_project_group_id!: string;
     @Prop()
+    derived_from_dataset_id!: string;
+    @Prop()
+    confidence_level!: number;
+    @Prop()
     @IsNotEmpty()
-    file_upload_path!: string;
+    dataset_url!: string;
+    @Prop()
+    osm_url!: string;
+    @Prop()
+    changeset_url!: string;
+    @Prop()
+    metadata_url!: string;
     @Prop()
     @IsNotEmpty()
     uploaded_by!: string;
     @Prop()
-    @IsNotEmpty()
-    collected_by!: string;
+    cm_version!: string;
+    @Prop()
+    cm_last_calculated_at!: string;
     @Prop()
     @IsNotEmpty()
-    collection_date!: Date;
+    status: string = "Pre-Release";
     @Prop()
-    @IsNotEmpty()
-    collection_method!: string;
+    uploaded_timestamp!: Date;
     @Prop()
-    @IsNotEmpty()
-    publication_date!: Date;
+    updated_at!: string;
     @Prop()
-    @IsNotEmpty()
-    data_source!: string;
-    @Prop()
-    @IsNotEmpty()
-    osw_schema_version!: string;
-    @IsOptional()
-    @IsValidPolygon()
-    @Prop()
-    polygon!: FeatureCollection;
+    updated_by!: string;
 
     constructor(init?: Partial<OswVersions>) {
         super();
@@ -56,23 +57,59 @@ export class OswVersions extends BaseDto {
      * @returns QueryConfig object
      */
     getInsertQuery(): QueryConfig {
-        const polygonExists = this.polygon ? true : false;
+
         const queryObject = {
-            text: `INSERT INTO public.osw_versions(tdei_record_id, 
-                confidence_level, 
-                tdei_project_group_id, 
-                file_upload_path, 
-                uploaded_by,
-                collected_by, 
-                collection_date,
-                collection_method, publication_date, data_source,
-                osw_schema_version ${polygonExists ? ', polygon ' : ''})
-                VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8,$9,$10 ${polygonExists ? ', ST_GeomFromGeoJSON($11) ' : ''})`.replace(/\n/g, ""),
-            values: [this.tdei_record_id, this.tdei_project_group_id, this.file_upload_path, this.uploaded_by
-                , this.collected_by, this.collection_date, this.collection_method, this.publication_date, this.data_source, this.osw_schema_version],
+            text: `INSERT INTO content.dataset(
+                tdei_dataset_id,
+                tdei_service_id, 
+                tdei_project_group_id,
+                data_type,
+                dataset_url,
+                uploaded_by, 
+                derived_from_dataset_id, 
+                status,
+                uploaded_timestamp,
+                changeset_url,
+                metadata_url,
+                updated_by)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`.replace(/\n/g, ""),
+            values: [this.tdei_dataset_id, this.tdei_service_id, this.tdei_project_group_id, this.data_type,
+            this.dataset_url
+                , this.uploaded_by,
+            this.derived_from_dataset_id ?? null,
+            this.status,
+            TdeiDate.UTC(),
+            this.changeset_url ?? null,
+            this.metadata_url,
+            this.updated_by]
         }
-        if (polygonExists) {
-            queryObject.values.push(JSON.stringify(this.polygon.features[0].geometry));
+        return queryObject;
+    }
+
+
+    static getUpdateFormatUrlQuery(tdei_dataset_id: string, download_osm_url: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE content.dataset SET osm_url = $1 , updated_at = CURRENT_TIMESTAMP 
+            WHERE tdei_dataset_id = $2`,
+            values: [download_osm_url, tdei_dataset_id]
+        }
+        return queryObject;
+    }
+
+    static getPublishRecordQuery(tdei_dataset_id: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE content.dataset SET status = 'Publish' , updated_at = CURRENT_TIMESTAMP 
+            WHERE tdei_dataset_id = $1`,
+            values: [tdei_dataset_id]
+        }
+        return queryObject;
+    }
+
+    static getDeleteRecordQuery(tdei_dataset_id: string, user_id: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE content.dataset SET status = 'Deleted' , updated_at = CURRENT_TIMESTAMP, updated_by = $1   
+            WHERE tdei_dataset_id = $2`,
+            values: [user_id, tdei_dataset_id]
         }
         return queryObject;
     }

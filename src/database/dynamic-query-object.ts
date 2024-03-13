@@ -17,6 +17,7 @@ export class DynamicQueryObject {
     */
     condition(clouse: string, value: any) {
         this.conditions.push(clouse);
+        if (value == null) return;
         if (value instanceof Array) {
             value.forEach(element => {
                 this.values.push(element);
@@ -28,8 +29,13 @@ export class DynamicQueryObject {
     }
 
     buildSelect(tableName: string, columns: string[]) {
-        this._select = `SELECT ${columns.join(',')} FROM ${tableName}`;
+        this._select = `SELECT ${columns.join(',')} FROM ${tableName} `;
     }
+
+    buildInnerJoin(sourceTableName: string, destinationTableName: string, joinColumn: string) {
+        this._select += ` INNER JOIN ${destinationTableName} on ${destinationTableName}.${joinColumn} = ${sourceTableName}.${joinColumn} `;
+    }
+
     private buildWhere() {
         if (this.conditions.length == 0) return "";
         return ` WHERE ${this.conditions.join(" AND ")}`;

@@ -6,6 +6,9 @@ module.exports = {
   restoreMocks: true,
   coverageProvider: "v8",
   moduleFileExtensions: ["js", "jsx", "ts", "tsx", "json", "node"],
+  setupFiles: [
+    "./setupJest.js"
+  ],
   // roots: ["<rootDir>"],
   // testMatch: ["**/test/*.ts", "**/?(*.)+(spec|test).[tj]s?(x)"],
   transform: {

@@ -4,16 +4,19 @@ import bodyParser from "body-parser";
 import { IController } from "./controller/interface/IController";
 import helmet from "helmet";
 import { Core } from "nodets-ms-core";
-import { EventBusService } from "./service/event-bus-service";
 import { unhandledExceptionAndRejectionHandler } from "./middleware/unhandled-exception-rejection-handler";
-import { errorHandler } from "./middleware/error-handler-middleware";
 import dbClient from "./database/data-source";
 import HttpException from "./exceptions/http/http-base-exception";
+import { IOrchestratorService, OrchestratorService } from "./orchestrator/services/orchestrator-service";
+import orchestratorConfig from "./tdei-orchestrator-config.json";
+import workflows from "./orchestrator/workflows-handlers";
+import EventEmitter from "events";
+import appContext from "./app-context";
 
 class App {
-    public app: express.Application;
-    public port: number;
-    private eventBusService!: EventBusService;
+    private app: express.Application;
+    private port: number;
+    private orchestratorService: IOrchestratorService | undefined;
 
     constructor(controllers: IController[], port: number) {
         this.app = express();
@@ -23,9 +26,9 @@ class App {
 
         this.initializeMiddlewares();
         this.initializeControllers(controllers);
-        this.subscribeUpload();
         this.initializeLibraries();
         dbClient.initializaDatabase();
+        this.initializeOrchestrator();
         //Last middleware to be registered: error handler. 
         // this.app.use(errorHandler); // Not working
 
@@ -37,16 +40,26 @@ class App {
             else {
                 res.status(500).send('Application error occured');
             }
-        })
+        });
     }
 
-    initializeLibraries() {
+    private initializeOrchestrator() {
+        if (!this.orchestratorService)
+            this.orchestratorService = new OrchestratorService(orchestratorConfig);
+
+        this.orchestratorService.initialize(workflows);
+        appContext.orchestratorServiceInstance = this.orchestratorService;
+
+    }
+
+    public get orchestratorServiceInstance() {
+        if (!this.orchestratorService)
+            this.initializeOrchestrator();
+        return this.orchestratorService!;
+    }
+
+    private initializeLibraries() {
         Core.initialize();
-    }
-
-    private subscribeUpload() {
-        this.eventBusService = new EventBusService();
-        this.eventBusService.subscribeUpload();
     }
 
     private initializeMiddlewares() {
