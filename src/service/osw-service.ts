@@ -439,10 +439,6 @@ class OswService implements IOswService {
             oswMetadataEntity.schema_version = metadata.osw_schema_version;
             await this.createOswMetadata(oswMetadataEntity);
 
-            //TODO:: test data to be removed while PR
-            let temp_tdei_project_group_id = 'c552d5d1-0719-4647-b86d-6ae9b25327b7';
-            uploadRequestObject.tdei_project_group_id = temp_tdei_project_group_id;
-
             //Compose the meessage
             let workflow_identifier = "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
