@@ -1,74 +1,43 @@
-import { Geometry, Feature } from "geojson";
 import { Core } from "nodets-ms-core";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
-import { QueryConfig } from "pg";
 import dbClient from "../database/data-source";
-import { OswVersions } from "../database/entity/osw-version-entity";
-import UniqueKeyDbException from "../exceptions/db/database-exceptions";
+import { DatasetEntity } from "../database/entity/dataset-entity";
 import HttpException from "../exceptions/http/http-base-exception";
-import { DuplicateException, InputException, JobIdNotFoundException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
-import { OswDTO } from "../model/osw-dto";
-import { OswQueryParams, RecordStatus } from "../model/osw-get-query-params";
-import { OswConfidenceJob } from "../database/entity/osw-confidence-job-entity";
-import { OSWConfidenceResponse } from "../model/osw-confidence-response";
-import { OswFormatJob } from "../database/entity/osw-format-job-entity";
-import { OswFormatJobResponse } from "../model/osw-format-job-response";
+import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
+import { ConfidenceJobResponse } from "../model/job-request-response/osw-confidence-job-response";
 import { IUploadRequest } from "./interface/upload-request-interface";
 import { OswUploadMeta } from "../model/osw-upload-meta";
-import { ValidationError, validate } from "class-validator";
 import path from "path";
 import { Readable } from "stream";
 import storageService from "./storage-service";
-import { OswMetadataEntity } from "../database/entity/osw-metadata";
+import { MetadataEntity } from "../database/entity/metadata-entity";
 import appContext from "../app-context";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import { OswValidationJobs } from "../database/entity/osw-validate-jobs";
 import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
-import { Utility } from "../utility/utility";
-import { environment } from "../environment/environment";
-import fetch from "node-fetch";
-import { ServiceDto } from "../model/service-dto";
-import { ProjectGroupRoleDto } from "../model/project-group-role-dto";
-import { OSWConfidenceRequest } from "../model/osw-confidence-request";
-import { OswFormatJobRequest } from "../model/osw-format-job-request";
+import { OSWConfidenceJobRequest } from "../model/job-request-response/osw-confidence-job-request";
+import { OswFormatJobRequest } from "../model/job-request-response/osw-format-job-request";
 import { IOswService } from "./interface/osw-service-interface";
-import { DatasetFlatteningJob } from "../database/entity/dataset-flattening-job";
-import { BackendJob } from "../database/entity/backend-job";
 import { ServiceRequest } from "../model/backend-request-interface";
-import { BackendServiceJobResponse } from "../model/backend-service-job-response";
-import { DataFlatteningJobResponse } from "../model/data-flattening-job-response";
+import jobService from "./job-service";
+import { IJobService } from "./interface/job-service-interface";
+import { CreateJobDTO } from "../model/job-dto";
+import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params";
+import tdeiCoreService from "./tdei-core-service";
+import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 
 class OswService implements IOswService {
-    constructor() { }
+    constructor(public jobServiceInstance: IJobService, public generalServiceInstance: ITdeiCoreService) { }
 
     /**
-     * Invalidate the record
-     * @param user_id 
-     * @param tdei_record_id 
+     * Processes a format request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
+     * @param source The source format of the file.
+     * @param target The target format to convert the file to.
+     * @param uploadedFile The file to be uploaded.
+     * @param user_id The ID of the user making the request.
+     * @returns A Promise that resolves to the job ID.
+     * @throws Throws an error if an error occurs during the process.
      */
-    async invalidateRecordRequest(user_id: any, tdei_record_id: string): Promise<boolean> {
-        try {
-            const queryResult = await dbClient.query(OswVersions.getDeleteRecordQuery(tdei_record_id, user_id));
-            if (queryResult.rowCount && queryResult.rowCount > 0) {
-                return Promise.resolve(true);
-            }
-
-            throw new InputException(`${tdei_record_id} not found.`);
-
-        } catch (error) {
-            console.error("Error invalidating the record", error);
-            throw error;
-        }
-    }
-
-    /**
-         * On-demand format request
-         * @param source 
-         * @param target 
-         * @param uploadedFile 
-         * @param user_id 
-         */
-    async processFormatRequest(source: string, target: string, uploadedFile: Express.Multer.File, user_id: any): Promise<string> {
+    async processFormatRequest(source: string, target: string, uploadedFile: Express.Multer.File, user_id: string): Promise<string> {
         try {
             // Get the upload path
             const uid = storageService.generateRandomUUID();
@@ -79,38 +48,44 @@ class OswService implements IOswService {
             if (extension == 'zip') {
                 fileType = 'application/zip'
             }
-            const remoteUrl = await storageService.uploadFile(uploadPath, fileType, Readable.from(uploadedFile!.buffer))
-            console.log('Uplaoded to ', remoteUrl);
-            const oswformatJob = new OswFormatJob();
-            oswformatJob.created_at = new Date();
-            oswformatJob.source = source; //TODO: Validate the input enums 
-            oswformatJob.target = target; //TODO: Validate the input enums
-            oswformatJob.source_url = remoteUrl;
-            oswformatJob.status = 'started';
-            oswformatJob.requested_by = user_id;
+            const source_url = await storageService.uploadFile(uploadPath, fileType, Readable.from(uploadedFile!.buffer))
+            console.log('Uplaoded to ', source_url);
 
-            const jobId = await this.createOSWFormatJob(oswformatJob);
-            // Send the same to service bus.
-            oswformatJob.job_id = parseInt(jobId);
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Reformat"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    source_format: source,
+                    target_format: target,
+                    file_upload_name: uploadedFile!.originalname
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
             let workflow_identifier = "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW";
             const oswFormatRequest = OswFormatJobRequest.from({
-                jobId: oswformatJob.job_id.toString(),
-                source: oswformatJob.source,
-                target: oswformatJob.target,
-                sourceUrl: oswformatJob.source_url
+                jobId: job_id.toString(),
+                source: source,
+                target: target,
+                sourceUrl: source_url
             });
+
             let queueMessage = QueueMessage.from({
-                messageId: jobId,
+                messageId: job_id.toString(),
                 messageType: workflow_identifier,
                 data: oswFormatRequest
             });
             //Trigger the workflow
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
-            // Send the jobId back to the user.
-            return Promise.resolve(jobId);
+            // Send the job_id back to the user.
+            return Promise.resolve(job_id.toString());
 
         } catch (error) {
             throw error;
@@ -118,39 +93,48 @@ class OswService implements IOswService {
     }
 
     /**
-     * Calculates on-demand confidence matrics for given tdei_record_id
+     * Calculates the confidence for a given TDEI dataset.
+     * 
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user.
+     * @returns A Promise that resolves to the ID of the created job.
+     * @throws If there is an error calculating the confidence.
      */
-    async calculateConfidence(tdeiRecordId: string, user_id: string): Promise<string> {
+    async calculateConfidence(tdei_dataset_id: string, user_id: string): Promise<string> {
         // Check and get the record for the same in the database
         try {
-            const oswRecord = await this.getOSWRecordById(tdeiRecordId)
+            const oswRecord = await this.generalServiceInstance.getDatasetDetailsById(tdei_dataset_id)
             // Create a job in the database for the same.
             //TODO: Have to add these based on some of the input data.
-            const confidence_job = new OswConfidenceJob()
-            confidence_job.tdei_dataset_id = tdeiRecordId;
-            confidence_job.trigger_type = 'manual';
-            confidence_job.created_at = new Date();
-            confidence_job.updated_at = new Date();
-            confidence_job.status = 'started';
-            confidence_job.cm_last_calculated_at = new Date();
-            confidence_job.user_id = user_id;
-            confidence_job.cm_version = 'v1.0';
-            const jobId = await this.createOSWConfidenceJob(confidence_job);
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Confidence-Calculate"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id: tdei_dataset_id,
+                    trigger_type: 'manual'
+                },
+                tdei_project_group_id: oswRecord.tdei_project_group_id,
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
 
             // Send the details to the confidence metric.
             //TODO: Fill based on the metadata received
-            const confidenceRequestMsg = new OSWConfidenceRequest();
-            confidenceRequestMsg.jobId = jobId; // skip tdei-record-id
+            const confidenceRequestMsg = new OSWConfidenceJobRequest();
+            confidenceRequestMsg.jobId = job_id.toString();
             confidenceRequestMsg.data_file = oswRecord.dataset_url;
             //TODO: Once this is done, get the things moved.
             confidenceRequestMsg.meta_file = oswRecord.metadata_url;
-            confidenceRequestMsg.trigger_type = 'manual' //release
-            //this.eventBusService.publishConfidenceRequest(confidenceRequestMsg);
+            confidenceRequestMsg.trigger_type = 'manual';
 
             //Compose the meessage
             let workflow_identifier = "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
-                messageId: tdeiRecordId,
+                messageId: job_id.toString(),
                 messageType: workflow_identifier,
                 data: confidenceRequestMsg
             });
@@ -159,147 +143,179 @@ class OswService implements IOswService {
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
             // Send the jobId back to the user.
-            return Promise.resolve(jobId);
+            return Promise.resolve(job_id.toString());
         }
         catch (error) {
             console.log("Error calculating confidence ", error);
             return Promise.reject(error);
         }
     }
-    /**
-   * Publishes the osw record
-   * @param tdei_record_id 
-   */
-    async processPublishRequest(user_id: string, tdei_record_id: string): Promise<void> {
-        try {
-            let osw_version = await this.getOSWRecordById(tdei_record_id);
-            let osw_metadata = await this.getOSWMetadataById(tdei_record_id);
 
-            if (osw_version.status === 'Publish')
-                throw new InputException(`${tdei_record_id} already publised.`)
+    /**
+     * Processes a publish request for a TDEI dataset.
+     * 
+     * @param user_id - The ID of the user making the request.
+     * @param tdei_dataset_id - The ID of the TDEI dataset to publish.
+     * @returns A Promise that resolves when the publish request is processed successfully.
+     * @throws {InputException} If the dataset is already published.
+     * @throws {OverlapException} If there is a record with the same date.
+     * @throws {Error} If an error occurs during the processing of the publish request.
+     */
+    async processPublishRequest(user_id: string, tdei_dataset_id: string): Promise<string> {
+        try {
+            let dataset = await this.generalServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            let metadata = await this.generalServiceInstance.getMetadataDetailsById(tdei_dataset_id);
+
+            if (dataset.status === 'Publish')
+                throw new InputException(`${tdei_dataset_id} already publised.`)
 
             // Check if there is a record with the same date
-            const queryResult = await dbClient.query(osw_metadata.getOverlapQuery(osw_version.tdei_project_group_id, osw_version.tdei_service_id));
+            const queryResult = await dbClient.query(metadata.getOverlapQuery(dataset.tdei_project_group_id, dataset.tdei_service_id));
             if (queryResult.rowCount && queryResult.rowCount > 0) {
-                const recordId = queryResult.rows[0]["tdei_record_id"];
+                const recordId = queryResult.rows[0]["tdei_dataset_id"];
                 throw new OverlapException(recordId);
             }
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Publish"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id: tdei_dataset_id
+                },
+                tdei_project_group_id: dataset.tdei_project_group_id,
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
             let workflow_identifier = "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
-                messageId: tdei_record_id,
+                messageId: job_id.toString(),
                 messageType: workflow_identifier,
                 data: {
                     user_id: user_id, // Required field for message authorization
-                    tdei_project_group_id: osw_version.tdei_project_group_id,// Required field for message authorization
-                    file_upload_path: osw_version.dataset_url
+                    tdei_project_group_id: dataset.tdei_project_group_id,// Required field for message authorization
+                    file_upload_path: dataset.dataset_url
                 }
             });
             //Delete exisitng workflow if exists
             let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
-            workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_record_id, trigger_workflow?.group!);
+            workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_dataset_id, trigger_workflow?.group!);
             //Trigger the workflow
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
-            return Promise.resolve();
+            return Promise.resolve(job_id.toString());
         } catch (error) {
             throw error;
         }
     }
 
     /**
-     * Processes the dataset flattening request
-     * @param user_id 
-     * @param tdei_record_id 
-     * @param override 
-     * @returns 
+     * Processes a dataset flattening request.
+     * 
+     * @param user_id - The ID of the user making the request.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param override - A boolean indicating whether to override existing records.
+     * @returns A Promise that resolves to a string representing the job ID.
+     * @throws {InputException} If the request is prohibited while the record is in the Publish state or if the dataset is already flattened without the override flag.
      */
-    async processDatasetFlatteningRequest(user_id: string, tdei_record_id: string, override: boolean): Promise<string> {
+    async processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string> {
         try {
-            let osw_version = await this.getOSWRecordById(tdei_record_id);
+            let dataset = await this.generalServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+
+            if (dataset.status === 'Publish')
+                throw new InputException(`Request is prohibited while the record is in the Publish state.`);
+
             if (!override) {
                 const checkRecordsQueryObject = {
                     text: `SELECT id  
                     from content.edge 
                     WHERE 
                     tdei_dataset_id = $1 LIMIT 1`.replace(/\n/g, ""),
-                    values: [tdei_record_id]
+                    values: [tdei_dataset_id]
                 };
 
                 // Check if there is a record with the same date
                 const queryResult = await dbClient.query(checkRecordsQueryObject);
                 if (queryResult.rowCount && queryResult.rowCount > 0) {
-                    throw new InputException(`${tdei_record_id} already flattened. If you want to override, please use the override flag.`);
+                    throw new InputException(`${tdei_dataset_id} already flattened. If you want to override, please use the override flag.`);
                 }
             }
             else {
                 //Delete the existing records
                 const deleteRecordsQueryObject = {
                     text: `SELECT delete_dataset_records_by_id($1)`.replace(/\n/g, ""),
-                    values: [tdei_record_id]
+                    values: [tdei_dataset_id]
                 };
                 await dbClient.query(deleteRecordsQueryObject);
             }
 
-            //Create job 
-            let flatterningJob = DatasetFlatteningJob.from({
-                status: "IN-PROGRESS",
-                requested_by: user_id,
-                tdei_dataset_id: tdei_record_id
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Flatten"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id: tdei_dataset_id
+                },
+                tdei_project_group_id: dataset.tdei_project_group_id,
+                user_id: user_id,
             });
 
-            const insertQuery = flatterningJob.getInsertQuery();
-
-            const result = await dbClient.query(insertQuery);
-            const job_id = result.rows[0].job_id;
+            const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
             let workflow_identifier = "ON_DEMAND_DATASET_FLATTENING_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
-                messageId: job_id,
+                messageId: job_id.toString(),
                 messageType: workflow_identifier,
                 data: {
                     data_type: "osw",
-                    file_upload_path: osw_version.dataset_url,
-                    tdei_dataset_id: tdei_record_id
+                    file_upload_path: dataset.dataset_url,
+                    tdei_dataset_id: tdei_dataset_id
                 }
             });
 
             //Trigger the workflow
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
-            return Promise.resolve(job_id);
+            return Promise.resolve(job_id.toString());
         } catch (error) {
             return Promise.reject(error);
         }
     }
 
     /**
-     * Processes the dataset flattening request
-     * @param user_id 
-     * @param tdei_record_id 
-     * @param override 
-     * @returns 
+     * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
+     * @param backendRequest The backend request to process.
+     * @returns A Promise that resolves to a string representing the job ID.
+     * @throws Throws an error if an error occurs during processing.
      */
     async processBackendRequest(backendRequest: ServiceRequest): Promise<string> {
         try {
 
-            //Create job 
-            let backendJob = BackendJob.from({
-                status: "IN-PROGRESS",
-                requested_by: backendRequest.user_id
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Queries"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    service: backendRequest.service,
+                    user_id: backendRequest.user_id,
+                    parameters: backendRequest.parameters
+                },
+                tdei_project_group_id: '',
+                user_id: backendRequest.user_id,
             });
 
-            const insertQuery = backendJob.getInsertQuery();
-
-            const result = await dbClient.query(insertQuery);
-            const job_id = result.rows[0].job_id;
-
+            const job_id = await this.jobServiceInstance.createJob(job);
             //Compose the meessage
             let workflow_identifier = "BACKEND_SERVICE_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
-                messageId: job_id,
+                messageId: job_id.toString(),
                 messageType: workflow_identifier,
                 data: {
                     service: backendRequest.service,
@@ -311,16 +327,20 @@ class OswService implements IOswService {
             //Trigger the workflow
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
-            return Promise.resolve(job_id);
+            return Promise.resolve(job_id.toString());
         } catch (error) {
             throw error;
         }
     }
 
     /**
-   * Processes the validation only request
-   * @param tdei_record_id 
-   */
+     * Processes a validation-only request.
+     * 
+     * @param user_id - The ID of the user making the request.
+     * @param datasetFile - The dataset file to be uploaded and processed.
+     * @returns A Promise that resolves to the job ID.
+     * @throws Throws an error if an error occurs during processing.
+     */
     async processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string> {
         try {
 
@@ -331,22 +351,23 @@ class OswService implements IOswService {
             const uploadStoragePath = path.join(storageFolderPath, datasetFile.originalname)
             const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer))
 
-
-            let validationJob = OswValidationJobs.from({
-                upload_url: datasetUploadUrl,
-                status: "In-progress",
-                requested_by: user_id
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Validate"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    file_upload_name: datasetFile.originalname
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
             });
 
-            const insertQuery = validationJob.getInsertQuery();
-
-            const result = await dbClient.query(insertQuery);
-            const job_id = result.rows[0].job_id;
-
+            const job_id = await this.jobServiceInstance.createJob(job);
             //Compose the meessage
             let workflow_identifier = "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
-                messageId: job_id,
+                messageId: job_id.toString(),
                 messageType: workflow_identifier,
                 data: {
                     user_id: user_id, // Required field for message authorization
@@ -356,16 +377,21 @@ class OswService implements IOswService {
             //Trigger the workflow
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
-            return Promise.resolve(job_id);
+            return Promise.resolve(job_id.toString());
         } catch (error) {
             throw error;
         }
     }
 
     /**
-    * Processes the upload request and returns the unique tdei_record_id to represent the request
-    * @param uploadRequestObject 
-    */
+     * Processes the upload request and performs various validations and operations.
+     * 
+     * @param uploadRequestObject - The upload request object containing the necessary information.
+     * @returns A promise that resolves to the generated unique dataset ID.
+     * @throws {InputException} If any validation fails or required data is missing.
+     * @throws {ServiceNotFoundException} If the service associated with the request is not found.
+     * @throws {Error} If any other error occurs during the process.
+     */
     async processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string> {
         try {
 
@@ -383,22 +409,25 @@ class OswService implements IOswService {
             }
 
             //Validate service_id 
-            const service = await this.getServiceById(uploadRequestObject.tdei_service_id, uploadRequestObject.tdei_project_group_id);
+            const service = await this.generalServiceInstance.getServiceById(uploadRequestObject.tdei_service_id);
             if (!service) {
                 // Service not found exception.
                 throw new ServiceNotFoundException(uploadRequestObject.tdei_service_id);
             }
-            else if (service.tdei_project_group_id != uploadRequestObject.tdei_project_group_id) {
+            else if (service!.owner_project_group != uploadRequestObject.tdei_project_group_id) {
                 throw new InputException(`${uploadRequestObject.tdei_project_group_id} id not associated with the tdei_service_id`);
             }
 
             //Validate metadata
             const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
             const oswdto = OswUploadMeta.from(metadata);
-            await this.validateMetadata(oswdto);
+            let validation_errors = await this.generalServiceInstance.validateObject(oswdto);
+            if (validation_errors) {
+                throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
+            }
 
             //Check for unique name and version combination
-            if (await this.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
+            if (await this.generalServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
                 throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
 
             // Generate unique UUID for the upload request 
@@ -420,7 +449,7 @@ class OswService implements IOswService {
             }
 
             // Insert osw version into database
-            const oswEntity = new OswVersions();
+            const oswEntity = new DatasetEntity();
             oswEntity.tdei_dataset_id = uid;
             oswEntity.data_type = 'osw';
             oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
@@ -431,18 +460,34 @@ class OswService implements IOswService {
             oswEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             oswEntity.uploaded_by = uploadRequestObject.user_id;
             oswEntity.updated_by = uploadRequestObject.user_id;
-            await this.createOsw(oswEntity);
+            await this.generalServiceInstance.createDataset(oswEntity);
 
             // Insert metadata into database
-            const oswMetadataEntity = OswMetadataEntity.from(metadata);
+            const oswMetadataEntity = MetadataEntity.from(metadata);
             oswMetadataEntity.tdei_dataset_id = uid;
             oswMetadataEntity.schema_version = metadata.osw_schema_version;
-            await this.createOswMetadata(oswMetadataEntity);
+            await this.generalServiceInstance.createMetadata(oswMetadataEntity);
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Upload"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
+                    metadata_file_upload_name: uploadRequestObject.metadataFile[0].originalname,
+                    changeset_file_upload_name: uploadRequestObject.changesetFile ? uploadRequestObject.changesetFile[0].originalname : ""
+                },
+                tdei_project_group_id: uploadRequestObject.tdei_project_group_id,
+                user_id: uploadRequestObject.user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
             let workflow_identifier = "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
-                messageId: uid,
+                messageId: job_id.toString(),
                 messageType: workflow_identifier,
                 data: {
                     user_id: uploadRequestObject.user_id,// Required field for message authorization
@@ -453,7 +498,7 @@ class OswService implements IOswService {
             //Trigger the workflow
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
-            //Return the tdei_record_id
+            //Return the tdei_dataset_id
             return Promise.resolve(uid);
         } catch (error) {
             throw error;
@@ -461,121 +506,13 @@ class OswService implements IOswService {
     }
 
     /**
-     * Gets the service details for given projectGroupId and serviceid
-     * @param serviceId service id uniquely represented by TDEI system
-     * @param projectGroupId oraganization id uniquely represented by TDEI system
-     * @returns 
+     * Retrieves the OswStream by its ID.
+     * @param id - The ID of the OswStream.
+     * @param format - The format of the OswStream (default is "osw").
+     * @returns A promise that resolves to an array of FileEntity objects.
+     * @throws HttpException if the OswStream is not found or if the request record is deleted.
+     * @throws Error if the storage is not configured.
      */
-    async getServiceById(serviceId: string, projectGroupId: string): Promise<ServiceDto | undefined> {
-        try {
-            const secretToken = await Utility.generateSecret();
-            const result = await fetch(`${environment.serviceUrl}?tdei_service_id=${serviceId}&tdei_project_group_id=${projectGroupId}&service_type=osw&page_no=1&page_size=1`, {
-                method: 'get',
-                headers: { 'Content-Type': 'application/json', 'x-secret': secretToken }
-            });
-
-            const data: [] = await result.json();
-
-            if (result.status != undefined && result.status != 200)
-                throw new Error(await result.json());
-
-            if (data.length == 0)
-                throw new Error();
-
-            return Promise.resolve(ServiceDto.from(data.pop()));
-        } catch (error: any) {
-            console.error(error);
-            return Promise.resolve(undefined);
-        }
-    }
-
-    /**
-    * Gets the user associated project groups
-    * @param user_id 
-    * @returns 
-    */
-    async getUserProjectGroups(user_id: string): Promise<ProjectGroupRoleDto[] | undefined> {
-        try {
-            const secretToken = await Utility.generateSecret();
-            const result = await fetch(`${environment.userProjectGroupRolesUrl}/${user_id}`, {
-                method: 'get',
-                headers: { 'Content-Type': 'application/json', 'x-secret': secretToken }
-            });
-
-            const data: [] = await result.json();
-
-            if (result.status != undefined && result.status != 200)
-                throw new Error(await result.json());
-
-            let projectGroupRoleList: ProjectGroupRoleDto[] = [];
-
-            data.forEach(x => {
-                projectGroupRoleList.push(new ProjectGroupRoleDto(x));
-            });
-
-            return Promise.resolve(projectGroupRoleList);
-        } catch (error: any) {
-            console.error(error);
-            return Promise.resolve(undefined);
-        }
-    }
-
-    /**
-     * Validates the metadata
-     * @param metadataObj 
-     */
-    async validateMetadata(metadataObj: OswUploadMeta): Promise<void> {
-
-        const metadata_result = await validate(metadataObj);
-
-        if (metadata_result.length) {
-            console.log('Metadata validation failed');
-            console.log(metadata_result);
-            // Need to send these as response
-            const message = metadata_result.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
-            throw new InputException('Input validation failed with below reasons : \n' + message);
-        }
-    }
-
-    async getAllOsw(user_id: string, params: OswQueryParams): Promise<OswDTO[]> {
-        //Builds the query object. All the query consitions can be build in getQueryObject()
-        //TODO:: QUERY FROM UNIFY DB
-        let userProjectGroups = await this.getUserProjectGroups(user_id);
-
-        if (params.status && params.status == RecordStatus["Pre-Release"] && !userProjectGroups && !params.isAdmin)
-            throw new InputException("To fetch `Pre-Release` versions, User should belong to Project group/s");
-
-        const queryObject = params.getQueryObject(userProjectGroups ? userProjectGroups!.map(x => x.tdei_project_group_id) : []);
-
-        const queryConfig = <QueryConfig>{
-            text: queryObject.getQuery(),
-            values: queryObject.getValues()
-        }
-        const result = await dbClient.query(queryConfig);
-
-        const list: OswDTO[] = [];
-        result.rows.forEach(x => {
-            const osw = OswDTO.from(x);
-            osw.tdei_record_id = x.tdei_dataset_id;
-            osw.osw_schema_version = x.schema_version;
-            if (osw.dataset_area) {
-                const polygon = JSON.parse(x.polygon2) as Geometry;
-                osw.dataset_area = {
-                    type: "FeatureCollection",
-                    features: [
-                        {
-                            type: "Feature",
-                            geometry: polygon,
-                            properties: {}
-                        } as Feature
-                    ]
-                }
-            }
-            list.push(osw);
-        })
-        return Promise.resolve(list);
-    }
-
     async getOswStreamById(id: string, format: string = "osw"): Promise<FileEntity[]> {
         let fileEntities: FileEntity[] = [];
         const query = {
@@ -616,341 +553,227 @@ class OswService implements IOswService {
         return fileEntities;
     }
 
-    /**
-     * Validates the unique name and version combination
-     * @param name 
-     * @param version 
-     * @returns 
-     */
-    async checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean> {
-        try {
-            const queryObject = {
-                text: `Select * FROM content.metadata 
-                WHERE name=$1 AND version=$2`.replace(/\n/g, ""),
-                values: [name, version],
-            }
+    // async createOSWConfidenceJob(info: OswConfidenceJob): Promise<string> {
+    //     try {
+    //         const query = info.getInsertQuery()
+    //         const result = await dbClient.query(query)
+    //         const inserted_jobId = result.rows[0]['job_id']; // Get the jobId and return it back
+    //         if (inserted_jobId == undefined) {
+    //             throw new Error("Confidence job creation failed");
+    //         }
+    //         return inserted_jobId;
+    //     } catch (error) {
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-            let result = await dbClient.query(queryObject);
+    // async getOSWConfidenceJob(jobId: string): Promise<OswConfidenceJob> {
+    //     try {
+    //         const query = {
+    //             text: 'SELECT * from content.confidence_job where job_id = $1',
+    //             values: [jobId],
+    //         }
+    //         const result = await dbClient.query(query);
+    //         if (result.rowCount == 0) {
+    //             return Promise.reject(new JobIdNotFoundException(jobId))
+    //         }
+    //         const job = OswConfidenceJob.from(result.rows[0])
+    //         return job;
 
-            //If record exists then throw error
-            if (result.rowCount)
-                return Promise.resolve(true);
+    //     }
+    //     catch (error) {
+    //         console.log(error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-            return Promise.resolve(false);
-        } catch (error) {
-            console.error("Error checking the name and version", error);
-            return Promise.resolve(true);
-        }
-    }
+    // async getDatasetFlatteningJob(jobId: string): Promise<DatasetFlatteningJob> {
+    //     try {
+    //         const query = {
+    //             text: 'SELECT * from content.dataset_flattern_job where job_id = $1',
+    //             values: [jobId],
+    //         }
+    //         const result = await dbClient.query(query);
+    //         if (result.rowCount == 0) {
+    //             return Promise.reject(new JobIdNotFoundException(jobId))
+    //         }
+    //         const job = DatasetFlatteningJob.from(result.rows[0])
+    //         return job;
+    //     }
+    //     catch (error) {
+    //         console.log(error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-    /**
-     * Creates the new version of osw file in the TDEI system
-     * @param oswInfo 
-     * @returns 
-     */
-    async createOsw(oswInfo: OswVersions): Promise<OswDTO> {
-        try {
-            oswInfo.dataset_url = decodeURIComponent(oswInfo.dataset_url!);
+    // async getBackendJob(jobId: string): Promise<BackendJob> {
+    //     try {
+    //         const query = {
+    //             text: 'SELECT * from content.backend_job where job_id = $1',
+    //             values: [jobId],
+    //         }
+    //         const result = await dbClient.query(query);
+    //         if (result.rowCount == 0) {
+    //             return Promise.reject(new JobIdNotFoundException(jobId))
+    //         }
+    //         const job = BackendJob.from(result.rows[0])
+    //         return job;
+    //     }
+    //     catch (error) {
+    //         console.log(error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-            await dbClient.query(oswInfo.getInsertQuery());
+    // async updateConfidenceMetric(info: ConfidenceResponse): Promise<string> {
+    //     try {
+    //         console.log('Updating status for ', info.jobId);
+    //         const updateQuery = info.getUpdateJobQuery();
+    //         const result = await dbClient.query(updateQuery);
 
-            const osw = OswDTO.from(oswInfo);
-            return Promise.resolve(osw);
-        } catch (error) {
+    //         if (result.rowCount === 0) {
+    //             // Handle the case when no rows were updated. Write appropriate logic here.
+    //             console.error('No rows were updated during the formatter job update.');
+    //             throw new Error("Error updating confidence job");
+    //         }
 
-            if (error instanceof UniqueKeyDbException) {
-                throw new DuplicateException(oswInfo.tdei_dataset_id);
-            }
+    //         const tdeiRecordId = result.rows[0]['tdei_dataset_id'];
+    //         if (tdeiRecordId != undefined) {
+    //             console.log('Updating OSW records');
+    //             const oswUpdateQuery = info.getRecordUpdateQuery(tdeiRecordId);
+    //             await dbClient.query(oswUpdateQuery);
+    //         }
 
-            console.error("Error saving the osw version", error);
-            return Promise.reject(error);
-        }
-    }
+    //         return info.jobId.toString();
+    //     }
+    //     catch (error) {
+    //         console.error('Error updating the formatter job.', error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-    /**
-     * Creates the metadata entry for new osw version
-     * @param oswMetadataEntity 
-     * @returns 
-     */
-    async createOswMetadata(oswMetadataEntity: OswMetadataEntity): Promise<void> {
-        try {
-            await dbClient.query(oswMetadataEntity.getInsertQuery());
-            return Promise.resolve();
-        } catch (error) {
-            if (error instanceof UniqueKeyDbException) {
-                throw new DuplicateException(oswMetadataEntity.tdei_dataset_id);
-            }
+    // async createOSWFormatJob(info: OswFormatJob): Promise<string> {
 
-            console.error("Error saving the osw metadata", error);
-            return Promise.reject(error);
-        }
-    }
+    //     try {
+    //         console.log(' Creating formatting job');
+    //         const insertQuery = info.getInsertQuery();
 
-    async getOSWRecordById(id: string): Promise<OswVersions> {
-        const query = {
-            text: `Select * from content.dataset WHERE tdei_dataset_id = $1`,
-            values: [id],
-        }
+    //         const result = await dbClient.query(insertQuery);
+    //         const jobId = result.rows[0]['job_id'];
+    //         if (jobId == undefined) {
+    //             throw new Error("Formatting job creation failed");
+    //         }
+    //         return jobId;
+    //     }
+    //     catch (error) {
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-        const result = await dbClient.query(query);
-        if (result.rowCount == 0)
-            throw new HttpException(404, "Record not found");
+    // async updateBackendServiceJob(info: BackendServiceJobResponse): Promise<void> {
+    //     console.log('Updating formatter job info');
+    //     try {
+    //         const updateQuery = BackendJob.getUpdateStatusQuery(info.job_id, info.status, info.file_upload_path, info.message);
+    //         const result = await dbClient.query(updateQuery);
 
-        if (result.rows[0].status == "Deleted")
-            throw new HttpException(400, "Request record is invalid/deleted");
+    //         if (result.rowCount === 0) {
+    //             // Handle the case when no rows were updated. Write appropriate logic here.
+    //             console.error('No rows were updated during the backend service job update.');
+    //             throw new Error("Error updating backend service job");
+    //         }
 
-        const record = result.rows[0];
-        const osw = OswVersions.from(record);
+    //         console.log(`Backend service job successfully updated with jobId: ${info.job_id}`);
+    //         return Promise.resolve();
+    //     } catch (error) {
+    //         console.error('Error while updating backend service job', error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-        return osw;
-    }
+    // async updateDatasetFlatteningJob(info: DataFlatteningJobResponse): Promise<void> {
+    //     console.log('Updating formatter job info');
+    //     try {
+    //         const updateQuery = DatasetFlatteningJob.getUpdateStatusQuery(info.ref_id, info.status, info.message);
+    //         const result = await dbClient.query(updateQuery);
 
-    /**
-     * Fetches osw metadata for given tdei_record_id
-     * @param id 
-     * @returns 
-     */
-    async getOSWMetadataById(id: string): Promise<OswMetadataEntity> {
-        const query = {
-            text: 'Select * from content.metadata WHERE tdei_dataset_id = $1',
-            values: [id],
-        }
+    //         if (result.rowCount === 0) {
+    //             // Handle the case when no rows were updated. Write appropriate logic here.
+    //             console.error('No rows were updated during the dataset flattening job update.');
+    //             throw new Error("Error updating formatting job");
+    //         }
 
-        const result = await dbClient.query(query);
-        if (result.rowCount == 0)
-            throw new HttpException(404, "Record not found");
-        const record = result.rows[0];
-        const metadata = OswMetadataEntity.from(record);
-        return metadata;
-    }
+    //         console.log(`Dataset flattening job successfully updated with jobId: ${info.ref_id}`);
+    //         return Promise.resolve();
+    //     } catch (error) {
+    //         console.error('Error while updating dataset flattening job', error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-    async createOSWConfidenceJob(info: OswConfidenceJob): Promise<string> {
-        try {
-            const query = info.getInsertQuery()
-            const result = await dbClient.query(query)
-            const inserted_jobId = result.rows[0]['job_id']; // Get the jobId and return it back
-            if (inserted_jobId == undefined) {
-                throw new Error("Confidence job creation failed");
-            }
-            return inserted_jobId;
-        } catch (error) {
-            return Promise.reject(error);
-        }
-    }
+    // async updateOSWFormatJob(info: OswFormatJobResponse): Promise<void> {
+    //     console.log('Updating formatter job info');
+    //     try {
+    //         const updateQuery = OswFormatJob.getUpdateStatusQuery(info.jobId, info.status, info.formattedUrl, info.message);
+    //         const result = await dbClient.query(updateQuery);
 
-    async getOSWConfidenceJob(jobId: string): Promise<OswConfidenceJob> {
-        try {
-            const query = {
-                text: 'SELECT * from content.confidence_job where job_id = $1',
-                values: [jobId],
-            }
-            const result = await dbClient.query(query);
-            if (result.rowCount == 0) {
-                return Promise.reject(new JobIdNotFoundException(jobId))
-            }
-            const job = OswConfidenceJob.from(result.rows[0])
-            return job;
+    //         if (result.rowCount === 0) {
+    //             // Handle the case when no rows were updated. Write appropriate logic here.
+    //             console.error('No rows were updated during the formatter job update.');
+    //             throw new Error("Error updating formatting job");
+    //         }
 
-        }
-        catch (error) {
-            console.log(error);
-            return Promise.reject(error);
-        }
-    }
+    //         console.log(`Formatter job successfully updated with jobId: ${info.jobId}`);
+    //         return Promise.resolve();
+    //     } catch (error) {
+    //         console.error('Error while updating formatter job', error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-    async getDatasetFlatteningJob(jobId: string): Promise<DatasetFlatteningJob> {
-        try {
-            const query = {
-                text: 'SELECT * from content.dataset_flattern_job where job_id = $1',
-                values: [jobId],
-            }
-            const result = await dbClient.query(query);
-            if (result.rowCount == 0) {
-                return Promise.reject(new JobIdNotFoundException(jobId))
-            }
-            const job = DatasetFlatteningJob.from(result.rows[0])
-            return job;
-        }
-        catch (error) {
-            console.log(error);
-            return Promise.reject(error);
-        }
-    }
+    // async getOSWFormatJob(jobId: string): Promise<OswFormatJob> {
+    //     try {
+    //         const query = {
+    //             text: 'SELECT * from content.formatting_job where job_id = $1',
+    //             values: [jobId],
+    //         }
+    //         const result = await dbClient.query(query);
+    //         if (result.rowCount == 0) {
+    //             return Promise.reject(new JobIdNotFoundException(jobId))
+    //         }
+    //         const job = OswFormatJob.from(result.rows[0])
+    //         return job;
+    //     }
+    //     catch (error) {
+    //         console.log(error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 
-    async getBackendJob(jobId: string): Promise<BackendJob> {
-        try {
-            const query = {
-                text: 'SELECT * from content.backend_job where job_id = $1',
-                values: [jobId],
-            }
-            const result = await dbClient.query(query);
-            if (result.rowCount == 0) {
-                return Promise.reject(new JobIdNotFoundException(jobId))
-            }
-            const job = BackendJob.from(result.rows[0])
-            return job;
-        }
-        catch (error) {
-            console.log(error);
-            return Promise.reject(error);
-        }
-    }
-
-    async updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string> {
-        try {
-            console.log('Updating status for ', info.jobId);
-            const updateQuery = info.getUpdateJobQuery();
-            const result = await dbClient.query(updateQuery);
-
-            if (result.rowCount === 0) {
-                // Handle the case when no rows were updated. Write appropriate logic here.
-                console.error('No rows were updated during the formatter job update.');
-                throw new Error("Error updating confidence job");
-            }
-
-            const tdeiRecordId = result.rows[0]['tdei_record_id'];
-            if (tdeiRecordId != undefined) {
-                console.log('Updating OSW records');
-                const oswUpdateQuery = info.getRecordUpdateQuery(tdeiRecordId);
-                await dbClient.query(oswUpdateQuery);
-            }
-
-            return info.jobId.toString();
-        }
-        catch (error) {
-            console.error('Error updating the formatter job.', error);
-            return Promise.reject(error);
-        }
-    }
-
-    async createOSWFormatJob(info: OswFormatJob): Promise<string> {
-
-        try {
-            console.log(' Creating formatting job');
-            const insertQuery = info.getInsertQuery();
-
-            const result = await dbClient.query(insertQuery);
-            const jobId = result.rows[0]['job_id'];
-            if (jobId == undefined) {
-                throw new Error("Formatting job creation failed");
-            }
-            return jobId;
-        }
-        catch (error) {
-            return Promise.reject(error);
-        }
-    }
-
-    async updateBackendServiceJob(info: BackendServiceJobResponse): Promise<void> {
-        console.log('Updating formatter job info');
-        try {
-            const updateQuery = BackendJob.getUpdateStatusQuery(info.job_id, info.status, info.file_upload_path, info.message);
-            const result = await dbClient.query(updateQuery);
-
-            if (result.rowCount === 0) {
-                // Handle the case when no rows were updated. Write appropriate logic here.
-                console.error('No rows were updated during the backend service job update.');
-                throw new Error("Error updating backend service job");
-            }
-
-            console.log(`Backend service job successfully updated with jobId: ${info.job_id}`);
-            return Promise.resolve();
-        } catch (error) {
-            console.error('Error while updating backend service job', error);
-            return Promise.reject(error);
-        }
-    }
-
-    async updateDatasetFlatteningJob(info: DataFlatteningJobResponse): Promise<void> {
-        console.log('Updating formatter job info');
-        try {
-            const updateQuery = DatasetFlatteningJob.getUpdateStatusQuery(info.ref_id, info.status, info.message);
-            const result = await dbClient.query(updateQuery);
-
-            if (result.rowCount === 0) {
-                // Handle the case when no rows were updated. Write appropriate logic here.
-                console.error('No rows were updated during the dataset flattening job update.');
-                throw new Error("Error updating formatting job");
-            }
-
-            console.log(`Dataset flattening job successfully updated with jobId: ${info.ref_id}`);
-            return Promise.resolve();
-        } catch (error) {
-            console.error('Error while updating dataset flattening job', error);
-            return Promise.reject(error);
-        }
-    }
-
-    async updateOSWFormatJob(info: OswFormatJobResponse): Promise<void> {
-        console.log('Updating formatter job info');
-        try {
-            const updateQuery = OswFormatJob.getUpdateStatusQuery(info.jobId, info.status, info.formattedUrl, info.message);
-            const result = await dbClient.query(updateQuery);
-
-            if (result.rowCount === 0) {
-                // Handle the case when no rows were updated. Write appropriate logic here.
-                console.error('No rows were updated during the formatter job update.');
-                throw new Error("Error updating formatting job");
-            }
-
-            console.log(`Formatter job successfully updated with jobId: ${info.jobId}`);
-            return Promise.resolve();
-        } catch (error) {
-            console.error('Error while updating formatter job', error);
-            return Promise.reject(error);
-        }
-    }
-
-    async getOSWFormatJob(jobId: string): Promise<OswFormatJob> {
-        try {
-            const query = {
-                text: 'SELECT * from content.formatting_job where job_id = $1',
-                values: [jobId],
-            }
-            const result = await dbClient.query(query);
-            if (result.rowCount == 0) {
-                return Promise.reject(new JobIdNotFoundException(jobId))
-            }
-            const job = OswFormatJob.from(result.rows[0])
-            return job;
-        }
-        catch (error) {
-            console.log(error);
-            return Promise.reject(error);
-        }
-    }
-
-    /**
-     * Gets the status of the on-demand validation job
-     * @param job_id 
-     * @returns 
-     */
-    async getOSWValidationJob(job_id: string): Promise<OswValidationJobs> {
-        try {
-            const query = {
-                text: 'SELECT * from content.validation_job where job_id = $1',
-                values: [job_id],
-            }
-            const result = await dbClient.query(query);
-            if (result.rowCount == 0) {
-                return Promise.reject(new JobIdNotFoundException(job_id))
-            }
-            const job = OswValidationJobs.from(result.rows[0])
-            return job;
-        }
-        catch (error) {
-            console.log(error);
-            return Promise.reject(error);
-        }
-    }
-
-    getFileEntity(fullUrl: string): Promise<FileEntity> {
-        const storageClient = Core.getStorageClient();
-        return storageClient!.getFileFromUrl(fullUrl);
-
-    }
+    // /**
+    //  * Gets the status of the on-demand validation job
+    //  * @param job_id 
+    //  * @returns 
+    //  */
+    // async getOSWValidationJob(job_id: string): Promise<OswValidationJobs> {
+    //     try {
+    //         const query = {
+    //             text: 'SELECT * from content.validation_job where job_id = $1',
+    //             values: [job_id],
+    //         }
+    //         const result = await dbClient.query(query);
+    //         if (result.rowCount == 0) {
+    //             return Promise.reject(new JobIdNotFoundException(job_id))
+    //         }
+    //         const job = OswValidationJobs.from(result.rows[0])
+    //         return job;
+    //     }
+    //     catch (error) {
+    //         console.log(error);
+    //         return Promise.reject(error);
+    //     }
+    // }
 }
 
-const oswService: IOswService = new OswService();
+const oswService: IOswService = new OswService(jobService, tdeiCoreService);
 export default oswService;
 

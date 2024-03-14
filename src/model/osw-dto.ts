@@ -1,9 +1,9 @@
 import { FeatureCollection } from "geojson";
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 
-export class OswDTO extends AbstractDomainEntity {
+export class DatasetDTO extends AbstractDomainEntity {
     @Prop()
-    tdei_record_id!: string;
+    tdei_dataset_id!: string;
     @Prop()
     status!: string;
     @Prop()
@@ -37,7 +37,7 @@ export class OswDTO extends AbstractDomainEntity {
     @Prop()
     data_source!: string;
     @Prop()
-    osw_schema_version!: string;
+    schema_version!: string;
     @Prop()
     dataset_area: FeatureCollection | undefined;
     @Prop()

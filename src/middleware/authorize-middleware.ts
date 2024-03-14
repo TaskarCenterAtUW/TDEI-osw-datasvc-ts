@@ -6,9 +6,9 @@ import { Request, Response, NextFunction } from 'express';
 import { Core } from 'nodets-ms-core';
 import { environment } from "../environment/environment";
 import { UnAuthenticated } from '../exceptions/http/http-exceptions';
-import oswService from '../service/osw-service';
 import { PermissionRequest } from 'nodets-ms-core/lib/core/auth/model/permission_request';
 import HttpException from '../exceptions/http/http-base-exception';
+import tdeiCoreService from '../service/tdei-core-service';
 
 /**
  * Authorizes the request with provided allowed roles and tdei_project_group_id
@@ -23,10 +23,10 @@ export const authorize = (approvedRoles: string[]) => {
         if (!req.body.user_id)
             return next(new UnAuthenticated());
 
-        if (req.params["tdei_record_id"]) {
-            //Fetch tdei_project_group_id from tdei_record_id
+        if (req.params["tdei_dataset_id"]) {
+            //Fetch tdei_project_group_id from tdei_dataset_id
             try {
-                let osw = await oswService.getOSWRecordById(req.params["tdei_record_id"]);
+                let osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
                 req.body.tdei_project_group_id = osw.tdei_project_group_id;
             } catch (error) {
                 if (error instanceof HttpException) {

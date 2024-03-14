@@ -3,7 +3,10 @@ import EventEmitter from "events";
 import oswService from "../../../service/osw-service";
 import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../services/orchestrator-service";
-import { DataFlatteningJobResponse } from "../../../model/data-flattening-job-response";
+import { DataFlatteningJobResponse } from "../../../model/job-request-response/data-flattening-job-response";
+import { UpdateJobDTO } from "../../../model/job-dto";
+import { JobStatus } from "../../../model/jobs-get-query-params";
+import jobService from "../../../service/job-service";
 
 export class OnDemandFlatteningResponseHandler extends WorkflowHandlerBase {
 
@@ -22,11 +25,17 @@ export class OnDemandFlatteningResponseHandler extends WorkflowHandlerBase {
 
         try {
             const dataFlatteningJobResponse = DataFlatteningJobResponse.from(message.data);
-            dataFlatteningJobResponse.ref_id = message.messageId;
-            dataFlatteningJobResponse.status = message.data.success ? "COMPLETED" : "FAILED";
-            oswService.updateDatasetFlatteningJob(dataFlatteningJobResponse);
+
+            let updateJobDTO = UpdateJobDTO.from({
+                job_id: message.messageId,
+                message: dataFlatteningJobResponse.message,
+                status: dataFlatteningJobResponse.success ? JobStatus.COMPLETED : JobStatus.FAILED,
+                response_props: {
+                }
+            })
+            await jobService.updateJob(updateJobDTO);
         } catch (error) {
-            console.error(`Error while processing the ${this.eventName} `, error);
+            console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
         }
 
         if (message.data.success)

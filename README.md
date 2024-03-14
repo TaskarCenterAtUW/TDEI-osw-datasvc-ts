@@ -83,7 +83,7 @@ graph LR;
 
 - `Client`, makes HTTP GET calls to `Gateway`
     - Retrive the list of OSW files with/without search criteria.
-    - Download the OSW file given the tdei_record_id
+    - Download the OSW file given the tdei_dataset_id
     
 - `Data Service`, authorizes the every incoming request against the `Auth Service` 
 
@@ -240,7 +240,7 @@ The `meta` body is parsed and is validated according to the initial validation c
 
 <!-- ### 4&5. Generating randomUID and upload
 
-Random UUID is generated which will be assigned as `tdei_record_id`. The uploaded file is transferred to storage with path. The path for storage is
+Random UUID is generated which will be assigned as `tdei_dataset_id`. The uploaded file is transferred to storage with path. The path for storage is
 `yyyy/mm/<tdeiProjectGroupId>/<tdeirecordID>`
 
 Eg.
