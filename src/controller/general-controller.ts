@@ -18,13 +18,13 @@ class GeneralController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(this.path, authenticate, this.getDatasetList);
+        this.router.get(`${this.path}/dataset`, authenticate, this.getDatasetList);
         this.router.get(`${this.path}/job`, authenticate, this.getJobs);
         this.router.get(`${this.path}/job/download/:job_id`, authenticate, this.getJobDownloadFile); // Download the formatted file
     }
 
     /**
-    * Gets the list of OSW versions
+    * Gets the list of Dataset versions
     * @param request 
     * @param response 
     * @param next 
@@ -33,11 +33,11 @@ class GeneralController implements IController {
         try {
             const params: DatasetQueryParams = new DatasetQueryParams(JSON.parse(JSON.stringify(request.query)));
             params.isAdmin = request.body.isAdmin;
-            const osw = await tdeiCoreService.getDatasets(request.body.user_id, params);
-            osw.forEach(x => {
+            const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
+            dataset.forEach(x => {
                 x.download_url = `${this.path}/${x.tdei_dataset_id}`;
             });
-            response.status(200).send(osw);
+            response.status(200).send(dataset);
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
@@ -45,8 +45,8 @@ class GeneralController implements IController {
                 next(error);
             }
             else {
-                response.status(500).send("Error while fetching the osw information");
-                next(new HttpException(500, "Error while fetching the osw information"));
+                response.status(500).send("Error while fetching the dataset information");
+                next(new HttpException(500, "Error while fetching the dataset information"));
             }
         }
     }

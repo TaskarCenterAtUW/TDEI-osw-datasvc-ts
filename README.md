@@ -162,15 +162,15 @@ Example for metadata
 ```json
 
 {
-    "name": "Sample OSW Upload",
+    "name": "Sample Dataset Upload",
     "version": "1.0.2",
-    "description": "This is a sample OSW upload.",
+    "description": "This is a sample Dataset upload.",
     "custom_metadata": {},
     "collected_by": "John Doe",
     "collection_date": "2024-01-18 21:17:48.357173-08",
     "collection_method": "transform",
     "data_source": "3rdParty",
-    "osw_schema_version": "v0.1",
+    "schema_version": "v0.1",
     "valid_from": "2024-01-18 21:17:48.357173-08",
     "valid_to": "2024-01-19 22:17:48.357173-08",
     "dataset_area": {

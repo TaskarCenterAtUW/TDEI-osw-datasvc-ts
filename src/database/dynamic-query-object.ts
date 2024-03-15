@@ -32,12 +32,13 @@ export function buildQuery(
 
     if (conditions.length > 0) {
         whereClause = ' WHERE ';
+        let paramIndex = 1;
         conditions.forEach((condition, index) => {
             if (index > 0) {
                 whereClause += ' AND ';
             }
             if (condition.value) {
-                whereClause += `${condition.clouse}  $${index + 1}`;
+                whereClause += `${condition.clouse} $${paramIndex++}`;
                 whereClauseValues.push(condition.value);
             }
             else {
@@ -66,13 +67,20 @@ export function buildQuery(
         sortClause = ` ORDER BY ${sortField} ${sortOrder}`;
     }
 
-    if (limit == undefined || limit < 1)
-        limit = 1;
-    if (offset == undefined)
-        offset = 10;
-    offset = limit == 1 ? 0 : (limit - 1) * offset;
-    limit = offset > 50 ? 50 : offset;
+    if (limit === undefined || limit < 1) {
+        limit = 10; // Default limit to 10 items per page
+    }
 
+    if (offset === undefined || offset < 0) {
+        offset = 0; // Default offset to 0
+    } else {
+        offset = (offset - 1) * limit; // Calculate offset based on page number
+    }
+
+    // Limit the items per page to a maximum of 50
+    if (limit > 50) {
+        limit = 50;
+    }
     let limitClause = '';
     if (limit !== undefined && limit !== null) {
         limitClause = ` LIMIT ${limit}`;

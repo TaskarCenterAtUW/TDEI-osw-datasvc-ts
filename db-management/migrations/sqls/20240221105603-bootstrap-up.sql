@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS content.metadata
     CONSTRAINT unq_name_version UNIQUE (name, version)
 );
 
-CREATE INDEX idx_dataset_area
+CREATE INDEX IF NOT EXISTS idx_dataset_area
     ON content.metadata USING gist
     (dataset_area);
 
@@ -174,7 +174,7 @@ CREATE TABLE IF NOT EXISTS content.edge
     CONSTRAINT unq_dataset_edge_id UNIQUE (tdei_dataset_id, edge_id)
 );
 
-CREATE INDEX idx_edge_location
+CREATE INDEX IF NOT EXISTS idx_edge_location
     ON content.edge USING gist
     (edge_loc);
 	
@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS content.node
     CONSTRAINT unq_dataset_node_id UNIQUE (tdei_dataset_id, node_id)
 );
 
-CREATE INDEX idx_nodes_location
+CREATE INDEX IF NOT EXISTS idx_nodes_location
     ON content.node USING gist
     (node_loc);
 	
@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS content.extension_point
     CONSTRAINT unq_dataset_point_id UNIQUE (tdei_dataset_id, point_id)
 );
 
-CREATE INDEX idx_point_location
+CREATE INDEX IF NOT EXISTS idx_point_location
     ON content.extension_point USING gist
     (point_loc);
 	
@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS content.extension_polygon
     CONSTRAINT unq_dataset_polygon_id UNIQUE (tdei_dataset_id, polygon_id)
 );
 
-CREATE INDEX idx_polygon_location
+CREATE INDEX IF NOT EXISTS idx_polygon_location
     ON content.extension_polygon USING gist
     (polygon_loc);
 
@@ -255,6 +255,6 @@ CREATE TABLE IF NOT EXISTS content.extension_line
     CONSTRAINT unq_dataset_line_id UNIQUE (tdei_dataset_id, line_id)
 );
 
-CREATE INDEX idx_line_location
+CREATE INDEX IF NOT EXISTS idx_line_location
     ON content.extension_line USING gist
     (line_loc);

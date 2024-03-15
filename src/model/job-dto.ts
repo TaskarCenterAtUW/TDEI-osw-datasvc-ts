@@ -19,8 +19,8 @@ export class JobDTO extends AbstractDomainEntity {
     requested_by!: string;
     @Prop()
     request_input!: any;
-    @Prop()
-    download_url!: any;
+    // @Prop()
+    // download_url!: any;
 }
 
 export class CreateJobDTO extends AbstractDomainEntity {

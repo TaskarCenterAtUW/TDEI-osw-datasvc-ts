@@ -30,7 +30,7 @@ class JobService implements IJobService {
         const list: JobDTO[] = [];
         result.rows.forEach(x => {
             const job = JobDTO.from(x);
-            job.download_url = ''; // do not share internal upload URL
+            // job.download_url = ''; // do not share internal upload URL
             list.push(job);
         })
         return Promise.resolve(list);

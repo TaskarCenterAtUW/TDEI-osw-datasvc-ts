@@ -62,18 +62,18 @@ export class DatasetQueryParams {
         //Joins
         const joins: JoinCondition[] = [
             { tableName: 'content.metadata', alias: 'm', on: 'content.dataset.tdei_dataset_id = m.tdei_dataset_id' },
-            { tableName: 'public.user_roles', alias: 'ur', on: `content.dataset.tdei_project_group_id = ur.project_group_id AND ur.user_id = ${user_id}`, type: 'LEFT' }
+            { tableName: 'public.user_roles', alias: 'ur', on: `content.dataset.tdei_project_group_id = ur.project_group_id AND ur.user_id = '${user_id}'`, type: 'LEFT' }
         ];
         //Conditions
-        const conditions: WhereCondition[] = [
-            { clouse: 'status != Deleted' },
-        ];
+        const conditions: WhereCondition[] = [];
+        addConditionIfValueExists('status !=', 'Deleted');
+
         if (this.status && this.status == RecordStatus["All"] && this.isAdmin) {
-            conditions.push({ clouse: '(status = Publish OR status = Pre-Release)' });
+            conditions.push({ clouse: `(status = 'Publish' OR status = 'Pre-Release')` });
         } else if (this.status && this.status == RecordStatus["Pre-Release"]) {
-            conditions.push({ clouse: '(status = Pre-Release AND p.project_group_id IS NOT NULL)' });
+            conditions.push({ clouse: `(status = 'Pre-Release' AND ur.project_group_id IS NOT NULL)` });
         } else if (this.status && this.status == RecordStatus["All"]) {
-            conditions.push({ clouse: '(status = Publish OR (status = Pre-Release AND p.project_group_id IS NOT NULL))' });
+            conditions.push({ clouse: `(status = 'Publish' OR (status = 'Pre-Release' AND ur.project_group_id IS NOT NULL))` });
         } else if (this.status)
             conditions.push({ clouse: 'status = ', value: this.status });
 

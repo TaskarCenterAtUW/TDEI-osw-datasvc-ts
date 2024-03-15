@@ -39,7 +39,7 @@ class TdeiCoreService implements ITdeiCoreService {
         const list: DatasetDTO[] = result.rows.map(x => {
             const osw = DatasetDTO.from(x);
             if (osw.dataset_area) {
-                const polygon = JSON.parse(x.dataset_area) as Geometry;
+                const polygon = JSON.parse(x.dataset_area2) as Geometry;
                 osw.dataset_area = {
                     type: "FeatureCollection",
                     features: [

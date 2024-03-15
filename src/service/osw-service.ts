@@ -465,7 +465,7 @@ class OswService implements IOswService {
             // Insert metadata into database
             const oswMetadataEntity = MetadataEntity.from(metadata);
             oswMetadataEntity.tdei_dataset_id = uid;
-            oswMetadataEntity.schema_version = metadata.osw_schema_version;
+            oswMetadataEntity.schema_version = metadata.schema_version;
             await this.generalServiceInstance.createMetadata(oswMetadataEntity);
 
             let job = CreateJobDTO.from({
@@ -477,6 +477,9 @@ class OswService implements IOswService {
                     dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
                     metadata_file_upload_name: uploadRequestObject.metadataFile[0].originalname,
                     changeset_file_upload_name: uploadRequestObject.changesetFile ? uploadRequestObject.changesetFile[0].originalname : ""
+                },
+                response_props: {
+                    tdei_dataset_id: uid
                 },
                 tdei_project_group_id: uploadRequestObject.tdei_project_group_id,
                 user_id: uploadRequestObject.user_id,
@@ -499,7 +502,7 @@ class OswService implements IOswService {
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
             //Return the tdei_dataset_id
-            return Promise.resolve(uid);
+            return Promise.resolve(job_id.toString());
         } catch (error) {
             throw error;
         }
@@ -552,226 +555,6 @@ class OswService implements IOswService {
 
         return fileEntities;
     }
-
-    // async createOSWConfidenceJob(info: OswConfidenceJob): Promise<string> {
-    //     try {
-    //         const query = info.getInsertQuery()
-    //         const result = await dbClient.query(query)
-    //         const inserted_jobId = result.rows[0]['job_id']; // Get the jobId and return it back
-    //         if (inserted_jobId == undefined) {
-    //             throw new Error("Confidence job creation failed");
-    //         }
-    //         return inserted_jobId;
-    //     } catch (error) {
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async getOSWConfidenceJob(jobId: string): Promise<OswConfidenceJob> {
-    //     try {
-    //         const query = {
-    //             text: 'SELECT * from content.confidence_job where job_id = $1',
-    //             values: [jobId],
-    //         }
-    //         const result = await dbClient.query(query);
-    //         if (result.rowCount == 0) {
-    //             return Promise.reject(new JobIdNotFoundException(jobId))
-    //         }
-    //         const job = OswConfidenceJob.from(result.rows[0])
-    //         return job;
-
-    //     }
-    //     catch (error) {
-    //         console.log(error);
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async getDatasetFlatteningJob(jobId: string): Promise<DatasetFlatteningJob> {
-    //     try {
-    //         const query = {
-    //             text: 'SELECT * from content.dataset_flattern_job where job_id = $1',
-    //             values: [jobId],
-    //         }
-    //         const result = await dbClient.query(query);
-    //         if (result.rowCount == 0) {
-    //             return Promise.reject(new JobIdNotFoundException(jobId))
-    //         }
-    //         const job = DatasetFlatteningJob.from(result.rows[0])
-    //         return job;
-    //     }
-    //     catch (error) {
-    //         console.log(error);
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async getBackendJob(jobId: string): Promise<BackendJob> {
-    //     try {
-    //         const query = {
-    //             text: 'SELECT * from content.backend_job where job_id = $1',
-    //             values: [jobId],
-    //         }
-    //         const result = await dbClient.query(query);
-    //         if (result.rowCount == 0) {
-    //             return Promise.reject(new JobIdNotFoundException(jobId))
-    //         }
-    //         const job = BackendJob.from(result.rows[0])
-    //         return job;
-    //     }
-    //     catch (error) {
-    //         console.log(error);
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async updateConfidenceMetric(info: ConfidenceResponse): Promise<string> {
-    //     try {
-    //         console.log('Updating status for ', info.jobId);
-    //         const updateQuery = info.getUpdateJobQuery();
-    //         const result = await dbClient.query(updateQuery);
-
-    //         if (result.rowCount === 0) {
-    //             // Handle the case when no rows were updated. Write appropriate logic here.
-    //             console.error('No rows were updated during the formatter job update.');
-    //             throw new Error("Error updating confidence job");
-    //         }
-
-    //         const tdeiRecordId = result.rows[0]['tdei_dataset_id'];
-    //         if (tdeiRecordId != undefined) {
-    //             console.log('Updating OSW records');
-    //             const oswUpdateQuery = info.getRecordUpdateQuery(tdeiRecordId);
-    //             await dbClient.query(oswUpdateQuery);
-    //         }
-
-    //         return info.jobId.toString();
-    //     }
-    //     catch (error) {
-    //         console.error('Error updating the formatter job.', error);
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async createOSWFormatJob(info: OswFormatJob): Promise<string> {
-
-    //     try {
-    //         console.log(' Creating formatting job');
-    //         const insertQuery = info.getInsertQuery();
-
-    //         const result = await dbClient.query(insertQuery);
-    //         const jobId = result.rows[0]['job_id'];
-    //         if (jobId == undefined) {
-    //             throw new Error("Formatting job creation failed");
-    //         }
-    //         return jobId;
-    //     }
-    //     catch (error) {
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async updateBackendServiceJob(info: BackendServiceJobResponse): Promise<void> {
-    //     console.log('Updating formatter job info');
-    //     try {
-    //         const updateQuery = BackendJob.getUpdateStatusQuery(info.job_id, info.status, info.file_upload_path, info.message);
-    //         const result = await dbClient.query(updateQuery);
-
-    //         if (result.rowCount === 0) {
-    //             // Handle the case when no rows were updated. Write appropriate logic here.
-    //             console.error('No rows were updated during the backend service job update.');
-    //             throw new Error("Error updating backend service job");
-    //         }
-
-    //         console.log(`Backend service job successfully updated with jobId: ${info.job_id}`);
-    //         return Promise.resolve();
-    //     } catch (error) {
-    //         console.error('Error while updating backend service job', error);
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async updateDatasetFlatteningJob(info: DataFlatteningJobResponse): Promise<void> {
-    //     console.log('Updating formatter job info');
-    //     try {
-    //         const updateQuery = DatasetFlatteningJob.getUpdateStatusQuery(info.ref_id, info.status, info.message);
-    //         const result = await dbClient.query(updateQuery);
-
-    //         if (result.rowCount === 0) {
-    //             // Handle the case when no rows were updated. Write appropriate logic here.
-    //             console.error('No rows were updated during the dataset flattening job update.');
-    //             throw new Error("Error updating formatting job");
-    //         }
-
-    //         console.log(`Dataset flattening job successfully updated with jobId: ${info.ref_id}`);
-    //         return Promise.resolve();
-    //     } catch (error) {
-    //         console.error('Error while updating dataset flattening job', error);
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async updateOSWFormatJob(info: OswFormatJobResponse): Promise<void> {
-    //     console.log('Updating formatter job info');
-    //     try {
-    //         const updateQuery = OswFormatJob.getUpdateStatusQuery(info.jobId, info.status, info.formattedUrl, info.message);
-    //         const result = await dbClient.query(updateQuery);
-
-    //         if (result.rowCount === 0) {
-    //             // Handle the case when no rows were updated. Write appropriate logic here.
-    //             console.error('No rows were updated during the formatter job update.');
-    //             throw new Error("Error updating formatting job");
-    //         }
-
-    //         console.log(`Formatter job successfully updated with jobId: ${info.jobId}`);
-    //         return Promise.resolve();
-    //     } catch (error) {
-    //         console.error('Error while updating formatter job', error);
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // async getOSWFormatJob(jobId: string): Promise<OswFormatJob> {
-    //     try {
-    //         const query = {
-    //             text: 'SELECT * from content.formatting_job where job_id = $1',
-    //             values: [jobId],
-    //         }
-    //         const result = await dbClient.query(query);
-    //         if (result.rowCount == 0) {
-    //             return Promise.reject(new JobIdNotFoundException(jobId))
-    //         }
-    //         const job = OswFormatJob.from(result.rows[0])
-    //         return job;
-    //     }
-    //     catch (error) {
-    //         console.log(error);
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    // /**
-    //  * Gets the status of the on-demand validation job
-    //  * @param job_id 
-    //  * @returns 
-    //  */
-    // async getOSWValidationJob(job_id: string): Promise<OswValidationJobs> {
-    //     try {
-    //         const query = {
-    //             text: 'SELECT * from content.validation_job where job_id = $1',
-    //             values: [job_id],
-    //         }
-    //         const result = await dbClient.query(query);
-    //         if (result.rowCount == 0) {
-    //             return Promise.reject(new JobIdNotFoundException(job_id))
-    //         }
-    //         const job = OswValidationJobs.from(result.rows[0])
-    //         return job;
-    //     }
-    //     catch (error) {
-    //         console.log(error);
-    //         return Promise.reject(error);
-    //     }
-    // }
 }
 
 const oswService: IOswService = new OswService(jobService, tdeiCoreService);

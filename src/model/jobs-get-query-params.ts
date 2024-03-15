@@ -44,18 +44,17 @@ export class JobsQueryParams {
 
     getQuery(user_id: string): PgQueryObject {
         //Select columns
-        const selectColumns = ['content.job.*, keycloak.user_entity.username as requested_by,public.project_group.name as tdei_project_group_name'];
+        const selectColumns = ['content.job.*, ue.username as requested_by,pg.name as tdei_project_group_name'];
         //Main table name
         const mainTableName = 'content.job';
         //Joins
         const joins: JoinCondition[] = [
-            { tableName: 'keycloak.user_entity', alias: 'ue', on: `content.job.user_id = ue.id AND content.job.user_id = ${user_id}`, type: 'LEFT' },
-            { tableName: 'public.user_roles', alias: 'ur', on: `content.job.tdei_project_group_id = ur.user_roles AND ur.user_id = ${user_id}`, type: 'LEFT' },
-            { tableName: 'public.project_group', alias: 'pg', on: `ur.project_group_id = pg.project_group_id`, type: 'LEFT' }
+            { tableName: 'keycloak.user_entity', alias: 'ue', on: `content.job.user_id = ue.id AND ue.id = '${user_id}'`, type: 'LEFT' },
+            { tableName: 'public.project_group', alias: 'pg', on: `content.job.tdei_project_group_id = pg.project_group_id`, type: 'LEFT' }
         ];
         //Conditions
         const conditions: WhereCondition[] = [];
-        conditions.push({ clouse: `(content.job.user_id = ${user_id} OR ur.user_id = ${user_id})` });
+        addConditionIfValueExists('content.job.user_id = ', user_id);
         addConditionIfValueExists('status = ', this.status);
         addConditionIfValueExists('job_id = ', this.job_id);
         addConditionIfValueExists('job_type = ', this.job_type);
