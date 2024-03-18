@@ -77,7 +77,7 @@ export class JobEntity extends BaseDto {
     static getUpdateJobDownloadUrlQuery(job_id: string, download_url: string): QueryConfig {
         const query = {
             text: 'UPDATE content.job SET download_url = $1, updated_at = CURRENT_TIMESTAMP WHERE job_id = $2',
-            values: [job_id, download_url],
+            values: [download_url, job_id],
         }
         return query;
     }
@@ -89,7 +89,7 @@ export class JobEntity extends BaseDto {
      */
     static getJobByIdQuery(job_id: string): QueryConfig {
         const query = {
-            text: 'Select download_url from content.job WHERE job_id = $1',
+            text: 'Select * from content.job WHERE job_id = $1',
             values: [job_id],
         }
         return query;

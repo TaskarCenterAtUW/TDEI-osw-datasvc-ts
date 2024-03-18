@@ -2,7 +2,7 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { DatasetEntity } from "../../database/entity/dataset-entity";
 import { MetadataEntity } from "../../database/entity/metadata-entity";
 import { ServiceEntity } from "../../database/entity/service-entity";
-import { DatasetDTO } from "../../model/osw-dto";
+import { DatasetDTO } from "../../model/dataset-dto";
 import { DatasetQueryParams } from "../../model/dataset-get-query-params";
 import { ConfidenceJobResponse } from "../../model/job-request-response/osw-confidence-job-response";
 

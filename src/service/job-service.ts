@@ -7,6 +7,8 @@ import { IJobService } from "./interface/job-service-interface";
 import { JobsQueryParams } from "../model/jobs-get-query-params";
 import { CreateJobDTO, JobDTO, UpdateJobDTO } from "../model/job-dto";
 import { JobEntity } from "../database/entity/job-entity";
+import { Utility } from "../utility/utility";
+import { InputException } from "../exceptions/http/http-exceptions";
 
 class JobService implements IJobService {
     constructor() { }
@@ -30,7 +32,7 @@ class JobService implements IJobService {
         const list: JobDTO[] = [];
         result.rows.forEach(x => {
             const job = JobDTO.from(x);
-            // job.download_url = ''; // do not share internal upload URL
+            job.download_url = job.download_url ? `/job/download?job_id=${job.job_id}` : ''; // do not share internal upload URL
             list.push(job);
         })
         return Promise.resolve(list);
@@ -47,7 +49,10 @@ class JobService implements IJobService {
 
         const result = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
 
-        if (result.rowCount == 0 || result.rows[0].download_url == null)
+        if (result.rowCount == 0)
+            throw new InputException("Job not found");
+
+        if (result.rows[0].download_url == null || result.rows[0].download_url == '')
             throw new HttpException(404, "File not found");
 
         let url = decodeURIComponent(result.rows[0].download_url);
@@ -55,7 +60,16 @@ class JobService implements IJobService {
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
 
-        return storageClient.getFileFromUrl(url);
+        let fileEntity = await storageClient.getFileFromUrl(url);
+        const extension = url.split('.').pop();
+        // Check if the extension is one of the expected types
+        if (['txt', 'json', 'zip', 'xml'].includes(extension!)) {
+            const mimeType = Utility.getMimeType(extension!);
+            fileEntity.mimeType = mimeType;
+        } else {
+            console.log('Unexpected file type');
+        }
+        return fileEntity;
     }
 
     /**

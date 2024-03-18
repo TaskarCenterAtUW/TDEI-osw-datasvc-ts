@@ -1,8 +1,13 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { IUploadRequest } from "./upload-request-interface";
 import { ServiceRequest } from "../../model/backend-request-interface";
+import { IJobService } from "./job-service-interface";
+import { ITdeiCoreService } from "./tdei-core-service-interface";
 
 export interface IOswService {
+    jobServiceInstance: IJobService;
+    tdeiCoreServiceInstance: ITdeiCoreService;
+
     /**
      * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
      * @param backendRequest The backend request to process.

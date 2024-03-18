@@ -4,6 +4,9 @@ import oswService from "../../../../service/osw-service";
 import { WorkflowBase } from "../../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../../services/orchestrator-service";
 import tdeiCoreService from "../../../../service/tdei-core-service";
+import dbClient from "../../../../database/data-source";
+import { JobEntity } from "../../../../database/entity/job-entity";
+import { JobDTO } from "../../../../model/job-dto";
 
 export class PublishFlatteningRequestWorkflow extends WorkflowBase {
 
@@ -15,7 +18,11 @@ export class PublishFlatteningRequestWorkflow extends WorkflowBase {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
-            let dataset = await tdeiCoreService.getDatasetDetailsById(message.messageId);
+            //Get the job details from the database
+            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+            const job = JobDTO.from(result.rows[0]);
+            // Get the dataset details
+            const dataset = await tdeiCoreService.getDatasetDetailsById(job.request_input.tdei_dataset_id);
 
             //Compose the meessage
             let queueMessage = QueueMessage.from({

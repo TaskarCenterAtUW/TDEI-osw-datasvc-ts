@@ -24,6 +24,7 @@ export enum JobType {
 }
 export class JobsQueryParams {
     @IsOptional()
+    @IsEnum(JobStatus)
     status: JobStatus | undefined;
     @IsOptional()
     job_id: string | undefined;

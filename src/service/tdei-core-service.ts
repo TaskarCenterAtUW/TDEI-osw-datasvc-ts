@@ -7,7 +7,7 @@ import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException, InputException } from "../exceptions/http/http-exceptions";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import UniqueKeyDbException from "../exceptions/db/database-exceptions";
-import { DatasetDTO } from "../model/osw-dto";
+import { DatasetDTO } from "../model/dataset-dto";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { Core } from "nodets-ms-core";
 import { Geometry, Feature } from "geojson";

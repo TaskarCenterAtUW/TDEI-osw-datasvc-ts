@@ -26,7 +26,7 @@ import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 
 class OswService implements IOswService {
-    constructor(public jobServiceInstance: IJobService, public generalServiceInstance: ITdeiCoreService) { }
+    constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
 
     /**
      * Processes a format request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
@@ -103,7 +103,7 @@ class OswService implements IOswService {
     async calculateConfidence(tdei_dataset_id: string, user_id: string): Promise<string> {
         // Check and get the record for the same in the database
         try {
-            const oswRecord = await this.generalServiceInstance.getDatasetDetailsById(tdei_dataset_id)
+            const oswRecord = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id)
             // Create a job in the database for the same.
             //TODO: Have to add these based on some of the input data.
 
@@ -163,8 +163,8 @@ class OswService implements IOswService {
      */
     async processPublishRequest(user_id: string, tdei_dataset_id: string): Promise<string> {
         try {
-            let dataset = await this.generalServiceInstance.getDatasetDetailsById(tdei_dataset_id);
-            let metadata = await this.generalServiceInstance.getMetadataDetailsById(tdei_dataset_id);
+            let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            let metadata = await this.tdeiCoreServiceInstance.getMetadataDetailsById(tdei_dataset_id);
 
             if (dataset.status === 'Publish')
                 throw new InputException(`${tdei_dataset_id} already publised.`)
@@ -224,7 +224,7 @@ class OswService implements IOswService {
      */
     async processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string> {
         try {
-            let dataset = await this.generalServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
 
             if (dataset.status === 'Publish')
                 throw new InputException(`Request is prohibited while the record is in the Publish state.`);
@@ -409,7 +409,7 @@ class OswService implements IOswService {
             }
 
             //Validate service_id 
-            const service = await this.generalServiceInstance.getServiceById(uploadRequestObject.tdei_service_id);
+            const service = await this.tdeiCoreServiceInstance.getServiceById(uploadRequestObject.tdei_service_id);
             if (!service) {
                 // Service not found exception.
                 throw new ServiceNotFoundException(uploadRequestObject.tdei_service_id);
@@ -421,13 +421,13 @@ class OswService implements IOswService {
             //Validate metadata
             const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
             const oswdto = OswUploadMeta.from(metadata);
-            let validation_errors = await this.generalServiceInstance.validateObject(oswdto);
+            let validation_errors = await this.tdeiCoreServiceInstance.validateObject(oswdto);
             if (validation_errors) {
                 throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
             }
 
             //Check for unique name and version combination
-            if (await this.generalServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
+            if (await this.tdeiCoreServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
                 throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
 
             // Generate unique UUID for the upload request 
@@ -451,7 +451,7 @@ class OswService implements IOswService {
             // Insert osw version into database
             const oswEntity = new DatasetEntity();
             oswEntity.tdei_dataset_id = uid;
-            oswEntity.data_type = 'osw';
+            oswEntity.data_type = TDEIDataType.osw;
             oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
             oswEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
             oswEntity.derived_from_dataset_id = uploadRequestObject.derived_from_dataset_id;
@@ -460,13 +460,13 @@ class OswService implements IOswService {
             oswEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             oswEntity.uploaded_by = uploadRequestObject.user_id;
             oswEntity.updated_by = uploadRequestObject.user_id;
-            await this.generalServiceInstance.createDataset(oswEntity);
+            await this.tdeiCoreServiceInstance.createDataset(oswEntity);
 
             // Insert metadata into database
             const oswMetadataEntity = MetadataEntity.from(metadata);
             oswMetadataEntity.tdei_dataset_id = uid;
             oswMetadataEntity.schema_version = metadata.schema_version;
-            await this.generalServiceInstance.createMetadata(oswMetadataEntity);
+            await this.tdeiCoreServiceInstance.createMetadata(oswMetadataEntity);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,

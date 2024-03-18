@@ -1,6 +1,8 @@
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional } from "class-validator";
 import { JoinCondition, PgQueryObject, SqlORder, WhereCondition, buildQuery } from "../database/dynamic-query-object";
 import { TdeiDate } from "../utility/tdei-date";
+import { TDEIDataType } from "./jobs-get-query-params";
+import { InputException } from "../exceptions/http/http-exceptions";
 
 export enum RecordStatus {
     "Publish" = "Publish",
@@ -8,6 +10,9 @@ export enum RecordStatus {
     "All" = "All"
 }
 export class DatasetQueryParams {
+    @IsOptional()
+    data_type: TDEIDataType | undefined;
+
     @IsOptional()
     status: RecordStatus = RecordStatus.Publish;
     @IsOptional()
@@ -55,6 +60,16 @@ export class DatasetQueryParams {
     }
 
     getQuery(user_id: string): PgQueryObject {
+        //Validate inputs
+        if (this.valid_from && !TdeiDate.isValid(this.valid_from))
+            throw new InputException("Invalid date provided." + this.valid_from)
+        if (this.valid_to && !TdeiDate.isValid(this.valid_to))
+            throw new InputException("Invalid date provided." + this.valid_to)
+        if (this.collection_date && !TdeiDate.isValid(this.collection_date))
+            throw new InputException("Invalid date provided." + this.collection_date)
+        if (this.bbox && this.bbox.length > 0 && this.bbox.length != 4)
+            throw new InputException("Invalid bounding box provided." + this.bbox)
+
         //Select columns
         const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*'];
         //Main table name
@@ -67,6 +82,7 @@ export class DatasetQueryParams {
         //Conditions
         const conditions: WhereCondition[] = [];
         addConditionIfValueExists('status !=', 'Deleted');
+        addConditionIfValueExists('data_type =', this.data_type);
 
         if (this.status && this.status == RecordStatus["All"] && this.isAdmin) {
             conditions.push({ clouse: `(status = 'Publish' OR status = 'Pre-Release')` });
