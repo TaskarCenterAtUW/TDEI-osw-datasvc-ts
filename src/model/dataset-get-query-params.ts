@@ -93,13 +93,13 @@ export class DatasetQueryParams {
         } else if (this.status)
             conditions.push({ clouse: 'status = ', value: this.status });
 
-        addConditionIfValueExists('name ILIKE ', this.name ? '%' + this.name + '%' : null);
-        addConditionIfValueExists('version = ', this.version);
+        addConditionIfValueExists('m.name ILIKE ', this.name ? '%' + this.name + '%' : null);
+        addConditionIfValueExists('m.version = ', this.version);
         addConditionIfValueExists('confidence_level > ', this.confidence_level);
-        addConditionIfValueExists('data_source = ', this.data_source);
-        addConditionIfValueExists('collected_by = ', this.collected_by);
-        addConditionIfValueExists('collection_method = ', this.collection_method);
-        addConditionIfValueExists('schema_version = ', this.schema_version);
+        addConditionIfValueExists('m.data_source = ', this.data_source);
+        addConditionIfValueExists('m.collected_by = ', this.collected_by);
+        addConditionIfValueExists('m.collection_method = ', this.collection_method);
+        addConditionIfValueExists('m.schema_version = ', this.schema_version);
         addConditionIfValueExists('tdei_project_group_id = ', this.tdei_project_group_id);
         addConditionIfValueExists('tdei_service_id = ', this.tdei_service_id);
         addConditionIfValueExists('dataset.tdei_dataset_id = ', this.tdei_dataset_id);
