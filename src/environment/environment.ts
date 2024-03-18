@@ -24,7 +24,7 @@ export const environment = {
         host: process.env.POSTGRES_HOST,
         password: process.env.POSTGRES_PASSWORD,
         database: process.env.POSTGRES_DB,
-        ssl: Boolean(process.env.SSL),
+        ssl: process.env.SSL!.toLowerCase() === 'true' ? true : false,
         port: parseInt(process.env.POSTGRES_PORT ?? "5432"),
     },
     appPort: parseInt(process.env.PORT ?? "8080"),

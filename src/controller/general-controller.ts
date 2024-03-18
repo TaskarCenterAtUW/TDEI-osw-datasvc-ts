@@ -18,7 +18,7 @@ class GeneralController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.delete(`${this.path}/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
+        this.router.delete(`${this.path}/dataset/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
         this.router.get(`${this.path}/job`, authenticate, this.getJobs);
         this.router.get(`${this.path}/job/download/:job_id`, authenticate, this.getJobDownloadFile); // Download the formatted file
     }
