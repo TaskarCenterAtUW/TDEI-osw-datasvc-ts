@@ -86,7 +86,7 @@ class OSWController implements IController {
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
         this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
-        this.router.get(`${this.path}/osw`, authenticate, this.getDatasetList);
+        this.router.get(`${this.path}/`, authenticate, this.getDatasetList);
     }
 
     /**

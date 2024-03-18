@@ -474,6 +474,9 @@ class OswService implements IOswService {
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
+                    tdei_dataset_id: uid,
+                    dataset_name: oswMetadataEntity.name,
+                    dataset_version: oswMetadataEntity.version,
                     dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
                     metadata_file_upload_name: uploadRequestObject.metadataFile[0].originalname,
                     changeset_file_upload_name: uploadRequestObject.changesetFile ? uploadRequestObject.changesetFile[0].originalname : ""

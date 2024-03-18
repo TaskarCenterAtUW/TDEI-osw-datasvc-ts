@@ -4,6 +4,10 @@ import dbClient from "../../../../database/data-source";
 import { DatasetEntity } from "../../../../database/entity/dataset-entity";
 import { WorkflowBase } from "../../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../../services/orchestrator-service";
+import { JobEntity } from "../../../../database/entity/job-entity";
+import { JobDTO, UpdateJobDTO } from "../../../../model/job-dto";
+import { JobStatus } from "../../../../model/jobs-get-query-params";
+import jobService from "../../../../service/job-service";
 
 export class PublishDatabaseWorkflow extends WorkflowBase {
 
@@ -14,8 +18,18 @@ export class PublishDatabaseWorkflow extends WorkflowBase {
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
+            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+            const job = JobDTO.from(result.rows[0]);
             //This workflow triggers at the end of the workflow stages and marks complete of the workflow process
-            await dbClient.query(DatasetEntity.getPublishRecordQuery(message.messageId));
+            await dbClient.query(DatasetEntity.getPublishRecordQuery(job.request_input.tdei_dataset_id));
+
+            let updateJobDTO = UpdateJobDTO.from({
+                job_id: message.messageId,
+                message: "Dataset Published Successfully",
+                status: JobStatus.COMPLETED,
+                response_props: {}
+            })
+            await jobService.updateJob(updateJobDTO);
         }
         catch (error) {
             console.error("Error in publishing the record to the database", error);
