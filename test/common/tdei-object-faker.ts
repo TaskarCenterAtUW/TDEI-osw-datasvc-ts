@@ -1,7 +1,5 @@
 import { FeatureCollection } from "geojson";
 import { Readable } from "stream";
-import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import oswValidationSuccessMessage from "../test-data/osw-validation-success.message.json";
 import { DatasetEntity } from "../../src/database/entity/dataset-entity";
 import { MetadataEntity } from "../../src/database/entity/metadata-entity";
 
@@ -115,10 +113,6 @@ export class TdeiObjectFaker {
     private static getRandomNumber(min: number, max: number): number {
         const diff = max - min;
         return parseFloat((min + Math.random() * diff).toFixed(6));
-    }
-
-    static getOswQueueMessageSuccess() {
-        return QueueMessage.from(oswValidationSuccessMessage);
     }
 
     static getOswPayload2() {
