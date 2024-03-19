@@ -126,9 +126,8 @@ class TdeiCoreService implements ITdeiCoreService {
             }
 
             let result = await dbClient.query(queryObject);
-
             //If record exists then throw error
-            return result.rowCount > 0;
+            return result.rowCount ? result.rowCount > 0 : false;
         } catch (error) {
             console.error("Error checking the name and version", error);
             return Promise.resolve(true);
