@@ -6,7 +6,7 @@ export class JobDTO extends AbstractDomainEntity {
     @Prop()
     job_id!: number;
     @Prop()
-    data_type!: TDEIDataType;
+    job_type!: JobType;
     @Prop()
     status!: JobStatus;
     @Prop()
