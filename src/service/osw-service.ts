@@ -4,7 +4,6 @@ import dbClient from "../database/data-source";
 import { DatasetEntity } from "../database/entity/dataset-entity";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
-import { ConfidenceJobResponse } from "../model/job-request-response/osw-confidence-job-response";
 import { IUploadRequest } from "./interface/upload-request-interface";
 import { OswUploadMeta } from "../model/osw-upload-meta";
 import path from "path";
