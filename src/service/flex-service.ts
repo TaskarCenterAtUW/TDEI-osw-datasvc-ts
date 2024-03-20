@@ -103,7 +103,7 @@ class FlexService implements IFlexService {
             const storageFolderPath = storageService.getValidationJobPath(uid);
             // Upload dataset file
             const uploadStoragePath = path.join(storageFolderPath, datasetFile.originalname)
-            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer))
+            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer), "gtfsflex");
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.flex,
@@ -191,15 +191,15 @@ class FlexService implements IFlexService {
             const storageFolderPath = storageService.getFolderPath(uploadRequestObject.tdei_project_group_id, uid);
             // Upload dataset file
             const uploadStoragePath = path.join(storageFolderPath, uploadRequestObject.datasetFile[0].originalname)
-            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(uploadRequestObject.datasetFile[0].buffer))
+            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(uploadRequestObject.datasetFile[0].buffer), "gtfsflex")
             // Upload the metadata file  
             const metadataStorageFilePath = path.join(storageFolderPath, 'metadata.json');
-            const metadataUploadUrl = await storageService.uploadFile(metadataStorageFilePath, 'text/json', Readable.from(uploadRequestObject.metadataFile[0].buffer));
+            const metadataUploadUrl = await storageService.uploadFile(metadataStorageFilePath, 'text/json', Readable.from(uploadRequestObject.metadataFile[0].buffer), "gtfsflex");
             // Upload the changeset file  
             let changesetUploadUrl = "";
             if (uploadRequestObject.changesetFile) {
                 const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.txt');
-                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'text/plain', Readable.from(uploadRequestObject.changesetFile[0].buffer));
+                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'text/plain', Readable.from(uploadRequestObject.changesetFile[0].buffer), "gtfsflex");
             }
 
             // Insert dataset version into database
