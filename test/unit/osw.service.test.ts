@@ -28,20 +28,15 @@ describe("OSW Service Test", () => {
         describe("Functional", () => {
             test("When requested for get OSW file by tdei_dataset_id, Expect to return FileEntity object", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            download_osw_url: "test_path",
-                            download_osm_url: "test_path",
-                            download_metadata_url: "test_path",
-                            download_changeset_url: "test_path",
-                        }
-                    ]
-                };
-
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "test-url",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
 
                 //Act
                 const result = await oswService.getOswStreamById("tdei_dataset_id", "osw");
@@ -51,64 +46,51 @@ describe("OSW Service Test", () => {
 
             test("When requested for get OSW file by tdei_dataset_id and osm format, Expect to return FileEntity object", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            download_osw_url: "test_path",
-                            download_osm_url: "test_path",
-                            download_metadata_url: "test_path"
-                        }
-                    ]
-                };
-
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "test-url",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
                 //Act
                 const result = await oswService.getOswStreamById("tdei_dataset_id", "osw");
                 //Assert
                 expect(result instanceof FileEntity);
             });
 
-            test("When requested for get OSW file by tdei_dataset_id and xml format, Expect to return FileEntity object", async () => {
+            test("When requested for get OSW file by tdei_dataset_id and osw format, Expect to return FileEntity object", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            download_osw_url: "test_path",
-                            download_osm_url: "test_path",
-                            download_metadata_url: "test_path"
-                        }
-                    ]
-                };
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "test-url",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
 
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
                 //Act
-                const result = await oswService.getOswStreamById("tdei_dataset_id", "xml");
+                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw");
                 //Assert
                 expect(result instanceof FileEntity);
             });
 
             test("When requested for get OSW file where conversion for osm for tdei_dataset_id not available, Expect to throw HttpException", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            file_upload_path: "test_path",
-                            download_osm_url: "",
-                            download_metadata_url: "test_path"
-                        }
-                    ]
-                };
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
 
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
                 //Act
                 //Assert
                 expect(oswService.getOswStreamById("tdei_dataset_id", "osm")).rejects.toThrow(HttpException);
@@ -116,14 +98,9 @@ describe("OSW Service Test", () => {
 
             test("When requested for get OSW file with invalid tdei_dataset_id, Expect to throw HttpException", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>><unknown>{
-                    rows: [],
-                    rowCount: 0
-                };
-
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockRejectedValueOnce(new HttpException(404, "Not Found"));
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
 
                 //Act
                 //Assert
@@ -132,22 +109,19 @@ describe("OSW Service Test", () => {
 
             test("When Core failed obtaing storage client, Expect to throw error", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>><unknown>{
-                    rows: [
-                        {
-                            file_upload_path: "test_path",
-                            download_osm_url: "",
-                            download_metadata_url: "test_path"
-                        }
-                    ]
-                };
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
 
                 mockCore();
                 //Overrride getStorageClient mock
                 jest.spyOn(Core, "getStorageClient").mockImplementation(() => { return null; }
                 );
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
 
                 //Act
                 //Assert
@@ -283,8 +257,6 @@ describe("OSW Service Test", () => {
                 expect.anything()
             );
         });
-
-        // Add more test cases as needed
     });
 
     describe('process publish request', () => {

@@ -17,7 +17,7 @@ import { FileEntityStream } from "../utility/utility";
 import tdeiCoreService from "../service/tdei-core-service";
 import { DatasetQueryParams } from "../model/dataset-get-query-params";
 import { TDEIDataType } from "../model/jobs-get-query-params";
-import flexService from "../service/flex-service";
+import pathwaysService from "../service/pathways-service";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -52,22 +52,22 @@ const upload = multer({
     }
 });
 
-class FlexController implements IController {
-    public path = '/api/v1/gtfs-flex';
+class PathwaysController implements IController {
+    public path = '/api/v1/gtfs-pathways';
     public router = express.Router();
     constructor() {
         this.intializeRoutes();
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, this.getFlexById);
+        this.router.get(`${this.path}/:id`, this.getPathwaysById);
         this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
             { name: "changeset", maxCount: 1 }
-        ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processUploadRequest);
-        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processPublishRequest);
+        ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "pathways_data_generator"]), this.processUploadRequest);
+        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "pathways_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
         this.router.get(`${this.path}/`, authenticate, this.getDatasetList);
     }
@@ -82,7 +82,7 @@ class FlexController implements IController {
         try {
             const params: DatasetQueryParams = new DatasetQueryParams(JSON.parse(JSON.stringify(request.query)));
             params.isAdmin = request.body.isAdmin;
-            params.data_type = TDEIDataType.flex;
+            params.data_type = TDEIDataType.pathways;
             const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
             dataset.forEach(x => {
                 x.download_url = `${this.path}/${x.tdei_dataset_id}`;
@@ -112,18 +112,18 @@ class FlexController implements IController {
     }
 
     /**
-     * Given the tdei_dataset_id api downloads the zip file containing flex files.
+     * Given the tdei_dataset_id api downloads the zip file containing pathways files.
      * @param request 
      * @param response 
      * @param next 
      * @returns 
      */
-    getFlexById = async (request: Request, response: express.Response, next: NextFunction) => {
+    getPathwaysById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            const fileEntities: FileEntity[] = await flexService.getFlexStreamById(request.params.id);
+            const fileEntities: FileEntity[] = await pathwaysService.getPathwaysStreamById(request.params.id);
 
-            const zipFileName = 'flex.zip';
+            const zipFileName = 'pathways.zip';
 
             // // Create a new zip archive
             const archive = archiver('zip', { zlib: { level: 9 } });
@@ -172,7 +172,7 @@ class FlexController implements IController {
                 next(new InputException("dataset file input missing"));
             }
 
-            let job_id = await flexService.processValidationOnlyRequest(request.body.user_id, datasetFile);
+            let job_id = await pathwaysService.processValidationOnlyRequest(request.body.user_id, datasetFile);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -197,7 +197,7 @@ class FlexController implements IController {
     processPublishRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let job_id = await flexService.processPublishRequest(request.body.user_id, tdei_dataset_id);
+            let job_id = await pathwaysService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
@@ -214,7 +214,7 @@ class FlexController implements IController {
     }
 
     /**
-     * Function to create record in the database and upload the gtfs-flex files
+     * Function to create record in the database and upload the gtfs-pathways files
      * @param request 
      * @param response 
      * @param next 
@@ -244,7 +244,7 @@ class FlexController implements IController {
                 return next(new InputException("metadata file input upload missing"));
             }
 
-            let job_id = await flexService.processUploadRequest(uploadRequest);
+            let job_id = await pathwaysService.processUploadRequest(uploadRequest);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -260,5 +260,5 @@ class FlexController implements IController {
     }
 }
 
-const flexController = new FlexController();
-export default flexController;
+const pathwaysController = new PathwaysController();
+export default pathwaysController;
