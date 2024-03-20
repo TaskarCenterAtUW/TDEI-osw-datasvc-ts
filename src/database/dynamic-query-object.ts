@@ -1,3 +1,110 @@
+
+export interface PgQueryObject {
+    text: string;
+    values: any[];
+}
+
+export interface JoinCondition {
+    tableName: string;
+    alias: string;
+    on: string;
+    type?: "INNER" | "LEFT" | "RIGHT" | "FULL";
+}
+
+export interface WhereCondition {
+    clouse: string;
+    value?: any;
+}
+
+// Define a function to build dynamic PostgreSQL queries with inner joins, sorting, and pagination
+export function buildQuery(
+    selectColumns: string[],
+    mainTableName: string,
+    conditions: WhereCondition[],
+    joins: JoinCondition[],
+    sortField?: string,
+    sortOrder?: 'ASC' | 'DESC',
+    limit?: number,
+    offset?: number
+): PgQueryObject {
+    const whereClauseValues: any[] = [];
+    let whereClause = '';
+
+    if (conditions.length > 0) {
+        whereClause = ' WHERE ';
+        let paramIndex = 1;
+        conditions.forEach((condition, index) => {
+            if (index > 0) {
+                whereClause += ' AND ';
+            }
+            if (condition.value) {
+                whereClause += `${condition.clouse} $${paramIndex++}`;
+                whereClauseValues.push(condition.value);
+            }
+            else {
+                whereClause += `${condition.clouse}`;
+            }
+        });
+    }
+
+
+    let joinClause = '';
+    joins.forEach((join, index) => {
+        if (join.type) {
+            joinClause += ` ${join.type} JOIN ${join.tableName} AS ${join.alias} ON ${join.on}`;
+        }
+        else {
+            joinClause += ` INNER JOIN ${join.tableName} AS ${join.alias} ON ${join.on}`;
+        }
+
+        if (index !== joins.length - 1) {
+            joinClause += ' ';
+        }
+    });
+
+    let sortClause = '';
+    if (sortField && sortOrder) {
+        sortClause = ` ORDER BY ${sortField} ${sortOrder}`;
+    }
+
+    if (limit === undefined || limit < 1) {
+        limit = 10; // Default limit to 10 items per page
+    }
+
+    if (offset === undefined || offset < 0) {
+        offset = 0; // Default offset to 0
+    } else {
+        offset = (offset - 1) * limit; // Calculate offset based on page number
+    }
+
+    // Limit the items per page to a maximum of 50
+    if (limit > 50) {
+        limit = 50;
+    }
+    let limitClause = '';
+    if (limit !== undefined && limit !== null) {
+        limitClause = ` LIMIT ${limit}`;
+    }
+
+    let offsetClause = '';
+    if (offset !== undefined && offset !== null) {
+        offsetClause = ` OFFSET ${offset}`;
+    }
+
+    let selectClause = '';
+    if (selectColumns.length > 0) {
+        selectClause = `SELECT ${selectColumns.join(', ')} `;
+    } else {
+        selectClause = 'SELECT * ';
+    }
+
+
+    const queryText = `${selectClause} FROM ${mainTableName}${joinClause}${whereClause}${sortClause}${limitClause}${offsetClause};`;
+
+    return { text: queryText, values: whereClauseValues };
+}
+
+
 export enum SqlORder {
     ASC = "ASC", DESC = "DESC"
 }
@@ -32,8 +139,8 @@ export class DynamicQueryObject {
         this._select = `SELECT ${columns.join(',')} FROM ${tableName} `;
     }
 
-    buildInnerJoin(sourceTableName: string, destinationTableName: string, joinColumn: string) {
-        this._select += ` INNER JOIN ${destinationTableName} on ${destinationTableName}.${joinColumn} = ${sourceTableName}.${joinColumn} `;
+    buildInnerJoin(sourceTableName: string, destinationTableName: string, sourceJoinColumn: string, destJoinColumn: string) {
+        this._select += ` INNER JOIN ${destinationTableName} on ${destinationTableName}.${destJoinColumn} = ${sourceTableName}.${sourceJoinColumn} `;
     }
 
     private buildWhere() {

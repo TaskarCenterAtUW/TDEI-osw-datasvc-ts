@@ -1,202 +1,90 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
-import { OswDTO } from "../../model/osw-dto";
-import { OswQueryParams } from "../../model/osw-get-query-params";
-import { OswConfidenceJob } from "../../database/entity/osw-confidence-job-entity";
-import { OSWConfidenceResponse } from "../../model/osw-confidence-response";
-import { OswFormatJob } from "../../database/entity/osw-format-job-entity";
-import { OswFormatJobResponse } from "../../model/osw-format-job-response";
 import { IUploadRequest } from "./upload-request-interface";
-import { OswVersions } from "../../database/entity/osw-version-entity";
-import { OswValidationJobs } from "../../database/entity/osw-validate-jobs";
-import { ProjectGroupRoleDto } from "../../model/project-group-role-dto";
-import { OswMetadataEntity } from "../../database/entity/osw-metadata";
-import { OswUploadMeta } from "../../model/osw-upload-meta";
-import { ServiceDto } from "../../model/service-dto";
-import { DatasetFlatteningJob } from "../../database/entity/dataset-flattening-job";
-import { BackendJob } from "../../database/entity/backend-job";
 import { ServiceRequest } from "../../model/backend-request-interface";
-import { BackendServiceJobResponse } from "../../model/backend-service-job-response";
-import { DataFlatteningJobResponse } from "../../model/data-flattening-job-response";
+import { IJobService } from "./job-service-interface";
+import { ITdeiCoreService } from "./tdei-core-service-interface";
 
 export interface IOswService {
+    jobServiceInstance: IJobService;
+    tdeiCoreServiceInstance: ITdeiCoreService;
+
     /**
-    * Updates the dataset flattening job
-    * @param info 
-    */
-    updateDatasetFlatteningJob(info: DataFlatteningJobResponse): Promise<void>;
-    /**
-     * Updates the backend service job
-     * @param info 
-     */
-    updateBackendServiceJob(info: BackendServiceJobResponse): Promise<void>;
-    /**
-     * Gets the backend job details
-     * @param job_id 
-     */
-    getBackendJob(job_id: string): Promise<BackendJob>;
-    /**
-     * Processes the backend request
-     * @param backendRequest 
+     * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
+     * @param backendRequest The backend request to process.
+     * @returns A Promise that resolves to a string representing the job ID.
+     * @throws Throws an error if an error occurs during processing.
      */
     processBackendRequest(backendRequest: ServiceRequest): Promise<string>;
-
     /**
-     * Gets the flattening job details
-     * @param job_id 
-     */
-    getDatasetFlatteningJob(job_id: string): Promise<DatasetFlatteningJob>;
-    /**
-     * Flattern the record
-     * @param user_id 
-     * @param tdei_record_id 
-     */
-    processDatasetFlatteningRequest(user_id: any, tdei_record_id: string, override: boolean): Promise<string>;
-    /**
-     * Invalidate the record
-     * @param user_id 
-     * @param tdei_record_id 
-     */
-    invalidateRecordRequest(user_id: any, tdei_record_id: string): Promise<boolean>;
-    /**
-     * Gets the service details for given projectGroupId and serviceid
-     * @param serviceId service id uniquely represented by TDEI system
-     * @param projectGroupId oraganization id uniquely represented by TDEI system
-     * @returns 
-     */
-    getServiceById(serviceId: string, projectGroupId: string): Promise<ServiceDto | undefined>;
-    /**
-     * Validates the metadata
-     * @param metadataObj 
-     */
-    validateMetadata(metadataObj: OswUploadMeta): Promise<void>;
-    /**
-    * Validates the unique name and version combination
-    * @param name 
-    * @param version 
-    * @returns 
-    */
-    checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean>;
-    /**
-     * Fetches osw metadata for given tdei_record_id
-     * @param id 
-     * @returns 
-     */
-    getOSWMetadataById(id: string): Promise<OswMetadataEntity>;
-    /**
-     * Creates the metadata entry for new osw version
-     * @param oswMetadataEntity 
-     * @returns 
-     */
-    createOswMetadata(oswMetadataEntity: OswMetadataEntity): Promise<void>;
-    /**
-     * Gets the status of the on-demand validation job
-     * @param job_id 
-     * @returns 
-     */
-    getOSWValidationJob(job_id: string): Promise<OswValidationJobs>;
-
-    /**
-     * On-demand format request
-     * @param source 
-     * @param target 
-     * @param uploadedFile 
-     * @param user_id 
-     */
-    processFormatRequest(source: string, target: string, uploadedFile: Express.Multer.File, user_id: any): Promise<string>;
-    /**
-     * Calculates on-demand confidence matrics for given tdei_record_id
-     */
-    calculateConfidence(tdeiRecordId: string, user_id: string): Promise<string>;
-    /**
-     * Creates the new version of osw file in the TDEI system
-     * @param oswInfo 
-     * @returns 
-     */
-    createOsw(oswInfo: OswVersions): Promise<OswDTO>;
-
-    /**
-     * Gets the OSW details
-     * @param params Query params
-     */
-    getAllOsw(user_id: string, params: OswQueryParams): Promise<OswDTO[]>;
-    /**
+    * Processes a dataset flattening request.
     * 
-    * @param id Record Id of the OSW file to be downloaded
-    * @param format file format to download
+    * @param user_id - The ID of the user making the request.
+    * @param tdei_dataset_id - The ID of the TDEI dataset.
+    * @param override - A boolean indicating whether to override existing records.
+    * @returns A Promise that resolves to a string representing the job ID.
+    * @throws {InputException} If the request is prohibited while the record is in the Publish state or if the dataset is already flattened without the override flag.
     */
+    processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string>;
+    /**
+     * Processes a format request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
+     * @param source The source format of the file.
+     * @param target The target format to convert the file to.
+     * @param uploadedFile The file to be uploaded.
+     * @param user_id The ID of the user making the request.
+     * @returns A Promise that resolves to the job ID.
+     * @throws Throws an error if an error occurs during the process.
+     */
+    processFormatRequest(source: string, target: string, uploadedFile: Express.Multer.File, user_id: string): Promise<string>;
+    /**
+     * Calculates the confidence for a given TDEI dataset.
+     * 
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user.
+     * @returns A Promise that resolves to the ID of the created job.
+     * @throws If there is an error calculating the confidence.
+     */
+    calculateConfidence(tdei_dataset_id: string, user_id: string): Promise<string>;
+
+    /**
+     * Retrieves the OswStream by its ID.
+     * @param id - The ID of the OswStream.
+     * @param format - The format of the OswStream (default is "osw").
+     * @returns A promise that resolves to an array of FileEntity objects.
+     * @throws HttpException if the OswStream is not found or if the request record is deleted.
+     * @throws Error if the storage is not configured.
+     */
     getOswStreamById(id: string, format: string): Promise<FileEntity[]>;
 
     /**
-     * Fetches the Record of OSW from the database
-     * @param id  tdeiRecordId
-     */
-    getOSWRecordById(id: string): Promise<OswVersions>;
-
-    /**
-     * Creates a confidence job and returns data
-     * @param info Confidence job information
-     */
-    createOSWConfidenceJob(info: OswConfidenceJob): Promise<string>;
-
-    /**
-     * Get the OSWConfidenceJOb based on jobId
-     * @param jobId 
-     */
-    getOSWConfidenceJob(jobId: string): Promise<OswConfidenceJob>;
-
-    /**
-     * Updates the score for a confidence metric job
-     * @param info 
-     */
-    updateConfidenceMetric(info: OSWConfidenceResponse): Promise<string>;
-
-    /**
-     * Creates the osw-format
-     * @param info OSWFormat job requested
-     */
-    createOSWFormatJob(info: OswFormatJob): Promise<string>;
-
-    /**
-     * Updates the osw-format job
-     * @param info Updates the OSWFormatJob with status and other parameters
-     */
-    updateOSWFormatJob(info: OswFormatJobResponse): Promise<void>;
-
-    /**
-     * Fetches the job Id for formatting
-     * @param jobId jobId for formatting
-     */
-    getOSWFormatJob(jobId: string): Promise<OswFormatJob>;
-
-    /**
-     * Processes the upload request and returns the unique tdei_record_id to represent the request
-     * @param uploadRequestObject 
-     */
+    * Processes the upload request and performs various validations and operations.
+    * 
+    * @param uploadRequestObject - The upload request object containing the necessary information.
+    * @returns A promise that resolves to the generated unique dataset ID.
+    * @throws {InputException} If any validation fails or required data is missing.
+    * @throws {ServiceNotFoundException} If the service associated with the request is not found.
+    * @throws {Error} If any other error occurs during the process.
+    */
     processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string>;
 
     /**
-    * Publishes the osw record
-    * @param tdei_record_id 
-    */
-    processPublishRequest(user_id: string, tdei_record_id: string): Promise<void>;
-
-    /**
-   * Processes the validation only request
-   * @param tdei_record_id 
-   */
-    processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
-
-    /**
-    * Gets the user associated project groups
-    * @param user_id 
-    * @returns 
-    */
-    getUserProjectGroups(user_id: string): Promise<ProjectGroupRoleDto[] | undefined>
-
-    /**
-     * Fetches FileEntity based on url
-     * @param fullUrl - full URL of the file
-     * @returns Promise containing FileEntity
+     * Processes a publish request for a TDEI dataset.
+     * 
+     * @param user_id - The ID of the user making the request.
+     * @param tdei_dataset_id - The ID of the TDEI dataset to publish.
+     * @returns A Promise that resolves when the publish request is processed successfully.
+     * @throws {InputException} If the dataset is already published.
+     * @throws {OverlapException} If there is a record with the same date.
+     * @throws {Error} If an error occurs during the processing of the publish request.
      */
-    getFileEntity(fullUrl: string): Promise<FileEntity>
+    processPublishRequest(user_id: string, tdei_dataset_id: string): Promise<string>;
+
+    /**
+     * Processes a validation-only request.
+     * 
+     * @param user_id - The ID of the user making the request.
+     * @param datasetFile - The dataset file to be uploaded and processed.
+     * @returns A Promise that resolves to the job ID.
+     * @throws Throws an error if an error occurs during processing.
+     */
+    processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
 }

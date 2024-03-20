@@ -6,6 +6,22 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 
 export class Utility {
 
+    /**
+     * Retrieves the MIME type based on the file extension.
+     * @param extension - The file extension.
+     * @returns The corresponding MIME type.
+     */
+    public static getMimeType(extension: string): string {
+        const mimeTypes: { [key: string]: string } = {
+            'txt': 'text/plain',
+            'json': 'application/json',
+            'zip': 'application/zip',
+            'xml': 'application/xml'
+        };
+
+        return mimeTypes[extension];
+    }
+
     public static async generateSecret(): Promise<string> {
         let secret = null;
         try {
