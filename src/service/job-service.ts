@@ -53,7 +53,7 @@ class JobService implements IJobService {
             throw new InputException("Job not found");
 
         if (result.rows[0].download_url == null || result.rows[0].download_url == '')
-            throw new HttpException(404, "File not found");
+            throw new HttpException(404, "Download not available for this job.");
 
         let url = decodeURIComponent(result.rows[0].download_url);
 

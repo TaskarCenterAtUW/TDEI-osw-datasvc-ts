@@ -62,8 +62,8 @@ export class JobEntity extends BaseDto {
      */
     static getCreateJobQuery(job: CreateJobDTO): QueryConfig {
         const query = {
-            text: 'INSERT INTO content.job (job_type, data_type, status, user_id, tdei_project_group_id, request_input ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING job_id',
-            values: [job.job_type, job.data_type, job.status, job.user_id, job.tdei_project_group_id, job.request_input],
+            text: 'INSERT INTO content.job (job_type, data_type, status, user_id, tdei_project_group_id, request_input, response_props ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING job_id',
+            values: [job.job_type, job.data_type, job.status, job.user_id, job.tdei_project_group_id, job.request_input, job.response_props],
         }
         return query;
     }
