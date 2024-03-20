@@ -220,6 +220,7 @@ describe("OSW Service Test", () => {
             // Mock the behavior of getOSWRecordById
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
                 .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'osw',
                     download_osw_url: 'download-osw-url',
                     download_metadata_url: 'download-metadata-url',
                 }));
@@ -296,7 +297,7 @@ describe("OSW Service Test", () => {
                 .mockResolvedValue(<any>{ rowCount: 0 });// Assume no overlap
 
             // Mock the behavior of getOSWRecordById and getOSWMetadataById
-            const oswRecordMock = { status: 'Draft', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url' };
+            const oswRecordMock = { data_type: 'osw', status: 'Draft', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url' };
             const oswMetadataMock = { getOverlapQuery: jest.fn() };
             const getOSWRecordByIdSpy = jest.spyOn(tdeiCoreService, 'getDatasetDetailsById').mockResolvedValue(<any>oswRecordMock);
             const getOSWMetadataByIdSpy = jest.spyOn(tdeiCoreService, 'getMetadataDetailsById').mockResolvedValue(<any>oswMetadataMock);
@@ -420,7 +421,7 @@ describe("OSW Service Test", () => {
             const queryResult = <QueryResult<any>>{
                 rowCount: 1
             };
-            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(new DatasetEntity({}));
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(new DatasetEntity({ data_type: "osw" }));
             jest.spyOn(dbClient, "query").mockResolvedValueOnce(queryResult);
 
             // Act & Assert
@@ -433,7 +434,7 @@ describe("OSW Service Test", () => {
             const tdei_dataset_id = "test_id";
             const override = true;
             const job_id = "job_id";
-            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(new DatasetEntity({}));
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(new DatasetEntity({ data_type: "osw" }));
             jest.spyOn(dbClient, "query").mockResolvedValue({ rows: [{ job_id }] } as any);
             // Mock the behavior of triggerWorkflow
             mockAppContext();

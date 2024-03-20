@@ -4,7 +4,7 @@ import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 import { Readable } from "stream";
 import { IsValidPolygon } from "../validators/polygon-validator";
 
-export class OswUploadMeta extends AbstractDomainEntity {
+export class DatasetUploadMetadata extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
