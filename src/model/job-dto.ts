@@ -33,7 +33,7 @@ export class CreateJobDTO extends AbstractDomainEntity {
     data_type!: TDEIDataType;
     @Prop()
     @IsNotEmpty()
-    status: string = JobStatus["IN-PROGRESS"];
+    status: JobStatus = JobStatus["IN-PROGRESS"];
     @Prop()
     @IsNotEmpty()
     message!: string;
