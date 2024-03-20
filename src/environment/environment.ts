@@ -30,7 +30,5 @@ export const environment = {
     appPort: parseInt(process.env.PORT ?? "8080"),
     authPermissionUrl: process.env.AUTH_HOST + '/api/v1/hasPermission',
     secretGenerateUrl: process.env.AUTH_HOST + '/api/v1/generateSecret',
-    gatewayUrl: process.env.GATEWAY_URL,
-    serviceUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/service',
-    userProjectGroupRolesUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/project-group-roles'
+    gatewayUrl: process.env.GATEWAY_URL
 }

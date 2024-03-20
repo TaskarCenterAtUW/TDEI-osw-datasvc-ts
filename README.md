@@ -21,13 +21,12 @@ Application configuration is read from .env file. Below are the list of environe
 |STORAGECONNECTION | Storage connection string|
 |PORT |Port on which application will run|
 |AUTH_HOST | Authentication/Authorization url|
-|DATASVC_TOPIC | Data service publishing topic|
 |POSTGRES_DB | Database name|
 |POSTGRES_HOST| Link to the database host |
 |POSTGRES_USER| Database user |
 |POSTGRES_PASSWORD| Database user password|
+|SSL| Database ssl flag|
 |GATEWAY_URL | Gateway Url|
-|USER_MANAGEMENT_HOST | User management url |
 
 ## Local Postgresql database setup
 
@@ -137,9 +136,7 @@ For running integration test, following env variables are required.
 |QUEUECONNECTION | Queue connection string |
 |STORAGECONNECTION | Storage connection string|
 |AUTH_HOST | Host of the authentication service |
-|VALIDATION_SUBSCRIPTION | Upload topic subscription name|
-|VALIDATION_TOPIC | Validation topic name|
-|DATASVC_TOPIC | Data service publishing topic|
+|GATEWAY_URL | Upload topic subscription name|
 
 ## File upload implementation
 
@@ -292,33 +289,20 @@ There are two APIs exposed for calculating the confidence metric for record
 
 ### Initiate  Confidence metric calculation
 
-PATH : `/api/v1/osw/confidence/calculate`
+PATH : `/api/v1/osw/confidence/calculate/{tdei_dataset_id}`
 
 Method: POST
-
-Body:
-
-```json
-{
-      "tdeiRecordId":"<tdeiRecord ID>"
-}
-
-```
+ 
 
 Response:
 
-```json
-{
-  "tdeiRecordId":"<tdeiRecord ID>",
-  "jobId":"<jobId>",
-  "statusUrl":"<status URL>"
-}
-
+```string
+jobId
 ```
 
 ### Get status of the confidence metric job
 
-PATH: `/api/v1/osw/confidence/status/<jobId>`
+PATH: `/api/v1/job?job_id=<jobId>`
 
 Method: GET
 
@@ -327,21 +311,19 @@ Response:
 ```json
 {
     "jobId":"<jobId>",
-    "confidenceValue":"float or 0 if not calculated",
-    "status":"started/calculated/failed",
-    "updatedAt":"Date time of the last update of the status",
+    "status":"IN-PROGRESS/COMPLETED/FAILED",
     "message":"Response message containing error or status information"
 }
 
 ```
 
-The status can be any of `started`, `calculated` or `failed`
+The status can be any of `IN-PROGRESS`, `COMPLETED` or `FAILED`
 
 | Status | Description |
 |-|-|
-| started | Initiated the calculation. Waiting for confidence service to respond|
-| calculated| Calculation done. The value is in `confidenceValue` |
-| failed | Confidence service failed to calculate. `message` will have the error |
+| IN-PROGRESS | Initiated the calculation. Waiting for confidence service to respond|
+| COMPLETED| Calculation done. The value is in `confidenceValue` |
+| FAILED | Confidence service failed to calculate. `message` will have the error |
 
 
 ## On demand formatting for osw
@@ -364,36 +346,31 @@ Body: (multipart-form-data)
 
 Response:
 
-```json
-{
-    "jobId":"<jobId>",
-    "statusUrl":"<status url >"
-}
+```string
+jobId
 
 ```
 
 ### Status request API
 
-Path: `/api/v1/osw/convert/status/<jobId>`
+PATH: `/api/v1/job?job_id=<jobId>`
 
-Method: `GET`
+Method: GET
 
 Response:
 
 ```json
 {
     "jobId":"<jobId>",
-    "status":"<started/completed/failed>",
-    "message":"<any error message. will be blank for completed or started>",
-    "downloadUrl":"<url to download the formatted set>",
-    "conversion":"<type of conversion> osm-osw or osw-osm"
+    "status":"IN-PROGRESS/COMPLETED/FAILED",
+    "message":"Response message containing error or status information"
 }
 
 ```
 
 ### Formatted file download API
 
-Path : `/api/v1/osw/convert/download/<jobId>`
+Path : `/api/v1/job/download/<jobId>`
 Method: `GET`
 
 Response:
