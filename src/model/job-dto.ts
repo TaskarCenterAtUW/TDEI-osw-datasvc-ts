@@ -49,6 +49,8 @@ export class CreateJobDTO extends AbstractDomainEntity {
     @Prop()
     @IsNotEmpty()
     job_type!: JobType;
+    @Prop()
+    response_props!: any;
 }
 
 export class UpdateJobDTO extends AbstractDomainEntity {
