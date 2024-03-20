@@ -24,7 +24,10 @@ export class BackendServiceResponseHandler extends WorkflowHandlerBase {
 
         try {
             const backendServiceResponse = BackendServiceJobResponse.from(message.data);
-            let file_upload_path = decodeURIComponent(backendServiceResponse.file_upload_path!);
+            let file_upload_path = "";
+            if (backendServiceResponse.file_upload_path != null && backendServiceResponse.file_upload_path != "" && backendServiceResponse.file_upload_path != undefined)
+                backendServiceResponse.file_upload_path = decodeURIComponent(backendServiceResponse.file_upload_path!);
+
             let updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: backendServiceResponse.message,
