@@ -18,6 +18,16 @@ import { PublishFlatteningResponseWorkflow } from "./osw/publish/publish-osw-fla
 import { PublishFlatteningResponseHandler } from "./osw/publish/publish-osw-flattening-response-handler";
 import { OnDemandFlatteningResponseHandler } from "./on-demand-flattening/on-demand-flattening-response-handler";
 import { BackendServiceResponseHandler } from "./backend-service/backend-service-response-handler";
+import { FlexPublishDatabaseWorkflow } from "./flex/publish/publish-flex-database-publish-workflow";
+import { FlexPublishValidationResponseHandler } from "./flex/publish/publish-flex-validation-response-handler";
+import { FlexPublishValidationResponseWorkflow } from "./flex/publish/publish-flex-validation-response-workflow";
+import { FlexValidationOnlyValidationResponseHandler } from "./flex/validation-only/validation-only-flex-validation-response-handler";
+import { FlexUploadValidationResponseHandler } from "./flex/upload/upload-flex-validation-response-handler";
+import { PathwaysPublishDatabaseWorkflow } from "./pathways/publish/publish-pathways-database-publish-workflow";
+import { PathwaysPublishValidationResponseHandler } from "./pathways/publish/publish-pathways-validation-response-handler";
+import { PathwaysPublishValidationResponseWorkflow } from "./pathways/publish/publish-pathways-validation-response-workflow";
+import { PathwaysUploadValidationResponseHandler } from "./pathways/upload/upload-pathways-validation-response-handler";
+import { PathwaysValidationOnlyValidationResponseHandler } from "./pathways/validation-only/validation-only-pathways-validation-response-handler";
 
 export default [
     GenericWorkflow,
@@ -39,5 +49,15 @@ export default [
     OswOnDemandConfidenceResponseHandler,
     OswOnDemandFormattingResponseHandler,
     OnDemandFlatteningResponseHandler,
-    BackendServiceResponseHandler
+    BackendServiceResponseHandler,
+    FlexPublishDatabaseWorkflow,
+    FlexPublishValidationResponseHandler,
+    FlexPublishValidationResponseWorkflow,
+    FlexValidationOnlyValidationResponseHandler,
+    FlexUploadValidationResponseHandler,
+    PathwaysPublishDatabaseWorkflow,
+    PathwaysPublishValidationResponseHandler,
+    PathwaysPublishValidationResponseWorkflow,
+    PathwaysUploadValidationResponseHandler,
+    PathwaysValidationOnlyValidationResponseHandler
 ];

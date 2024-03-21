@@ -48,10 +48,12 @@ export class JobEntity extends BaseDto {
      * @returns The query configuration object.
      */
     static getUpdateJobQuery(updateJobDTO: UpdateJobDTO): QueryConfig {
+        var response_exists = updateJobDTO.response_props && Object.keys(updateJobDTO.response_props).length > 0 ? true : false;
         const query = {
-            text: 'UPDATE content.job SET status = $1, message = $2, response_props = $3, download_url = $4, updated_at = CURRENT_TIMESTAMP WHERE job_id = $5 RETURNING *',
-            values: [updateJobDTO.status, updateJobDTO.message, updateJobDTO.response_props, updateJobDTO.download_url, updateJobDTO.job_id],
+            text: `UPDATE content.job SET status = $2, message = $3, download_url = $4 ${response_exists ? ', response_props = $5' : ''}, updated_at = CURRENT_TIMESTAMP WHERE job_id = $1 RETURNING *`,
+            values: [updateJobDTO.job_id, updateJobDTO.status, updateJobDTO.message, updateJobDTO.download_url],
         }
+        if (response_exists) query.values.push(updateJobDTO.response_props);
         return query;
     }
 
