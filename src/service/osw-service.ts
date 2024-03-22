@@ -5,7 +5,7 @@ import { DatasetEntity } from "../database/entity/dataset-entity";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { IUploadRequest } from "./interface/upload-request-interface";
-import { OswUploadMeta } from "../model/osw-upload-meta";
+import { DatasetUploadMetadata } from "../model/dataset-upload-meta";
 import path from "path";
 import { Readable } from "stream";
 import storageService from "./storage-service";
@@ -102,7 +102,10 @@ class OswService implements IOswService {
     async calculateConfidence(tdei_dataset_id: string, user_id: string): Promise<string> {
         // Check and get the record for the same in the database
         try {
-            const oswRecord = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id)
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+
+            if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
             // Create a job in the database for the same.
             //TODO: Have to add these based on some of the input data.
 
@@ -115,7 +118,7 @@ class OswService implements IOswService {
                     tdei_dataset_id: tdei_dataset_id,
                     trigger_type: 'manual'
                 },
-                tdei_project_group_id: oswRecord.tdei_project_group_id,
+                tdei_project_group_id: dataset.tdei_project_group_id,
                 user_id: user_id,
             });
 
@@ -125,9 +128,9 @@ class OswService implements IOswService {
             //TODO: Fill based on the metadata received
             const confidenceRequestMsg = new OSWConfidenceJobRequest();
             confidenceRequestMsg.jobId = job_id.toString();
-            confidenceRequestMsg.data_file = oswRecord.dataset_url;
+            confidenceRequestMsg.data_file = dataset.dataset_url;
             //TODO: Once this is done, get the things moved.
-            confidenceRequestMsg.meta_file = oswRecord.metadata_url;
+            confidenceRequestMsg.meta_file = dataset.metadata_url;
             confidenceRequestMsg.trigger_type = 'manual';
 
             //Compose the meessage
@@ -165,11 +168,14 @@ class OswService implements IOswService {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
             let metadata = await this.tdeiCoreServiceInstance.getMetadataDetailsById(tdei_dataset_id);
 
+            if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
+
             if (dataset.status === 'Publish')
                 throw new InputException(`${tdei_dataset_id} already publised.`)
 
             // Check if there is a record with the same date
-            const queryResult = await dbClient.query(metadata.getOverlapQuery(dataset.tdei_project_group_id, dataset.tdei_service_id));
+            const queryResult = await dbClient.query(metadata.getOverlapQuery(TDEIDataType.osw, dataset.tdei_project_group_id, dataset.tdei_service_id));
             if (queryResult.rowCount && queryResult.rowCount > 0) {
                 const recordId = queryResult.rows[0]["tdei_dataset_id"];
                 throw new OverlapException(recordId);
@@ -224,6 +230,9 @@ class OswService implements IOswService {
     async processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string> {
         try {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+
+            if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
 
             if (dataset.status === 'Publish')
                 throw new InputException(`Request is prohibited while the record is in the Publish state.`);
@@ -419,7 +428,7 @@ class OswService implements IOswService {
 
             //Validate metadata
             const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
-            const oswdto = OswUploadMeta.from(metadata);
+            const oswdto = DatasetUploadMetadata.from(metadata);
             let validation_errors = await this.tdeiCoreServiceInstance.validateObject(oswdto);
             if (validation_errors) {
                 throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
@@ -511,48 +520,41 @@ class OswService implements IOswService {
 
     /**
      * Retrieves the OswStream by its ID.
-     * @param id - The ID of the OswStream.
+     * @param tdei_dataset_id - The ID of the OswStream.
      * @param format - The format of the OswStream (default is "osw").
      * @returns A promise that resolves to an array of FileEntity objects.
      * @throws HttpException if the OswStream is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    async getOswStreamById(id: string, format: string = "osw"): Promise<FileEntity[]> {
+    async getOswStreamById(tdei_dataset_id: string, format: string = "osw"): Promise<FileEntity[]> {
         let fileEntities: FileEntity[] = [];
-        const query = {
-            text: 'Select status, dataset_url, osm_url, changeset_url, metadata_url from content.dataset WHERE tdei_dataset_id = $1',
-            values: [id],
-        }
 
-        const osw = await dbClient.query(query);
+        let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
 
-        if (osw.rowCount == 0)
-            throw new HttpException(404, "File not found");
-
-        if (osw.rows[0].status == "Deleted")
-            throw new HttpException(404, "Request record is deleted");
+        if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+            throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
 
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
 
         var url: string = '';
         if (format == "osm") {
-            if (osw.rows[0].osm_url && osw.rows[0].osm_url != '')
-                url = decodeURIComponent(osw.rows[0].osm_url);
+            if (dataset.osm_url && dataset.osm_url != '')
+                url = decodeURIComponent(dataset.osm_url);
             else
                 throw new HttpException(404, "Requested OSM file format not found");
         } else if (format == "osw") {
-            url = decodeURIComponent(osw.rows[0].dataset_url);
+            url = decodeURIComponent(dataset.dataset_url);
         }
         else {
             //default osw
-            url = decodeURIComponent(osw.rows[0].dataset_url);
+            url = decodeURIComponent(dataset.dataset_url);
         }
 
         fileEntities.push(await storageClient.getFileFromUrl(url));
-        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].metadata_url)));
-        if (osw.rows[0].changeset_url && osw.rows[0].changeset_url != "" && osw.rows[0].changeset_url != null)
-            fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(osw.rows[0].changeset_url)));
+        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.metadata_url)));
+        if (dataset.changeset_url && dataset.changeset_url != "" && dataset.changeset_url != null)
+            fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.changeset_url)));
 
         return fileEntities;
     }

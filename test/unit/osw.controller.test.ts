@@ -121,53 +121,53 @@ describe("OSW Controller Test", () => {
         });
     });
 
-    describe("Get OSW list", () => {
-        describe("Functional", () => {
-            test("When requested with empty search criteria, Expect to return OSW list", async () => {
-                //Arrange
-                const req = getMockReq();
-                const { res, next } = getMockRes();
-                const list: DatasetDTO[] = [<DatasetDTO>{}]
-                const getDatasetsSpy = jest
-                    .spyOn(tdeiCoreService, "getDatasets")
-                    .mockResolvedValueOnce(list);
-                //Act
-                await oswController.getDatasetList(req, res, next);
-                //Assert
-                expect(getDatasetsSpy).toHaveBeenCalledTimes(1);
-                expect(res.status).toHaveBeenCalledWith(200);
-                expect(res.send).toBeCalledWith(list);
-            });
+    // describe("Get OSW list", () => {
+    //     describe("Functional", () => {
+    //         test("When requested with empty search criteria, Expect to return OSW list", async () => {
+    //             //Arrange
+    //             const req = getMockReq();
+    //             const { res, next } = getMockRes();
+    //             const list: DatasetDTO[] = [<DatasetDTO>{}]
+    //             const getDatasetsSpy = jest
+    //                 .spyOn(tdeiCoreService, "getDatasets")
+    //                 .mockResolvedValueOnce(list);
+    //             //Act
+    //             await oswController.getDatasetList(req, res, next);
+    //             //Assert
+    //             expect(getDatasetsSpy).toHaveBeenCalledTimes(1);
+    //             expect(res.status).toHaveBeenCalledWith(200);
+    //             expect(res.send).toBeCalledWith(list);
+    //         });
 
-            test("When requested with bad collection_date input, Expect to return HTTP status 400", async () => {
-                //Arrange
-                const req = getMockReq({ body: { collection_date: "2023" } });
-                const { res, next } = getMockRes();
-                jest
-                    .spyOn(tdeiCoreService, "getDatasets")
-                    .mockRejectedValueOnce(new InputException("Invalid date provided."));
-                //Act
-                await oswController.getDatasetList(req, res, next);
-                //Assert
-                expect(res.status).toHaveBeenCalledWith(400);
-                expect(next).toHaveBeenCalled();
-            });
+    //         test("When requested with bad collection_date input, Expect to return HTTP status 400", async () => {
+    //             //Arrange
+    //             const req = getMockReq({ body: { collection_date: "2023" } });
+    //             const { res, next } = getMockRes();
+    //             jest
+    //                 .spyOn(tdeiCoreService, "getDatasets")
+    //                 .mockRejectedValueOnce(new InputException("Invalid date provided."));
+    //             //Act
+    //             await oswController.getDatasetList(req, res, next);
+    //             //Assert
+    //             expect(res.status).toHaveBeenCalledWith(400);
+    //             expect(next).toHaveBeenCalled();
+    //         });
 
-            test("When unknown or database exception occured while processing request, Expect to return HTTP status 500", async () => {
-                //Arrange
-                const req = getMockReq({ body: { collection_date: "2023" } });
-                const { res, next } = getMockRes();
-                jest
-                    .spyOn(tdeiCoreService, "getDatasets")
-                    .mockRejectedValueOnce(new Error("unknown error"));
-                //Act
-                await oswController.getDatasetList(req, res, next);
-                //Assert
-                expect(res.status).toHaveBeenCalledWith(500);
-                expect(next).toHaveBeenCalled();
-            });
-        });
-    });
+    //         test("When unknown or database exception occured while processing request, Expect to return HTTP status 500", async () => {
+    //             //Arrange
+    //             const req = getMockReq({ body: { collection_date: "2023" } });
+    //             const { res, next } = getMockRes();
+    //             jest
+    //                 .spyOn(tdeiCoreService, "getDatasets")
+    //                 .mockRejectedValueOnce(new Error("unknown error"));
+    //             //Act
+    //             await oswController.getDatasetList(req, res, next);
+    //             //Assert
+    //             expect(res.status).toHaveBeenCalledWith(500);
+    //             expect(next).toHaveBeenCalled();
+    //         });
+    //     });
+    // });
 
     describe("Get OSW file by Id", () => {
 

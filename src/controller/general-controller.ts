@@ -8,6 +8,7 @@ import { JobsQueryParams } from "../model/jobs-get-query-params";
 import jobService from "../service/job-service";
 import tdeiCoreService from "../service/tdei-core-service";
 import { authorize } from "../middleware/authorize-middleware";
+import { DatasetQueryParams } from "../model/dataset-get-query-params";
 
 
 class GeneralController implements IController {
@@ -20,7 +21,36 @@ class GeneralController implements IController {
     public intializeRoutes() {
         this.router.delete(`${this.path}/dataset/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
         this.router.get(`${this.path}/job`, authenticate, this.getJobs);
+        this.router.get(`${this.path}/dataset`, authenticate, this.getDatasetList);
         this.router.get(`${this.path}/job/download/:job_id`, authenticate, this.getJobDownloadFile); // Download the formatted file
+    }
+
+    /**
+  * Gets the list of Dataset versions
+  * @param request 
+  * @param response 
+  * @param next 
+  */
+    getDatasetList = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const params: DatasetQueryParams = new DatasetQueryParams(JSON.parse(JSON.stringify(request.query)));
+            params.isAdmin = request.body.isAdmin;
+            const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
+            dataset.forEach(x => {
+                x.download_url = `${this.path}/${x.tdei_dataset_id}`;
+            });
+            response.status(200).send(dataset);
+        } catch (error) {
+            console.error(error);
+            if (error instanceof InputException) {
+                response.status(error.status).send(error.message);
+                next(error);
+            }
+            else {
+                response.status(500).send("Error while fetching the dataset information");
+                next(new HttpException(500, "Error while fetching the dataset information"));
+            }
+        }
     }
 
     /**

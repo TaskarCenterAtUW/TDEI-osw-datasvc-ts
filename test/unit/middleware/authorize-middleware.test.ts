@@ -63,7 +63,4 @@ describe('Authorize Middleware', () => {
 
         expect(next).toHaveBeenCalledWith(new UnAuthenticated());
     });
-
-    // Add more test cases as needed
-
 });

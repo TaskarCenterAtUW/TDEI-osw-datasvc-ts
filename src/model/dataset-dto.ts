@@ -3,6 +3,8 @@ import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 
 export class DatasetDTO extends AbstractDomainEntity {
     @Prop()
+    data_type!: string;
+    @Prop()
     tdei_dataset_id!: string;
     @Prop()
     status!: string;
