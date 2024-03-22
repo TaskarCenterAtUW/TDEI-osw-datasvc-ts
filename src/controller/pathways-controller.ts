@@ -69,37 +69,37 @@ class PathwaysController implements IController {
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "pathways_data_generator"]), this.processUploadRequest);
         this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "pathways_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.get(`${this.path}/`, authenticate, this.getDatasetList);
+        // this.router.get(`${this.path}/`, authenticate, this.getDatasetList);
     }
 
-    /**
-   * Gets the list of Dataset versions
-   * @param request 
-   * @param response 
-   * @param next 
-   */
-    getDatasetList = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            const params: DatasetQueryParams = new DatasetQueryParams(JSON.parse(JSON.stringify(request.query)));
-            params.isAdmin = request.body.isAdmin;
-            params.data_type = TDEIDataType.pathways;
-            const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
-            dataset.forEach(x => {
-                x.download_url = `${this.path}/${x.tdei_dataset_id}`;
-            });
-            response.status(200).send(dataset);
-        } catch (error) {
-            console.error(error);
-            if (error instanceof InputException) {
-                response.status(error.status).send(error.message);
-                next(error);
-            }
-            else {
-                response.status(500).send("Error while fetching the dataset information");
-                next(new HttpException(500, "Error while fetching the dataset information"));
-            }
-        }
-    }
+    //     /**
+    //    * Gets the list of Dataset versions
+    //    * @param request 
+    //    * @param response 
+    //    * @param next 
+    //    */
+    //     getDatasetList = async (request: Request, response: express.Response, next: NextFunction) => {
+    //         try {
+    //             const params: DatasetQueryParams = new DatasetQueryParams(JSON.parse(JSON.stringify(request.query)));
+    //             params.isAdmin = request.body.isAdmin;
+    //             params.data_type = TDEIDataType.pathways;
+    //             const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
+    //             dataset.forEach(x => {
+    //                 x.download_url = `${this.path}/${x.tdei_dataset_id}`;
+    //             });
+    //             response.status(200).send(dataset);
+    //         } catch (error) {
+    //             console.error(error);
+    //             if (error instanceof InputException) {
+    //                 response.status(error.status).send(error.message);
+    //                 next(error);
+    //             }
+    //             else {
+    //                 response.status(500).send("Error while fetching the dataset information");
+    //                 next(new HttpException(500, "Error while fetching the dataset information"));
+    //             }
+    //         }
+    //     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
         let versionsList = new Versions([{
