@@ -281,9 +281,10 @@ class PathwaysService implements IPathwaysService {
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
 
-        var url = decodeURIComponent(dataset.dataset_url);
-
-        fileEntities.push(await storageClient.getFileFromUrl(url));
+        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.metadata_url)));
+        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.dataset_url)));
+        if (dataset.changeset_url && dataset.changeset_url != "" && dataset.changeset_url != null)
+            fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.changeset_url)));
 
         return fileEntities;
     }
