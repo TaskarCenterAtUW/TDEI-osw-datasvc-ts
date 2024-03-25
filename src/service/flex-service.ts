@@ -228,6 +228,7 @@ class FlexService implements IFlexService {
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
+                    tdei_service_id: uploadRequestObject.tdei_service_id,
                     dataset_name: metadataEntity.name,
                     dataset_version: metadataEntity.version,
                     dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
@@ -281,9 +282,10 @@ class FlexService implements IFlexService {
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
 
-        var url = decodeURIComponent(dataset.dataset_url);
-
-        fileEntities.push(await storageClient.getFileFromUrl(url));
+        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.metadata_url)));
+        fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.dataset_url)));
+        if (dataset.changeset_url && dataset.changeset_url != "" && dataset.changeset_url != null)
+            fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.changeset_url)));
 
         return fileEntities;
     }
