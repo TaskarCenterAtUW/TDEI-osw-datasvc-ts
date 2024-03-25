@@ -16,7 +16,7 @@ import workflowDatabaseService from "../orchestrator/services/workflow-database-
 import { OSWConfidenceJobRequest } from "../model/job-request-response/osw-confidence-job-request";
 import { OswFormatJobRequest } from "../model/job-request-response/osw-format-job-request";
 import { IOswService } from "./interface/osw-service-interface";
-import { ServiceRequest } from "../model/backend-request-interface";
+import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import jobService from "./job-service";
 import { IJobService } from "./interface/job-service-interface";
 import { CreateJobDTO } from "../model/job-dto";
@@ -26,6 +26,50 @@ import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
+    /**
+    * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
+    * @param backendRequest The backend request to process.
+    * @returns A Promise that resolves to a string representing the job ID.
+    * @throws Throws an error if an error occurs during processing.
+    */
+    async processDatasetTagRoadRequest(backendRequest: TagRoadServiceRequest): Promise<string> {
+        try {
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Queries"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    service: backendRequest.service,
+                    user_id: backendRequest.user_id,
+                    parameters: backendRequest.parameters
+                },
+                tdei_project_group_id: '',
+                user_id: backendRequest.user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+            //Compose the meessage
+            let workflow_identifier = "BACKEND_SERVICE_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: job_id.toString(),
+                messageType: workflow_identifier,
+                data: {
+                    service: backendRequest.service,
+                    user_id: backendRequest.user_id,
+                    parameters: backendRequest.parameters
+                }
+            });
+
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+
+            return Promise.resolve(job_id.toString());
+        } catch (error) {
+            throw error;
+        }
+    }
 
     /**
      * Processes a format request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
@@ -302,7 +346,7 @@ class OswService implements IOswService {
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
-    async processBackendRequest(backendRequest: ServiceRequest): Promise<string> {
+    async processBackendRequest(backendRequest: BboxServiceRequest): Promise<string> {
         try {
 
             let job = CreateJobDTO.from({

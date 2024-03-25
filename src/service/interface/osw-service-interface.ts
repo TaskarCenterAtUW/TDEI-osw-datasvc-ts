@@ -1,6 +1,6 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { IUploadRequest } from "./upload-request-interface";
-import { ServiceRequest } from "../../model/backend-request-interface";
+import { BboxServiceRequest, TagRoadServiceRequest } from "../../model/backend-request-interface";
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
 
@@ -14,7 +14,15 @@ export interface IOswService {
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
-    processBackendRequest(backendRequest: ServiceRequest): Promise<string>;
+    processDatasetTagRoadRequest(backendRequest: TagRoadServiceRequest): Promise<string>;
+
+    /**
+     * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
+     * @param backendRequest The backend request to process.
+     * @returns A Promise that resolves to a string representing the job ID.
+     * @throws Throws an error if an error occurs during processing.
+     */
+    processBackendRequest(backendRequest: BboxServiceRequest): Promise<string>;
     /**
     * Processes a dataset flattening request.
     * 

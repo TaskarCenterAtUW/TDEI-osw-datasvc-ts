@@ -15,7 +15,7 @@ import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
 import { FileEntityStream } from "../utility/utility";
-import { ServiceRequest } from "../model/backend-request-interface";
+import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import tdeiCoreService from "../service/tdei-core-service";
 import { DatasetQueryParams } from "../model/dataset-get-query-params";
 import { TDEIDataType } from "../model/jobs-get-query-params";
@@ -86,38 +86,52 @@ class OSWController implements IController {
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
         this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
-        // this.router.get(`${this.path}/`, authenticate, this.getDatasetList);
+        this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
     }
 
-    //     /**
-    //    * Gets the list of Dataset versions
-    //    * @param request 
-    //    * @param response 
-    //    * @param next 
-    //    */
-    //     getDatasetList = async (request: Request, response: express.Response, next: NextFunction) => {
-    //         try {
-    //             const params: DatasetQueryParams = new DatasetQueryParams(JSON.parse(JSON.stringify(request.query)));
-    //             params.isAdmin = request.body.isAdmin;
-    //             params.data_type = TDEIDataType.osw;
-    //             const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
-    //             dataset.forEach(x => {
-    //                 x.download_url = `${this.path}/${x.tdei_dataset_id}`;
-    //             });
-    //             response.status(200).send(dataset);
-    //         } catch (error) {
-    //             console.error(error);
-    //             if (error instanceof InputException) {
-    //                 response.status(error.status).send(error.message);
-    //                 next(error);
-    //             }
-    //             else {
-    //                 response.status(500).send("Error while fetching the dataset information");
-    //                 next(new HttpException(500, "Error while fetching the dataset information"));
-    //             }
-    //         }
-    //     }
+    /**
+ * Tags the sidewalk dataset with the 
+ * @param request 
+ * @param response 
+ * @param next 
+ * @returns 
+ */
+    processDatasetTagRoadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
 
+            const requestService = JSON.parse(JSON.stringify(request.query));
+            if (!requestService) {
+                return next(new InputException('request body is empty', response));
+            }
+            let backendRequest: TagRoadServiceRequest = {
+                user_id: request.body.user_id,
+                service: "dataset_tag_road",
+                parameters: {
+                    tdei_dataset_id: requestService.tdei_dataset_id
+                }
+            }
+
+            let job_id = await oswService.processBackendRequest(backendRequest);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing the dataset bbox request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the dataset bbox request");
+            next(new HttpException(500, "Error while processing the dataset bbox request"));
+        }
+    }
+
+    /**
+     * Retrieves the list of versions.
+     * 
+     * @param request - The HTTP request object.
+     * @param response - The HTTP response object.
+     * @param next - The next middleware function.
+     */
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
         let versionsList = new Versions([{
             documentation: environment.gatewayUrl as string,
@@ -233,7 +247,7 @@ class OSWController implements IController {
     }
 
     /**
-    * Flatterning the tdei record 
+    * Return the sidewalk dataset maching the bbox query 
     * @param request 
     * @param response 
     * @param next 
@@ -246,7 +260,7 @@ class OSWController implements IController {
             if (!requestService) {
                 return next(new InputException('request body is empty', response));
             }
-            let backendRequest: ServiceRequest = {
+            let backendRequest: BboxServiceRequest = {
                 user_id: request.body.user_id,
                 service: "bbox_intersect",
                 parameters: {
