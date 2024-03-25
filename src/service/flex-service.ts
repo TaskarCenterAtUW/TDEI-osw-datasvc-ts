@@ -228,6 +228,7 @@ class FlexService implements IFlexService {
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
+                    tdei_service_id: uploadRequestObject.tdei_service_id,
                     dataset_name: metadataEntity.name,
                     dataset_version: metadataEntity.version,
                     dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
