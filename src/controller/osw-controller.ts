@@ -111,7 +111,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.processBackendRequest(backendRequest);
+            let job_id = await oswService.processDatasetTagRoadRequest(backendRequest);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
