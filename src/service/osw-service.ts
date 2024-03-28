@@ -23,6 +23,7 @@ import { CreateJobDTO } from "../model/job-dto";
 import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params";
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
+import { RecordStatus } from "../model/dataset-get-query-params";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -313,7 +314,8 @@ class OswService implements IOswService {
                 request_input: {
                     service: backendRequest.service,
                     user_id: backendRequest.user_id,
-                    parameters: backendRequest.parameters
+                    parameters: backendRequest.parameters,
+                    type: backendRequest.parameters.file_type
                 },
                 tdei_project_group_id: '',
                 user_id: backendRequest.user_id,
@@ -457,18 +459,19 @@ class OswService implements IOswService {
             }
 
             // Insert osw version into database
-            const oswEntity = new DatasetEntity();
-            oswEntity.tdei_dataset_id = uid;
-            oswEntity.data_type = TDEIDataType.osw;
-            oswEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
-            oswEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
-            oswEntity.derived_from_dataset_id = uploadRequestObject.derived_from_dataset_id;
-            oswEntity.changeset_url = changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "";
-            oswEntity.metadata_url = decodeURIComponent(metadataUploadUrl);
-            oswEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
-            oswEntity.uploaded_by = uploadRequestObject.user_id;
-            oswEntity.updated_by = uploadRequestObject.user_id;
-            await this.tdeiCoreServiceInstance.createDataset(oswEntity);
+            const datasetEntity = new DatasetEntity();
+            datasetEntity.tdei_dataset_id = uid;
+            datasetEntity.data_type = TDEIDataType.osw;
+            datasetEntity.status = RecordStatus.Draft;
+            datasetEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
+            datasetEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
+            datasetEntity.derived_from_dataset_id = uploadRequestObject.derived_from_dataset_id;
+            datasetEntity.changeset_url = changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "";
+            datasetEntity.metadata_url = decodeURIComponent(metadataUploadUrl);
+            datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
+            datasetEntity.uploaded_by = uploadRequestObject.user_id;
+            datasetEntity.updated_by = uploadRequestObject.user_id;
+            await this.tdeiCoreServiceInstance.createDataset(datasetEntity);
 
             // Insert metadata into database
             const oswMetadataEntity = MetadataEntity.from(metadata);

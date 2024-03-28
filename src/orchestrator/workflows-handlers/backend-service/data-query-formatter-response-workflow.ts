@@ -1,15 +1,15 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
-import { WorkflowBase } from "../../../models/orchestrator-base-model";
-import { IOrchestratorService } from "../../../services/orchestrator-service";
-import { UpdateJobDTO } from "../../../../model/job-dto";
-import { JobStatus } from "../../../../model/jobs-get-query-params";
-import jobService from "../../../../service/job-service";
+import { WorkflowBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
+import { UpdateJobDTO } from "../../../model/job-dto";
+import jobService from "../../../service/job-service";
+import { JobStatus } from "../../../model/jobs-get-query-params";
 
-export class PublishFlatteningResponseWorkflow extends WorkflowBase {
+export class DataQueryFormatterResponseWorkflow extends WorkflowBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_DATASET_FLATTENING_RESPONSE_WORKFLOW");
+        super(workflowEvent, orchestratorServiceInstance, "DATA_QUERY_FORMATTING_RESPONSE_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {

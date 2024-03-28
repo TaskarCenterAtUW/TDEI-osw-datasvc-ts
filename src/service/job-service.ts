@@ -93,10 +93,36 @@ class JobService implements IJobService {
      * @returns A promise that resolves to updated job object.
      */
     async updateJob(updateJobDTO: UpdateJobDTO): Promise<JobDTO> {
-
+        var response_exists = updateJobDTO.response_props && Object.keys(updateJobDTO.response_props).length > 0 ? true : false;
+        if (response_exists) {
+            let jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(updateJobDTO.job_id.toString()));
+            if (jobDetail.rows.length) {
+                // update the response_props with the existing response_props
+                updateJobDTO.response_props = { ...jobDetail.rows[0].response_props, ...updateJobDTO.response_props };
+            }
+        }
         let result = await dbClient.query(JobEntity.getUpdateJobQuery(updateJobDTO));
         let updatedJob = JobDTO.from(result.rows[0]);
         return updatedJob;
+    }
+
+    /**
+     * Updates the response properties of a job.
+     * 
+     * @param job_id - The ID of the job.
+     * @param response_props - The new response properties to be updated.
+     * @returns A Promise that resolves to void.
+     */
+    async updateJobResponseProps(job_id: string, response_props: any): Promise<void> {
+        var response_exists = response_props && Object.keys(response_props).length > 0 ? true : false;
+        if (response_exists) {
+            let jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
+            if (jobDetail.rows.length) {
+                // update the response_props with the existing response_props
+                response_props = { ...jobDetail.rows[0].response_props, ...response_props };
+            }
+        }
+        await dbClient.query(JobEntity.getUpdateJobResponsePropsQuery(job_id, response_props));
     }
 }
 

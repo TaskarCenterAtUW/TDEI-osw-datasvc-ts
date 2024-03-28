@@ -1,16 +1,16 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
-import { WorkflowBase } from "../../../models/orchestrator-base-model";
-import { IOrchestratorService } from "../../../services/orchestrator-service";
-import tdeiCoreService from "../../../../service/tdei-core-service";
-import dbClient from "../../../../database/data-source";
-import { JobEntity } from "../../../../database/entity/job-entity";
-import { JobDTO } from "../../../../model/job-dto";
+import { WorkflowBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
+import tdeiCoreService from "../../../service/tdei-core-service";
+import dbClient from "../../../database/data-source";
+import { JobEntity } from "../../../database/entity/job-entity";
+import { JobDTO } from "../../../model/job-dto";
 
-export class PublishFormattingRequestWorkflow extends WorkflowBase {
+export class DataQueryFormatterRequestWorkflow extends WorkflowBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW");
+        super(workflowEvent, orchestratorServiceInstance, "DATA_QUERY_FORMATTING_REQUEST_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
@@ -26,10 +26,11 @@ export class PublishFormattingRequestWorkflow extends WorkflowBase {
             //Compose the meessage
             let queueMessage = QueueMessage.from({
                 messageId: message.messageId,
-                messageType: "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW", //will be set by the publish handler with params defined in config
+                messageType: `${this.eventName}`, // will be set by the publish handler with params defined in config
                 data: {
+                    tdei_dataset_id: message.messageId,
                     file_upload_path: dataset.dataset_url,
-                    tdei_project_group_id: dataset.tdei_project_group_id
+                    data_type: "osw"
                 }
             });
 
@@ -37,7 +38,7 @@ export class PublishFormattingRequestWorkflow extends WorkflowBase {
             this.delegateWorkflowHandlers(queueMessage);
         }
         catch (error) {
-            console.error("Error in handling the formatting request workflow", error);
+            console.error("Error in handling the dataset formatting request workflow", error);
         }
     }
 }

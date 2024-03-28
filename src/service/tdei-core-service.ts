@@ -274,6 +274,26 @@ class TdeiCoreService implements ITdeiCoreService {
         const metadata = MetadataEntity.from(record);
         return metadata;
     }
+
+
+    /**
+     * Deletes a draft dataset with the specified ID from the content.dataset table.
+     * 
+     * @param tdei_dataset_id - The ID of the draft dataset to delete.
+     * @returns A Promise that resolves to void.
+     */
+    async deleteDraftDataset(tdei_dataset_id: string): Promise<void> {
+        const query = {
+            text: `DELETE FROM content.dataset WHERE tdei_dataset_id = $1 AND status = 'Draft'`,
+            values: [tdei_dataset_id],
+        }
+        const result = await dbClient.query(query);
+        if (result.rowCount && result.rowCount > 0)
+            console.log(`Draft dataset with id: ${tdei_dataset_id} deleted successfully`);
+        else
+            console.log(`Draft dataset with id: ${tdei_dataset_id} not found or not in draft status`);
+    }
+
 }
 
 const tdeiCoreService: ITdeiCoreService = new TdeiCoreService();

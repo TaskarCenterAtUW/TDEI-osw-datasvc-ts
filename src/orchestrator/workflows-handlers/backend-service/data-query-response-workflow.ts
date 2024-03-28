@@ -1,15 +1,15 @@
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
-import { WorkflowBase } from "../../../models/orchestrator-base-model";
-import { IOrchestratorService } from "../../../services/orchestrator-service";
-import { UpdateJobDTO } from "../../../../model/job-dto";
-import { JobStatus } from "../../../../model/jobs-get-query-params";
-import jobService from "../../../../service/job-service";
+import { WorkflowBase } from "../../models/orchestrator-base-model";
+import { IOrchestratorService } from "../../services/orchestrator-service";
+import { UpdateJobDTO } from "../../../model/job-dto";
+import { JobStatus } from "../../../model/jobs-get-query-params";
+import jobService from "../../../service/job-service";
 
-export class PublishFormattingResponseWorkflow extends WorkflowBase {
+export class DataQueryResponseWorkflow extends WorkflowBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW");
+        super(workflowEvent, orchestratorServiceInstance, "DATA_QUERY_RESPONSE_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
@@ -23,7 +23,7 @@ export class PublishFormattingResponseWorkflow extends WorkflowBase {
             let updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: message.data.message,
-                status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
+                status: JobStatus.FAILED,
                 response_props: {}
             })
             await jobService.updateJob(updateJobDTO);
