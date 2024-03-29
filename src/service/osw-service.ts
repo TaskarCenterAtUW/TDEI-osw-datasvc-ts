@@ -24,6 +24,7 @@ import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { RecordStatus } from "../model/dataset-get-query-params";
+import { da } from "date-fns/locale";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -172,8 +173,11 @@ class OswService implements IOswService {
             if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
 
-            if (dataset.status === 'Publish')
-                throw new InputException(`${tdei_dataset_id} already publised.`)
+            if (dataset.status === RecordStatus.Publish)
+                throw new InputException(`${tdei_dataset_id} already publised.`);
+
+            if (dataset.status !== RecordStatus["Pre-Release"])
+                throw new InputException(`${tdei_dataset_id} is not in Pre-Release state.`);
 
             // Check if there is a record with the same date
             const queryResult = await dbClient.query(metadata.getOverlapQuery(TDEIDataType.osw, dataset.tdei_project_group_id, dataset.tdei_service_id));
@@ -197,16 +201,19 @@ class OswService implements IOswService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_identifier = "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
+            let workflow_identifier = "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW";
+            const confidenceRequestMsg = new OSWConfidenceJobRequest();
+            confidenceRequestMsg.jobId = job_id.toString();
+            confidenceRequestMsg.data_file = dataset.dataset_url;
+            confidenceRequestMsg.meta_file = dataset.metadata_url;
+            confidenceRequestMsg.trigger_type = 'release';
+
             let queueMessage = QueueMessage.from({
                 messageId: job_id.toString(),
                 messageType: workflow_identifier,
-                data: {
-                    user_id: user_id, // Required field for message authorization
-                    tdei_project_group_id: dataset.tdei_project_group_id,// Required field for message authorization
-                    file_upload_path: dataset.dataset_url
-                }
+                data: confidenceRequestMsg
             });
+
             //Delete exisitng workflow if exists
             let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
             workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_dataset_id, trigger_workflow?.group!);
@@ -300,10 +307,11 @@ class OswService implements IOswService {
     /**
      * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
      * @param backendRequest The backend request to process.
+     * @param file_type Output file type.
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
-    async processBackendRequest(backendRequest: ServiceRequest): Promise<string> {
+    async processBackendRequest(backendRequest: ServiceRequest, file_type: string): Promise<string> {
         try {
 
             let job = CreateJobDTO.from({
@@ -315,7 +323,7 @@ class OswService implements IOswService {
                     service: backendRequest.service,
                     user_id: backendRequest.user_id,
                     parameters: backendRequest.parameters,
-                    type: backendRequest.parameters.file_type
+                    file_type: file_type
                 },
                 tdei_project_group_id: '',
                 user_id: backendRequest.user_id,
@@ -323,7 +331,7 @@ class OswService implements IOswService {
 
             const job_id = await this.jobServiceInstance.createJob(job);
             //Compose the meessage
-            let workflow_identifier = "BACKEND_SERVICE_REQUEST_WORKFLOW";
+            let workflow_identifier = "DATA_QUERY_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
                 messageId: job_id.toString(),
                 messageType: workflow_identifier,

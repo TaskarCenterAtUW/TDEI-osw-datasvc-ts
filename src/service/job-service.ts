@@ -94,13 +94,14 @@ class JobService implements IJobService {
      */
     async updateJob(updateJobDTO: UpdateJobDTO): Promise<JobDTO> {
         var response_exists = updateJobDTO.response_props && Object.keys(updateJobDTO.response_props).length > 0 ? true : false;
-        if (response_exists) {
-            let jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(updateJobDTO.job_id.toString()));
-            if (jobDetail.rows.length) {
-                // update the response_props with the existing response_props
-                updateJobDTO.response_props = { ...jobDetail.rows[0].response_props, ...updateJobDTO.response_props };
-            }
+        var download_exists = updateJobDTO.download_url && updateJobDTO.download_url != "" ? true : false;
+        let jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(updateJobDTO.job_id.toString()));
+        if (jobDetail.rows.length) {
+            // update the response_props with the existing response_props
+            updateJobDTO.response_props = response_exists ? { ...jobDetail.rows[0].response_props, ...updateJobDTO.response_props } : jobDetail.rows[0].response_props;
+            updateJobDTO.download_url = download_exists ? updateJobDTO.download_url : jobDetail.rows[0].download_url;
         }
+
         let result = await dbClient.query(JobEntity.getUpdateJobQuery(updateJobDTO));
         let updatedJob = JobDTO.from(result.rows[0]);
         return updatedJob;

@@ -3,10 +3,8 @@ import { WorkflowHandlerBase } from "../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../services/orchestrator-service";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import dbClient from "../../../database/data-source";
-import { DatasetEntity } from "../../../database/entity/dataset-entity";
 import { JobEntity } from "../../../database/entity/job-entity";
 import { JobDTO } from "../../../model/job-dto";
-import jobService from "../../../service/job-service";
 
 export class DataQueryFormatterResponseHandler extends WorkflowHandlerBase {
 
@@ -28,8 +26,6 @@ export class DataQueryFormatterResponseHandler extends WorkflowHandlerBase {
 
             try {
                 download_osm_url = decodeURIComponent(download_osm_url!);
-                const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
-                const job = JobDTO.from(result.rows[0]);
                 //Update job with formatted url
                 await dbClient.query(JobEntity.getUpdateJobDownloadUrlQuery(message.messageId, download_osm_url));
                 this.delegateWorkflowIfAny(delegate_worflow, message);

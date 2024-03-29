@@ -288,10 +288,17 @@ class TdeiCoreService implements ITdeiCoreService {
             values: [tdei_dataset_id],
         }
         const result = await dbClient.query(query);
-        if (result.rowCount && result.rowCount > 0)
+        if (result.rowCount && result.rowCount > 0) {
+            const query = {
+                text: `DELETE FROM content.metadata WHERE tdei_dataset_id = $1`,
+                values: [tdei_dataset_id],
+            }
+            await dbClient.query(query);
             console.log(`Draft dataset with id: ${tdei_dataset_id} deleted successfully`);
-        else
+        }
+        else {
             console.log(`Draft dataset with id: ${tdei_dataset_id} not found or not in draft status`);
+        }
     }
 
 }

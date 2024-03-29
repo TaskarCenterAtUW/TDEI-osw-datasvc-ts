@@ -217,7 +217,7 @@ class OSWController implements IController {
             if (requestService.file_type && !["osw", "osm"].includes(requestService.file_type)) {
                 throw new InputException("Invalid file type. Valid values are 'osw' or 'osm'");
             }
-            else {
+            else if (!requestService.file_type) {
                 requestService.file_type = "osw";
             }
 
@@ -226,12 +226,11 @@ class OSWController implements IController {
                 service: "bbox_intersect",
                 parameters: {
                     tdei_dataset_id: requestService.tdei_dataset_id,
-                    bbox: requestService.bbox,
-                    file_type: requestService.file_type
+                    bbox: requestService.bbox
                 }
             }
 
-            let job_id = await oswService.processBackendRequest(backendRequest);
+            let job_id = await oswService.processBackendRequest(backendRequest, requestService.file_type);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {

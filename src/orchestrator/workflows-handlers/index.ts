@@ -1,12 +1,9 @@
 import { PublishHandler } from "./generic/publish-handler";
 import { PublishConfidenceResponseHandler } from "./osw/publish/publish-osw-confidence-response-handler";
-import { PublishConfidenceRequestWorkflow } from "./osw/publish/publish-osw-confidence-request-workflow";
 import { PublishConfidenceResponseWorkflow } from "./osw/publish/publish-osw-confidence-response-workflow";
 import { UploadFormattingResponseHandler } from "./osw/upload/upload-osw-formatter-response-handler";
 import { UploadFormattingRequestWorkflow } from "./osw/upload/upload-osw-formatter-request-workflow";
 import { UploadFormattingResponseWorkflow } from "./osw/upload/upload-osw-formatter-response-workflow";
-import { PublishValidationResponseHandler } from "./osw/publish/publish-osw-validation-response-handler";
-import { PublishValidationResponseWorkflow } from "./osw/publish/publish-osw-validation-response-workflow";
 import { UploadValidationResponseHandler } from "./osw/upload/upload-osw-validation-response-handler";
 import { ValidationOnlyValidationResponseHandler } from "./osw/validation-only/validation-only-osw-validation-response-handler";
 import { PublishDatabaseWorkflow } from "./osw/publish/publish-osw-database-publish-workflow";
@@ -33,6 +30,7 @@ import { DataQueryFormatterRequestWorkflow } from "./backend-service/data-query-
 import { DataQueryFormatterResponseHandler } from "./backend-service/data-query-formatter-response-handler";
 import { DataQueryFormatterResponseWorkflow } from "./backend-service/data-query-formatter-response-workflow";
 import { DataQueryResponseWorkflow } from "./backend-service/data-query-response-workflow";
+import { UploadValidationResponseWorkflow } from "./osw/upload/upload-osw-validation-response-workflow";
 
 export default [
     GenericWorkflow,
@@ -47,9 +45,6 @@ export default [
     //Publish
     PublishConfidenceResponseHandler,
     PublishConfidenceResponseWorkflow,
-    PublishConfidenceRequestWorkflow,
-    PublishValidationResponseHandler,
-    PublishValidationResponseWorkflow,
     PublishDatabaseWorkflow,
     //Upload
     UploadFormattingResponseHandler,
@@ -60,6 +55,7 @@ export default [
     UploadFlatteningResponseHandler,
     UploadValidationResponseHandler,
     UploadDatabaseWorkflow,
+    UploadValidationResponseWorkflow,
     //Validation Only
     ValidationOnlyValidationResponseHandler,
     //On Demand Confidence

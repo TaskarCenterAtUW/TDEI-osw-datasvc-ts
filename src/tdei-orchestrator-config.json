@@ -285,7 +285,7 @@
             ]
         },
         {
-            "group": "PUBLISH_OSW",
+            "group": "UPLOAD_OSW",
             "stage": "DATABASE_PUBLISH",
             "type": "HANDLER",
             "identifier": "OSW_UPLOAD_DATABASE_WORKFLOW",
@@ -293,40 +293,10 @@
         },
         {
             "group": "PUBLISH_OSW",
-            "stage": "VALIDATION",
-            "type": "TRIGGER",
-            "identifier": "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
-            "generic_workflow": true,
-            "next_steps": [
-                {
-                    "process_identifier": "PUBLISH_HANDLER",
-                    "params": {
-                        "response_message_identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-                        "topic": "osw-validation-request"
-                    }
-                }
-            ]
-        },
-        {
-            "group": "PUBLISH_OSW",
-            "stage": "VALIDATION",
-            "type": "HANDLER",
-            "identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-            "next_steps": [
-                {
-                    "process_identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_HANDLER",
-                    "params": {},
-                    "delegate_worflow": [
-                        "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW"
-                    ]
-                }
-            ]
-        },
-        {
-            "group": "PUBLISH_OSW",
             "stage": "CONFIDENCE_METRIC",
             "type": "TRIGGER",
             "identifier": "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW",
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "PUBLISH_HANDLER",

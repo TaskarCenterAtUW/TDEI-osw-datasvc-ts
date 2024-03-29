@@ -21,7 +21,7 @@ export class DataQueryFormatterRequestWorkflow extends WorkflowBase {
             const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
             const job = JobDTO.from(result.rows[0]);
             // Get the dataset details
-            const dataset = await tdeiCoreService.getDatasetDetailsById(job.request_input.tdei_dataset_id);
+            const dataset = await tdeiCoreService.getDatasetDetailsById(job.request_input.parameters.tdei_dataset_id);
 
             //Compose the meessage
             let queueMessage = QueueMessage.from({

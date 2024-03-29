@@ -5,6 +5,5 @@ export interface ServiceRequest {
     parameters: {
         tdei_dataset_id: string;
         bbox: string;
-        file_type: string;
     };
 }
