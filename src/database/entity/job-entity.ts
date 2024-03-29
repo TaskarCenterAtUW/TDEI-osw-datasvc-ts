@@ -87,10 +87,10 @@ export class JobEntity extends BaseDto {
      * @param download_url - The new download URL for the job.
      * @returns The query configuration object.
      */
-    static getUpdateJobDownloadUrlQuery(job_id: string, download_urls: any): QueryConfig {
+    static getUpdateJobDownloadUrlQuery(job_id: string, download_url: any): QueryConfig {
         const query = {
             text: 'UPDATE content.job SET download_url = $1, updated_at = CURRENT_TIMESTAMP WHERE job_id = $2',
-            values: [download_urls, job_id],
+            values: [download_url, job_id],
         }
         return query;
     }
