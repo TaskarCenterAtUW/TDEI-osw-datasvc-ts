@@ -269,7 +269,7 @@ describe("OSW Service Test", () => {
                 .mockResolvedValue(<any>{ rowCount: 0 });// Assume no overlap
 
             // Mock the behavior of getOSWRecordById and getOSWMetadataById
-            const oswRecordMock = { data_type: 'osw', status: 'Draft', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url' };
+            const oswRecordMock = { data_type: 'osw', status: 'Pre-Release', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url' };
             const oswMetadataMock = { getOverlapQuery: jest.fn() };
             const getOSWRecordByIdSpy = jest.spyOn(tdeiCoreService, 'getDatasetDetailsById').mockResolvedValue(<any>oswRecordMock);
             const getOSWMetadataByIdSpy = jest.spyOn(tdeiCoreService, 'getMetadataDetailsById').mockResolvedValue(<any>oswMetadataMock);
@@ -291,7 +291,7 @@ describe("OSW Service Test", () => {
             expect(getOSWMetadataByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(dbClient.query).toHaveBeenCalled();
             expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
-                'OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW',
+                'OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW',
                 expect.anything()
             );
             expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
@@ -436,7 +436,7 @@ describe("OSW Service Test", () => {
             };
 
             const mockJobId = "job_id";
-            const mockWorkflowIdentifier = "BACKEND_SERVICE_REQUEST_WORKFLOW";
+            const mockWorkflowIdentifier = "DATA_QUERY_REQUEST_WORKFLOW";
 
             const queryResult = <QueryResult<any>>{
                 rowCount: 1,
@@ -446,11 +446,11 @@ describe("OSW Service Test", () => {
 
             mockAppContext();
             // Act
-            const result = await oswService.processBackendRequest(backendRequest);
+            const result = await oswService.processBackendRequest(backendRequest, "osm");
 
             // Assert
             expect(dbClient.query).toHaveBeenCalledTimes(1);
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith("BACKEND_SERVICE_REQUEST_WORKFLOW",
+            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(mockWorkflowIdentifier,
                 expect.any(QueueMessage));
             expect(result).toBe(mockJobId);
         });
@@ -471,7 +471,7 @@ describe("OSW Service Test", () => {
             jest.spyOn(dbClient, "query").mockRejectedValueOnce(mockError);
 
             // Act & Assert
-            await expect(oswService.processBackendRequest(backendRequest)).rejects.toThrow(mockError);
+            await expect(oswService.processBackendRequest(backendRequest, "osm")).rejects.toThrow(mockError);
         });
     });
 });

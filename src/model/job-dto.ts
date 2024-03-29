@@ -8,6 +8,8 @@ export class JobDTO extends AbstractDomainEntity {
     @Prop()
     job_type!: JobType;
     @Prop()
+    data_type!: TDEIDataType;
+    @Prop()
     status!: JobStatus;
     @Prop()
     message!: string;
@@ -22,7 +24,11 @@ export class JobDTO extends AbstractDomainEntity {
     @Prop()
     response_props!: any;
     @Prop()
-    download_url!: any;
+    download_url!: string;
+    @Prop()
+    created_at!: string;
+    @Prop()
+    updated_at!: string;
 }
 
 export class CreateJobDTO extends AbstractDomainEntity {

@@ -16,9 +16,6 @@ import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
 import { FileEntityStream } from "../utility/utility";
 import { ServiceRequest } from "../model/backend-request-interface";
-import tdeiCoreService from "../service/tdei-core-service";
-import { DatasetQueryParams } from "../model/dataset-get-query-params";
-import { TDEIDataType } from "../model/jobs-get-query-params";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -82,41 +79,11 @@ class OSWController implements IController {
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
         this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.post(`${this.path}/confidence/calculate/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.calculateConfidence); // Confidence calculation
+        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.calculateConfidence); // Confidence calculation
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
         this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
-        // this.router.get(`${this.path}/`, authenticate, this.getDatasetList);
     }
-
-    //     /**
-    //    * Gets the list of Dataset versions
-    //    * @param request 
-    //    * @param response 
-    //    * @param next 
-    //    */
-    //     getDatasetList = async (request: Request, response: express.Response, next: NextFunction) => {
-    //         try {
-    //             const params: DatasetQueryParams = new DatasetQueryParams(JSON.parse(JSON.stringify(request.query)));
-    //             params.isAdmin = request.body.isAdmin;
-    //             params.data_type = TDEIDataType.osw;
-    //             const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
-    //             dataset.forEach(x => {
-    //                 x.download_url = `${this.path}/${x.tdei_dataset_id}`;
-    //             });
-    //             response.status(200).send(dataset);
-    //         } catch (error) {
-    //             console.error(error);
-    //             if (error instanceof InputException) {
-    //                 response.status(error.status).send(error.message);
-    //                 next(error);
-    //             }
-    //             else {
-    //                 response.status(500).send("Error while fetching the dataset information");
-    //                 next(new HttpException(500, "Error while fetching the dataset information"));
-    //             }
-    //         }
-    //     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
         let versionsList = new Versions([{
@@ -243,9 +210,17 @@ class OSWController implements IController {
         try {
 
             const requestService = JSON.parse(JSON.stringify(request.query));
-            if (!requestService) {
-                return next(new InputException('request body is empty', response));
+            if (!requestService && !requestService.tdei_dataset_id && !requestService.bbox) {
+                return next(new InputException('required input is empty', response));
             }
+
+            if (requestService.file_type && !["osw", "osm"].includes(requestService.file_type)) {
+                throw new InputException("Invalid file type. Valid values are 'osw' or 'osm'");
+            }
+            else if (!requestService.file_type) {
+                requestService.file_type = "osw";
+            }
+
             let backendRequest: ServiceRequest = {
                 user_id: request.body.user_id,
                 service: "bbox_intersect",
@@ -255,7 +230,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.processBackendRequest(backendRequest);
+            let job_id = await oswService.processBackendRequest(backendRequest, requestService.file_type);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
