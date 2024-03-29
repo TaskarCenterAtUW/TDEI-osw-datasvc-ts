@@ -31,7 +31,7 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
                 response_props: {
                     // download_url: response.formattedUrl
                 },
-                download_urls: response.formattedUrl
+                download_url: response.formattedUrl
             });
             await jobService.updateJob(updateJobDTO);
         } catch (error) {
