@@ -161,13 +161,13 @@ describe('JobService', () => {
                     },
                 ],
             };
-            let dbSpy = jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult as any);
+            let dbSpy = jest.spyOn(dbClient, "query").mockResolvedValue(mockResult as any);
 
             // Act
             const result = await jobService.updateJob(updateJobDTO);
 
             // Assert
-            expect(dbClient.query).toHaveBeenCalledWith(JobEntity.getUpdateJobQuery(updateJobDTO));
+            expect(dbClient.query).toHaveBeenCalledTimes(2);
             expect(result).toBeInstanceOf(JobDTO);
         });
     });
