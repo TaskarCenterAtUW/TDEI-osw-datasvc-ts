@@ -214,80 +214,89 @@
             "stage": "VALIDATION",
             "type": "HANDLER",
             "identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
-            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER",
-                    "params": {}
-                }
-            ]
-        },
-        {
-            "group": "PUBLISH_OSW",
-            "stage": "VALIDATION",
-            "type": "TRIGGER",
-            "identifier": "OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
-            "generic_workflow": true,
-            "next_steps": [
-                {
-                    "process_identifier": "PUBLISH_HANDLER",
-                    "params": {
-                        "response_message_identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-                        "topic": "osw-validation-request"
-                    }
-                }
-            ]
-        },
-        {
-            "group": "PUBLISH_OSW",
-            "stage": "VALIDATION",
-            "type": "HANDLER",
-            "identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-            "next_steps": [
-                {
-                    "process_identifier": "OSW_PUBLISH_VALIDATION_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
-                        "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW"
+                        "OSW_UPLOAD_FORMATTING_REQUEST_WORKFLOW"
                     ]
                 }
             ]
         },
         {
-            "group": "PUBLISH_OSW",
+            "group": "UPLOAD_OSW",
             "stage": "FILE_FORMATTING",
             "type": "TRIGGER",
-            "identifier": "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW",
+            "identifier": "OSW_UPLOAD_FORMATTING_REQUEST_WORKFLOW",
             "next_steps": [
                 {
                     "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "response_message_identifier": "OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_WORKFLOW",
                         "topic": "osw-formatting-request"
                     }
                 }
             ]
         },
         {
-            "group": "PUBLISH_OSW",
+            "group": "UPLOAD_OSW",
             "stage": "FILE_FORMATTING",
             "type": "HANDLER",
-            "identifier": "OSW_PUBLISH_FORMATTING_RESPONSE_WORKFLOW",
+            "identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_WORKFLOW",
             "next_steps": [
                 {
-                    "process_identifier": "OSW_PUBLISH_FORMATTING_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
-                        "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW"
+                        "OSW_UPLOAD_DATASET_FLATTENING_REQUEST_WORKFLOW"
                     ]
                 }
             ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "DATASET_FLATTENING",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_DATASET_FLATTENING_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_DATASET_FLATTENING_RESPONSE_WORKFLOW",
+                        "topic": "extract-load-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "DATASET_FLATTENING",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_DATASET_FLATTENING_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_UPLOAD_DATASET_FLATTENING_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "OSW_UPLOAD_DATABASE_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "DATABASE_PUBLISH",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_DATABASE_WORKFLOW",
+            "next_steps": []
         },
         {
             "group": "PUBLISH_OSW",
             "stage": "CONFIDENCE_METRIC",
             "type": "TRIGGER",
             "identifier": "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW",
+            "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "PUBLISH_HANDLER",
@@ -306,36 +315,6 @@
             "next_steps": [
                 {
                     "process_identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER",
-                    "params": {},
-                    "delegate_worflow": [
-                        "OSW_PUBLISH_DATASET_FLATTENING_REQUEST_WORKFLOW"
-                    ]
-                }
-            ]
-        },
-        {
-            "group": "PUBLISH_OSW",
-            "stage": "DATASET_FLATTENING",
-            "type": "TRIGGER",
-            "identifier": "OSW_PUBLISH_DATASET_FLATTENING_REQUEST_WORKFLOW",
-            "next_steps": [
-                {
-                    "process_identifier": "PUBLISH_HANDLER",
-                    "params": {
-                        "response_message_identifier": "OSW_PUBLISH_DATASET_FLATTENING_RESPONSE_WORKFLOW",
-                        "topic": "extract-load-request"
-                    }
-                }
-            ]
-        },
-        {
-            "group": "PUBLISH_OSW",
-            "stage": "DATASET_FLATTENING",
-            "type": "HANDLER",
-            "identifier": "OSW_PUBLISH_DATASET_FLATTENING_RESPONSE_WORKFLOW",
-            "next_steps": [
-                {
-                    "process_identifier": "OSW_PUBLISH_DATASET_FLATTENING_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
                         "OSW_PUBLISH_DATABASE_WORKFLOW"
@@ -438,62 +417,72 @@
             ]
         },
         {
-            "group": "ON_DEMAND_DATASET_FLATTENING",
-            "stage": "DATASET_FLATTENING",
-            "type": "TRIGGER",
-            "identifier": "ON_DEMAND_DATASET_FLATTENING_REQUEST_WORKFLOW",
-            "generic_workflow": true,
-            "next_steps": [
-                {
-                    "process_identifier": "PUBLISH_HANDLER",
-                    "params": {
-                        "response_message_identifier": "ON_DEMAND_DATASET_FLATTENING_RESPONSE_WORKFLOW",
-                        "topic": "extract-load-request"
-                    }
-                }
-            ]
-        },
-        {
-            "group": "ON_DEMAND_DATASET_FLATTENING",
-            "stage": "DATASET_FLATTENING",
-            "type": "HANDLER",
-            "identifier": "ON_DEMAND_DATASET_FLATTENING_RESPONSE_WORKFLOW",
-            "generic_workflow": true,
-            "next_steps": [
-                {
-                    "process_identifier": "ON_DEMAND_DATASET_FLATTENING_RESPONSE_HANDLER",
-                    "params": {}
-                }
-            ]
-        },
-        {
-            "group": "BACKEND_SERVICE",
+            "group": "DATA_QUERY",
             "stage": "PROCESSING",
             "type": "TRIGGER",
-            "identifier": "BACKEND_SERVICE_REQUEST_WORKFLOW",
+            "identifier": "DATA_QUERY_REQUEST_WORKFLOW",
             "generic_workflow": true,
             "next_steps": [
                 {
                     "process_identifier": "PUBLISH_HANDLER",
                     "params": {
-                        "response_message_identifier": "BACKEND_SERVICE_RESPONSE_WORKFLOW",
+                        "response_message_identifier": "DATA_QUERY_RESPONSE_WORKFLOW",
                         "topic": "backend-request"
                     }
                 }
             ]
         },
         {
-            "group": "BACKEND_SERVICE",
+            "group": "DATA_QUERY",
             "stage": "PROCESSING",
             "type": "HANDLER",
-            "identifier": "BACKEND_SERVICE_RESPONSE_WORKFLOW",
-            "generic_workflow": true,
+            "identifier": "DATA_QUERY_RESPONSE_WORKFLOW",
             "next_steps": [
                 {
-                    "process_identifier": "BACKEND_SERVICE_RESPONSE_HANDLER",
-                    "params": {}
+                    "process_identifier": "DATA_QUERY_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "DATA_QUERY_FORMATTING_REQUEST_WORKFLOW"
+                    ]
                 }
             ]
+        },
+        {
+            "group": "DATA_QUERY",
+            "stage": "FILE_FORMATTING",
+            "type": "TRIGGER",
+            "identifier": "DATA_QUERY_FORMATTING_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "DATA_QUERY_FORMATTING_RESPONSE_WORKFLOW",
+                        "topic": "osw-formatting-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "DATA_QUERY",
+            "stage": "FILE_FORMATTING",
+            "type": "HANDLER",
+            "identifier": "DATA_QUERY_FORMATTING_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "DATA_QUERY_FORMATTING_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "DATA_QUERY_DATABASE_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "DATA_QUERY",
+            "stage": "DATABASE_PUBLISH",
+            "type": "HANDLER",
+            "identifier": "DATA_QUERY_DATABASE_WORKFLOW",
+            "next_steps": []
         }
     ],
     "subscriptions": [

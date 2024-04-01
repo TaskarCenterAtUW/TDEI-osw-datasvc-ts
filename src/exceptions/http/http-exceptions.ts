@@ -27,7 +27,7 @@ export class FileTypeException extends HttpException {
 
 export class OverlapException extends HttpException {
     constructor(name: string) {
-        super(400, `Given record overlaps with tdei dataset id ${name} in the system.`);
+        super(400, `Validity of the record overlaps with dataset id ${name} in the system.`);
     }
 }
 

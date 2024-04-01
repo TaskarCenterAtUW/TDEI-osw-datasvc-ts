@@ -11,6 +11,7 @@ export interface IOswService {
     /**
      * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
      * @param backendRequest The backend request to process.
+     * @param file_type Output file type.
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
@@ -19,10 +20,11 @@ export interface IOswService {
     /**
      * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
      * @param backendRequest The backend request to process.
+     * @param file_type Output file type.
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
-    processBackendRequest(backendRequest: BboxServiceRequest): Promise<string>;
+    processBackendRequest(backendRequest: BboxServiceRequest, file_type: string): Promise<string>;
     /**
     * Processes a dataset flattening request.
     * 

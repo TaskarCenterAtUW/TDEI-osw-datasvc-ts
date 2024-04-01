@@ -3,6 +3,7 @@ import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
 import { TdeiDate } from '../../utility/tdei-date';
+import { RecordStatus } from '../../model/dataset-get-query-params';
 
 export class DatasetEntity extends BaseDto {
     @Prop()
@@ -39,7 +40,7 @@ export class DatasetEntity extends BaseDto {
     cm_last_calculated_at!: string;
     @Prop()
     @IsNotEmpty()
-    status: string = "Pre-Release";
+    status: string = RecordStatus.Draft;
     @Prop()
     uploaded_timestamp!: Date;
     @Prop()
@@ -96,11 +97,11 @@ export class DatasetEntity extends BaseDto {
         return queryObject;
     }
 
-    static getPublishRecordQuery(tdei_dataset_id: string): QueryConfig {
+    static getStatusUpdateQuery(tdei_dataset_id: string, status: RecordStatus): QueryConfig {
         const queryObject = {
-            text: `UPDATE content.dataset SET status = 'Publish' , updated_at = CURRENT_TIMESTAMP 
-            WHERE tdei_dataset_id = $1`,
-            values: [tdei_dataset_id]
+            text: `UPDATE content.dataset SET status = $1 , updated_at = CURRENT_TIMESTAMP 
+            WHERE tdei_dataset_id = $2`,
+            values: [status, tdei_dataset_id]
         }
         return queryObject;
     }

@@ -29,7 +29,7 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
                 message: response.message,
                 status: response.success ? JobStatus.COMPLETED : JobStatus.FAILED,
                 response_props: {
-                   // download_url: response.formattedUrl
+                    // download_url: response.formattedUrl
                 },
                 download_url: response.formattedUrl
             });

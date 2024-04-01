@@ -7,7 +7,13 @@ import { DatasetQueryParams } from "../../model/dataset-get-query-params";
 import { ConfidenceJobResponse } from "../../model/job-request-response/osw-confidence-job-response";
 
 export interface ITdeiCoreService {
-
+  /**
+       * Deletes a draft dataset with the specified ID from the content.dataset table.
+       * 
+       * @param tdei_dataset_id - The ID of the draft dataset to delete.
+       * @returns A Promise that resolves to void.
+       */
+  deleteDraftDataset(tdei_dataset_id: string): Promise<void>;
   /**
    * Updates the confidence metric for a given TDEI dataset.
    * 

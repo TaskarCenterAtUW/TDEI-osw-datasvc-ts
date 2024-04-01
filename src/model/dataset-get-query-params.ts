@@ -7,6 +7,7 @@ import { InputException } from "../exceptions/http/http-exceptions";
 export enum RecordStatus {
     "Publish" = "Publish",
     "Pre-Release" = "Pre-Release",
+    "Draft" = "Draft",
     "All" = "All"
 }
 export class DatasetQueryParams {
@@ -82,6 +83,7 @@ export class DatasetQueryParams {
         //Conditions
         const conditions: WhereCondition[] = [];
         addConditionIfValueExists('status !=', 'Deleted');
+        addConditionIfValueExists('status !=', 'Draft');
         addConditionIfValueExists('data_type =', this.data_type);
 
         if (this.status && this.status == RecordStatus["All"] && this.isAdmin) {

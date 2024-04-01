@@ -3,7 +3,14 @@ import { CreateJobDTO, JobDTO, UpdateJobDTO } from "../../model/job-dto";
 import { JobStatus, JobsQueryParams } from "../../model/jobs-get-query-params";
 
 export interface IJobService {
-
+    /**
+         * Updates the response properties of a job.
+         * 
+         * @param job_id - The ID of the job.
+         * @param response_props - The new response properties to be updated.
+         * @returns A Promise that resolves to void.
+         */
+    updateJobResponseProps(job_id: string, response_props: any): Promise<void>;
     /**
    * Retrieves a list of jobs based on the provided query parameters.
    * @param user_id user_id.

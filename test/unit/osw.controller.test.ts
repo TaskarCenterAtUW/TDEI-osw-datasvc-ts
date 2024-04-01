@@ -4,7 +4,6 @@ import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { InputException } from "../../src/exceptions/http/http-exceptions";
 import { getMockFileEntity } from "../common/mock-utils";
-import { DatasetDTO } from "../../src/model/dataset-dto";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 
 // group test using describe

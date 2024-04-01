@@ -16,9 +16,6 @@ import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
 import { FileEntityStream } from "../utility/utility";
 import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
-import tdeiCoreService from "../service/tdei-core-service";
-import { DatasetQueryParams } from "../model/dataset-get-query-params";
-import { TDEIDataType } from "../model/jobs-get-query-params";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -82,7 +79,7 @@ class OSWController implements IController {
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
         this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.post(`${this.path}/confidence/calculate/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.calculateConfidence); // Confidence calculation
+        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.calculateConfidence); // Confidence calculation
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
         this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
@@ -257,8 +254,8 @@ class OSWController implements IController {
         try {
 
             const requestService = JSON.parse(JSON.stringify(request.query));
-            if (!requestService) {
-                return next(new InputException('request body is empty', response));
+            if (!requestService && !requestService.tdei_dataset_id && !requestService.bbox) {
+                return next(new InputException('required input is empty', response));
             }
             let backendRequest: BboxServiceRequest = {
                 user_id: request.body.user_id,
@@ -269,7 +266,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.processBackendRequest(backendRequest);
+            let job_id = await oswService.processBackendRequest(backendRequest, requestService.file_type);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {

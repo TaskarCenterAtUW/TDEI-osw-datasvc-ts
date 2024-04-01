@@ -43,17 +43,28 @@ export class JobEntity extends BaseDto {
     }
 
     /**
+     * Returns the query configuration for updating the response properties of a job.
+     * @param updateJobDTO - The DTO containing the updated job properties.
+     * @returns The query configuration object.
+     */
+    static getUpdateJobResponsePropsQuery(job_id: string, response_props: any): QueryConfig {
+        const query = {
+            text: `UPDATE content.job SET response_props = $1, updated_at = CURRENT_TIMESTAMP WHERE job_id = $2`,
+            values: [response_props, job_id],
+        }
+        return query;
+    }
+
+    /**
      * Generates a query configuration object for updating a job in the database.
      * @param updateJobDTO - The DTO containing the updated job information.
      * @returns The query configuration object.
      */
     static getUpdateJobQuery(updateJobDTO: UpdateJobDTO): QueryConfig {
-        var response_exists = updateJobDTO.response_props && Object.keys(updateJobDTO.response_props).length > 0 ? true : false;
         const query = {
-            text: `UPDATE content.job SET status = $2, message = $3, download_url = $4 ${response_exists ? ', response_props = $5' : ''}, updated_at = CURRENT_TIMESTAMP WHERE job_id = $1 RETURNING *`,
-            values: [updateJobDTO.job_id, updateJobDTO.status, updateJobDTO.message, updateJobDTO.download_url],
+            text: `UPDATE content.job SET status = $2, message = $3, download_url = $4 , response_props = $5, updated_at = CURRENT_TIMESTAMP WHERE job_id = $1 RETURNING *`,
+            values: [updateJobDTO.job_id, updateJobDTO.status, updateJobDTO.message, updateJobDTO.download_url, updateJobDTO.response_props],
         }
-        if (response_exists) query.values.push(updateJobDTO.response_props);
         return query;
     }
 
@@ -76,7 +87,7 @@ export class JobEntity extends BaseDto {
      * @param download_url - The new download URL for the job.
      * @returns The query configuration object.
      */
-    static getUpdateJobDownloadUrlQuery(job_id: string, download_url: string): QueryConfig {
+    static getUpdateJobDownloadUrlQuery(job_id: string, download_url: any): QueryConfig {
         const query = {
             text: 'UPDATE content.job SET download_url = $1, updated_at = CURRENT_TIMESTAMP WHERE job_id = $2',
             values: [download_url, job_id],

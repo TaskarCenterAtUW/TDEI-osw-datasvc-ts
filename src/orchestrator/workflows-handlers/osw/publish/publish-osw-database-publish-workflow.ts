@@ -8,6 +8,7 @@ import { JobEntity } from "../../../../database/entity/job-entity";
 import { JobDTO, UpdateJobDTO } from "../../../../model/job-dto";
 import { JobStatus } from "../../../../model/jobs-get-query-params";
 import jobService from "../../../../service/job-service";
+import { RecordStatus } from "../../../../model/dataset-get-query-params";
 
 export class PublishDatabaseWorkflow extends WorkflowBase {
 
@@ -21,7 +22,7 @@ export class PublishDatabaseWorkflow extends WorkflowBase {
             const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
             const job = JobDTO.from(result.rows[0]);
             //This workflow triggers at the end of the workflow stages and marks complete of the workflow process
-            await dbClient.query(DatasetEntity.getPublishRecordQuery(job.request_input.tdei_dataset_id));
+            await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.request_input.tdei_dataset_id, RecordStatus.Publish));
 
             let updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,

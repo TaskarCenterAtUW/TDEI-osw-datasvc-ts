@@ -7,10 +7,10 @@ import dbClient from "../../../../database/data-source";
 import { JobEntity } from "../../../../database/entity/job-entity";
 import { JobDTO } from "../../../../model/job-dto";
 
-export class PublishFormattingRequestWorkflow extends WorkflowBase {
+export class UploadFormattingRequestWorkflow extends WorkflowBase {
 
     constructor(workflowEvent: EventEmitter, orchestratorServiceInstance: IOrchestratorService) {
-        super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW");
+        super(workflowEvent, orchestratorServiceInstance, "OSW_UPLOAD_FORMATTING_REQUEST_WORKFLOW");
     }
 
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
@@ -21,12 +21,12 @@ export class PublishFormattingRequestWorkflow extends WorkflowBase {
             const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
             const job = JobDTO.from(result.rows[0]);
             // Get the dataset details
-            const dataset = await tdeiCoreService.getDatasetDetailsById(job.request_input.tdei_dataset_id);
+            const dataset = await tdeiCoreService.getDatasetDetailsById(job.response_props.tdei_dataset_id);
 
             //Compose the meessage
             let queueMessage = QueueMessage.from({
                 messageId: message.messageId,
-                messageType: "OSW_PUBLISH_FORMATTING_REQUEST_WORKFLOW", //will be set by the publish handler with params defined in config
+                messageType: `${this.eventName}`, //will be set by the publish handler with params defined in config
                 data: {
                     file_upload_path: dataset.dataset_url,
                     tdei_project_group_id: dataset.tdei_project_group_id
