@@ -159,6 +159,10 @@ class OSWController implements IController {
             let format = request.query.format as string ?? 'osw';
             let file_version = request.query.file_version as string ?? 'latest';
 
+            if (!["latest", "original"].includes(file_version)) {
+                throw new InputException("Invalid file_version value");
+            }
+
             const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format, file_version);
 
             const zipFileName = 'osw.zip';
