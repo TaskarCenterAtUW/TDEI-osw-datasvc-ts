@@ -10,12 +10,12 @@ import appContext from "../../src/app-context";
 import workflowDatabaseService from "../../src/orchestrator/services/workflow-database-service";
 import { IUploadRequest } from "../../src/service/interface/upload-request-interface";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import { ServiceRequest } from "../../src/model/backend-request-interface";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import jobService from "../../src/service/job-service";
 import oswService from "../../src/service/osw-service";
 import { DatasetEntity } from "../../src/database/entity/dataset-entity";
 import { ServiceEntity } from "../../src/database/entity/service-entity";
+import { BboxServiceRequest } from "../../src/model/backend-request-interface";
 
 // group test using describe
 describe("OSW Service Test", () => {
@@ -39,7 +39,7 @@ describe("OSW Service Test", () => {
                 mockCore();
 
                 //Act
-                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw");
+                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw", "");
                 //Assert
                 expect(result instanceof FileEntity);
             });
@@ -56,7 +56,7 @@ describe("OSW Service Test", () => {
                     }));
                 mockCore();
                 //Act
-                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw");
+                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw", "");
                 //Assert
                 expect(result instanceof FileEntity);
             });
@@ -74,7 +74,7 @@ describe("OSW Service Test", () => {
 
                 mockCore();
                 //Act
-                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw");
+                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw", "");
                 //Assert
                 expect(result instanceof FileEntity);
             });
@@ -93,7 +93,7 @@ describe("OSW Service Test", () => {
                 mockCore();
                 //Act
                 //Assert
-                expect(oswService.getOswStreamById("tdei_dataset_id", "osm")).rejects.toThrow(HttpException);
+                expect(oswService.getOswStreamById("tdei_dataset_id", "osm", "")).rejects.toThrow(HttpException);
             });
 
             test("When requested for get OSW file with invalid tdei_dataset_id, Expect to throw HttpException", async () => {
@@ -104,7 +104,7 @@ describe("OSW Service Test", () => {
 
                 //Act
                 //Assert
-                expect(oswService.getOswStreamById("tdei_dataset_id", "osw")).rejects.toThrow(HttpException);
+                expect(oswService.getOswStreamById("tdei_dataset_id", "osw", "")).rejects.toThrow(HttpException);
             });
 
             test("When Core failed obtaing storage client, Expect to throw error", async () => {
@@ -125,7 +125,7 @@ describe("OSW Service Test", () => {
 
                 //Act
                 //Assert
-                expect(oswService.getOswStreamById("tdei_dataset_id", "")).rejects.toThrow();
+                expect(oswService.getOswStreamById("tdei_dataset_id", "", "")).rejects.toThrow();
             });
         });
     });
@@ -426,7 +426,7 @@ describe("OSW Service Test", () => {
     describe("processBackendRequest", () => {
         test("Should create a backend job and trigger the workflow", async () => {
             // Arrange
-            const backendRequest: ServiceRequest = {
+            const backendRequest: BboxServiceRequest = {
                 user_id: "user_id",
                 service: "service",
                 parameters: {
@@ -457,7 +457,7 @@ describe("OSW Service Test", () => {
 
         test("Should throw an error if an exception occurs", async () => {
             // Arrange
-            const backendRequest: ServiceRequest = {
+            const backendRequest: BboxServiceRequest = {
                 user_id: "user_id",
                 service: "service",
                 parameters: {
