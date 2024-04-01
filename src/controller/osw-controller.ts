@@ -100,11 +100,18 @@ class OSWController implements IController {
             if (!requestService) {
                 return next(new InputException('request body is empty', response));
             }
+
+            //TODO:: Authorize the request to check user is part of the project group
+            if (requestService.source_dataset_id == undefined || requestService.target_dataset_id == undefined) {
+                return next(new InputException('required input is empty', response));
+            }
+
             let backendRequest: TagRoadServiceRequest = {
                 user_id: request.body.user_id,
                 service: "dataset_tag_road",
                 parameters: {
-                    tdei_dataset_id: requestService.tdei_dataset_id
+                    source_dataset_id: requestService.source_dataset_id,
+                    target_dataset_id: requestService.target_dataset_id
                 }
             }
 
@@ -150,8 +157,9 @@ class OSWController implements IController {
 
         try {
             let format = request.query.format as string ?? 'osw';
+            let file_version = request.query.file_version as string ?? 'latest';
 
-            const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format);
+            const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format, file_version);
 
             const zipFileName = 'osw.zip';
 

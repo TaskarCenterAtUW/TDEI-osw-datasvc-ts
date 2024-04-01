@@ -24,7 +24,6 @@ import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { RecordStatus } from "../model/dataset-get-query-params";
-import { da } from "date-fns/locale";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -36,6 +35,11 @@ class OswService implements IOswService {
     */
     async processDatasetTagRoadRequest(backendRequest: TagRoadServiceRequest): Promise<string> {
         try {
+
+            //Only if backendRequest.parameters.source_dataset_id id in pre-release status
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.source_dataset_id);
+            if (dataset.status !== RecordStatus["Pre-Release"])
+                throw new InputException(`Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -53,7 +57,7 @@ class OswService implements IOswService {
 
             const job_id = await this.jobServiceInstance.createJob(job);
             //Compose the meessage
-            let workflow_identifier = "BACKEND_SERVICE_REQUEST_WORKFLOW";
+            let workflow_identifier = "DATA_QUERY_REQUEST_WORKFLOW";
             let queueMessage = QueueMessage.from({
                 messageId: job_id.toString(),
                 messageType: workflow_identifier,
@@ -582,7 +586,7 @@ class OswService implements IOswService {
      * @throws HttpException if the OswStream is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    async getOswStreamById(tdei_dataset_id: string, format: string = "osw"): Promise<FileEntity[]> {
+    async getOswStreamById(tdei_dataset_id: string, format: string = "osw", file_version: string = "latest"): Promise<FileEntity[]> {
         let fileEntities: FileEntity[] = [];
 
         let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
@@ -595,12 +599,29 @@ class OswService implements IOswService {
 
         var url: string = '';
         if (format == "osm") {
-            if (dataset.osm_url && dataset.osm_url != '')
-                url = decodeURIComponent(dataset.osm_url);
-            else
-                throw new HttpException(404, "Requested OSM file format not found");
+            //if file_version is latest, get the latest version of the file
+            if (file_version == "latest") {
+                if (dataset.latest_osm_url && dataset.latest_osm_url != '')
+                    url = decodeURIComponent(dataset.latest_osm_url);
+                else
+                    throw new HttpException(404, "Requested OSM file format not found");
+            }
+            else {
+                //original file
+                if (dataset.osm_url && dataset.osm_url != '')
+                    url = decodeURIComponent(dataset.osm_url);
+                else
+                    throw new HttpException(404, "Requested OSM file format not found");
+            }
+
         } else if (format == "osw") {
-            url = decodeURIComponent(dataset.dataset_url);
+            if (file_version == "latest") {
+                url = decodeURIComponent(dataset.latest_dataset_url);
+            }
+            else {
+                //original file
+                url = decodeURIComponent(dataset.dataset_url);
+            }
         }
         else {
             //default osw

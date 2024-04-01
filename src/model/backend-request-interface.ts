@@ -12,6 +12,7 @@ export interface TagRoadServiceRequest {
     user_id: string;
     service: string;
     parameters: {
-        tdei_dataset_id: string;
+        source_dataset_id: string;
+        target_dataset_id: string;
     };
 }

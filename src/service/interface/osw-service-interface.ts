@@ -11,7 +11,6 @@ export interface IOswService {
     /**
      * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
      * @param backendRequest The backend request to process.
-     * @param file_type Output file type.
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
@@ -63,7 +62,7 @@ export interface IOswService {
      * @throws HttpException if the OswStream is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    getOswStreamById(id: string, format: string): Promise<FileEntity[]>;
+    getOswStreamById(id: string, format: string, file_version: string): Promise<FileEntity[]>;
 
     /**
     * Processes the upload request and performs various validations and operations.
