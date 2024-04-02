@@ -4,7 +4,7 @@ import { IController } from "./interface/IController";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, FileTypeException } from "../exceptions/http/http-exceptions";
+import { InputException, FileTypeException, UnAuthenticated } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
@@ -14,8 +14,9 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
-import { FileEntityStream } from "../utility/utility";
+import { FileEntityStream, Utility } from "../utility/utility";
 import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
+import tdeiCoreService from "../service/tdei-core-service";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -104,6 +105,13 @@ class OSWController implements IController {
             //TODO:: Authorize the request to check user is part of the project group
             if (requestService.source_dataset_id == undefined || requestService.target_dataset_id == undefined) {
                 return next(new InputException('required input is empty', response));
+            }
+
+            //Authorize
+            let osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
+            var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
+            if (!authorized) {
+                return next(new UnAuthenticated());
             }
 
             let backendRequest: TagRoadServiceRequest = {
