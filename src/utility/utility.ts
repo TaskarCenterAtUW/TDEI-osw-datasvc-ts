@@ -3,8 +3,41 @@ import fetch from "node-fetch";
 import HttpException from "../exceptions/http/http-base-exception";
 import { Readable } from "stream";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
+import { Core } from "nodets-ms-core";
+import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission_request";
 
 export class Utility {
+
+    /**
+     * Authorizes the roles for a user in a TDEI project group.
+     * 
+     * @param user_id - The ID of the user.
+     * @param tdei_project_group_id - The ID of the TDEI project group.
+     * @param approvedRoles - An array of approved roles.
+     * @returns A Promise that resolves to a boolean indicating whether the user is authorized or not.
+     */
+    public static async authorizeRoles(user_id: string, tdei_project_group_id: string, approvedRoles: string[]): Promise<Boolean> {
+        const authProvider = Core.getAuthorizer({ provider: "Hosted", apiUrl: environment.authPermissionUrl });
+        const permissionRequest = new PermissionRequest({
+            userId: user_id as string,
+            projectGroupId: tdei_project_group_id,
+            permssions: approvedRoles,
+            shouldSatisfyAll: false
+        });
+
+        try {
+            const response = await authProvider?.hasPermission(permissionRequest);
+            if (response) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        catch (error) {
+            return false;
+        }
+    }
 
     /**
      * Retrieves the MIME type based on the file extension.

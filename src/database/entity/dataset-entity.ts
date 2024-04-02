@@ -47,6 +47,10 @@ export class DatasetEntity extends BaseDto {
     updated_at!: string;
     @Prop()
     updated_by!: string;
+    @Prop()
+    latest_dataset_url!: string;
+    @Prop()
+    latest_osm_url!: string;
 
     constructor(init?: Partial<DatasetEntity>) {
         super();
@@ -72,8 +76,9 @@ export class DatasetEntity extends BaseDto {
                 uploaded_timestamp,
                 changeset_url,
                 metadata_url,
-                updated_by)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`.replace(/\n/g, ""),
+                updated_by,
+                latest_dataset_url)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`.replace(/\n/g, ""),
             values: [this.tdei_dataset_id, this.tdei_service_id, this.tdei_project_group_id, this.data_type,
             this.dataset_url
                 , this.uploaded_by,
@@ -82,7 +87,8 @@ export class DatasetEntity extends BaseDto {
             TdeiDate.UTC(),
             this.changeset_url ?? null,
             this.metadata_url,
-            this.updated_by]
+            this.updated_by,
+            this.dataset_url]
         }
         return queryObject;
     }
@@ -90,7 +96,25 @@ export class DatasetEntity extends BaseDto {
 
     static getUpdateFormatUrlQuery(tdei_dataset_id: string, download_osm_url: string): QueryConfig {
         const queryObject = {
-            text: `UPDATE content.dataset SET osm_url = $1 , updated_at = CURRENT_TIMESTAMP 
+            text: `UPDATE content.dataset SET osm_url = $1 , latest_osm_url = $1 , updated_at = CURRENT_TIMESTAMP 
+            WHERE tdei_dataset_id = $2`,
+            values: [download_osm_url, tdei_dataset_id]
+        }
+        return queryObject;
+    }
+
+    static getUpdateLatestOsmUrlQuery(tdei_dataset_id: string, download_osm_url: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE content.dataset SET latest_osm_url = $1 , updated_at = CURRENT_TIMESTAMP 
+            WHERE tdei_dataset_id = $2`,
+            values: [download_osm_url, tdei_dataset_id]
+        }
+        return queryObject;
+    }
+
+    static getUpdateLatestDatasetUrlQuery(tdei_dataset_id: string, download_osm_url: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE content.dataset SET latest_dataset_url = $1 , updated_at = CURRENT_TIMESTAMP 
             WHERE tdei_dataset_id = $2`,
             values: [download_osm_url, tdei_dataset_id]
         }

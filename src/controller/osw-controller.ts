@@ -4,7 +4,7 @@ import { IController } from "./interface/IController";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, FileTypeException } from "../exceptions/http/http-exceptions";
+import { InputException, FileTypeException, UnAuthenticated } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
@@ -14,8 +14,9 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
-import { FileEntityStream } from "../utility/utility";
-import { ServiceRequest } from "../model/backend-request-interface";
+import { FileEntityStream, Utility } from "../utility/utility";
+import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
+import tdeiCoreService from "../service/tdei-core-service";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -83,8 +84,66 @@ class OSWController implements IController {
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
         this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
+        this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
     }
 
+    /**
+ * Tags the sidewalk dataset with the 
+ * @param request 
+ * @param response 
+ * @param next 
+ * @returns 
+ */
+    processDatasetTagRoadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+
+            const requestService = JSON.parse(JSON.stringify(request.query));
+            if (!requestService) {
+                return next(new InputException('request body is empty', response));
+            }
+
+            //TODO:: Authorize the request to check user is part of the project group
+            if (requestService.source_dataset_id == undefined || requestService.target_dataset_id == undefined) {
+                return next(new InputException('required input is empty', response));
+            }
+
+            //Authorize
+            let osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
+            var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
+            if (!authorized) {
+                return next(new UnAuthenticated());
+            }
+
+            let backendRequest: TagRoadServiceRequest = {
+                user_id: request.body.user_id,
+                service: "dataset_tag_road",
+                parameters: {
+                    source_dataset_id: requestService.source_dataset_id,
+                    target_dataset_id: requestService.target_dataset_id
+                }
+            }
+
+            let job_id = await oswService.processDatasetTagRoadRequest(backendRequest);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing the dataset bbox request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the dataset bbox request");
+            next(new HttpException(500, "Error while processing the dataset bbox request"));
+        }
+    }
+
+    /**
+     * Retrieves the list of versions.
+     * 
+     * @param request - The HTTP request object.
+     * @param response - The HTTP response object.
+     * @param next - The next middleware function.
+     */
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
         let versionsList = new Versions([{
             documentation: environment.gatewayUrl as string,
@@ -106,8 +165,13 @@ class OSWController implements IController {
 
         try {
             let format = request.query.format as string ?? 'osw';
+            let file_version = request.query.file_version as string ?? 'latest';
 
-            const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format);
+            if (!["latest", "original"].includes(file_version)) {
+                throw new InputException("Invalid file_version value");
+            }
+
+            const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format, file_version);
 
             const zipFileName = 'osw.zip';
 
@@ -200,7 +264,7 @@ class OSWController implements IController {
     }
 
     /**
-    * Flatterning the tdei record 
+    * Return the sidewalk dataset maching the bbox query 
     * @param request 
     * @param response 
     * @param next 
@@ -213,15 +277,7 @@ class OSWController implements IController {
             if (!requestService && !requestService.tdei_dataset_id && !requestService.bbox) {
                 return next(new InputException('required input is empty', response));
             }
-
-            if (requestService.file_type && !["osw", "osm"].includes(requestService.file_type)) {
-                throw new InputException("Invalid file type. Valid values are 'osw' or 'osm'");
-            }
-            else if (!requestService.file_type) {
-                requestService.file_type = "osw";
-            }
-
-            let backendRequest: ServiceRequest = {
+            let backendRequest: BboxServiceRequest = {
                 user_id: request.body.user_id,
                 service: "bbox_intersect",
                 parameters: {

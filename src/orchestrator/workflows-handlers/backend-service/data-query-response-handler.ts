@@ -6,8 +6,9 @@ import { BackendServiceJobResponse } from "../../../model/job-request-response/b
 import dbClient from "../../../database/data-source";
 import { JobEntity } from "../../../database/entity/job-entity";
 import { JobDTO, UpdateJobDTO } from "../../../model/job-dto";
-import { JobStatus } from "../../../model/jobs-get-query-params";
+import { JobStatus, JobType } from "../../../model/jobs-get-query-params";
 import jobService from "../../../service/job-service";
+import { DatasetEntity } from "../../../database/entity/dataset-entity";
 
 export class DataQueryResponseHandler extends WorkflowHandlerBase {
 
@@ -36,8 +37,17 @@ export class DataQueryResponseHandler extends WorkflowHandlerBase {
             const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
             const job = JobDTO.from(result.rows[0]);
 
+            //If job type is dataset-queries then update the dataset entity with latest 
+            //formatted url for Data manupulation queries
+            if (job.job_type == JobType["Dataset-Queries"]) {
+                //Tag road dataset service DB manipulation request
+                if (job.request_input.service == "dataset_tag_road") {
+                    await dbClient.query(DatasetEntity.getUpdateLatestDatasetUrlQuery(job.request_input.parameters.target_dataset_id, file_upload_path));
+                }
+            }
+
             //Check if the file type is osm and trigger the conversion workflow
-            if (job.request_input.file_type == "osm") {
+            if (job.request_input.file_type == "osm" || job.request_input.service == "dataset_tag_road") {
                 this.delegateWorkflowIfAny(delegate_worflow, message);
             }
             else {

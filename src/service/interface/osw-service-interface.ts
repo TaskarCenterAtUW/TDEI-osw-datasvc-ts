@@ -1,6 +1,6 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { IUploadRequest } from "./upload-request-interface";
-import { ServiceRequest } from "../../model/backend-request-interface";
+import { BboxServiceRequest, TagRoadServiceRequest } from "../../model/backend-request-interface";
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
 
@@ -11,11 +11,19 @@ export interface IOswService {
     /**
      * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
      * @param backendRequest The backend request to process.
+     * @returns A Promise that resolves to a string representing the job ID.
+     * @throws Throws an error if an error occurs during processing.
+     */
+    processDatasetTagRoadRequest(backendRequest: TagRoadServiceRequest): Promise<string>;
+
+    /**
+     * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
+     * @param backendRequest The backend request to process.
      * @param file_type Output file type.
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
-    processBackendRequest(backendRequest: ServiceRequest, file_type: string): Promise<string>;
+    processBackendRequest(backendRequest: BboxServiceRequest, file_type: string): Promise<string>;
     /**
     * Processes a dataset flattening request.
     * 
@@ -54,7 +62,7 @@ export interface IOswService {
      * @throws HttpException if the OswStream is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    getOswStreamById(id: string, format: string): Promise<FileEntity[]>;
+    getOswStreamById(id: string, format: string, file_version: string): Promise<FileEntity[]>;
 
     /**
     * Processes the upload request and performs various validations and operations.
