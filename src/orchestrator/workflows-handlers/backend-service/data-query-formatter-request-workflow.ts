@@ -41,9 +41,8 @@ export class DataQueryFormatterRequestWorkflow extends WorkflowBase {
                 messageId: message.messageId,
                 messageType: `${this.eventName}`, // will be set by the publish handler with params defined in config
                 data: {
-                    tdei_dataset_id: message.messageId,
-                    file_upload_path: dataset.dataset_url,
-                    data_type: "osw"
+                    file_upload_path: dataset.latest_dataset_url,
+                    tdei_project_group_id: dataset.tdei_project_group_id
                 }
             });
 

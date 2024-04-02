@@ -144,3 +144,6 @@ ALTER TABLE IF EXISTS content.dataset
     ADD COLUMN latest_dataset_url character varying;
 ALTER TABLE IF EXISTS content.dataset
     ADD COLUMN latest_osm_url character varying;
+
+
+update content.dataset set latest_dataset_url = dataset_url, latest_osm_url = osm_url;      
