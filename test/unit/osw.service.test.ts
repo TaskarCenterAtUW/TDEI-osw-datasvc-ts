@@ -16,6 +16,9 @@ import oswService from "../../src/service/osw-service";
 import { DatasetEntity } from "../../src/database/entity/dataset-entity";
 import { ServiceEntity } from "../../src/database/entity/service-entity";
 import { BboxServiceRequest } from "../../src/model/backend-request-interface";
+import { RecordStatus } from "../../src/model/dataset-get-query-params";
+import { CreateJobDTO } from "../../src/model/job-dto";
+import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
 
 // group test using describe
 describe("OSW Service Test", () => {
@@ -472,6 +475,84 @@ describe("OSW Service Test", () => {
 
             // Act & Assert
             await expect(oswService.processBackendRequest(backendRequest, "osm")).rejects.toThrow(mockError);
+        });
+    });
+
+    describe("processDatasetTagRoadRequest", () => {
+        test("When dataset is not in Pre-Release state, Expect to throw InputException", async () => {
+            // Arrange
+            const backendRequest = {
+                parameters: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-source-dataset-id",
+                },
+                service: "mock-service",
+                user_id: "mock-user-id",
+            };
+            const dataset = {
+                status: RecordStatus["Publish"],
+            } as any;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
+
+            // Act & Assert
+            await expect(oswService.processDatasetTagRoadRequest(backendRequest)).rejects.toThrow(
+                new InputException(
+                    `Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`
+                )
+            );
+        });
+
+        test("When dataset is in Pre-Release state, Expect to create job and trigger workflow", async () => {
+            // Arrange
+            const backendRequest = {
+                parameters: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-source-dataset-id",
+                },
+                service: "mock-service",
+                user_id: "mock-user-id",
+            };
+            const dataset = {
+                status: RecordStatus["Pre-Release"],
+            } as any;
+            const job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Queries"],
+                status: JobStatus["IN-PROGRESS"],
+                message: "Job started",
+                request_input: {
+                    service: backendRequest.service,
+                    user_id: backendRequest.user_id,
+                    parameters: backendRequest.parameters,
+                },
+                tdei_project_group_id: "",
+                user_id: backendRequest.user_id,
+            });
+            const job_id = 111;
+            const queueMessage = QueueMessage.from({
+                messageId: job_id.toString(),
+                messageType: "DATA_QUERY_REQUEST_WORKFLOW",
+                data: {
+                    service: backendRequest.service,
+                    user_id: backendRequest.user_id,
+                    parameters: backendRequest.parameters,
+                },
+                publishedDate: "2024-04-02T10:04:58.734Z"
+            });
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
+            jest.spyOn(oswService.jobServiceInstance, "createJob").mockResolvedValueOnce(job_id);
+            mockAppContext();
+
+            // Act
+            const result = await oswService.processDatasetTagRoadRequest(backendRequest);
+
+            // Assert
+            expect(result).toBe(job_id.toString());
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(job);
+            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+                "DATA_QUERY_REQUEST_WORKFLOW",
+                expect.any(QueueMessage)
+            );
         });
     });
 });

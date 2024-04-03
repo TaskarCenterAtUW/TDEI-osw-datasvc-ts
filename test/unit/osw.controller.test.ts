@@ -2,12 +2,127 @@ import oswController from "../../src/controller/osw-controller";
 import oswService from "../../src/service/osw-service";
 import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
-import { InputException } from "../../src/exceptions/http/http-exceptions";
+import { InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
 import { getMockFileEntity } from "../common/mock-utils";
 import tdeiCoreService from "../../src/service/tdei-core-service";
+import { Utility } from "../../src/utility/utility";
 
 // group test using describe
 describe("OSW Controller Test", () => {
+
+    describe("Process Dataset Tag Road Request", () => {
+        test("When request body is empty, Expect to return HTTP status 400", async () => {
+            // Arrange
+            const req = getMockReq({ query: {} });
+            const { res, next } = getMockRes();
+            const inputException = new InputException("required input is empty", res);
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(inputException);
+
+            // Act
+            await oswController.processDatasetTagRoadRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(inputException);
+        });
+
+        test("When required input is empty, Expect to return HTTP status 400", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    source_dataset_id: undefined,
+                    target_dataset_id: undefined
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const inputException = new InputException("required input is empty", res);
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(inputException);
+
+            // Act
+            await oswController.processDatasetTagRoadRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(inputException);
+        });
+
+        test("When user is not authorized, Expect to return HTTP status 401", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-target-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(false);
+            const unauthenticatedException = new UnAuthenticated();
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(unauthenticatedException);
+
+            // Act
+            await oswController.processDatasetTagRoadRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(unauthenticatedException);
+        });
+
+        test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-target-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const job_id = "mock-job-id";
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(true);
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockResolvedValueOnce(job_id);
+
+            // Act
+            await oswController.processDatasetTagRoadRequest(req, res, next);
+
+            // Assert
+            expect(res.setHeader).toHaveBeenCalledWith("Location", `/api/v1/job?job_id=${job_id}`);
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+        });
+
+        test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-target-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new Error("Internal Server Error");
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(true);
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.processDatasetTagRoadRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the dataset bbox request");
+            expect(next).toHaveBeenCalledWith(new HttpException(500, "Error while processing the dataset bbox request"));
+        });
+    });
 
     describe("Process Dataset Bbox Request", () => {
         test("When request body is empty, Expect to return HTTP status 400", async () => {
@@ -119,54 +234,6 @@ describe("OSW Controller Test", () => {
             );
         });
     });
-
-    // describe("Get OSW list", () => {
-    //     describe("Functional", () => {
-    //         test("When requested with empty search criteria, Expect to return OSW list", async () => {
-    //             //Arrange
-    //             const req = getMockReq();
-    //             const { res, next } = getMockRes();
-    //             const list: DatasetDTO[] = [<DatasetDTO>{}]
-    //             const getDatasetsSpy = jest
-    //                 .spyOn(tdeiCoreService, "getDatasets")
-    //                 .mockResolvedValueOnce(list);
-    //             //Act
-    //             await oswController.getDatasetList(req, res, next);
-    //             //Assert
-    //             expect(getDatasetsSpy).toHaveBeenCalledTimes(1);
-    //             expect(res.status).toHaveBeenCalledWith(200);
-    //             expect(res.send).toBeCalledWith(list);
-    //         });
-
-    //         test("When requested with bad collection_date input, Expect to return HTTP status 400", async () => {
-    //             //Arrange
-    //             const req = getMockReq({ body: { collection_date: "2023" } });
-    //             const { res, next } = getMockRes();
-    //             jest
-    //                 .spyOn(tdeiCoreService, "getDatasets")
-    //                 .mockRejectedValueOnce(new InputException("Invalid date provided."));
-    //             //Act
-    //             await oswController.getDatasetList(req, res, next);
-    //             //Assert
-    //             expect(res.status).toHaveBeenCalledWith(400);
-    //             expect(next).toHaveBeenCalled();
-    //         });
-
-    //         test("When unknown or database exception occured while processing request, Expect to return HTTP status 500", async () => {
-    //             //Arrange
-    //             const req = getMockReq({ body: { collection_date: "2023" } });
-    //             const { res, next } = getMockRes();
-    //             jest
-    //                 .spyOn(tdeiCoreService, "getDatasets")
-    //                 .mockRejectedValueOnce(new Error("unknown error"));
-    //             //Act
-    //             await oswController.getDatasetList(req, res, next);
-    //             //Assert
-    //             expect(res.status).toHaveBeenCalledWith(500);
-    //             expect(next).toHaveBeenCalled();
-    //         });
-    //     });
-    // });
 
     describe("Get OSW file by Id", () => {
 
