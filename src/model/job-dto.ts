@@ -29,6 +29,8 @@ export class JobDTO extends AbstractDomainEntity {
     created_at!: string;
     @Prop()
     updated_at!: string;
+    @Prop()
+    stage!: string;
 }
 
 export class CreateJobDTO extends AbstractDomainEntity {
@@ -57,6 +59,8 @@ export class CreateJobDTO extends AbstractDomainEntity {
     job_type!: JobType;
     @Prop()
     response_props!: any;
+    @Prop()
+    stage: string = "Started";
 }
 
 export class UpdateJobDTO extends AbstractDomainEntity {
@@ -73,4 +77,6 @@ export class UpdateJobDTO extends AbstractDomainEntity {
     response_props!: any;
     @Prop()
     download_url!: string;
+    @Prop()
+    stage!: string;
 }

@@ -28,6 +28,7 @@ export class PublishDatabaseWorkflow extends WorkflowBase {
                 job_id: message.messageId,
                 message: "Dataset Published Successfully",
                 status: JobStatus.COMPLETED,
+                 
                 response_props: {}
             })
             await jobService.updateJob(updateJobDTO);

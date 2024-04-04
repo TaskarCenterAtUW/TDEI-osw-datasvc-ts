@@ -36,6 +36,8 @@ export class JobEntity extends BaseDto {
     created_at!: string;
     @Prop()
     updated_at!: string;
+    @Prop()
+    stage!: string;
 
     constructor(init?: Partial<JobEntity>) {
         super();
@@ -62,8 +64,8 @@ export class JobEntity extends BaseDto {
      */
     static getUpdateJobQuery(updateJobDTO: UpdateJobDTO): QueryConfig {
         const query = {
-            text: `UPDATE content.job SET status = $2, message = $3, download_url = $4 , response_props = $5, updated_at = CURRENT_TIMESTAMP WHERE job_id = $1 RETURNING *`,
-            values: [updateJobDTO.job_id, updateJobDTO.status, updateJobDTO.message, updateJobDTO.download_url, updateJobDTO.response_props],
+            text: `UPDATE content.job SET status = $2, message = $3, download_url = $4 , response_props = $5, stage = $6, updated_at = CURRENT_TIMESTAMP WHERE job_id = $1 RETURNING *`,
+            values: [updateJobDTO.job_id, updateJobDTO.status, updateJobDTO.message, updateJobDTO.download_url, updateJobDTO.response_props, updateJobDTO.stage],
         }
         return query;
     }
@@ -75,8 +77,8 @@ export class JobEntity extends BaseDto {
      */
     static getCreateJobQuery(job: CreateJobDTO): QueryConfig {
         const query = {
-            text: 'INSERT INTO content.job (job_type, data_type, status, user_id, tdei_project_group_id, request_input, response_props ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING job_id',
-            values: [job.job_type, job.data_type, job.status, job.user_id, job.tdei_project_group_id, job.request_input, job.response_props],
+            text: 'INSERT INTO content.job (job_type, data_type, status, user_id, tdei_project_group_id, request_input, response_props , stage) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING job_id',
+            values: [job.job_type, job.data_type, job.status, job.user_id, job.tdei_project_group_id, job.request_input, job.response_props, job.stage],
         }
         return query;
     }
