@@ -80,7 +80,7 @@ describe("OSW Service Test", () => {
                 params.tdei_project_group_id = "test_id";
                 params.tdei_record_id = "test_id";
                 params.tdei_project_group_id = "test_id";
-                params.osw_schema_version = "v0.1";
+                params.osw_schema_version = "v0.2";
                 params.bbox = [1, 2, 3, 4]
                 //Act
                 const result = await oswService.getAllOsw("user_id", params);
@@ -110,7 +110,7 @@ describe("OSW Service Test", () => {
                 params.tdei_project_group_id = "test_id";
                 params.tdei_record_id = "test_id";
                 params.tdei_project_group_id = "test_id";
-                params.osw_schema_version = "v0.1";
+                params.osw_schema_version = "v0.2";
                 params.bbox = [1, 2, 3, 4]
                 //Act
                 //Assert
@@ -138,7 +138,7 @@ describe("OSW Service Test", () => {
                 params.tdei_project_group_id = "test_id";
                 params.tdei_record_id = "test_id";
                 params.tdei_project_group_id = "test_id";
-                params.osw_schema_version = "v0.1";
+                params.osw_schema_version = "v0.2";
                 params.bbox = [1, 2]
                 //Act
                 //Assert
@@ -167,7 +167,7 @@ describe("OSW Service Test", () => {
                 params.tdei_project_group_id = "test_id";
                 params.tdei_record_id = "test_id";
                 params.tdei_project_group_id = "test_id";
-                params.osw_schema_version = "v0.1";
+                params.osw_schema_version = "v0.2";
                 params.bbox = [1, 2]
                 //Act
                 //Assert

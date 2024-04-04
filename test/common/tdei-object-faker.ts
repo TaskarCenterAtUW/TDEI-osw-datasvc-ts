@@ -47,7 +47,7 @@ export class TdeiObjectFaker {
             collection_method: "manual",
             publication_date: new Date(),
             data_source: "InHouse",
-            osw_schema_version: "v0.1"
+            osw_schema_version: "v0.2"
         };
     }
 
