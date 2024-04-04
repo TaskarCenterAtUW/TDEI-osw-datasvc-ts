@@ -45,7 +45,7 @@ export class TdeiObjectFaker {
             collection_method: "manual",
             publication_date: new Date(),
             data_source: "InHouse",
-            schema_version: "v0.1"
+            schema_version: "v0.2"
         };
     }
 

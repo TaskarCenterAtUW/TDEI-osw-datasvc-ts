@@ -22,10 +22,173 @@ import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query
 
 // group test using describe
 describe("OSW Service Test", () => {
-    beforeAll(async () => {
-        // oswService.jobServiceInstance = jobService;
-        // oswService.tdeiCoreServiceInstance = tdeiCoreService;
-    }, 1000);
+    describe("Get all OSW", () => {
+        describe("Functional", () => {
+            test("When requested with empty search filters, Expect to return OSW list", async () => {
+                //Arrange
+                const oswObj = TdeiObjectFaker.getOswVersion();
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        oswObj
+                    ]
+                };
+                jest
+                    .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+                jest
+                    .spyOn(oswService, "getUserProjectGroups")
+                    .mockResolvedValueOnce([]);
+
+                const params: OswQueryParams = new OswQueryParams();
+                //Act
+                const result = await oswService.getAllOsw("user_id", params);
+                //Assert
+                expect(Array.isArray(result));
+                expect(result.every(item => item instanceof OswDTO));
+            });
+
+            test("When requested with all search filters, expect to return OSW list", async () => {
+                //Arrange
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        oswObj
+                    ]
+                };
+                jest
+                    .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+                jest
+                    .spyOn(oswService, "getUserProjectGroups")
+                    .mockResolvedValueOnce([]);
+                const params: OswQueryParams = new OswQueryParams();
+                params.page_no = 1;
+                params.page_size = 10;
+                params.name = "testing";
+                params.version = "v1";
+                params.valid_to = "03-03-2023";
+                params.tdei_project_group_id = "test_id";
+                params.tdei_record_id = "test_id";
+                params.tdei_project_group_id = "test_id";
+                params.osw_schema_version = "v0.2";
+                params.bbox = [1, 2, 3, 4]
+                //Act
+                const result = await oswService.getAllOsw("user_id", params);
+                //Assert
+                expect(Array.isArray(result));
+                expect(result.every(item => item instanceof OswDTO));
+            });
+
+            test("When requested with invalid date search filter, Expect to throw InputException", async () => {
+                //Arrange
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        oswObj
+                    ]
+                };
+                jest
+                    .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+                jest
+                    .spyOn(oswService, "getUserProjectGroups")
+                    .mockResolvedValueOnce([]);
+                const params: OswQueryParams = new OswQueryParams();
+                params.page_no = 1;
+                params.page_size = 10;
+                params.valid_to = "13-13-2023";
+                params.tdei_project_group_id = "test_id";
+                params.tdei_record_id = "test_id";
+                params.tdei_project_group_id = "test_id";
+                params.osw_schema_version = "v0.2";
+                params.bbox = [1, 2, 3, 4]
+                //Act
+                //Assert
+                expect(oswService.getAllOsw("user_id", params)).rejects.toThrow(InputException);
+            });
+
+            test("When requested with invalid bbox search filter, Expect to throw InputException", async () => {
+                //Arrange
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        oswObj
+                    ]
+                };
+                jest
+                    .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+                jest
+                    .spyOn(oswService, "getUserProjectGroups")
+                    .mockResolvedValueOnce([]);
+                const params: OswQueryParams = new OswQueryParams();
+                params.page_no = 1;
+                params.page_size = 10;
+                params.valid_to = "03-03-2023";
+                params.tdei_project_group_id = "test_id";
+                params.tdei_record_id = "test_id";
+                params.tdei_project_group_id = "test_id";
+                params.osw_schema_version = "v0.2";
+                params.bbox = [1, 2]
+                //Act
+                //Assert
+                expect(oswService.getAllOsw("user_id", params)).rejects.toThrow(InputException);
+            });
+
+            test("When requested for 'Pre-Release' records and user not associsted with any project groups, Expect to throw InputException", async () => {
+                //Arrange
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        oswObj
+                    ]
+                };
+                jest
+                    .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+                jest
+                    .spyOn(oswService, "getUserProjectGroups")
+                    .mockResolvedValueOnce([]);
+                const params: OswQueryParams = new OswQueryParams();
+                params.page_no = 1;
+                params.page_size = 10;
+                params.status = RecordStatus["Pre-Release"]
+                params.valid_to = "03-03-2023";
+                params.tdei_project_group_id = "test_id";
+                params.tdei_record_id = "test_id";
+                params.tdei_project_group_id = "test_id";
+                params.osw_schema_version = "v0.2";
+                params.bbox = [1, 2]
+                //Act
+                //Assert
+                expect(oswService.getAllOsw("user_id", params)).rejects.toThrow(InputException);
+            });
+
+            test("When requested for 'Pre-Release' records and user associsted with any project groups, Expect to return OSW list", async () => {
+                //Arrange
+                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
+                const dummyResponse = <QueryResult<any>>{
+                    rows: [
+                        oswObj
+                    ]
+                };
+                jest
+                    .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(dummyResponse);
+                jest
+                    .spyOn(oswService, "getUserProjectGroups")
+                    .mockResolvedValueOnce([new ProjectGroupRoleDto()]);
+                const params: OswQueryParams = new OswQueryParams();
+                params.status = RecordStatus["Pre-Release"]
+                //Act
+                //Act
+                const result = await oswService.getAllOsw("user_id", params);
+                //Assert
+                expect(Array.isArray(result));
+                expect(result.every(item => item instanceof OswDTO));
+            });
+        });
+    });
 
     describe("Get OSW file by Id", () => {
         describe("Functional", () => {
