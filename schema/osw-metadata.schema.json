@@ -44,7 +44,7 @@
         "osw_schema_version": {
             "type": "string",
             "enum": [
-                "v0.1"
+                "v0.2"
             ]
         },
         "valid_from": {

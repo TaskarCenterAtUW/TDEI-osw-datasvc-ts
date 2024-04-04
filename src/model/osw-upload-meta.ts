@@ -64,7 +64,7 @@ export class OswUploadMeta extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    @IsIn(['v0.1'])
+    @IsIn(['v0.2'])
     osw_schema_version!: string;
 
     /**
