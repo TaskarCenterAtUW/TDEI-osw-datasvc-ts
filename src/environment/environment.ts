@@ -32,5 +32,7 @@ export const environment = {
     secretGenerateUrl: process.env.AUTH_HOST + '/api/v1/generateSecret',
     gatewayUrl: process.env.GATEWAY_URL,
     serviceUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/service',
-    userProjectGroupRolesUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/project-group-roles'
+    userProjectGroupRolesUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/project-group-roles',
+    schemaDocumentationUrl: process.env.DOCUMENTATION_URL,
+    schemaUrl: process.env.SCHEMA_URL
 }
