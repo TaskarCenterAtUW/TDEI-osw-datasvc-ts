@@ -493,7 +493,8 @@ class OswService implements IOswService {
             if (validation_errors) {
                 throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
             }
-
+            // write schema checking here.
+            
             //Check for unique name and version combination
             if (await this.tdeiCoreServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
                 throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
@@ -541,6 +542,7 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Upload"],
                 status: JobStatus["IN-PROGRESS"],
+                stage:'Validation started',
                 message: 'Job started',
                 request_input: {
                     tdei_service_id: uploadRequestObject.tdei_service_id,

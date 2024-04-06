@@ -181,6 +181,7 @@ class PathwaysService implements IPathwaysService {
             if (validation_errors) {
                 throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
             }
+            // write schema checking here.
 
             //Check for unique name and version combination
             if (await this.tdeiCoreServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))

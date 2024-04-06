@@ -22,7 +22,7 @@ export class UploadFormattingRequestWorkflow extends WorkflowBase {
             const job = JobDTO.from(result.rows[0]);
             // Get the dataset details
             const dataset = await tdeiCoreService.getDatasetDetailsById(job.response_props.tdei_dataset_id);
-
+            // update job with stage and updated date
             //Compose the meessage
             let queueMessage = QueueMessage.from({
                 messageId: message.messageId,
