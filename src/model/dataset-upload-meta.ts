@@ -64,8 +64,7 @@ export class DatasetUploadMetadata extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    @IsIn(['v0.2'])
-    osw_schema_version!: string;
+    schema_version!: string;
 
     /**
      * Returns the readable stream of the information

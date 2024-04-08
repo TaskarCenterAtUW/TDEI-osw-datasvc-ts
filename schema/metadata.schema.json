@@ -41,11 +41,8 @@
                 "InHouse"
             ]
         },
-        "osw_schema_version": {
-            "type": "string",
-            "enum": [
-                "v0.2"
-            ]
+        "schema_version": {
+            "type": "string"
         },
         "valid_from": {
             "type": "string"

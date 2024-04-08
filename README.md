@@ -167,7 +167,7 @@ Example for metadata
     "collection_date": "2024-01-18 21:17:48.357173-08",
     "collection_method": "transform",
     "data_source": "3rdParty",
-    "osw_schema_version": "v0.2",
+    "schema_version": "v0.1",
     "valid_from": "2024-01-18 21:17:48.357173-08",
     "valid_to": "2024-01-19 22:17:48.357173-08",
     "dataset_area": {
