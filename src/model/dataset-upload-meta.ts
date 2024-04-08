@@ -64,7 +64,6 @@ export class DatasetUploadMetadata extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    @IsIn(['v0.1'])
     schema_version!: string;
 
     /**

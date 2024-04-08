@@ -159,7 +159,7 @@ export class TdeiObjectFaker {
                     }
                 ]
             },
-            "schema_version": "v2.0"
+            "schema_version": "v0.2"
         }
     }
 
