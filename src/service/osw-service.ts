@@ -488,6 +488,8 @@ class OswService implements IOswService {
             const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
             const oswdto = DatasetUploadMetadata.from(metadata);
             let validation_errors = await this.tdeiCoreServiceInstance.validateObject(oswdto);
+            if (!["v0.2"].includes(oswdto.schema_version))
+                validation_errors = validation_errors + " " + "Schema version is not supported. Please use v0.2 schema version."
             if (validation_errors) {
                 throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
             }

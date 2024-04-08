@@ -176,6 +176,8 @@ class PathwaysService implements IPathwaysService {
             const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
             const metaObj = DatasetUploadMetadata.from(metadata);
             let validation_errors = await this.tdeiCoreServiceInstance.validateObject(metaObj);
+            if (!["v1.0"].includes(metaObj.schema_version))
+                validation_errors = validation_errors + " " + "Schema version is not supported. Please use v1.0 schema version."
             if (validation_errors) {
                 throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
             }

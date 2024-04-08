@@ -161,7 +161,7 @@ describe("Pathways Service Test", () => {
             metadataFile: [
                 {
                     originalname: 'metadata.json',
-                    buffer: Buffer.from('{"name": "test", "version": "1.0"}'),
+                    buffer: Buffer.from('{"name": "test", "schema_version": "v1.0"}'),
                 },
             ],
             changesetFile: undefined,
