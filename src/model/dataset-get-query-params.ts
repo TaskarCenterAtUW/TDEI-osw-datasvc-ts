@@ -110,7 +110,7 @@ export class DatasetQueryParams {
         addConditionIfValueExists('valid_from > ', this.valid_from && TdeiDate.isValid(this.valid_from) ? TdeiDate.UTC(this.valid_from) : null);
         addConditionIfValueExists('collection_date > ', this.collection_date && TdeiDate.isValid(this.collection_date) ? TdeiDate.UTC(this.collection_date) : null);
         if (this.bbox && this.bbox.length > 0 && this.bbox.length == 4) {
-            conditions.push({ clouse: `(metadata.dataset_area && ST_MakeEnvelope(${this.bbox[0]},${this.bbox[1]},${this.bbox[2]},${this.bbox[3]}, 4326))` });
+            conditions.push({ clouse: `(m.dataset_area && ST_MakeEnvelope(${this.bbox[0]},${this.bbox[1]},${this.bbox[2]},${this.bbox[3]}, 4326))` });
         }
 
         //Sort field

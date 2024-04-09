@@ -53,7 +53,7 @@ export class DataQueryResponseHandler extends WorkflowHandlerBase {
             else {
                 let updateJobDTO = UpdateJobDTO.from({
                     job_id: message.messageId,
-                    message: "Request Processed Successfully",
+                    message: message.data.message,
                     status: JobStatus.COMPLETED,
                     response_props: {}
                 })
