@@ -52,14 +52,14 @@ const upload = multer({
 });
 
 // Accepted format files for on-demand conversion
-const acceptedFileFormatsForConversion = ['.zip','.pbf']
+const acceptedFileFormatsForConversion = ['.zip', '.pbf', '.osm', '.xml']
 
 const uploadForFormat = multer({
     dest: 'uploads/',
     storage: memoryStorage(),
     fileFilter: (req, file, cb) => {
         const ext = path.extname(file.originalname);
-         if (!acceptedFileFormatsForConversion.includes(ext)) {
+        if (!acceptedFileFormatsForConversion.includes(ext)) {
             cb(new FileTypeException());
         }
         cb(null, true);

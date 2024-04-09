@@ -67,11 +67,13 @@ export function buildQuery(
         sortClause = ` ORDER BY ${sortField} ${sortOrder}`;
     }
 
+    limit = Number(limit);
+    offset = Number(offset);
     if (limit === undefined || limit < 1) {
         limit = 10; // Default limit to 10 items per page
     }
 
-    if (offset === undefined || offset < 0) {
+    if (offset === undefined || offset <= 0) {
         offset = 0; // Default offset to 0
     } else {
         offset = (offset - 1) * limit; // Calculate offset based on page number
