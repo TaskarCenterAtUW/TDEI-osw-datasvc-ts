@@ -5,10 +5,10 @@ import { DatasetEntity } from "../../../../database/entity/dataset-entity";
 import { WorkflowBase } from "../../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../../services/orchestrator-service";
 import { JobEntity } from "../../../../database/entity/job-entity";
-import { JobDTO, UpdateJobDTO } from "../../../../model/job-dto";
+import { JobDTO } from "../../../../model/job-dto";
 import { JobStatus } from "../../../../model/jobs-get-query-params";
-import jobService from "../../../../service/job-service";
 import { RecordStatus } from "../../../../model/dataset-get-query-params";
+import { OswStage } from "../../../../constants/app-constants";
 
 export class PublishDatabaseWorkflow extends WorkflowBase {
 
@@ -19,22 +19,25 @@ export class PublishDatabaseWorkflow extends WorkflowBase {
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
-            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+
+            const result = //Update job
+                await dbClient.query(
+                    JobEntity.getUpdateQuery(
+                        //Where clause
+                        message.messageId,
+                        //Column to update
+                        JobEntity.from({
+                            stage: OswStage.DB_UPDATE,
+                            message: "Dataset Published Successfully",
+                            status: JobStatus.COMPLETED
+                        })
+                    ));
             const job = JobDTO.from(result.rows[0]);
             //This workflow triggers at the end of the workflow stages and marks complete of the workflow process
             await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.request_input.tdei_dataset_id, RecordStatus.Publish));
-
-            let updateJobDTO = UpdateJobDTO.from({
-                job_id: message.messageId,
-                message: "Dataset Published Successfully",
-                status: JobStatus.COMPLETED,
-                 
-                response_props: {}
-            })
-            await jobService.updateJob(updateJobDTO);
         }
         catch (error) {
-            console.error("Error in publishing the record to the database", error);
+            console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
         }
         this.delegateWorkflowHandlers(message);
     }

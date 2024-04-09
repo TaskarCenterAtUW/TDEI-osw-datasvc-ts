@@ -7,6 +7,7 @@ import dbClient from "../../../database/data-source";
 import { JobEntity } from "../../../database/entity/job-entity";
 import { JobDTO } from "../../../model/job-dto";
 import { JobType } from "../../../model/jobs-get-query-params";
+import { OswStage } from "../../../constants/app-constants";
 
 export class DataQueryFormatterRequestWorkflow extends WorkflowBase {
 
@@ -18,8 +19,18 @@ export class DataQueryFormatterRequestWorkflow extends WorkflowBase {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
-            //Get the job details from the database
-            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+
+            //Update job
+            let result = await dbClient.query(
+                JobEntity.getUpdateQuery(
+                    //Where clause
+                    message.messageId,
+                    //Column to update
+                    JobEntity.from({
+                        stage: OswStage.CONVERTING,
+                        message: `${OswStage.CONVERTING} in progress`
+                    })
+                ));
             const job = JobDTO.from(result.rows[0]);
 
             var tdei_dataset_id;

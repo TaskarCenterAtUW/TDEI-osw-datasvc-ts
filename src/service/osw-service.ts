@@ -24,6 +24,7 @@ import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { RecordStatus } from "../model/dataset-get-query-params";
+import { OswStage } from "../constants/app-constants";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -45,7 +46,8 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Queries"],
                 status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
+                stage: OswStage.DATASET_QUERY,
+                message: `${OswStage.DATASET_QUERY} in progress`,
                 request_input: {
                     service: backendRequest.service,
                     user_id: backendRequest.user_id,
@@ -104,7 +106,8 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Reformat"],
                 status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
+                stage: OswStage.CONVERTING,
+                message: `${OswStage.CONVERTING} in progress`,
                 request_input: {
                     source_format: source,
                     target_format: target,
@@ -163,7 +166,8 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Confidence-Calculate"],
                 status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
+                stage: OswStage.CONFIDENCE_METRIC,
+                message: `${OswStage.CONFIDENCE_METRIC} in progress`,
                 request_input: {
                     tdei_dataset_id: tdei_dataset_id,
                     trigger_type: 'manual'
@@ -238,7 +242,8 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Publish"],
                 status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
+                stage: OswStage.CONFIDENCE_METRIC,
+                message: `${OswStage.CONFIDENCE_METRIC} in progress`,
                 request_input: {
                     tdei_dataset_id: tdei_dataset_id
                 },
@@ -321,7 +326,8 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Flatten"],
                 status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
+                stage: OswStage.FLATTENING,
+                message: `${OswStage.FLATTENING} in progress`,
                 request_input: {
                     tdei_dataset_id: tdei_dataset_id
                 },
@@ -366,7 +372,8 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Queries"],
                 status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
+                stage: OswStage.DATASET_QUERY,
+                message: `${OswStage.DATASET_QUERY} in progress`,
                 request_input: {
                     service: backendRequest.service,
                     user_id: backendRequest.user_id,
@@ -421,7 +428,8 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Validate"],
                 status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
+                stage: OswStage.VALIDATION,
+                message: `${OswStage.VALIDATION} in progress`,
                 request_input: {
                     file_upload_name: datasetFile.originalname
                 },
@@ -542,8 +550,8 @@ class OswService implements IOswService {
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Upload"],
                 status: JobStatus["IN-PROGRESS"],
-                stage:'Validation started',
-                message: 'Job started',
+                stage: OswStage.VALIDATION,
+                message: `${OswStage.VALIDATION} in progress`,
                 request_input: {
                     tdei_service_id: uploadRequestObject.tdei_service_id,
                     dataset_name: oswMetadataEntity.name,

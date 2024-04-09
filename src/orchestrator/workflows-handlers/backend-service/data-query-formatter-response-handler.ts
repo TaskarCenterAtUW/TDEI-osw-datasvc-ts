@@ -7,6 +7,7 @@ import { JobEntity } from "../../../database/entity/job-entity";
 import { JobDTO } from "../../../model/job-dto";
 import { JobType } from "../../../model/jobs-get-query-params";
 import { DatasetEntity } from "../../../database/entity/dataset-entity";
+import { OswStage } from "../../../constants/app-constants";
 
 export class DataQueryFormatterResponseHandler extends WorkflowHandlerBase {
 
@@ -28,11 +29,19 @@ export class DataQueryFormatterResponseHandler extends WorkflowHandlerBase {
 
             try {
                 download_osm_url = decodeURIComponent(download_osm_url!);
-                //Update job with formatted url
-                await dbClient.query(JobEntity.getUpdateJobDownloadUrlQuery(message.messageId, download_osm_url));
 
-                //Get the job details from the database
-                const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+                //Update job
+                let result = await dbClient.query(
+                    JobEntity.getUpdateQuery(
+                        //Where clause
+                        message.messageId,
+                        //Column to update
+                        JobEntity.from({
+                            stage: OswStage.CONVERTING,
+                            message: `${OswStage.CONVERTING} completed`,
+                            download_url: download_osm_url
+                        })
+                    ));
                 const job = JobDTO.from(result.rows[0]);
 
                 //If job type is dataset-queries then update the dataset entity with latest 

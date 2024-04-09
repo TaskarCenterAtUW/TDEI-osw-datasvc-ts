@@ -6,6 +6,7 @@ import { WorkflowHandlerBase } from "../../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../../services/orchestrator-service";
 import { JobEntity } from "../../../../database/entity/job-entity";
 import { JobDTO } from "../../../../model/job-dto";
+import { OswStage } from "../../../../constants/app-constants";
 
 export class UploadFormattingResponseHandler extends WorkflowHandlerBase {
 
@@ -27,14 +28,25 @@ export class UploadFormattingResponseHandler extends WorkflowHandlerBase {
 
             try {
                 download_osm_url = decodeURIComponent(download_osm_url!);
-                const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+                const result = //Update job
+                    await dbClient.query(
+                        JobEntity.getUpdateQuery(
+                            //Where clause
+                            message.messageId,
+                            //Column to update
+                            JobEntity.from({
+                                stage: OswStage.CONVERTING,
+                                message: `${OswStage.CONVERTING} completed`
+                            })
+                        ));
+
                 const job = JobDTO.from(result.rows[0]);
                 //Update dataset with formatted url
                 await dbClient.query(DatasetEntity.getUpdateFormatUrlQuery(job.response_props.tdei_dataset_id, download_osm_url));
 
                 this.delegateWorkflowIfAny(delegate_worflow, message);
             } catch (error) {
-                console.error("Error updating the osw version formatting results", error);
+                console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
                 return;
             }
         }

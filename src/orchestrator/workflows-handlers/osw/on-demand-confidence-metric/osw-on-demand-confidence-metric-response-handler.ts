@@ -3,10 +3,11 @@ import EventEmitter from "events";
 import { ConfidenceJobResponse } from "../../../../model/job-request-response/osw-confidence-job-response";
 import { WorkflowHandlerBase } from "../../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../../services/orchestrator-service";
-import jobService from "../../../../service/job-service";
-import { UpdateJobDTO } from "../../../../model/job-dto";
+import { JobDTO } from "../../../../model/job-dto";
 import { JobStatus } from "../../../../model/jobs-get-query-params";
 import tdeiCoreService from "../../../../service/tdei-core-service";
+import dbClient from "../../../../database/data-source";
+import { JobEntity } from "../../../../database/entity/job-entity";
 
 export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
 
@@ -25,17 +26,26 @@ export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
 
         try {
             const confidenceResponse = ConfidenceJobResponse.from(message.data);
-            let updateJobDTO = UpdateJobDTO.from({
-                job_id: message.messageId,
-                message: confidenceResponse.message,
-                status: confidenceResponse.success ? JobStatus.COMPLETED : JobStatus.FAILED,
-                response_props: {
-                    confidence: confidenceResponse.confidence_level,
-                    confidence_library_version: confidenceResponse.confidence_library_version
-                }
-            })
-            let updated_job = await jobService.updateJob(updateJobDTO);
-            tdeiCoreService.updateConfidenceMetric(updated_job.request_input.tdei_dataset_id, confidenceResponse);
+            //Update job
+            let result =
+                await dbClient.query(
+                    JobEntity.getUpdateQuery(
+                        //Where clause
+                        message.messageId,
+                        //Column to update
+                        JobEntity.from({
+                            status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
+                            message: message.data.message,
+                            response_props: {
+                                confidence: confidenceResponse.confidence_level,
+                                confidence_library_version: confidenceResponse.confidence_library_version
+                            }
+                        })
+                    ));
+
+            let updatedJob = JobDTO.from(result.rows[0]);
+
+            tdeiCoreService.updateConfidenceMetric(updatedJob.request_input.tdei_dataset_id, confidenceResponse);
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
         }

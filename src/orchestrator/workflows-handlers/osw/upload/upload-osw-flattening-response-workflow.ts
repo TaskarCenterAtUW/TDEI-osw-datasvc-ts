@@ -2,9 +2,8 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
 import { WorkflowBase } from "../../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../../services/orchestrator-service";
-import { JobDTO, UpdateJobDTO } from "../../../../model/job-dto";
+import { JobDTO } from "../../../../model/job-dto";
 import { JobStatus } from "../../../../model/jobs-get-query-params";
-import jobService from "../../../../service/job-service";
 import dbClient from "../../../../database/data-source";
 import { JobEntity } from "../../../../database/entity/job-entity";
 import tdeiCoreService from "../../../../service/tdei-core-service";
@@ -22,16 +21,19 @@ export class UploadFlatteningResponseWorkflow extends WorkflowBase {
             this.delegateWorkflowHandlers(message);
         }
         else {
-            let updateJobDTO = UpdateJobDTO.from({
-                job_id: message.messageId,
-                message: message.data.message,
-                status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
-                response_props: {}
-            })
-            await jobService.updateJob(updateJobDTO);
-            //delete draft dataset
-            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+            const result = //Update job
+                await dbClient.query(
+                    JobEntity.getUpdateQuery(
+                        //Where clause
+                        message.messageId,
+                        //Column to update
+                        JobEntity.from({
+                            status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
+                            message: message.data.message,
+                        })
+                    ));
             const job = JobDTO.from(result.rows[0]);
+            //delete draft dataset
             await tdeiCoreService.deleteDraftDataset(job.response_props.tdei_dataset_id);
         }
     }

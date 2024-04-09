@@ -7,6 +7,7 @@ import { IOrchestratorService } from "../../../services/orchestrator-service";
 import tdeiCoreService from "../../../../service/tdei-core-service";
 import { JobEntity } from "../../../../database/entity/job-entity";
 import { JobDTO } from "../../../../model/job-dto";
+import { OswStage } from "../../../../constants/app-constants";
 
 export class PublishConfidenceResponseHandler extends WorkflowHandlerBase {
 
@@ -27,14 +28,24 @@ export class PublishConfidenceResponseHandler extends WorkflowHandlerBase {
             try {
                 const confidenceResponse = ConfidenceJobResponse.from(message.data);
                 //Fetch the job details from the database
-                const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+                const result = //Update job
+                    await dbClient.query(
+                        JobEntity.getUpdateQuery(
+                            //Where clause
+                            message.messageId,
+                            //Column to update
+                            JobEntity.from({
+                                stage: OswStage.CONFIDENCE_METRIC,
+                                message: `${OswStage.CONFIDENCE_METRIC} completed`
+                            })
+                        ));
                 const job = JobDTO.from(result.rows[0]);
                 //Update the confidence metric details
                 tdeiCoreService.updateConfidenceMetric(job.request_input.tdei_dataset_id, confidenceResponse);
 
                 this.delegateWorkflowIfAny(delegate_worflow, message);
             } catch (error) {
-                console.error("Error updating the osw version confidence details", error);
+                console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
                 return;
             }
         }

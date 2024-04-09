@@ -3,9 +3,9 @@ import EventEmitter from "events";
 import { WorkflowHandlerBase } from "../../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../../services/orchestrator-service";
 import { OswFormatJobResponse } from "../../../../model/job-request-response/osw-format-job-response";
-import { UpdateJobDTO } from "../../../../model/job-dto";
 import { JobStatus } from "../../../../model/jobs-get-query-params";
-import jobService from "../../../../service/job-service";
+import dbClient from "../../../../database/data-source";
+import { JobEntity } from "../../../../database/entity/job-entity";
 
 export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
 
@@ -24,17 +24,18 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
 
         try {
             const response = OswFormatJobResponse.from(message.data);
-            let updateJobDTO = UpdateJobDTO.from({
-                job_id: message.messageId,
-                message: response.message,
-                status: response.success ? JobStatus.COMPLETED : JobStatus.FAILED,
-                stage:'Converting',
-                response_props: {
-                    // download_url: response.formattedUrl
-                },
-                download_url: response.formattedUrl
-            });
-            await jobService.updateJob(updateJobDTO);
+            //Update job
+            await dbClient.query(
+                JobEntity.getUpdateQuery(
+                    //Where clause
+                    message.messageId,
+                    //Column to update
+                    JobEntity.from({
+                        status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
+                        message: message.data.message,
+                        download_url: response.formattedUrl
+                    })
+                ));
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
             return;

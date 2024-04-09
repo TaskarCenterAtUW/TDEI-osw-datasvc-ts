@@ -1,16 +1,8 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
-import { CreateJobDTO, JobDTO, UpdateJobDTO } from "../../model/job-dto";
-import { JobStatus, JobsQueryParams } from "../../model/jobs-get-query-params";
+import { CreateJobDTO, JobDTO } from "../../model/job-dto";
+import { JobsQueryParams } from "../../model/jobs-get-query-params";
 
 export interface IJobService {
-    /**
-         * Updates the response properties of a job.
-         * 
-         * @param job_id - The ID of the job.
-         * @param response_props - The new response properties to be updated.
-         * @returns A Promise that resolves to void.
-         */
-    updateJobResponseProps(job_id: string, response_props: any): Promise<void>;
     /**
    * Retrieves a list of jobs based on the provided query parameters.
    * @param user_id user_id.
@@ -33,16 +25,4 @@ export interface IJobService {
      * @returns A Promise that resolves to the job ID of the created job.
      */
     createJob(job: CreateJobDTO): Promise<Number>;
-
-    /**
-     * Updates a job with the given parameters.
-     * 
-     * @param job_id - The ID of the job to update.
-     * @param status - The new status of the job.
-     * @param message - The message associated with the job update.
-     * @param response_props - The response properties of the job update.
-     * @param download_url - The download URL associated with the job update.
-     * @returns A promise that resolves to updated job object.
-     */
-    updateJob(updateJobDTO: UpdateJobDTO): Promise<JobDTO>;
 }

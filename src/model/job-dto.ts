@@ -62,21 +62,3 @@ export class CreateJobDTO extends AbstractDomainEntity {
     @Prop()
     stage: string = "Started";
 }
-
-export class UpdateJobDTO extends AbstractDomainEntity {
-    @Prop()
-    @IsNotEmpty()
-    job_id!: string;
-    @Prop()
-    @IsNotEmpty()
-    status!: JobStatus;
-    @Prop()
-    @IsNotEmpty()
-    message!: string;
-    @Prop()
-    response_props!: any;
-    @Prop()
-    download_url!: string;
-    @Prop()
-    stage!: string;
-}

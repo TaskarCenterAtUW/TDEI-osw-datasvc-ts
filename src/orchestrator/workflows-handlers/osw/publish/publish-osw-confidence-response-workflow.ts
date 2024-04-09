@@ -2,9 +2,9 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import EventEmitter from "events";
 import { WorkflowBase } from "../../../models/orchestrator-base-model";
 import { IOrchestratorService } from "../../../services/orchestrator-service";
-import { UpdateJobDTO } from "../../../../model/job-dto";
 import { JobStatus } from "../../../../model/jobs-get-query-params";
-import jobService from "../../../../service/job-service";
+import dbClient from "../../../../database/data-source";
+import { JobEntity } from "../../../../database/entity/job-entity";
 
 
 export class PublishConfidenceResponseWorkflow extends WorkflowBase {
@@ -21,13 +21,17 @@ export class PublishConfidenceResponseWorkflow extends WorkflowBase {
             this.delegateWorkflowHandlers(message);
         }
         else {
-            let updateJobDTO = UpdateJobDTO.from({
-                job_id: message.messageId,
-                message: message.data.message,
-                status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
-                response_props: {}
-            })
-            await jobService.updateJob(updateJobDTO);
+            //Update job
+            await dbClient.query(
+                JobEntity.getUpdateQuery(
+                    //Where clause
+                    message.messageId,
+                    //Column to update
+                    JobEntity.from({
+                        status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
+                        message: message.data.message,
+                    })
+                ));
         }
     }
 }

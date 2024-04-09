@@ -6,6 +6,7 @@ import tdeiCoreService from "../../../../service/tdei-core-service";
 import dbClient from "../../../../database/data-source";
 import { JobEntity } from "../../../../database/entity/job-entity";
 import { JobDTO } from "../../../../model/job-dto";
+import { OswStage } from "../../../../constants/app-constants";
 
 export class UploadFlatteningRequestWorkflow extends WorkflowBase {
 
@@ -17,8 +18,17 @@ export class UploadFlatteningRequestWorkflow extends WorkflowBase {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
-            //Get the job details from the database
-            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+            const result = //Update job
+                await dbClient.query(
+                    JobEntity.getUpdateQuery(
+                        //Where clause
+                        message.messageId,
+                        //Column to update
+                        JobEntity.from({
+                            stage: OswStage.FLATTENING,
+                            message: `${OswStage.FLATTENING} in progress`
+                        })
+                    ));
             const job = JobDTO.from(result.rows[0]);
             // Get the dataset details
             const dataset = await tdeiCoreService.getDatasetDetailsById(job.response_props.tdei_dataset_id);
@@ -38,7 +48,7 @@ export class UploadFlatteningRequestWorkflow extends WorkflowBase {
             this.delegateWorkflowHandlers(queueMessage);
         }
         catch (error) {
-            console.error("Error in handling the dataset flattening request workflow", error);
+            console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
         }
     }
 }

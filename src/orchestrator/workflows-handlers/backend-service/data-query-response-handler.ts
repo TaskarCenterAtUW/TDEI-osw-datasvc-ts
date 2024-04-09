@@ -5,10 +5,10 @@ import { IOrchestratorService } from "../../services/orchestrator-service";
 import { BackendServiceJobResponse } from "../../../model/job-request-response/backend-service-job-response";
 import dbClient from "../../../database/data-source";
 import { JobEntity } from "../../../database/entity/job-entity";
-import { JobDTO, UpdateJobDTO } from "../../../model/job-dto";
+import { JobDTO } from "../../../model/job-dto";
 import { JobStatus, JobType } from "../../../model/jobs-get-query-params";
-import jobService from "../../../service/job-service";
 import { DatasetEntity } from "../../../database/entity/dataset-entity";
+import { OswStage } from "../../../constants/app-constants";
 
 export class DataQueryResponseHandler extends WorkflowHandlerBase {
 
@@ -31,10 +31,18 @@ export class DataQueryResponseHandler extends WorkflowHandlerBase {
             if (backendServiceResponse.file_upload_path != null && backendServiceResponse.file_upload_path != "" && backendServiceResponse.file_upload_path != undefined)
                 file_upload_path = decodeURIComponent(backendServiceResponse.file_upload_path!);
 
-            await dbClient.query(JobEntity.getUpdateJobDownloadUrlQuery(message.messageId, file_upload_path));
-
-            //Get the job details from the database
-            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+            //Update job stage
+            let result = await dbClient.query(
+                JobEntity.getUpdateQuery(
+                    //Where clause
+                    message.messageId,
+                    //Column to update
+                    JobEntity.from({
+                        stage: OswStage.DATASET_QUERY,
+                        message: `${OswStage.DATASET_QUERY} completed`,
+                        download_url: file_upload_path
+                    })
+                ));
             const job = JobDTO.from(result.rows[0]);
 
             //If job type is dataset-queries then update the dataset entity with latest 
@@ -51,13 +59,16 @@ export class DataQueryResponseHandler extends WorkflowHandlerBase {
                 this.delegateWorkflowIfAny(delegate_worflow, message);
             }
             else {
-                let updateJobDTO = UpdateJobDTO.from({
-                    job_id: message.messageId,
-                    message: message.data.message,
-                    status: JobStatus.COMPLETED,
-                    response_props: {}
-                })
-                await jobService.updateJob(updateJobDTO);
+                await dbClient.query(
+                    JobEntity.getUpdateQuery(
+                        //Where clause
+                        message.messageId,
+                        //Column to update
+                        JobEntity.from({
+                            message: message.data.message,
+                            status: JobStatus.COMPLETED,
+                        })
+                    ));
             }
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} `, error);

@@ -3,9 +3,12 @@ import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
 import { JobStatus, JobType, TDEIDataType } from '../../model/jobs-get-query-params';
-import { CreateJobDTO, UpdateJobDTO } from '../../model/job-dto';
+import { CreateJobDTO } from '../../model/job-dto';
+import { buildUpdateQuery } from '../dynamic-update-query';
+import { TdeiDate } from '../../utility/tdei-date';
 
 export class JobEntity extends BaseDto {
+    [key: string]: any;//This is to allow dynamic properties
     @Prop()
     job_id!: number;
     @Prop()
@@ -45,28 +48,28 @@ export class JobEntity extends BaseDto {
     }
 
     /**
-     * Returns the query configuration for updating the response properties of a job.
-     * @param updateJobDTO - The DTO containing the updated job properties.
-     * @returns The query configuration object.
+     * Generates an dynamic update query for a job entity.
+     * @param job_id - The ID of the job. Where clause.
+     * @param fields - The fields to update in the job entity.
+     * @returns The update query configuration.
      */
-    static getUpdateJobResponsePropsQuery(job_id: string, response_props: any): QueryConfig {
-        const query = {
-            text: `UPDATE content.job SET response_props = $1, updated_at = CURRENT_TIMESTAMP WHERE job_id = $2`,
-            values: [response_props, job_id],
-        }
-        return query;
-    }
+    static getUpdateQuery(job_id: string, fields: JobEntity): QueryConfig {
+        const dataToUpdate: any = {};
 
-    /**
-     * Generates a query configuration object for updating a job in the database.
-     * @param updateJobDTO - The DTO containing the updated job information.
-     * @returns The query configuration object.
-     */
-    static getUpdateJobQuery(updateJobDTO: UpdateJobDTO): QueryConfig {
-        const query = {
-            text: `UPDATE content.job SET status = $2, message = $3, download_url = $4 , response_props = $5, stage = $6, updated_at = CURRENT_TIMESTAMP WHERE job_id = $1 RETURNING *`,
-            values: [updateJobDTO.job_id, updateJobDTO.status, updateJobDTO.message, updateJobDTO.download_url, updateJobDTO.response_props, updateJobDTO.stage],
+        for (const key in fields) {
+            if (fields.hasOwnProperty(key) && fields[key] !== undefined) {
+                dataToUpdate[key] = fields[key];
+            }
         }
+
+        dataToUpdate.updated_at = TdeiDate.UTC();
+
+        const whereCondition = {
+            job_id: job_id,
+        };
+
+        const query = buildUpdateQuery('content.job', dataToUpdate, whereCondition);
+
         return query;
     }
 
@@ -79,20 +82,6 @@ export class JobEntity extends BaseDto {
         const query = {
             text: 'INSERT INTO content.job (job_type, data_type, status, user_id, tdei_project_group_id, request_input, response_props , stage) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING job_id',
             values: [job.job_type, job.data_type, job.status, job.user_id, job.tdei_project_group_id, job.request_input, job.response_props, job.stage],
-        }
-        return query;
-    }
-
-    /**
-     * Generates a query configuration object for updating the download URL of a job.
-     * @param job_id - The ID of the job to update.
-     * @param download_url - The new download URL for the job.
-     * @returns The query configuration object.
-     */
-    static getUpdateJobDownloadUrlQuery(job_id: string, download_url: any): QueryConfig {
-        const query = {
-            text: 'UPDATE content.job SET download_url = $1, updated_at = CURRENT_TIMESTAMP WHERE job_id = $2',
-            values: [download_url, job_id],
         }
         return query;
     }
