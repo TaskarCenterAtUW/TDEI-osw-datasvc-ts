@@ -3,12 +3,10 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { Core } from 'nodets-ms-core';
-import { environment } from "../environment/environment";
 import { UnAuthenticated } from '../exceptions/http/http-exceptions';
-import oswService from '../service/osw-service';
-import { PermissionRequest } from 'nodets-ms-core/lib/core/auth/model/permission_request';
 import HttpException from '../exceptions/http/http-base-exception';
+import tdeiCoreService from '../service/tdei-core-service';
+import { Utility } from '../utility/utility';
 
 /**
  * Authorizes the request with provided allowed roles and tdei_project_group_id
@@ -23,10 +21,10 @@ export const authorize = (approvedRoles: string[]) => {
         if (!req.body.user_id)
             return next(new UnAuthenticated());
 
-        if (req.params["tdei_record_id"]) {
-            //Fetch tdei_project_group_id from tdei_record_id
+        if (req.params["tdei_dataset_id"]) {
+            //Fetch tdei_project_group_id from tdei_dataset_id
             try {
-                let osw = await oswService.getOSWRecordById(req.params["tdei_record_id"]);
+                let osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
                 req.body.tdei_project_group_id = osw.tdei_project_group_id;
             } catch (error) {
                 if (error instanceof HttpException) {
@@ -47,25 +45,13 @@ export const authorize = (approvedRoles: string[]) => {
         if (!approvedRoles.length)
             return next();
 
-        const authProvider = Core.getAuthorizer({ provider: "Hosted", apiUrl: environment.authPermissionUrl });
-        const permissionRequest = new PermissionRequest({
-            userId: req.body.user_id as string,
-            projectGroupId: req.body.tdei_project_group_id,
-            permssions: approvedRoles,
-            shouldSatisfyAll: false
-        });
-
-        try {
-            const response = await authProvider?.hasPermission(permissionRequest);
-            if (response) {
-                next();
-            }
-            else {
-                next(new UnAuthenticated());
-            }
+        var authorized = await Utility.authorizeRoles(req.body.user_id, req.body.tdei_project_group_id, approvedRoles);
+        if (authorized) {
+            next();
         }
-        catch (error) {
+        else {
             next(new UnAuthenticated());
         }
     }
 }
+

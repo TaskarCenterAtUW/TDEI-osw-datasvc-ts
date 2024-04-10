@@ -3,10 +3,8 @@ import { IAuthorizer } from "nodets-ms-core/lib/core/auth/abstracts/IAuthorizer"
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { FileEntity, StorageClient, StorageContainer } from "nodets-ms-core/lib/core/storage"
 import { Readable } from "stream"
-import { QueueMessageContent } from "../../src/model/queue-message-model";
 import { NextFunction, Request, Response } from "express";
 import appContext from "../../src/app-context";
-import { OrchestratorConfigContext } from "../../src/orchestrator/models/config-model";
 
 
 export function getMockFileEntity() {
@@ -99,23 +97,6 @@ export function mockCore() {
     jest.spyOn(Core, "getStorageClient").mockImplementation(() => { return getMockStorageClient(); });
     jest.spyOn(Core, "getTopic").mockImplementation(() => { return getMockTopic(); });
 }
-
-export function mockQueueMessageContent(permissionResolve = true) {
-    jest.spyOn(QueueMessageContent, "from")
-        .mockImplementation((json: any) => {
-            var test: QueueMessageContent = new QueueMessageContent();
-            test = JSON.parse(JSON.stringify(json));
-            //This is due to not able to mock Prop() behaviour 
-            test.tdeiRecordId = json.tdei_record_id;
-            test.userId = json.user_id;
-            test.projectGroupId = json.tdei_project_group_id;
-            test.hasPermission = jest.fn().mockImplementation(() => {
-                return Promise.resolve(permissionResolve);
-            });
-            return test;
-        });
-}
-
 
 export function mockMulter() {
     jest.mock('multer', () => {

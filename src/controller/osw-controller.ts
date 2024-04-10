@@ -1,11 +1,10 @@
 import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
-import { OswQueryParams } from "../model/osw-get-query-params";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, FileTypeException, JobIncompleteException, JobFailedException } from "../exceptions/http/http-exceptions";
+import { InputException, FileTypeException, UnAuthenticated } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
@@ -15,9 +14,9 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
-import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
-import { FileEntityStream } from "../utility/utility";
-import { ServiceRequest } from "../model/backend-request-interface";
+import { FileEntityStream, Utility } from "../utility/utility";
+import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
+import tdeiCoreService from "../service/tdei-core-service";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -52,19 +51,22 @@ const upload = multer({
     }
 });
 
+// Accepted format files for on-demand conversion
+const acceptedFileFormatsForConversion = ['.zip', '.pbf', '.osm', '.xml']
+
 const uploadForFormat = multer({
     dest: 'uploads/',
     storage: memoryStorage(),
     fileFilter: (req, file, cb) => {
         const ext = path.extname(file.originalname);
-        if (ext != '.zip' && ext != '.xml' && ext != '.osm') {
+        if (!acceptedFileFormatsForConversion.includes(ext)) {
             cb(new FileTypeException());
         }
         cb(null, true);
     }
 });
 
-class GtfsOSWController implements IController {
+class OSWController implements IController {
     public path = '/api/v1/osw';
     public router = express.Router();
     constructor() {
@@ -72,7 +74,6 @@ class GtfsOSWController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(this.path, authenticate, this.getAllOsw);
         this.router.get(`${this.path}/:id`, this.getOswById);
         this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
@@ -80,24 +81,72 @@ class GtfsOSWController implements IController {
             { name: "metadata", maxCount: 1 },
             { name: "changeset", maxCount: 1 }
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
-        this.router.post(`${this.path}/publish/:tdei_record_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
+        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.post(`${this.path}/confidence/calculate`, authenticate, this.calculateConfidence); // Confidence calculation
-        this.router.get(`${this.path}/confidence/status/:job_id`, authenticate, this.getConfidenceJobStatus);
+        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.calculateConfidence); // Confidence calculation
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        this.router.delete(`${this.path}/:tdei_record_id`, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
-        this.router.get(`${this.path}/convert/status/:job_id`, authenticate, this.getFormatStatus);
-        this.router.get(`${this.path}/validate/status/:job_id`, authenticate, this.getValidateStatus);
-        this.router.get(`${this.path}/upload/status/:tdei_record_id`, authenticate, this.getUploadStatus);
-        this.router.get(`${this.path}/publish/status/:tdei_record_id`, authenticate, this.getPublishStatus);
-        this.router.get(`${this.path}/convert/download/:job_id`, authenticate, this.getFormatDownloadFile); // Download the formatted file
-        this.router.post(`${this.path}/dataset-flattern/:tdei_record_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
-        this.router.get(`${this.path}/dataset-flattern/status/:job_id`, authenticate, this.getDatasetFlatteningStatus);
+        this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
-        this.router.get(`${this.path}/dataset-bbox/status/:job_id`, authenticate, this.getDatasetBboxStatus);
-        this.router.get(`${this.path}/dataset-bbox/download/:job_id`, authenticate, this.getDatasetBboxDownloadFile); // Download the formatted file
+        this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
     }
 
+    /**
+ * Tags the sidewalk dataset with the 
+ * @param request 
+ * @param response 
+ * @param next 
+ * @returns 
+ */
+    processDatasetTagRoadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+
+            const requestService = JSON.parse(JSON.stringify(request.query));
+            if (!requestService) {
+                return next(new InputException('request body is empty', response));
+            }
+
+            //TODO:: Authorize the request to check user is part of the project group
+            if (requestService.source_dataset_id == undefined || requestService.target_dataset_id == undefined) {
+                return next(new InputException('required input is empty', response));
+            }
+
+            //Authorize
+            let osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
+            var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
+            if (!authorized) {
+                return next(new UnAuthenticated());
+            }
+
+            let backendRequest: TagRoadServiceRequest = {
+                user_id: request.body.user_id,
+                service: "dataset_tag_road",
+                parameters: {
+                    source_dataset_id: requestService.source_dataset_id,
+                    target_dataset_id: requestService.target_dataset_id
+                }
+            }
+
+            let job_id = await oswService.processDatasetTagRoadRequest(backendRequest);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing the dataset bbox request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the dataset bbox request");
+            next(new HttpException(500, "Error while processing the dataset bbox request"));
+        }
+    }
+
+    /**
+     * Retrieves the list of versions.
+     * 
+     * @param request - The HTTP request object.
+     * @param response - The HTTP response object.
+     * @param next - The next middleware function.
+     */
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
         let versionsList = new Versions([{
             documentation: environment.schemaDocumentationUrl as string ?? '',
@@ -109,35 +158,7 @@ class GtfsOSWController implements IController {
     }
 
     /**
-     * Gets the list of OSW versions
-     * @param request 
-     * @param response 
-     * @param next 
-     */
-    getAllOsw = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            const params: OswQueryParams = new OswQueryParams(JSON.parse(JSON.stringify(request.query)));
-            params.isAdmin = request.body.isAdmin;
-            const osw = await oswService.getAllOsw(request.body.user_id, params);
-            osw.forEach(x => {
-                x.download_url = `${this.path}/${x.tdei_record_id}`;
-            });
-            response.status(200).send(osw);
-        } catch (error) {
-            console.error(error);
-            if (error instanceof InputException) {
-                response.status(error.status).send(error.message);
-                next(error);
-            }
-            else {
-                response.status(500).send("Error while fetching the osw information");
-                next(new HttpException(500, "Error while fetching the osw information"));
-            }
-        }
-    }
-
-    /**
-     * Given the tdei_record_id api downloads the zip file containing osw files.
+     * Given the tdei_dataset_id api downloads the zip file containing osw files.
      * @param request 
      * @param response 
      * @param next 
@@ -147,8 +168,13 @@ class GtfsOSWController implements IController {
 
         try {
             let format = request.query.format as string ?? 'osw';
+            let file_version = request.query.file_version as string ?? 'latest';
 
-            const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format);
+            if (!["latest", "original"].includes(file_version)) {
+                throw new InputException("Invalid file_version value");
+            }
+
+            const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format, file_version);
 
             const zipFileName = 'osw.zip';
 
@@ -200,7 +226,7 @@ class GtfsOSWController implements IController {
             }
 
             let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
-            response.setHeader('Location', `/api/v1/osw/validation/status/${job_id}`);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -223,11 +249,11 @@ class GtfsOSWController implements IController {
     */
     processPublishRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_record_id = request.params["tdei_record_id"];
-            await oswService.processPublishRequest(request.body.user_id, tdei_record_id);
+            let tdei_dataset_id = request.params["tdei_dataset_id"];
+            let job_id = await oswService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
-            response.setHeader('Location', `/api/v1/osw/publish/status/${tdei_record_id}`);
-            return response.status(202).send(tdei_record_id);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
 
         } catch (error) {
             console.error("Error while processing the publish request", error);
@@ -241,7 +267,7 @@ class GtfsOSWController implements IController {
     }
 
     /**
-    * Flatterning the tdei record 
+    * Return the sidewalk dataset maching the bbox query 
     * @param request 
     * @param response 
     * @param next 
@@ -251,20 +277,20 @@ class GtfsOSWController implements IController {
         try {
 
             const requestService = JSON.parse(JSON.stringify(request.query));
-            if (!requestService) {
-                return next(new InputException('request body is empty', response));
+            if (!requestService && !requestService.tdei_dataset_id && !requestService.bbox) {
+                return next(new InputException('required input is empty', response));
             }
-            let backendRequest: ServiceRequest = {
+            let backendRequest: BboxServiceRequest = {
                 user_id: request.body.user_id,
                 service: "bbox_intersect",
                 parameters: {
-                    tdei_dataset_id: requestService.tdei_record_id,
+                    tdei_dataset_id: requestService.tdei_dataset_id,
                     bbox: requestService.bbox
                 }
             }
 
-            let job_id = await oswService.processBackendRequest(backendRequest);
-            response.setHeader('Location', `/api/v1/osw/dataset-bbox/status/${job_id}`);
+            let job_id = await oswService.processBackendRequest(backendRequest, requestService.file_type);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
             console.error("Error while processing the dataset bbox request", error);
@@ -278,72 +304,6 @@ class GtfsOSWController implements IController {
     }
 
     /**
-    * Gets the status for the flattening job
-    * @param request 
-    * @param response 
-    * @param next 
-    * @returns 
-    */
-    getDatasetBboxStatus = async (request: Request, response: express.Response, next: NextFunction) => {
-
-        try {
-            const job_id = request.params['job_id'];
-            if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided', response));
-            }
-            const jobInfo = await oswService.getBackendJob(job_id);
-            const responseData = {
-                'job_id': job_id,
-                'status': jobInfo.status,
-                'download_url': jobInfo.status == 'COMPLETED' ? '/api/v1/osw/dataset-bbox/download/' + job_id : "",
-                'message': jobInfo.message
-            };
-            response.status(200).send(responseData);
-        } catch (error) {
-            console.error("Error while processing the dataset bbox status request", error);
-            if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
-                return next(error);
-            }
-            response.status(500).send("Error while processing the dataset bbox status request");
-            next(new HttpException(500, "Error while processing the dataset bbox status request"));
-        }
-    }
-
-    /**
-     * Gives the downloadable stream for the job status
-     * @param request 
-     * @param response 
-     * @param next 
-     * @returns 
-     */
-    getDatasetBboxDownloadFile = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            const job_id = request.params['job_id'];
-            if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided', response));
-            }
-            const jobInfo = await oswService.getBackendJob(job_id);
-
-            if (jobInfo.status == 'FAILED') {
-                return next(new JobFailedException(job_id, response));
-            }
-            if (jobInfo.status != 'COMPLETED') {
-                return next(new JobIncompleteException(job_id, response));
-            }
-            // Get the file entity for the file
-            const fileEntity = await oswService.getFileEntity(jobInfo.download_url);
-            response.setHeader('Content-Type', 'application/zip');
-            response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
-            (await fileEntity.getStream()).pipe(response);
-
-        } catch (error) {
-            console.error("Error while processing the dataset bbox download request", error);
-            return next(error);
-        }
-    }
-
-    /**
     * Flatterning the tdei record 
     * @param request 
     * @param response 
@@ -352,11 +312,11 @@ class GtfsOSWController implements IController {
     */
     processFlatteningRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_record_id = request.params["tdei_record_id"];
+            let tdei_dataset_id = request.params["tdei_dataset_id"];
             let override = Boolean(request.query.override as string) ? true : false;
 
-            let job_id = await oswService.processDatasetFlatteningRequest(request.body.user_id, tdei_record_id, override);
-            response.setHeader('Location', `/api/v1/osw/flattern/status/${job_id}`);
+            let job_id = await oswService.processDatasetFlatteningRequest(request.body.user_id, tdei_dataset_id, override);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
             console.error("Error while processing the flattening request", error);
@@ -366,64 +326,6 @@ class GtfsOSWController implements IController {
             }
             response.status(500).send("Error while processing the flattening request");
             next(new HttpException(500, "Error while processing the flattening request"));
-        }
-    }
-
-    /**
-    * Gets the status for the flattening job
-    * @param request 
-    * @param response 
-    * @param next 
-    * @returns 
-    */
-    getDatasetFlatteningStatus = async (request: Request, response: express.Response, next: NextFunction) => {
-
-        try {
-            const job_id = request.params['job_id'];
-            if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided'));
-            }
-            const jobInfo = await oswService.getDatasetFlatteningJob(job_id);
-            const responseData = {
-                'job_id': job_id,
-                'status': jobInfo.status,
-                'message': jobInfo.message
-            };
-            response.status(200).send(responseData);
-        } catch (error) {
-            console.error("Error while processing the flattening request", error);
-            if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
-                return next(error);
-            }
-            response.status(500).send("Error while processing the flattening request");
-            next(new HttpException(500, "Error while processing the flattening request"));
-        }
-    }
-
-
-    /**
-    * Invalidates the tdei record 
-    * @param request 
-    * @param response 
-    * @param next 
-    * @returns 
-    */
-    invalidateRecordRequest = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            let tdei_record_id = request.params["tdei_record_id"];
-            await oswService.invalidateRecordRequest(request.body.user_id, tdei_record_id);
-
-            return response.status(200).send(true);
-
-        } catch (error) {
-            console.error("Error while processing the invalidate request", error);
-            if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
-                return next(error);
-            }
-            response.status(500).send("Error while processing the invalidate request");
-            next(new HttpException(500, "Error while processing the invalidate request"));
         }
     }
 
@@ -458,9 +360,9 @@ class GtfsOSWController implements IController {
                 return next(new InputException("metadata file input upload missing"));
             }
 
-            let tdei_record_id = await oswService.processUploadRequest(uploadRequest);
-            response.setHeader('Location', `/api/v1/osw/upload/status/${tdei_record_id}`);
-            return response.status(202).send(tdei_record_id);
+            let job_id = await oswService.processUploadRequest(uploadRequest);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
 
         } catch (error) {
             console.error("Error while processing the upload request", error);
@@ -481,14 +383,14 @@ class GtfsOSWController implements IController {
      */
     calculateConfidence = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            const tdei_record_id = request.body['tdei_record_id'];
-            if (tdei_record_id == undefined) {
-                response.status(400).send('Please add tdei_record_id in payload')
+            let tdei_dataset_id = request.params["tdei_dataset_id"];
+            if (tdei_dataset_id == undefined) {
+                response.status(400).send('Please add tdei_dataset_id in payload')
                 return next()
             }
-            let job_id = await oswService.calculateConfidence(tdei_record_id, request.body.user_id,);
-            response.setHeader('Location', `/api/v1/osw/confidence/status/${job_id}`);
-            return response.status(202).send({ 'job_id': job_id, 'tdei_record_id': tdei_record_id });
+            let job_id = await oswService.calculateConfidence(tdei_dataset_id, request.body.user_id);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
 
         } catch (error) {
             console.error("Error while processing the calculate Confidence request", error);
@@ -498,25 +400,6 @@ class GtfsOSWController implements IController {
             }
             response.status(500).send("Error while processing the calculate Confidence request");
             next(new HttpException(500, "Error while processing the calculate Confidence request"));
-        }
-    }
-
-    getConfidenceJobStatus = async (request: Request, response: express.Response, next: NextFunction) => {
-        console.log('Requested status for jobInfo ')
-        try {
-            const job_id = request.params['job_id']
-            const jobInfo = await oswService.getOSWConfidenceJob(job_id)
-            const responseData = {
-                'job_id': job_id,
-                'confidenceValue': jobInfo.confidence_metric,
-                'status': jobInfo.status,
-                'updatedAt': jobInfo.updated_at,
-                'message': 'ok' //Need to update this.
-            };
-            response.status(200).send(responseData);
-        } catch (error) {
-            console.log("Error processing confidence status api", error);
-            return next(error);
         }
     }
 
@@ -535,6 +418,11 @@ class GtfsOSWController implements IController {
             }
             let source = request.body['source']; //TODO: Validate the input enums 
             let target = request.body['target'];
+
+            if (!["osw", "osm"].includes(target) && !["osw", "osm"].includes(source)) {
+                throw new InputException("Invalid source/target value");
+            }
+
             if (source == undefined || target == undefined) {
                 throw new InputException("Missing source/target input");
             }
@@ -543,9 +431,9 @@ class GtfsOSWController implements IController {
                 throw new InputException("Source and Target value cannot be same");
             }
 
-            let job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id,);
-            response.setHeader('Location', `/api/v1/osw/convert/status/${job_id}`);
-            return response.status(202).send({ 'job_id': job_id });
+            let job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
 
         } catch (error) {
             console.error("Error while processing the format request", error);
@@ -557,169 +445,7 @@ class GtfsOSWController implements IController {
             next(new HttpException(500, "Error while processing the format request"));
         }
     }
-
-    /**
-     * Gets the status for the on-demand formatting job
-     * @param request 
-     * @param response 
-     * @param next 
-     * @returns 
-     */
-    getFormatStatus = async (request: Request, response: express.Response, next: NextFunction) => {
-
-        console.log('Requested status for format jobInfo ')
-        try {
-            const job_id = request.params['job_id'];
-            if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided'));
-            }
-            const jobInfo = await oswService.getOSWFormatJob(job_id);
-            const responseData = {
-                'job_id': job_id,
-                'downloadUrl': '/api/v1/osw/convert/download/' + job_id,
-                'conversion': jobInfo.source + '-' + jobInfo.target,
-                'status': jobInfo.status,
-                'message': jobInfo.message
-            };
-            response.status(200).send(responseData);
-        } catch (error) {
-            return next(error);
-
-        }
-    }
-    /**
-     * Gives the downloadable stream for the job status
-     * @param request 
-     * @param response 
-     * @param next 
-     * @returns 
-     */
-    getFormatDownloadFile = async (request: Request, response: express.Response, next: NextFunction) => {
-        console.log('Download formatted file for jobInfo ')
-        try {
-            const job_id = request.params['job_id'];
-            if (!job_id) {
-                return next(new InputException('job_id not provided'));
-            }
-            const jobInfo = await oswService.getOSWFormatJob(job_id);
-
-            if (jobInfo.status != 'completed') {
-                throw new JobIncompleteException(job_id);
-            }
-
-            if (['osm', 'osw'].includes(jobInfo.target)) {
-                // Get the file entity for the file
-                const fileEntity = await oswService.getFileEntity(jobInfo.target_url);
-                const contentType = jobInfo.target == 'osm' ? 'application/xml' : 'application/zip';
-                response.setHeader('Content-Type', contentType);
-                response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
-                (await fileEntity.getStream()).pipe(response);
-            } else {
-                response.status(400).send(`Unknown target type ${jobInfo.target} `)
-            }
-        } catch (error) {
-            console.error("Error while processing the format download request", error);
-            return next(error);
-        }
-    }
-
-    /**
-    * Gets the status for the on-demand validating job
-    * @param request 
-    * @param response 
-    * @param next 
-    * @returns 
-    */
-    getValidateStatus = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            const job_id = request.params['job_id'];
-            if (job_id == undefined || job_id == '') {
-                return next(new InputException('job_id not provided'));
-            }
-            const jobInfo = await oswService.getOSWValidationJob(job_id);
-            const responseData = {
-                'job_id': job_id,
-                'status': jobInfo.status,
-                'validation_result': jobInfo.validation_result == "" ? "Valid" : jobInfo.validation_result,
-                'updated_at': jobInfo.updated_at
-            };
-            response.status(200).send(responseData);
-        } catch (error) {
-            return next(error);
-
-        }
-    }
-
-    /**
-    * Gets the status for the publish record 
-    * @param request 
-    * @param response 
-    * @param next 
-    * @returns 
-    */
-    getPublishStatus = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            const tdei_record_id = request.params['tdei_record_id'];
-            if (tdei_record_id == undefined || tdei_record_id == '') {
-                return next(new InputException('tdei_record_id not provided'));
-            }
-            let workflowRow = await workflowDatabaseService.getLatestWorkflowHistory(tdei_record_id, "PUBLISH_OSW");
-            if (!workflowRow)
-                throw new InputException(`Publish record not initiated for the ${tdei_record_id}`);
-
-            const oswRecord = await oswService.getOSWRecordById(tdei_record_id);
-            const responseData = {
-                'tdei_record_id': workflowRow.reference_id,
-                'stage': workflowRow.workflow_stage,
-                'status': workflowRow.status != "" ? workflowRow.status : "Pending",
-                'published': oswRecord.status == "Publish"
-            };
-            response.status(200).send(responseData);
-        } catch (error) {
-            console.error("Error processing the publish status api", error);
-            if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
-                return next(error);
-            }
-            return next(error);
-        }
-    }
-
-    /**
-    * Gets the status for upload record
-    * @param request 
-    * @param response 
-    * @param next 
-    * @returns 
-    */
-    getUploadStatus = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            const tdei_record_id = request.params['tdei_record_id'];
-            if (tdei_record_id == undefined || tdei_record_id == '') {
-                return next(new InputException('tdei_record_id not provided'));
-            }
-
-            let workflowRow = await workflowDatabaseService.getLatestWorkflowHistory(tdei_record_id, "UPLOAD_OSW");
-            if (!workflowRow)
-                throw new InputException(`Publish record not initiated for the tdei_record_id ${tdei_record_id}`);
-
-            const responseData = {
-                'tdei_record_id': workflowRow.reference_id,
-                'stage': workflowRow.workflow_stage,
-                'status': workflowRow.status == "Success" ? workflowRow.status : workflowRow.message,
-                'completed': (workflowRow.status != "" && workflowRow.status == "Success")
-            };
-            response.status(200).send(responseData);
-        } catch (error) {
-            console.error("Error processing the publish status api", error);
-            if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
-                return next(error);
-            }
-            return next(error);
-        }
-    }
 }
 
-const oswController = new GtfsOSWController();
+const oswController = new OSWController();
 export default oswController;

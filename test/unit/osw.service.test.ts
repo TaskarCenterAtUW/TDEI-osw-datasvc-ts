@@ -1,759 +1,132 @@
 import { QueryResult } from "pg";
-import fetchMock from "jest-fetch-mock";
 import dbClient from "../../src/database/data-source";
-import oswService from "../../src/service/osw-service";
-import { TdeiObjectFaker } from "../common/tdei-object-faker";
-import { OswQueryParams, RecordStatus } from "../../src/model/osw-get-query-params";
-import { OswDTO } from "../../src/model/osw-dto";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { mockAppContext, mockCore } from "../common/mock-utils";
-import { OswVersions } from "../../src/database/entity/osw-version-entity";
-import UniqueKeyDbException from "../../src/exceptions/db/database-exceptions";
-import { DuplicateException, InputException, JobIdNotFoundException, ServiceNotFoundException } from "../../src/exceptions/http/http-exceptions";
+import { InputException, ServiceNotFoundException } from "../../src/exceptions/http/http-exceptions";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { Core } from "nodets-ms-core";
-import { ProjectGroupRoleDto } from "../../src/model/project-group-role-dto";
-import { OswMetadataEntity } from "../../src/database/entity/osw-metadata";
-import { OswConfidenceJob } from "../../src/database/entity/osw-confidence-job-entity";
-import { OswFormatJob } from "../../src/database/entity/osw-format-job-entity";
-import { OswFormatJobResponse } from "../../src/model/osw-format-job-response";
-import { OswValidationJobs } from "../../src/database/entity/osw-validate-jobs";
-import { OSWConfidenceResponse } from "../../src/model/osw-confidence-response";
 import storageService from "../../src/service/storage-service";
 import appContext from "../../src/app-context";
 import workflowDatabaseService from "../../src/orchestrator/services/workflow-database-service";
 import { IUploadRequest } from "../../src/service/interface/upload-request-interface";
-import { ServiceDto } from "../../src/model/service-dto";
-import { Utility } from "../../src/utility/utility";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import { DatasetFlatteningJob } from "../../src/database/entity/dataset-flattening-job";
-import { ServiceRequest } from "../../src/model/backend-request-interface";
-import { BackendJob } from "../../src/database/entity/backend-job";
+import tdeiCoreService from "../../src/service/tdei-core-service";
+import jobService from "../../src/service/job-service";
+import oswService from "../../src/service/osw-service";
+import { DatasetEntity } from "../../src/database/entity/dataset-entity";
+import { ServiceEntity } from "../../src/database/entity/service-entity";
+import { BboxServiceRequest } from "../../src/model/backend-request-interface";
+import { RecordStatus } from "../../src/model/dataset-get-query-params";
+import { CreateJobDTO } from "../../src/model/job-dto";
+import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
+import {TdeiObjectFaker} from "../common/tdei-object-faker"
 
 // group test using describe
 describe("OSW Service Test", () => {
-    describe("Get all OSW", () => {
-        describe("Functional", () => {
-            test("When requested with empty search filters, Expect to return OSW list", async () => {
-                //Arrange
-                const oswObj = TdeiObjectFaker.getOswVersion();
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-                jest
-                    .spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-                jest
-                    .spyOn(oswService, "getUserProjectGroups")
-                    .mockResolvedValueOnce([]);
-
-                const params: OswQueryParams = new OswQueryParams();
-                //Act
-                const result = await oswService.getAllOsw("user_id", params);
-                //Assert
-                expect(Array.isArray(result));
-                expect(result.every(item => item instanceof OswDTO));
-            });
-
-            test("When requested with all search filters, expect to return OSW list", async () => {
-                //Arrange
-                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-                jest
-                    .spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-                jest
-                    .spyOn(oswService, "getUserProjectGroups")
-                    .mockResolvedValueOnce([]);
-                const params: OswQueryParams = new OswQueryParams();
-                params.page_no = 1;
-                params.page_size = 10;
-                params.name = "testing";
-                params.version = "v1";
-                params.valid_to = "03-03-2023";
-                params.tdei_project_group_id = "test_id";
-                params.tdei_record_id = "test_id";
-                params.tdei_project_group_id = "test_id";
-                params.osw_schema_version = "v0.2";
-                params.bbox = [1, 2, 3, 4]
-                //Act
-                const result = await oswService.getAllOsw("user_id", params);
-                //Assert
-                expect(Array.isArray(result));
-                expect(result.every(item => item instanceof OswDTO));
-            });
-
-            test("When requested with invalid date search filter, Expect to throw InputException", async () => {
-                //Arrange
-                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-                jest
-                    .spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-                jest
-                    .spyOn(oswService, "getUserProjectGroups")
-                    .mockResolvedValueOnce([]);
-                const params: OswQueryParams = new OswQueryParams();
-                params.page_no = 1;
-                params.page_size = 10;
-                params.valid_to = "13-13-2023";
-                params.tdei_project_group_id = "test_id";
-                params.tdei_record_id = "test_id";
-                params.tdei_project_group_id = "test_id";
-                params.osw_schema_version = "v0.2";
-                params.bbox = [1, 2, 3, 4]
-                //Act
-                //Assert
-                expect(oswService.getAllOsw("user_id", params)).rejects.toThrow(InputException);
-            });
-
-            test("When requested with invalid bbox search filter, Expect to throw InputException", async () => {
-                //Arrange
-                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-                jest
-                    .spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-                jest
-                    .spyOn(oswService, "getUserProjectGroups")
-                    .mockResolvedValueOnce([]);
-                const params: OswQueryParams = new OswQueryParams();
-                params.page_no = 1;
-                params.page_size = 10;
-                params.valid_to = "03-03-2023";
-                params.tdei_project_group_id = "test_id";
-                params.tdei_record_id = "test_id";
-                params.tdei_project_group_id = "test_id";
-                params.osw_schema_version = "v0.2";
-                params.bbox = [1, 2]
-                //Act
-                //Assert
-                expect(oswService.getAllOsw("user_id", params)).rejects.toThrow(InputException);
-            });
-
-            test("When requested for 'Pre-Release' records and user not associsted with any project groups, Expect to throw InputException", async () => {
-                //Arrange
-                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-                jest
-                    .spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-                jest
-                    .spyOn(oswService, "getUserProjectGroups")
-                    .mockResolvedValueOnce([]);
-                const params: OswQueryParams = new OswQueryParams();
-                params.page_no = 1;
-                params.page_size = 10;
-                params.status = RecordStatus["Pre-Release"]
-                params.valid_to = "03-03-2023";
-                params.tdei_project_group_id = "test_id";
-                params.tdei_record_id = "test_id";
-                params.tdei_project_group_id = "test_id";
-                params.osw_schema_version = "v0.2";
-                params.bbox = [1, 2]
-                //Act
-                //Assert
-                expect(oswService.getAllOsw("user_id", params)).rejects.toThrow(InputException);
-            });
-
-            test("When requested for 'Pre-Release' records and user associsted with any project groups, Expect to return OSW list", async () => {
-                //Arrange
-                const oswObj = TdeiObjectFaker.getOswVersionFromDB();
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-                jest
-                    .spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-                jest
-                    .spyOn(oswService, "getUserProjectGroups")
-                    .mockResolvedValueOnce([new ProjectGroupRoleDto()]);
-                const params: OswQueryParams = new OswQueryParams();
-                params.status = RecordStatus["Pre-Release"]
-                //Act
-                //Act
-                const result = await oswService.getAllOsw("user_id", params);
-                //Assert
-                expect(Array.isArray(result));
-                expect(result.every(item => item instanceof OswDTO));
-            });
-        });
-    });
-
+    
     describe("Get OSW file by Id", () => {
         describe("Functional", () => {
-            test("When requested for get OSW file by tdei_record_id, Expect to return FileEntity object", async () => {
+            test("When requested for get OSW file by tdei_dataset_id, Expect to return FileEntity object", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            download_osw_url: "test_path",
-                            download_osm_url: "test_path",
-                            download_metadata_url: "test_path",
-                            download_changeset_url: "test_path",
-                        }
-                    ]
-                };
-
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "test-url",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
 
                 //Act
-                const result = await oswService.getOswStreamById("tdei_record_id", "osw");
+                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw", "");
                 //Assert
                 expect(result instanceof FileEntity);
             });
 
-            test("When requested for get OSW file by tdei_record_id and osm format, Expect to return FileEntity object", async () => {
+            test("When requested for get OSW file by tdei_dataset_id and osm format, Expect to return FileEntity object", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            download_osw_url: "test_path",
-                            download_osm_url: "test_path",
-                            download_metadata_url: "test_path"
-                        }
-                    ]
-                };
-
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "test-url",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
                 //Act
-                const result = await oswService.getOswStreamById("tdei_record_id", "osw");
+                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw", "");
                 //Assert
                 expect(result instanceof FileEntity);
             });
 
-            test("When requested for get OSW file by tdei_record_id and xml format, Expect to return FileEntity object", async () => {
+            test("When requested for get OSW file by tdei_dataset_id and osw format, Expect to return FileEntity object", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            download_osw_url: "test_path",
-                            download_osm_url: "test_path",
-                            download_metadata_url: "test_path"
-                        }
-                    ]
-                };
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "test-url",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
 
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
                 //Act
-                const result = await oswService.getOswStreamById("tdei_record_id", "xml");
+                const result = await oswService.getOswStreamById("tdei_dataset_id", "osw", "");
                 //Assert
                 expect(result instanceof FileEntity);
             });
 
-            test("When requested for get OSW file where conversion for osm for tdei_record_id not available, Expect to throw HttpException", async () => {
+            test("When requested for get OSW file where conversion for osm for tdei_dataset_id not available, Expect to throw HttpException", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        {
-                            file_upload_path: "test_path",
-                            download_osm_url: "",
-                            download_metadata_url: "test_path"
-                        }
-                    ]
-                };
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
 
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
                 //Act
                 //Assert
-                expect(oswService.getOswStreamById("tdei_record_id", "osm")).rejects.toThrow(HttpException);
+                expect(oswService.getOswStreamById("tdei_dataset_id", "osm", "")).rejects.toThrow(HttpException);
             });
 
-            test("When requested for get OSW file with invalid tdei_record_id, Expect to throw HttpException", async () => {
+            test("When requested for get OSW file with invalid tdei_dataset_id, Expect to throw HttpException", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>><unknown>{
-                    rows: [],
-                    rowCount: 0
-                };
-
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockRejectedValueOnce(new HttpException(404, "Not Found"));
                 mockCore();
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
 
                 //Act
                 //Assert
-                expect(oswService.getOswStreamById("tdei_record_id", "osw")).rejects.toThrow(HttpException);
+                expect(oswService.getOswStreamById("tdei_dataset_id", "osw", "")).rejects.toThrow(HttpException);
             });
 
             test("When Core failed obtaing storage client, Expect to throw error", async () => {
                 //Arrange
-                const dummyResponse = <QueryResult<any>><unknown>{
-                    rows: [
-                        {
-                            file_upload_path: "test_path",
-                            download_osm_url: "",
-                            download_metadata_url: "test_path"
-                        }
-                    ]
-                };
+                jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                    .mockResolvedValue(Promise.resolve(<any>{
+                        data_type: 'osw',
+                        dataset_url: 'download-osw-url',
+                        osm_url: "",
+                        metadata_url: 'metadata_url',
+                        changeset_url: 'changeset_url',
+                    }));
 
                 mockCore();
                 //Overrride getStorageClient mock
                 jest.spyOn(Core, "getStorageClient").mockImplementation(() => { return null; }
                 );
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
 
                 //Act
                 //Assert
-                expect(oswService.getOswStreamById("tdei_record_id", "")).rejects.toThrow();
+                expect(oswService.getOswStreamById("tdei_dataset_id", "", "")).rejects.toThrow();
             });
-        });
-    });
-
-    describe("Create OSW version", () => {
-        describe("Functional", () => {
-            test("When requested for creating OSW version with valid input, Expect to return OswDTO object", async () => {
-                //Arrange
-                const oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
-
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
-                //Act
-                const result = await oswService.createOsw(oswObj);
-                //Assert
-                expect(result instanceof OswDTO);
-            });
-
-            test("When database exception with duplicate tdei_record_id occured while processing request, Expect to throw DuplicateException", async () => {
-                //Arrange
-                const oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
-                jest.spyOn(dbClient, "query")
-                    .mockRejectedValueOnce(new UniqueKeyDbException("Unique contraint error"));
-
-                //Act
-                //Assert
-                expect(oswService.createOsw(oswObj)).rejects.toThrow(DuplicateException);
-            });
-
-            test("When database exception occured while processing request, Expect to throw error", async () => {
-                //Arrange
-                const oswObj = OswVersions.from(TdeiObjectFaker.getOswVersion());
-
-                jest.spyOn(dbClient, "query")
-                    .mockRejectedValueOnce(new Error("Unknown Error"));
-
-                //Act
-                //Assert
-                expect(oswService.createOsw(oswObj)).rejects.toThrow();
-            });
-        });
-    });
-
-    describe("Create OSW metadata", () => {
-        describe("Functional", () => {
-            test("When requested for creating OSW metadata with valid input, Expect to return OswDTO object", async () => {
-                //Arrange
-                const oswObj = OswMetadataEntity.from(TdeiObjectFaker.getOswMetadataSample());
-
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        oswObj
-                    ]
-                };
-
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
-                //Act
-                const result = await oswService.createOswMetadata(oswObj);
-                //Assert
-                expect(result).toBeUndefined();
-            });
-
-            test("When database exception with duplicate tdei_record_id occured while processing request, Expect to throw DuplicateException", async () => {
-                //Arrange
-                const oswObj = OswMetadataEntity.from(TdeiObjectFaker.getOswMetadataSample());
-                jest.spyOn(dbClient, "query")
-                    .mockRejectedValueOnce(new UniqueKeyDbException("Unique contraint error"));
-
-                //Act
-                //Assert
-                expect(oswService.createOswMetadata(oswObj)).rejects.toThrow(DuplicateException);
-            });
-
-            test("When database exception occured while processing request, Expect to throw error", async () => {
-                //Arrange
-                const oswObj = OswMetadataEntity.from(TdeiObjectFaker.getOswMetadataSample());
-
-                jest.spyOn(dbClient, "query")
-                    .mockRejectedValueOnce(new Error("Unknown Error"));
-
-                //Act
-                //Assert
-                expect(oswService.createOswMetadata(oswObj)).rejects.toThrow();
-            });
-        });
-    });
-
-    describe('get OSW record by Id', () => {
-        it('should resolve with the record if it exists', async () => {
-            const mockId = 'someRecordId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 1,
-                rows: [{ /* mock record data */ }],
-            };
-
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            const result = await oswService.getOSWRecordById(mockId);
-
-            expect(result instanceof OswVersions).toBe(true);
-        });
-
-        it('should throw HttpException with 404 status if the record does not exist', async () => {
-            const mockId = 'nonExistentRecordId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 0,
-            };
-
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            await expect(oswService.getOSWRecordById(mockId)).rejects.toThrowError(HttpException);
-        });
-    });
-
-    describe('get OSW metadata by Id', () => {
-        it('should resolve with the record if it exists', async () => {
-            const mockId = 'someRecordId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 1,
-                rows: [{ /* mock record data */ }],
-            };
-
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            const result = await oswService.getOSWMetadataById(mockId);
-
-            expect(result instanceof OswMetadataEntity).toBe(true);
-        });
-
-        it('should throw HttpException with 404 status if the record does not exist', async () => {
-            const mockId = 'nonExistentRecordId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 0,
-            };
-
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            await expect(oswService.getOSWMetadataById(mockId)).rejects.toThrowError(HttpException);
-        });
-    });
-
-    describe('create OSW confidence job', () => {
-        it('should resolve with the inserted job ID', async () => {
-            const mockInfo = new OswConfidenceJob();
-            const mockQueryResult = <QueryResult<any>>{
-                rows: [{ job_id: 'someJobId' }],
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-            const result = await oswService.createOSWConfidenceJob(mockInfo);
-
-            expect(result).toBe('someJobId');
-        });
-
-        it('should reject with the original error if an error occurs during insertion', async () => {
-            const mockInfo = new OswConfidenceJob();
-            const originalError = new Error('Some unexpected error');
-            jest.spyOn(dbClient, "query")
-                .mockRejectedValueOnce(originalError);
-            await expect(oswService.createOSWConfidenceJob(mockInfo)).rejects.toThrowError(originalError);
-        });
-    });
-
-    describe('get OSW confidence job', () => {
-
-        it('should resolve with the job if the job ID is found', async () => {
-            const mockJobId = 'someJobId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 1,
-                rows: [{}],
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            const result = await oswService.getOSWConfidenceJob(mockJobId);
-
-            expect(result instanceof OswConfidenceJob).toBe(true);
-        });
-
-        it('should reject with JobIdNotFoundException if the job ID is not found', async () => {
-            const mockJobId = 'nonExistentJobId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 0,
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            await expect(oswService.getOSWConfidenceJob(mockJobId)).rejects.toThrowError(JobIdNotFoundException);
-        });
-
-        it('should reject with the original error if an error occurs during the query', async () => {
-            const mockJobId = 'someJobId';
-            const originalError = new Error('Some unexpected error');
-            jest.spyOn(dbClient, "query")
-                .mockRejectedValueOnce(originalError);
-
-            await expect(oswService.getOSWConfidenceJob(mockJobId)).rejects.toThrowError(originalError);
-        });
-    });
-
-    describe('create OSW format job', () => {
-        beforeEach(() => {
-            // Clear all mocks before each test
-            jest.clearAllMocks();
-        });
-
-        it('should resolve with the created job ID if the insertion is successful', async () => {
-            const mockInfo = new OswFormatJob();
-            const mockQueryResult = <QueryResult<any>>{
-                rows: [{ job_id: 'someJobId' }],
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            const result = await oswService.createOSWFormatJob(mockInfo);
-
-            expect(result).toBe('someJobId');
-        });
-
-        it('should reject with an error if the job ID is not found in the query result', async () => {
-            const mockInfo = new OswFormatJob();
-            const mockQueryResult = <QueryResult<any>>{
-                rows: [{}], // Simulate missing jobid in the result
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            await expect(oswService.createOSWFormatJob(mockInfo)).rejects.toThrowError('Formatting job creation failed');
-        });
-
-        it('should reject with the original error if an error occurs during insertion', async () => {
-            const mockInfo = new OswFormatJob();
-            const originalError = new Error('Some unexpected error');
-            jest.spyOn(dbClient, "query")
-                .mockRejectedValueOnce(originalError);
-
-            await expect(oswService.createOSWFormatJob(mockInfo)).rejects.toThrowError(originalError);
-        });
-    });
-
-    describe('get OSW format job', () => {
-        it('should resolve with the job if the job ID is found', async () => {
-            const mockJobId = 'someJobId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 1,
-                rows: [{}],
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            const result = await oswService.getOSWFormatJob(mockJobId);
-
-            expect(result instanceof OswFormatJob).toBe(true);
-        });
-
-        it('should reject with JobIdNotFoundException if the job ID is not found', async () => {
-            const mockJobId = 'nonExistentJobId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 0,
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            await expect(oswService.getOSWFormatJob(mockJobId)).rejects.toThrowError(JobIdNotFoundException);
-        });
-
-        it('should reject with the original error if an error occurs during the query', async () => {
-            const mockJobId = 'someJobId';
-            const originalError = new Error('Some unexpected error');
-            jest.spyOn(dbClient, "query")
-                .mockRejectedValueOnce(originalError);
-            await expect(oswService.getOSWFormatJob(mockJobId)).rejects.toThrowError(originalError);
-        });
-    });
-
-    describe('update OSW format job', () => {
-        it('should not throw error if rows are updated', async () => {
-            const mockInfo = OswFormatJobResponse.from({});
-
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 1,
-                rows: [{}], // Simulate missing jobid in the result
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            // await oswService.updateOSWFormatJob(mockInfo);
-
-            expect(await oswService.updateOSWFormatJob(mockInfo)).toBeUndefined();
-        });
-
-        it('should throw an error if no rows are updated', async () => {
-            const mockInfo = OswFormatJobResponse.from({});
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 0,
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            await expect(oswService.updateOSWFormatJob(mockInfo)).rejects.toThrowError('Error updating formatting job');
-        });
-
-        it('should reject with the original error if an error occurs during the update', async () => {
-            const mockInfo = OswFormatJobResponse.from({});
-            const originalError = new Error('Some unexpected error');
-            jest.spyOn(dbClient, "query")
-                .mockRejectedValueOnce(originalError);
-
-            await expect(oswService.updateOSWFormatJob(mockInfo)).rejects.toThrowError(originalError);
-        });
-    });
-
-    describe('get OSW validation job', () => {
-        it('should resolve with the job if the job ID is found', async () => {
-            const mockJobId = 'someJobId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 1,
-                rows: [{}],
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            const result = await oswService.getOSWValidationJob(mockJobId);
-
-            expect(result instanceof OswValidationJobs).toBe(true);
-        });
-
-        it('should reject with JobIdNotFoundException if the job ID is not found', async () => {
-            const mockJobId = 'nonExistentJobId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 0,
-            };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            await expect(oswService.getOSWValidationJob(mockJobId)).rejects.toThrowError(JobIdNotFoundException);
-        });
-
-        it('should reject with the original error if an error occurs during the query', async () => {
-            const mockJobId = 'someJobId';
-            const originalError = new Error('Some unexpected error');
-            jest.spyOn(dbClient, "query")
-                .mockRejectedValueOnce(originalError);
-            await expect(oswService.getOSWValidationJob(mockJobId)).rejects.toThrowError(originalError);
-        });
-    });
-
-    describe('update confidence metric', () => {
-        it('should update status and return jobId if rows are updated', async () => {
-            const mockInfo = OSWConfidenceResponse.from({ jobId: '10' });
-            const mockTdeiRecordId = 'someTdeiRecordId';
-            const mockQueryResult = <QueryResult<any>>{ rowCount: 1, rows: [{ tdei_record_id: mockTdeiRecordId }] };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValue(mockQueryResult);
-
-            const result = await oswService.updateConfidenceMetric(mockInfo);
-
-            expect(result).toBe(mockInfo.jobId.toString());
-        });
-
-        it('should throw an error if no rows are updated during status update', async () => {
-            const mockInfo = OSWConfidenceResponse.from({});
-            jest.spyOn(dbClient, "query").mockResolvedValueOnce(<QueryResult<any>>{ rowCount: 0 });
-
-            await expect(oswService.updateConfidenceMetric(mockInfo)).rejects.toThrowError('Error updating confidence job');
-        });
-
-        it('should reject with the original error if an error occurs during the status update', async () => {
-            const mockInfo = new OSWConfidenceResponse(/* mock response data */);
-            const originalError = new Error('Some unexpected error');
-            jest.spyOn(dbClient, "query").mockRejectedValueOnce(originalError);
-
-            await expect(oswService.updateConfidenceMetric(mockInfo)).rejects.toThrowError(originalError);
-        });
-    });
-
-    describe('check metadata name And version unique', () => {
-        beforeEach(() => {
-            // Clear all mocks before each test
-            jest.clearAllMocks();
-        });
-
-        it('should resolve with true if record with the same name and version exists', async () => {
-            const mockName = 'existingName';
-            const mockVersion = 'existingVersion';
-            const mockQueryResult = <QueryResult<any>>{ rowCount: 1 };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValue(mockQueryResult);
-            const result = await oswService.checkMetaNameAndVersionUnique(mockName, mockVersion);
-
-            expect(result).toBe(true);
-        });
-
-        it('should resolve with false if no record with the same name and version exists', async () => {
-            const mockName = 'nonExistingName';
-            const mockVersion = 'nonExistingVersion';
-            const mockQueryResult = <QueryResult<any>>{ rowCount: 0 };
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValue(mockQueryResult);
-
-            const result = await oswService.checkMetaNameAndVersionUnique(mockName, mockVersion);
-
-            expect(result).toBe(false);
-        });
-
-        it('should resolve with true if an error occurs during the query', async () => {
-            const mockName = 'existingName';
-            const mockVersion = 'existingVersion';
-            const originalError = new Error('Some unexpected error');
-            jest.spyOn(dbClient, "query").mockRejectedValueOnce(originalError);
-
-            const result = await oswService.checkMetaNameAndVersionUnique(mockName, mockVersion);
-            expect(result).toBe(true);
         });
     });
 
@@ -771,7 +144,6 @@ describe("OSW Service Test", () => {
             const mockUid = 'mockUid';
             const mockFolderPath = 'mockFolderPath';
             const mockRemoteUrl = Promise.resolve("mockRemoteUrl");
-            const mockJobId = 'mockJobId';
 
             // Mock storage service functions
             jest.spyOn(storageService, "generateRandomUUID").mockReturnValueOnce(mockUid);
@@ -781,7 +153,8 @@ describe("OSW Service Test", () => {
             mockAppContext();
 
             // Mock createOSWFormatJob function
-            jest.spyOn(oswService, "createOSWFormatJob")
+            const mockJobId = 101;
+            jest.spyOn(jobService, "createJob")
                 .mockResolvedValue(mockJobId);
 
             // Mock OswFormatJobRequest.from function
@@ -805,7 +178,7 @@ describe("OSW Service Test", () => {
             // Assertions
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getFormatJobPath).toHaveBeenCalledWith(mockUid);
-            expect(result).toBe(mockJobId);
+            expect(result).toBe(mockJobId.toString());
             expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
                 'OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW',
                 expect.anything()
@@ -814,20 +187,22 @@ describe("OSW Service Test", () => {
     });
 
     describe('calculate confidence metric', () => {
-        const tdeiRecordId = 'tdei-record-id';
+        const tdeiRecordId = 'tdei-dataset-id';
         const userId = 'user-id';
 
         it('should calculate confidence successfully', async () => {
             // Mock the behavior of getOSWRecordById
-            jest.spyOn(oswService, "getOSWRecordById")
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
                 .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'osw',
                     download_osw_url: 'download-osw-url',
                     download_metadata_url: 'download-metadata-url',
                 }));
 
-            // Mock the behavior of createOSWConfidenceJob
-            jest.spyOn(oswService, "createOSWConfidenceJob")
-                .mockResolvedValue('job-id');
+            // Mock createOSWFormatJob function
+            const mockJobId = 101;
+            jest.spyOn(jobService, "createJob")
+                .mockResolvedValue(mockJobId);
 
             // Mock the behavior of triggerWorkflow
             mockAppContext();
@@ -836,9 +211,9 @@ describe("OSW Service Test", () => {
             const result = await oswService.calculateConfidence(tdeiRecordId, userId);
 
             // Assertions
-            expect(result).toBe('job-id'); // Adjust based on your expected result
-            expect(oswService.getOSWRecordById).toHaveBeenCalledWith(tdeiRecordId);
-            expect(oswService.createOSWConfidenceJob).toHaveBeenCalledWith(expect.anything()); // You may want to provide more specific expectations
+            expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
+            expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith(tdeiRecordId);
+            expect(jobService.createJob).toHaveBeenCalledWith(expect.anything()); // You may want to provide more specific expectations
             expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
                 'OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW',
                 expect.anything()
@@ -863,8 +238,9 @@ describe("OSW Service Test", () => {
                 .mockResolvedValue('dataset-upload-url');
 
             // Mock the behavior of dbClient
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValue(<any>{ rows: [{ job_id: 'job-id' }] });
+            const mockJobId = 101;
+            jest.spyOn(jobService, "createJob")
+                .mockResolvedValue(mockJobId);
 
             // Mock the behavior of triggerWorkflow
             mockAppContext();
@@ -872,23 +248,20 @@ describe("OSW Service Test", () => {
             const result = await oswService.processValidationOnlyRequest(userId, datasetFile);
 
             // Assertions
-            expect(result).toBe('job-id'); // Adjust based on your expected result
+            expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
             expect(storageService.uploadFile).toHaveBeenCalledWith('validation-job-path/original-name.zip', 'application/zip', expect.anything());
-            expect(dbClient.query).toHaveBeenCalled();
             expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
                 'OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW',
                 expect.anything()
             );
         });
-
-        // Add more test cases as needed
     });
 
     describe('process publish request', () => {
         const userId = 'user-id';
-        const tdeiRecordId = 'tdei-record-id';
+        const tdeiRecordId = 'tdei-dataset-id';
 
         it('should process publish request successfully', async () => {
             // Mock the behavior of dbClient
@@ -896,24 +269,29 @@ describe("OSW Service Test", () => {
                 .mockResolvedValue(<any>{ rowCount: 0 });// Assume no overlap
 
             // Mock the behavior of getOSWRecordById and getOSWMetadataById
-            const oswRecordMock = { status: 'Draft', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url' };
+            const oswRecordMock = { data_type: 'osw', status: 'Pre-Release', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url' };
             const oswMetadataMock = { getOverlapQuery: jest.fn() };
-            const getOSWRecordByIdSpy = jest.spyOn(oswService, 'getOSWRecordById').mockResolvedValue(<any>oswRecordMock);
-            const getOSWMetadataByIdSpy = jest.spyOn(oswService, 'getOSWMetadataById').mockResolvedValue(<any>oswMetadataMock);
+            const getOSWRecordByIdSpy = jest.spyOn(tdeiCoreService, 'getDatasetDetailsById').mockResolvedValue(<any>oswRecordMock);
+            const getOSWMetadataByIdSpy = jest.spyOn(tdeiCoreService, 'getMetadataDetailsById').mockResolvedValue(<any>oswMetadataMock);
+
+            const mockJobId = 101;
+            jest.spyOn(jobService, "createJob")
+                .mockResolvedValue(mockJobId);
 
             // Mock the behavior of triggerWorkflow and obseleteAnyExistingWorkflowHistory
             mockAppContext();
             jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
 
             // Call the function
-            await oswService.processPublishRequest(userId, tdeiRecordId);
+            let result = await oswService.processPublishRequest(userId, tdeiRecordId);
 
             // Assertions
+            expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getOSWRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(getOSWMetadataByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(dbClient.query).toHaveBeenCalled();
             expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
-                'OSW_PUBLISH_VALIDATION_REQUEST_WORKFLOW',
+                'OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW',
                 expect.anything()
             );
             expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
@@ -935,7 +313,7 @@ describe("OSW Service Test", () => {
             metadataFile: [
                 {
                     originalname: 'metadata.json',
-                    buffer: Buffer.from('{"name": "test", "version": "1.0"}'),
+                    buffer: Buffer.from('{"name": "test", "schema_version": "v0.2"}'),
                 },
             ],
             changesetFile: undefined,
@@ -943,23 +321,25 @@ describe("OSW Service Test", () => {
 
         it('should process upload request successfully', async () => {
             // Mock the behavior of getServiceById
-            jest.spyOn(oswService, "getServiceById")
-                .mockResolvedValue(new ServiceDto({
-                    tdei_project_group_id: "project-group-id"
-                }));
+            jest.spyOn(tdeiCoreService, "getServiceById")
+                .mockResolvedValue({
+                    owner_project_group: "project-group-id"
+                } as ServiceEntity);
 
             mockCore();
             mockAppContext();
             jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ tdei_project_group_id: 'project-group-id' });
-
+            const mockJobId = 101;
+            jest.spyOn(jobService, "createJob")
+                .mockResolvedValue(mockJobId);
             // Mock the behavior of validateMetadata
-            const validateMetadataSpy = jest.spyOn(oswService, 'validateMetadata').mockResolvedValue();
+            const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateObject').mockResolvedValue("");
             const uploadSpy = jest.spyOn(storageService, 'uploadFile').mockResolvedValue("file-path");
             jest.spyOn(storageService, "generateRandomUUID").mockReturnValueOnce('mocked-uuid');
 
             // Mock the behavior of checkMetaNameAndVersionUnique
-            jest.spyOn(oswService, 'checkMetaNameAndVersionUnique').mockResolvedValue(false);
+            jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(false);
 
             // Call the function
             const result = await oswService.processUploadRequest(uploadRequestObject);
@@ -972,12 +352,12 @@ describe("OSW Service Test", () => {
                 'OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW',
                 expect.any(Object)
             );
-            expect(result).toEqual('mocked-uuid'); // Adjust the expected value based on your implementation
+            expect(result).toEqual(mockJobId.toString()); // Adjust the expected value based on your implementation
         });
 
         it('should throw ServiceNotFoundException if service id not found', async () => {
             // Mock the behavior of getServiceById
-            jest.spyOn(oswService, "getServiceById")
+            jest.spyOn(tdeiCoreService, "getServiceById")
                 .mockResolvedValue(undefined);
 
             // Call the function
@@ -986,17 +366,18 @@ describe("OSW Service Test", () => {
 
         it('should throw InputException if metadata name and version not unique', async () => {
             // Mock the behavior of getServiceById
-            jest.spyOn(oswService, "getServiceById")
-                .mockResolvedValue(new ServiceDto({
-                    tdei_project_group_id: "project-group-id"
-                }));
+            jest.spyOn(tdeiCoreService, "getServiceById")
+                .mockResolvedValue(
+                    {
+                        owner_project_group: "project-group-id"
+                    } as ServiceEntity);
 
 
             // Mock the behavior of validateMetadata
-            const validateMetadataSpy = jest.spyOn(oswService, 'validateMetadata').mockResolvedValue();
+            const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateObject').mockResolvedValue("");
 
             // Mock the behavior of checkMetaNameAndVersionUnique
-            jest.spyOn(oswService, 'checkMetaNameAndVersionUnique').mockResolvedValue(true);
+            jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(true);
 
             // Call the function
             expect(oswService.processUploadRequest(uploadRequestObject)).rejects.toThrow(expect.any(InputException)); // Adjust the expected value based on your implementation
@@ -1004,124 +385,33 @@ describe("OSW Service Test", () => {
 
     });
 
-    describe('get service by Id', () => {
-        const serviceId = 'service-id';
-        const projectGroupId = 'project-group-id';
-
-        it('should get service by ID successfully', async () => {
-            fetchMock.mockResponseOnce(JSON.stringify([{}]));
-            jest.spyOn(Utility, "generateSecret").mockResolvedValueOnce("secret");
-            const result = await oswService.getServiceById(serviceId, projectGroupId);
-            expect(result instanceof ServiceDto)
-
-        }, 10000);
-
-        it('should handle error during fetch', async () => {
-            jest.spyOn(Utility, "generateSecret").mockResolvedValueOnce("secret");
-            // fetchMock.mockResponseOnce(JSON.stringify({}));
-            fetchMock.mockReject(new Error('Fetch error'));
-
-            expect(oswService.getServiceById(serviceId, projectGroupId)).resolves.toBeUndefined();
-        });
-
-    });
-
-    describe('get user project groups', () => {
-        const user_id = 'user_id';
-
-        it('should get service by ID successfully', async () => {
-            jest.spyOn(Utility, "generateSecret").mockResolvedValueOnce("secret");
-            fetchMock.mockResponseOnce(JSON.stringify([]));
-            const result = await oswService.getUserProjectGroups(user_id);
-            expect(Array.isArray(result));
-
-        });
-
-        it('should handle error during fetch', async () => {
-            jest.spyOn(Utility, "generateSecret").mockResolvedValueOnce("secret");
-            fetchMock.mockReject(new Error('Fetch error'));
-
-            expect(oswService.getUserProjectGroups(user_id)).resolves.toBeUndefined();
-        });
-
-    });
-
-    describe("Invalidate Record Request", () => {
-        it("should invalidate the record and return true if query result has rowCount > 0", async () => {
-            // Arrange
-            const user_id = "mock-user-id";
-            const tdei_record_id = "mock-tdei-record-id";
-
-            const dummyResponse = <QueryResult<any>>{ rowCount: 1 };
-            const dbspy = jest
-                .spyOn(dbClient, "query")
-                .mockResolvedValueOnce(dummyResponse);
-
-            // Act
-            const result = await oswService.invalidateRecordRequest(user_id, tdei_record_id);
-
-            // Assert
-            expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
-            expect(result).toBe(true);
-        });
-
-        it("should not invalidate the record and return false if query result has rowCount <= 0", async () => {
-            // Arrange
-            const user_id = "mock-user-id";
-            const tdei_record_id = "mock-tdei-record-id";
-            const dummyResponse = <QueryResult<any>>{ rowCount: 0 };
-            const error = new InputException("mock-tdei-record-id not found.");
-            const dbspy = jest
-                .spyOn(dbClient, "query")
-                .mockResolvedValueOnce(dummyResponse);
-            // Act
-            // Assert
-            await expect(oswService.invalidateRecordRequest(user_id, tdei_record_id)).rejects.toThrow(error);
-            expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
-        });
-
-        it("should throw an error if an error occurs while invalidating the record", async () => {
-            // Arrange
-            const user_id = "mock-user-id";
-            const tdei_record_id = "mock-tdei-record-id";
-            const error = new Error("Database error");
-            const dbspy = jest
-                .spyOn(dbClient, "query")
-                .mockRejectedValueOnce(error);
-
-            // Act & Assert
-            await expect(oswService.invalidateRecordRequest(user_id, tdei_record_id)).rejects.toThrow(error);
-            expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
-        });
-    });
-
     describe("Process Dataset Flattening Request", () => {
         test("When override is false and there is an existing record, expect to throw InputException", async () => {
             // Arrange
-            const tdei_record_id = "test_id";
+            const tdei_dataset_id = "test_id";
             const override = false;
             const queryResult = <QueryResult<any>>{
                 rowCount: 1
             };
-            jest.spyOn(oswService, "getOSWRecordById").mockResolvedValueOnce(new OswVersions({}));
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(new DatasetEntity({ data_type: "osw" }));
             jest.spyOn(dbClient, "query").mockResolvedValueOnce(queryResult);
 
             // Act & Assert
-            await expect(oswService.processDatasetFlatteningRequest("user_id", tdei_record_id, override)).rejects.toThrow(InputException);
+            await expect(oswService.processDatasetFlatteningRequest("user_id", tdei_dataset_id, override)).rejects.toThrow(InputException);
             expect(dbClient.query).toHaveBeenCalledTimes(1);
         });
 
         test("When override is true, expect to create a new job and trigger the workflow", async () => {
             // Arrange
-            const tdei_record_id = "test_id";
+            const tdei_dataset_id = "test_id";
             const override = true;
             const job_id = "job_id";
-            jest.spyOn(oswService, "getOSWRecordById").mockResolvedValueOnce(new OswVersions({}));
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(new DatasetEntity({ data_type: "osw" }));
             jest.spyOn(dbClient, "query").mockResolvedValue({ rows: [{ job_id }] } as any);
             // Mock the behavior of triggerWorkflow
             mockAppContext();
             // Act
-            const result = await oswService.processDatasetFlatteningRequest("user_id", tdei_record_id, override);
+            const result = await oswService.processDatasetFlatteningRequest("user_id", tdei_dataset_id, override);
 
             // Assert
             expect(dbClient.query).toHaveBeenCalledTimes(2);
@@ -1136,7 +426,7 @@ describe("OSW Service Test", () => {
     describe("processBackendRequest", () => {
         test("Should create a backend job and trigger the workflow", async () => {
             // Arrange
-            const backendRequest: ServiceRequest = {
+            const backendRequest: BboxServiceRequest = {
                 user_id: "user_id",
                 service: "service",
                 parameters: {
@@ -1146,7 +436,7 @@ describe("OSW Service Test", () => {
             };
 
             const mockJobId = "job_id";
-            const mockWorkflowIdentifier = "BACKEND_SERVICE_REQUEST_WORKFLOW";
+            const mockWorkflowIdentifier = "DATA_QUERY_REQUEST_WORKFLOW";
 
             const queryResult = <QueryResult<any>>{
                 rowCount: 1,
@@ -1156,18 +446,18 @@ describe("OSW Service Test", () => {
 
             mockAppContext();
             // Act
-            const result = await oswService.processBackendRequest(backendRequest);
+            const result = await oswService.processBackendRequest(backendRequest, "osm");
 
             // Assert
             expect(dbClient.query).toHaveBeenCalledTimes(1);
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith("BACKEND_SERVICE_REQUEST_WORKFLOW",
+            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(mockWorkflowIdentifier,
                 expect.any(QueueMessage));
             expect(result).toBe(mockJobId);
         });
 
         test("Should throw an error if an exception occurs", async () => {
             // Arrange
-            const backendRequest: ServiceRequest = {
+            const backendRequest: BboxServiceRequest = {
                 user_id: "user_id",
                 service: "service",
                 parameters: {
@@ -1181,7 +471,85 @@ describe("OSW Service Test", () => {
             jest.spyOn(dbClient, "query").mockRejectedValueOnce(mockError);
 
             // Act & Assert
-            await expect(oswService.processBackendRequest(backendRequest)).rejects.toThrow(mockError);
+            await expect(oswService.processBackendRequest(backendRequest, "osm")).rejects.toThrow(mockError);
+        });
+    });
+
+    describe("processDatasetTagRoadRequest", () => {
+        test("When dataset is not in Pre-Release state, Expect to throw InputException", async () => {
+            // Arrange
+            const backendRequest = {
+                parameters: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-source-dataset-id",
+                },
+                service: "mock-service",
+                user_id: "mock-user-id",
+            };
+            const dataset = {
+                status: RecordStatus["Publish"],
+            } as any;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
+
+            // Act & Assert
+            await expect(oswService.processDatasetTagRoadRequest(backendRequest)).rejects.toThrow(
+                new InputException(
+                    `Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`
+                )
+            );
+        });
+
+        test("When dataset is in Pre-Release state, Expect to create job and trigger workflow", async () => {
+            // Arrange
+            const backendRequest = {
+                parameters: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-source-dataset-id",
+                },
+                service: "mock-service",
+                user_id: "mock-user-id",
+            };
+            const dataset = {
+                status: RecordStatus["Pre-Release"],
+            } as any;
+            const job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Queries"],
+                status: JobStatus["IN-PROGRESS"],
+                message: "Job started",
+                request_input: {
+                    service: backendRequest.service,
+                    user_id: backendRequest.user_id,
+                    parameters: backendRequest.parameters,
+                },
+                tdei_project_group_id: "",
+                user_id: backendRequest.user_id,
+            });
+            const job_id = 111;
+            const queueMessage = QueueMessage.from({
+                messageId: job_id.toString(),
+                messageType: "DATA_QUERY_REQUEST_WORKFLOW",
+                data: {
+                    service: backendRequest.service,
+                    user_id: backendRequest.user_id,
+                    parameters: backendRequest.parameters,
+                },
+                publishedDate: "2024-04-02T10:04:58.734Z"
+            });
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
+            jest.spyOn(oswService.jobServiceInstance, "createJob").mockResolvedValueOnce(job_id);
+            mockAppContext();
+
+            // Act
+            const result = await oswService.processDatasetTagRoadRequest(backendRequest);
+
+            // Assert
+            expect(result).toBe(job_id.toString());
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(job);
+            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+                "DATA_QUERY_REQUEST_WORKFLOW",
+                expect.any(QueueMessage)
+            );
         });
     });
 });

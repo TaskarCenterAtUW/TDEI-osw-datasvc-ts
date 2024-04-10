@@ -1,382 +1,244 @@
 import oswController from "../../src/controller/osw-controller";
-import { OswDTO } from "../../src/model/osw-dto";
 import oswService from "../../src/service/osw-service";
 import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
-import { InputException, JobIncompleteException } from "../../src/exceptions/http/http-exceptions";
+import { InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
 import { getMockFileEntity } from "../common/mock-utils";
+import tdeiCoreService from "../../src/service/tdei-core-service";
+import { Utility } from "../../src/utility/utility";
 
 // group test using describe
 describe("OSW Controller Test", () => {
 
-    describe("Process Dataset Bbox Request", () => {
+    describe("Process Dataset Tag Road Request", () => {
         test("When request body is empty, Expect to return HTTP status 400", async () => {
-          // Arrange
-          const req = getMockReq({ query: {} });
-          const { res, next } = getMockRes();
-          const inputException = new InputException("request body is empty", res);
-          jest.spyOn(oswService, "processBackendRequest").mockRejectedValueOnce(inputException);
-    
-          // Act
-          await oswController.processDatasetBboxRequest(req, res, next);
-    
-          // Assert
-          expect(next).toHaveBeenCalledWith(inputException);
-        });
-    
-        test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
-          // Arrange
-          const req = getMockReq({
-            query: {
-              tdei_record_id: "mock-tdei-record-id",
-              bbox: "mock-bbox"
-            },
-            body: {
-              user_id: "mock-user-id"
-            }
-          });
-          const { res, next } = getMockRes();
-          const job_id = "mock-job-id";
-          jest.spyOn(oswService, "processBackendRequest").mockResolvedValueOnce(job_id);
-    
-          // Act
-          await oswController.processDatasetBboxRequest(req, res, next);
-    
-          // Assert
-          expect(res.setHeader).toHaveBeenCalledWith("Location", `/api/v1/osw/dataset-bbox/status/${job_id}`);
-          expect(res.status).toHaveBeenCalledWith(202);
-          expect(res.send).toHaveBeenCalledWith(job_id);
-        });
-    
-        test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
-          // Arrange
-          const req = getMockReq({
-            query: {
-              tdei_record_id: "mock-tdei-record-id",
-              bbox: "mock-bbox"
-            },
-            body: {
-              user_id: "mock-user-id"
-            }
-          });
-          const { res, next } = getMockRes();
-          const error = new Error("Internal Server Error");
-          jest.spyOn(oswService, "processBackendRequest").mockRejectedValueOnce(error);
-    
-          // Act
-          await oswController.processDatasetBboxRequest(req, res, next);
-    
-          // Assert
-          expect(res.status).toHaveBeenCalledWith(500);
-          expect(res.send).toHaveBeenCalledWith("Error while processing the dataset bbox request");
-          expect(next).toHaveBeenCalledWith(new HttpException(500, "Error while processing the dataset bbox request"));
-        });
-      });
-
-    describe("Get Dataset Bbox Status", () => {
-        test("When job_id is not provided, Expect to return HTTP status 400", async () => {
             // Arrange
-            const req = getMockReq();
+            const req = getMockReq({ query: {} });
             const { res, next } = getMockRes();
-            const inputException = new InputException("job_id not provided", res);
-            jest.spyOn(oswService, "getBackendJob").mockRejectedValueOnce(inputException);
+            const inputException = new InputException("required input is empty", res);
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(inputException);
 
             // Act
-            await oswController.getDatasetBboxStatus(req, res, next);
+            await oswController.processDatasetTagRoadRequest(req, res, next);
 
             // Assert
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.send).toHaveBeenCalledWith(inputException.message);
             expect(next).toHaveBeenCalledWith(inputException);
         });
 
-        test("When job_id is provided and jobInfo status is COMPLETED, Expect to return HTTP status 200 with download_url", async () => {
+        test("When required input is empty, Expect to return HTTP status 400", async () => {
             // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
+            const req = getMockReq({
+                query: {
+                    source_dataset_id: undefined,
+                    target_dataset_id: undefined
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
             const { res, next } = getMockRes();
-            const jobInfo: any = {
-                status: "COMPLETED",
-                message: "Job completed successfully"
-            };
-            jest.spyOn(oswService, "getBackendJob").mockResolvedValueOnce(jobInfo);
+            const inputException = new InputException("required input is empty", res);
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(inputException);
 
             // Act
-            await oswController.getDatasetBboxStatus(req, res, next);
+            await oswController.processDatasetTagRoadRequest(req, res, next);
 
             // Assert
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.send).toHaveBeenCalledWith({
-                job_id: req.params.job_id,
-                status: jobInfo.status,
-                download_url: "/api/v1/osw/dataset-bbox/download/" + req.params.job_id,
-                message: jobInfo.message
-            });
+            expect(next).toHaveBeenCalledWith(inputException);
         });
 
-        test("When job_id is provided and jobInfo status is not COMPLETED, Expect to return HTTP status 200 without download_url", async () => {
+        test("When user is not authorized, Expect to return HTTP status 401", async () => {
             // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
+            const req = getMockReq({
+                query: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-target-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
             const { res, next } = getMockRes();
-            const jobInfo: any = {
-                status: "IN-PROGRESS",
-                message: "Job is still in progress"
-            };
-            jest.spyOn(oswService, "getBackendJob").mockResolvedValueOnce(jobInfo);
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(false);
+            const unauthenticatedException = new UnAuthenticated();
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(unauthenticatedException);
 
             // Act
-            await oswController.getDatasetBboxStatus(req, res, next);
+            await oswController.processDatasetTagRoadRequest(req, res, next);
 
             // Assert
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.send).toHaveBeenCalledWith({
-                job_id: req.params.job_id,
-                status: jobInfo.status,
-                download_url: "",
-                message: jobInfo.message
+            expect(next).toHaveBeenCalledWith(unauthenticatedException);
+        });
+
+        test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-target-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
             });
+            const { res, next } = getMockRes();
+            const job_id = "mock-job-id";
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(true);
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockResolvedValueOnce(job_id);
+
+            // Act
+            await oswController.processDatasetTagRoadRequest(req, res, next);
+
+            // Assert
+            expect(res.setHeader).toHaveBeenCalledWith("Location", `/api/v1/job?job_id=${job_id}`);
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
         });
 
         test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
             // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
+            const req = getMockReq({
+                query: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-target-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
             const { res, next } = getMockRes();
             const error = new Error("Internal Server Error");
-            jest.spyOn(oswService, "getBackendJob").mockRejectedValueOnce(error);
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(true);
+            jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(error);
 
             // Act
-            await oswController.getDatasetBboxStatus(req, res, next);
+            await oswController.processDatasetTagRoadRequest(req, res, next);
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.send).toHaveBeenCalledWith("Error while processing the dataset bbox status request");
-            expect(next).toHaveBeenCalledWith(new HttpException(500, "Error while processing the dataset bbox status request"));
+            expect(res.send).toHaveBeenCalledWith("Error while processing the dataset bbox request");
+            expect(next).toHaveBeenCalledWith(new HttpException(500, "Error while processing the dataset bbox request"));
         });
     });
-    describe("Get Dataset Bbox Download File", () => {
-        test("When job_id is not provided, Expect to return HTTP status 400", async () => {
+
+    describe("Process Dataset Bbox Request", () => {
+        test("When request body is empty, Expect to return HTTP status 400", async () => {
             // Arrange
-            const req = getMockReq();
+            const req = getMockReq({ query: {} });
             const { res, next } = getMockRes();
-            const inputException = new InputException("job_id not provided", res);
-            jest.spyOn(oswService, "getBackendJob").mockRejectedValueOnce(inputException);
+            const inputException = new InputException("request body is empty", res);
+            jest.spyOn(oswService, "processBackendRequest").mockRejectedValueOnce(inputException);
 
             // Act
-            await oswController.getDatasetBboxDownloadFile(req, res, next);
+            await oswController.processDatasetBboxRequest(req, res, next);
 
             // Assert
             expect(next).toHaveBeenCalledWith(inputException);
         });
 
-        test("When job_id is provided and jobInfo status is not COMPLETED, Expect to return JobIncompleteException", async () => {
+        test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
             // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
+            const req = getMockReq({
+                query: {
+                    tdei_dataset_id: "mock-tdei_dataset_id",
+                    bbox: "mock-bbox"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
             const { res, next } = getMockRes();
-            const jobInfo: any = {
-                status: "IN-PROGRESS",
-                message: "Job is still in progress"
-            };
-            jest.spyOn(oswService, "getBackendJob").mockResolvedValueOnce(jobInfo);
+            const job_id = "mock-job-id";
+            jest.spyOn(oswService, "processBackendRequest").mockResolvedValueOnce(job_id);
 
             // Act
-            await oswController.getDatasetBboxDownloadFile(req, res, next);
+            await oswController.processDatasetBboxRequest(req, res, next);
 
             // Assert
-            expect(next).toHaveBeenCalledWith(new JobIncompleteException(req.params.job_id, res));
+            expect(res.setHeader).toHaveBeenCalledWith("Location", `/api/v1/job?job_id=${job_id}`);
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
         });
 
-        test("When job_id is provided and jobInfo status is COMPLETED, Expect to return the file stream", async () => {
+        test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
             // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
-            const { res, next } = getMockRes();
-            const jobInfo: any = {
-                status: "COMPLETED",
-                message: "Job completed successfully",
-                download_url: "mock-download-url"
-            };
-            // ...
-
-            const fileEntity = getMockFileEntity();
-            jest.spyOn(oswService, "getBackendJob").mockResolvedValueOnce(jobInfo);
-            jest.spyOn(oswService, "getFileEntity").mockResolvedValueOnce(fileEntity);
-
-            // Act
-            await oswController.getDatasetBboxDownloadFile(req, res, next);
-
-            // Assert
-            expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/zip');
-            expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
-        });
-
-        test("When an error occurs while processing the request, Expect to return the error", async () => {
-            // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
+            const req = getMockReq({
+                query: {
+                    tdei_dataset_id: "mock-tdei_dataset_id",
+                    bbox: "mock-bbox"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
             const { res, next } = getMockRes();
             const error = new Error("Internal Server Error");
-            jest.spyOn(oswService, "getBackendJob").mockRejectedValueOnce(error);
+            jest.spyOn(oswService, "processBackendRequest").mockRejectedValueOnce(error);
 
             // Act
-            await oswController.getDatasetBboxDownloadFile(req, res, next);
+            await oswController.processDatasetBboxRequest(req, res, next);
 
             // Assert
-            expect(next).toHaveBeenCalledWith(error);
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the dataset bbox request");
+            expect(next).toHaveBeenCalledWith(new HttpException(500, "Error while processing the dataset bbox request"));
         });
     });
 
     describe("Process Flattening Request", () => {
         test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
-          // Arrange
-          const req = getMockReq({
-            params: { tdei_record_id: "mock-tdei-record-id" },
-            query: { override: "true" },
-            body: { user_id: "mock-user-id" },
-          });
-          const { res, next } = getMockRes();
-          const job_id = "mock-job-id";
-          jest.spyOn(oswService, "processDatasetFlatteningRequest").mockResolvedValueOnce(job_id);
-    
-          // Act
-          await oswController.processFlatteningRequest(req, res, next);
-    
-          // Assert
-          expect(res.setHeader).toHaveBeenCalledWith(
-            "Location",
-            `/api/v1/osw/flattern/status/${job_id}`
-          );
-          expect(res.status).toHaveBeenCalledWith(202);
-          expect(res.send).toHaveBeenCalledWith(job_id);
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-tdei_dataset_id" },
+                query: { override: "true" },
+                body: { user_id: "mock-user-id" },
+            });
+            const { res, next } = getMockRes();
+            const job_id = "mock-job-id";
+            jest.spyOn(oswService, "processDatasetFlatteningRequest").mockResolvedValueOnce(job_id);
+
+            // Act
+            await oswController.processFlatteningRequest(req, res, next);
+
+            // Assert
+            expect(res.setHeader).toHaveBeenCalledWith(
+                "Location",
+                `/api/v1/job?job_id=${job_id}`
+            );
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
         });
-    
+
         test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
-          // Arrange
-          const req = getMockReq({
-            params: { tdei_record_id: "mock-tdei-record-id" },
-            query: { override: "true" },
-            body: { user_id: "mock-user-id" },
-          });
-          const { res, next } = getMockRes();
-          const error = new Error("Internal Server Error");
-          jest.spyOn(oswService, "processDatasetFlatteningRequest").mockRejectedValueOnce(error);
-    
-          // Act
-          await oswController.processFlatteningRequest(req, res, next);
-    
-          // Assert
-          expect(res.status).toHaveBeenCalledWith(500);
-          expect(res.send).toHaveBeenCalledWith("Error while processing the flattening request");
-          expect(next).toHaveBeenCalledWith(
-            new HttpException(500, "Error while processing the flattening request")
-          );
-        });
-      });
-
-      describe("Get Dataset Flattening Status", () => {
-        test("When job_id is not provided, Expect to return HTTP status 400", async () => {
-          // Arrange
-          const req = getMockReq();
-          const { res, next } = getMockRes();
-          const inputException = new InputException("job_id not provided", res);
-          jest.spyOn(oswService, "getDatasetFlatteningJob").mockRejectedValueOnce(inputException);
-    
-          // Act
-          await oswController.getDatasetFlatteningStatus(req, res, next);
-    
-          // Assert
-          expect(res.status).toHaveBeenCalledWith(400);
-          expect(res.send).toHaveBeenCalledWith(inputException.message);
-          expect(next).toHaveBeenCalledWith(inputException);
-        });
-    
-        test("When job_id is provided, Expect to return HTTP status 200 with jobInfo", async () => {
-          // Arrange
-          const req = getMockReq({ params: { job_id: "mock-job-id" } });
-          const { res, next } = getMockRes();
-          const jobInfo: any = {
-            status: "COMPLETED",
-            message: "Job completed successfully"
-          };
-          jest.spyOn(oswService, "getDatasetFlatteningJob").mockResolvedValueOnce(jobInfo);
-    
-          // Act
-          await oswController.getDatasetFlatteningStatus(req, res, next);
-    
-          // Assert
-          expect(res.status).toHaveBeenCalledWith(200);
-          expect(res.send).toHaveBeenCalledWith({
-            job_id: req.params.job_id,
-            status: jobInfo.status,
-            message: jobInfo.message
-          });
-        });
-    
-        test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
-          // Arrange
-          const req = getMockReq({ params: { job_id: "mock-job-id" } });
-          const { res, next } = getMockRes();
-          const error = new Error("Internal Server Error");
-          jest.spyOn(oswService, "getDatasetFlatteningJob").mockRejectedValueOnce(error);
-    
-          // Act
-          await oswController.getDatasetFlatteningStatus(req, res, next);
-    
-          // Assert
-          expect(res.status).toHaveBeenCalledWith(500);
-          expect(res.send).toHaveBeenCalledWith("Error while processing the flattening request");
-          expect(next).toHaveBeenCalledWith(new HttpException(500, "Error while processing the flattening request"));
-        });
-      });
-      
-    describe("Get OSW list", () => {
-        describe("Functional", () => {
-            test("When requested with empty search criteria, Expect to return OSW list", async () => {
-                //Arrange
-                const req = getMockReq();
-                const { res, next } = getMockRes();
-                const list: OswDTO[] = [<OswDTO>{}]
-                const getAllOswSpy = jest
-                    .spyOn(oswService, "getAllOsw")
-                    .mockResolvedValueOnce(list);
-                //Act
-                await oswController.getAllOsw(req, res, next);
-                //Assert
-                expect(getAllOswSpy).toHaveBeenCalledTimes(1);
-                expect(res.status).toHaveBeenCalledWith(200);
-                expect(res.send).toBeCalledWith(list);
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-tdei_dataset_id" },
+                query: { override: "true" },
+                body: { user_id: "mock-user-id" },
             });
+            const { res, next } = getMockRes();
+            const error = new Error("Internal Server Error");
+            jest.spyOn(oswService, "processDatasetFlatteningRequest").mockRejectedValueOnce(error);
 
-            test("When requested with bad collection_date input, Expect to return HTTP status 400", async () => {
-                //Arrange
-                const req = getMockReq({ body: { collection_date: "2023" } });
-                const { res, next } = getMockRes();
-                jest
-                    .spyOn(oswService, "getAllOsw")
-                    .mockRejectedValueOnce(new InputException("Invalid date provided."));
-                //Act
-                await oswController.getAllOsw(req, res, next);
-                //Assert
-                expect(res.status).toHaveBeenCalledWith(400);
-                expect(next).toHaveBeenCalled();
-            });
+            // Act
+            await oswController.processFlatteningRequest(req, res, next);
 
-            test("When unknown or database exception occured while processing request, Expect to return HTTP status 500", async () => {
-                //Arrange
-                const req = getMockReq({ body: { collection_date: "2023" } });
-                const { res, next } = getMockRes();
-                jest
-                    .spyOn(oswService, "getAllOsw")
-                    .mockRejectedValueOnce(new Error("unknown error"));
-                //Act
-                await oswController.getAllOsw(req, res, next);
-                //Assert
-                expect(res.status).toHaveBeenCalledWith(500);
-                expect(next).toHaveBeenCalled();
-            });
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the flattening request");
+            expect(next).toHaveBeenCalledWith(
+                new HttpException(500, "Error while processing the flattening request")
+            );
         });
     });
 
     describe("Get OSW file by Id", () => {
 
         describe("Functional", () => {
-            test("When requested for valid tdei_record_id, Expect to return downloadable file stream", async () => {
+            test("When requested for valid tdei_dataset_id, Expect to return downloadable file stream", async () => {
                 //Arrange
                 const req = getMockReq();
                 const { res, next } = getMockRes();
@@ -390,7 +252,7 @@ describe("OSW Controller Test", () => {
                 expect(getOswByIdSpy).toHaveBeenCalledTimes(1);
             });
 
-            test("When requested for invalid tdei_record_id, Expect to return HTTP status 404", async () => {
+            test("When requested for invalid tdei_dataset_id, Expect to return HTTP status 404", async () => {
                 //Arrange
                 const req = getMockReq();
                 const { res, next } = getMockRes();
@@ -471,18 +333,18 @@ describe("OSW Controller Test", () => {
             mockNext = jest.fn();
         });
 
-        it('should process the upload request and return tdei_record_id', async () => {
+        it('should process the upload request and return tdei_dataset_id', async () => {
             const { res, next } = getMockRes();
-            const mockTdeiRecordId = 'mock-tdei-record-id';
+            const mockTdeiRecordId = 'mock-tdei_dataset_id';
 
-            // Mock the processUploadRequest function to return a mock tdei_record_id
+            // Mock the processUploadRequest function to return a mock tdei_dataset_id
             jest.spyOn(oswService, "processUploadRequest").mockResolvedValueOnce(mockTdeiRecordId);
 
             await oswController.processUploadRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockTdeiRecordId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/osw/upload/status/${mockTdeiRecordId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockTdeiRecordId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -533,7 +395,7 @@ describe("OSW Controller Test", () => {
         beforeEach(() => {
             mockRequest = {
                 params: {
-                    tdei_record_id: 'mock-tdei-record-id',
+                    tdei_dataset_id: 'mock-tdei_dataset_id',
                 },
                 body: {
                     user_id: 'mock-user-id',
@@ -549,17 +411,17 @@ describe("OSW Controller Test", () => {
             mockNext = jest.fn();
         });
 
-        it('should process the publish request and return tdei_record_id', async () => {
-            const mockTdeiRecordId = 'mock-tdei-record-id';
+        it('should process the publish request and return tdei_dataset_id', async () => {
+            const mockTdeiRecordId = 'mock-tdei_dataset_id';
 
-            // Mock the processPublishRequest function to return a mock tdei_record_id
-            jest.spyOn(oswService, "processPublishRequest").mockResolvedValueOnce();
+            // Mock the processPublishRequest function to return a mock tdei_dataset_id
+            jest.spyOn(oswService, "processPublishRequest").mockResolvedValueOnce(mockTdeiRecordId);
 
             await oswController.processPublishRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockTdeiRecordId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/osw/publish/status/${mockTdeiRecordId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockTdeiRecordId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -574,8 +436,6 @@ describe("OSW Controller Test", () => {
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the publish request');
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
-
-        // Add more test cases as needed
     });
 
     describe('process validation only request', () => {
@@ -613,7 +473,7 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/osw/validation/status/${mockJobId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockJobId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -648,9 +508,11 @@ describe("OSW Controller Test", () => {
 
         beforeEach(() => {
             mockRequest = {
+                params: {
+                    tdei_dataset_id: 'mock-tdei_dataset_id',
+                },
                 body: {
-                    user_id: 'mock-user-id',
-                    tdei_record_id: 'mock-tdei-record-id',
+                    user_id: 'mock-user-id'
                 },
             };
 
@@ -672,19 +534,19 @@ describe("OSW Controller Test", () => {
             await oswController.calculateConfidence(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
-            expect(mockResponse.send).toHaveBeenCalledWith({ job_id: mockJobId, tdei_record_id: mockRequest.body.tdei_record_id });
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/osw/confidence/status/${mockJobId}`);
+            expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockJobId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
-        it('should handle calculate confidence request with missing tdei_record_id', async () => {
-            // Simulate a calculate confidence request with missing tdei_record_id
-            mockRequest.body.tdei_record_id = undefined;
+        it('should handle calculate confidence request with missing tdei_dataset_id', async () => {
+            // Simulate a calculate confidence request with missing tdei_dataset_id
+            mockRequest.params.tdei_dataset_id = undefined;
 
             await oswController.calculateConfidence(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('Please add tdei_record_id in payload');
+            expect(mockResponse.send).toHaveBeenCalledWith('Please add tdei_dataset_id in payload');
             expect(mockNext).toHaveBeenCalledWith();
         });
 
@@ -701,61 +563,6 @@ describe("OSW Controller Test", () => {
         });
     });
 
-    describe('get confidence job status', () => {
-        let mockRequest: any;
-        let mockResponse: any;
-        let mockNext: jest.Mock;
-
-        beforeEach(() => {
-            mockRequest = {
-                params: {
-                    job_id: 'mock-job-id',
-                },
-            };
-
-            mockResponse = {
-                status: jest.fn().mockReturnThis(),
-                send: jest.fn(),
-            };
-
-            mockNext = jest.fn();
-        });
-
-        it('should return confidence job status', async () => {
-            const mockJobInfo = {
-                job_id: 'mock-job-id',
-                confidence_metric: 0.85,
-                status: 'completed',
-                updated_at: new Date(),
-            };
-
-            // Mock the getOSWConfidenceJob function to return mock job info
-            jest.spyOn(oswService, "getOSWConfidenceJob").mockResolvedValueOnce(<any>mockJobInfo);
-
-            await oswController.getConfidenceJobStatus(mockRequest, mockResponse, mockNext);
-
-            expect(mockResponse.status).toHaveBeenCalledWith(200);
-            expect(mockResponse.send).toHaveBeenCalledWith({
-                job_id: mockJobInfo.job_id,
-                confidenceValue: mockJobInfo.confidence_metric,
-                status: mockJobInfo.status,
-                updatedAt: mockJobInfo.updated_at,
-                message: 'ok',
-            });
-            expect(mockNext).not.toHaveBeenCalled();
-        });
-
-        it('should handle error during confidence job status retrieval', async () => {
-            // Simulate an error during confidence job status retrieval
-            const mockError = new Error('Error retrieving confidence job status');
-            jest.spyOn(oswService, "getOSWConfidenceJob").mockRejectedValueOnce(mockError);
-
-            await oswController.getConfidenceJobStatus(mockRequest, mockResponse, mockNext);
-
-            expect(mockNext).toHaveBeenCalledWith(mockError);
-        });
-    });
-
     describe('create format request', () => {
         let mockRequest: any;
         let mockResponse: any;
@@ -765,8 +572,8 @@ describe("OSW Controller Test", () => {
             mockRequest = getMockReq({
                 body: {
                     user_id: 'mock-user-id',
-                    source: 'mock-source',
-                    target: 'mock-target',
+                    source: 'osw',
+                    target: 'osm',
                 },
                 file: {
                     originalname: 'mock-file.txt',
@@ -791,9 +598,9 @@ describe("OSW Controller Test", () => {
 
             await oswController.createFormatRequest(mockRequest, mockResponse, mockNext);
 
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', '/api/v1/osw/convert/status/mock-job-id');
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', '/api/v1/job?job_id=mock-job-id');
             expect(mockResponse.status).toHaveBeenCalledWith(202);
-            expect(mockResponse.send).toHaveBeenCalledWith({ job_id: mockJobId });
+            expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -821,87 +628,4 @@ describe("OSW Controller Test", () => {
         });
     });
 
-    describe('Invalidate the record', () => {
-
-        test("When requested to invalidate a record, Expect to return http status 200 and true if successful", async () => {
-            // Arrange
-            const req = getMockReq({ body: { user_id: "user_id" }, params: { tdei_record_id: "record_id" } });
-            const { res, next } = getMockRes();
-            const invalidateRecordRequestSpy = jest.spyOn(oswService, "invalidateRecordRequest").mockResolvedValueOnce(true);
-
-            // Act
-            await oswController.invalidateRecordRequest(req, res, next);
-
-            // Assert
-            expect(invalidateRecordRequestSpy).toHaveBeenCalledWith(req.body.user_id, req.params.tdei_record_id);
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.send).toHaveBeenCalledWith(true);
-            expect(next).not.toHaveBeenCalled();
-        });
-
-        test("When an error occurs while processing the invalidate request, Expect to return http status 500 and error message", async () => {
-            // Arrange
-            const req = getMockReq({
-                params: {
-                    tdei_record_id: "record_id"
-                },
-                body: {
-                    user_id: "user_id"
-                }
-            });
-            const { res, next } = getMockRes();
-            const error = new Error("Error while processing the invalidate request");
-            const invalidateRecordRequestSpy = jest.spyOn(oswService, "invalidateRecordRequest").mockRejectedValueOnce(error);
-
-            // Act
-            await oswController.invalidateRecordRequest(req, res, next);
-
-            // Assert
-            expect(invalidateRecordRequestSpy).toHaveBeenCalledWith(req.body.user_id, req.params.tdei_record_id);
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.send).toHaveBeenCalledWith("Error while processing the invalidate request");
-            expect(next).toHaveBeenCalledWith(error);
-        });
-
-        test("When an HttpException occurs while processing the invalidate request, Expect to return corresponding http status and error message", async () => {
-            // Arrange
-            const req = getMockReq({
-                params: {
-                    tdei_record_id: "record_id"
-                },
-                body: {
-                    user_id: "user_id"
-                }
-            });
-            const { res, next } = getMockRes();
-            const error = new HttpException(400, "Bad request");
-            const invalidateRecordRequestSpy = jest.spyOn(oswService, "invalidateRecordRequest").mockRejectedValueOnce(error);
-
-            // Act
-            await oswController.invalidateRecordRequest(req, res, next);
-
-            // Assert
-            expect(invalidateRecordRequestSpy).toHaveBeenCalledWith(req.body.user_id, req.params.tdei_record_id);
-            expect(res.status).toHaveBeenCalledWith(error.status);
-            expect(res.send).toHaveBeenCalledWith(error.message);
-            expect(next).toHaveBeenCalledWith(error);
-        });
-    });
-
-    describe('Download the file after formatting getFormatDownloadFile', () => {
-
-        it('should throw jobId not found if not found', async () => {
-
-        })
-        it('should throw job incomplete if the status is not completed', async () => {
-
-        })
-        it('should send 400 error if the format is not the right one', async () => {
-
-        })
-        it('should throw input exception if job_id is not given', async () => {
-
-        })
-
-    })
 });

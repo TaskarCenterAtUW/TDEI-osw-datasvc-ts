@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS content.metadata
     CONSTRAINT unq_name_version UNIQUE (name, version)
 );
 
-CREATE INDEX idx_dataset_area
+CREATE INDEX IF NOT EXISTS idx_dataset_area
     ON content.metadata USING gist
     (dataset_area);
 
@@ -73,73 +73,6 @@ CREATE TABLE IF NOT EXISTS content.workflow_history
 	END) STORED,
     obsolete boolean,
     CONSTRAINT PK_workflow_history_id PRIMARY KEY (history_id)
-);
-
-
-CREATE TABLE IF NOT EXISTS content.validation_job
-(
-    job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    upload_url character varying COLLATE pg_catalog."default" NOT NULL,
-    status character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    validation_result character varying COLLATE pg_catalog."default",
-    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    requested_by character varying(40) COLLATE pg_catalog."default",
-    CONSTRAINT "PK_validation_job_id" PRIMARY KEY (job_id)
-);
-
-CREATE TABLE IF NOT EXISTS content.formatting_job
-(
-    job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    source character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    target character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    status character varying COLLATE pg_catalog."default" NOT NULL,
-    source_url character varying COLLATE pg_catalog."default" NOT NULL,
-    target_url character varying COLLATE pg_catalog."default" NOT NULL,
-    message character varying COLLATE pg_catalog."default" NOT NULL,
-    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    requested_by character varying(40) COLLATE pg_catalog."default",
-    CONSTRAINT "PK_formatting_job_id" PRIMARY KEY (job_id)
-);
-
-CREATE TABLE IF NOT EXISTS content.confidence_job
-(
-    job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    confidence_metric real DEFAULT 0,
-    trigger_type character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    user_id character varying(40) COLLATE pg_catalog."default",
-    cm_version character varying COLLATE pg_catalog."default",
-    cm_last_calculated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "PK_id" PRIMARY KEY (job_id)
-);
-
-CREATE TABLE IF NOT EXISTS content.backend_job
-(
-    job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    tdei_dataset_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    status character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    message character varying COLLATE pg_catalog."default",
-    download_url character varying COLLATE pg_catalog."default",
-    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    requested_by character varying(40) COLLATE pg_catalog."default",
-    CONSTRAINT "PK_backend_job_id" PRIMARY KEY (job_id)
-);
-
-CREATE TABLE IF NOT EXISTS content.dataset_flattern_job
-(
-    job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    tdei_dataset_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    status character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    message character varying COLLATE pg_catalog."default",
-    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    requested_by character varying(40) COLLATE pg_catalog."default",
-    CONSTRAINT "PK_dataset_flattern_job_id" PRIMARY KEY (job_id)
 );
 
 CREATE TABLE IF NOT EXISTS content.edge
@@ -173,7 +106,7 @@ CREATE TABLE IF NOT EXISTS content.edge
     CONSTRAINT unq_dataset_edge_id UNIQUE (tdei_dataset_id, edge_id)
 );
 
-CREATE INDEX idx_edge_location
+CREATE INDEX IF NOT EXISTS idx_edge_location
     ON content.edge USING gist
     (edge_loc);
 	
@@ -193,7 +126,7 @@ CREATE TABLE IF NOT EXISTS content.node
     CONSTRAINT unq_dataset_node_id UNIQUE (tdei_dataset_id, node_id)
 );
 
-CREATE INDEX idx_nodes_location
+CREATE INDEX IF NOT EXISTS idx_nodes_location
     ON content.node USING gist
     (node_loc);
 	
@@ -215,7 +148,7 @@ CREATE TABLE IF NOT EXISTS content.extension_point
     CONSTRAINT unq_dataset_point_id UNIQUE (tdei_dataset_id, point_id)
 );
 
-CREATE INDEX idx_point_location
+CREATE INDEX IF NOT EXISTS idx_point_location
     ON content.extension_point USING gist
     (point_loc);
 	
@@ -235,7 +168,7 @@ CREATE TABLE IF NOT EXISTS content.extension_polygon
     CONSTRAINT unq_dataset_polygon_id UNIQUE (tdei_dataset_id, polygon_id)
 );
 
-CREATE INDEX idx_polygon_location
+CREATE INDEX IF NOT EXISTS idx_polygon_location
     ON content.extension_polygon USING gist
     (polygon_loc);
 
@@ -254,6 +187,23 @@ CREATE TABLE IF NOT EXISTS content.extension_line
     CONSTRAINT unq_dataset_line_id UNIQUE (tdei_dataset_id, line_id)
 );
 
-CREATE INDEX idx_line_location
+CREATE INDEX IF NOT EXISTS idx_line_location
     ON content.extension_line USING gist
     (line_loc);
+
+CREATE TABLE IF NOT EXISTS content.job
+(
+    job_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    job_type character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    data_type character varying(30) COLLATE pg_catalog."default" NOT NULL,
+    request_input json NOT NULL,
+    status character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    message text COLLATE pg_catalog."default",
+    response_props json,
+    user_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
+    tdei_project_group_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    download_url text COLLATE pg_catalog."default",
+    CONSTRAINT job_id_pkey PRIMARY KEY (job_id)
+)

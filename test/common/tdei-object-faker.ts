@@ -1,24 +1,22 @@
 import { FeatureCollection } from "geojson";
 import { Readable } from "stream";
-import { OswVersions } from "../../src/database/entity/osw-version-entity";
-import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import oswValidationSuccessMessage from "../test-data/osw-validation-success.message.json";
-import { OswMetadataEntity } from "../../src/database/entity/osw-metadata";
+import { DatasetEntity } from "../../src/database/entity/dataset-entity";
+import { MetadataEntity } from "../../src/database/entity/metadata-entity";
 
 export class TdeiObjectFaker {
-    static getOswVersion() {
+    static getDatasetVersion() {
         return {
-            tdei_dataset_id: "test_record_id",
+            tdei_dataset_id: "tdei_dataset_id",
             confidence_level: 0,
             tdei_service_id: "test_user",
             dataset_url: "test_path",
             uploaded_by: "test"
-        } as OswVersions;
+        } as DatasetEntity;
     }
 
-    static getOswMetadataSample() {
+    static getMetadataSample() {
         return {
-            tdei_dataset_id: "test_record_id",
+            tdei_dataset_id: "tdei_dataset_id",
             name: "test",
             version: "v1",
             collected_by: "test",
@@ -28,16 +26,16 @@ export class TdeiObjectFaker {
             valid_to: new Date(),
             data_source: "InHouse",
             schema_version: "v0.1"
-        } as OswMetadataEntity;
+        } as MetadataEntity;
     }
 
-    static getOswVersionFromDB() {
+    static getDatasetFromDB() {
         return {
             //DB polygon is stored as binary obj
             polygon: {},
             //Select query converts the binary polygon to json using spatial query
             polygon2: JSON.stringify(this.getPolygonGeometry()),
-            tdei_record_id: "test_record_id",
+            tdei_record_id: "tdei_dataset_id",
             confidence_level: 0,
             tdei_project_group_id: "test_user",
             file_upload_path: "test_path",
@@ -47,7 +45,7 @@ export class TdeiObjectFaker {
             collection_method: "manual",
             publication_date: new Date(),
             data_source: "InHouse",
-            osw_schema_version: "v0.2"
+            schema_version: "v0.2"
         };
     }
 
@@ -117,10 +115,6 @@ export class TdeiObjectFaker {
         return parseFloat((min + Math.random() * diff).toFixed(6));
     }
 
-    static getOswQueueMessageSuccess() {
-        return QueueMessage.from(oswValidationSuccessMessage);
-    }
-
     static getOswPayload2() {
         return {
             "tdei_project_group_id": "e1956869-02d9-4e14-8391-6024406ced41",
@@ -165,7 +159,7 @@ export class TdeiObjectFaker {
                     }
                 ]
             },
-            "osw_schema_version": "v2.0"
+            "schema_version": "v0.2"
         }
     }
 
