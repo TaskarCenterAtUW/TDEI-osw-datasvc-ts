@@ -49,7 +49,7 @@ class DataSource {
 
         } catch (e: any) {
 
-            switch (e.code) {
+        switch (e.code) {
                 case PostgresError.UNIQUE_VIOLATION:
                     throw new UniqueKeyDbException("Duplicate");
                 case PostgresError.FOREIGN_KEY_VIOLATION:

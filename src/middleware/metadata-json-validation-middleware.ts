@@ -6,7 +6,7 @@
 import { NextFunction, Request, Response } from "express";
 import { InputException } from "../exceptions/http/http-exceptions";
 import Ajv, { ErrorObject } from "ajv";
-import metaschema from "../../schema/osw-metadata.schema.json";
+import metaschema from "../../schema/metadata.schema.json";
 
 const ajv = new Ajv({ allErrors: true });
 const validate = ajv.compile(metaschema);

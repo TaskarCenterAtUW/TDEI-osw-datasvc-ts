@@ -1,45 +1,77 @@
 import { PublishHandler } from "./generic/publish-handler";
-import { PublishConfidenceResponseHandler } from "./publish/publish-osw-confidence-response-handler";
-import { PublishConfidenceRequestWorkflow } from "./publish/publish-osw-confidence-request-workflow";
-import { PublishConfidenceResponseWorkflow } from "./publish/publish-osw-confidence-response-workflow";
-import { PublishFormattingResponseHandler } from "./publish/publish-osw-formatter-response-handler";
-import { PublishFormattingRequestWorkflow } from "./publish/publish-osw-formatter-request-workflow";
-import { PublishFormattingResponseWorkflow } from "./publish/publish-osw-formatter-response-workflow";
-import { PublishValidationResponseHandler } from "./publish/publish-osw-validation-response-handler";
-import { PublishValidationRequestWorkflow } from "./publish/publish-osw-validation-request-workflow";
-import { PublishValidationResponseWorkflow } from "./publish/publish-osw-validation-response-workflow";
-import { UploadValidationResponseHandler } from "./upload/upload-osw-validation-response-handler";
-import { ValidationOnlyValidationResponseHandler } from "./validation-only/validation-only-osw-validation-response-handler";
-import { PublishDatabaseWorkflow } from "./publish/publish-osw-database-publish-workflow";
-import { OswOnDemandConfidenceResponseHandler } from "./on-demand-confidence-metric/osw-on-demand-confidence-metric-response-handler";
-import { OswOnDemandFormattingResponseHandler } from "./on-demand-formatting/osw-on-demand-formatting-response-handler";
+import { PublishConfidenceResponseHandler } from "./osw/publish/publish-osw-confidence-response-handler";
+import { PublishConfidenceResponseWorkflow } from "./osw/publish/publish-osw-confidence-response-workflow";
+import { UploadFormattingResponseHandler } from "./osw/upload/upload-osw-formatter-response-handler";
+import { UploadFormattingRequestWorkflow } from "./osw/upload/upload-osw-formatter-request-workflow";
+import { UploadFormattingResponseWorkflow } from "./osw/upload/upload-osw-formatter-response-workflow";
+import { UploadValidationResponseHandler } from "./osw/upload/upload-osw-validation-response-handler";
+import { ValidationOnlyValidationResponseHandler } from "./osw/validation-only/validation-only-osw-validation-response-handler";
+import { PublishDatabaseWorkflow } from "./osw/publish/publish-osw-database-publish-workflow";
+import { OswOnDemandConfidenceResponseHandler } from "./osw/on-demand-confidence-metric/osw-on-demand-confidence-metric-response-handler";
+import { OswOnDemandFormattingResponseHandler } from "./osw/on-demand-formatting/osw-on-demand-formatting-response-handler";
 import { GenericWorkflow } from "./generic/generic-workflow";
-import { PublishFlatteningRequestWorkflow } from "./publish/publish-osw-flattening-request-workflow";
-import { PublishFlatteningResponseWorkflow } from "./publish/publish-osw-flattening-response-workflow";
-import { PublishFlatteningResponseHandler } from "./publish/publish-osw-flattening-response-handler";
-import { OnDemandFlatteningResponseHandler } from "./on-demand-flattening/on-demand-flattening-response-handler";
-import { BackendServiceResponseHandler } from "./backend-service/backend-service-response-handler";
+import { UploadFlatteningRequestWorkflow } from "./osw/upload/upload-osw-flattening-request-workflow";
+import { UploadFlatteningResponseWorkflow } from "./osw/upload/upload-osw-flattening-response-workflow";
+import { UploadFlatteningResponseHandler } from "./osw/upload/upload-osw-flattening-response-handler";
+import { DataQueryResponseHandler } from "./backend-service/data-query-response-handler";
+import { FlexPublishDatabaseWorkflow } from "./flex/publish/publish-flex-database-publish-workflow";
+import { FlexPublishValidationResponseHandler } from "./flex/publish/publish-flex-validation-response-handler";
+import { FlexPublishValidationResponseWorkflow } from "./flex/publish/publish-flex-validation-response-workflow";
+import { FlexValidationOnlyValidationResponseHandler } from "./flex/validation-only/validation-only-flex-validation-response-handler";
+import { FlexUploadValidationResponseHandler } from "./flex/upload/upload-flex-validation-response-handler";
+import { PathwaysPublishDatabaseWorkflow } from "./pathways/publish/publish-pathways-database-publish-workflow";
+import { PathwaysPublishValidationResponseHandler } from "./pathways/publish/publish-pathways-validation-response-handler";
+import { PathwaysPublishValidationResponseWorkflow } from "./pathways/publish/publish-pathways-validation-response-workflow";
+import { PathwaysUploadValidationResponseHandler } from "./pathways/upload/upload-pathways-validation-response-handler";
+import { PathwaysValidationOnlyValidationResponseHandler } from "./pathways/validation-only/validation-only-pathways-validation-response-handler";
+import { UploadDatabaseWorkflow } from "./osw/upload/upload-osw-database-publish-workflow";
+import { DataQueryDatabaseWorkflow } from "./backend-service/data-query-database-publish-workflow";
+import { DataQueryFormatterRequestWorkflow } from "./backend-service/data-query-formatter-request-workflow";
+import { DataQueryFormatterResponseHandler } from "./backend-service/data-query-formatter-response-handler";
+import { DataQueryFormatterResponseWorkflow } from "./backend-service/data-query-formatter-response-workflow";
+import { DataQueryResponseWorkflow } from "./backend-service/data-query-response-workflow";
+import { UploadValidationResponseWorkflow } from "./osw/upload/upload-osw-validation-response-workflow";
 
 export default [
     GenericWorkflow,
     PublishHandler,
+    //Data Query
+    DataQueryResponseHandler,
+    DataQueryDatabaseWorkflow,
+    DataQueryFormatterRequestWorkflow,
+    DataQueryFormatterResponseHandler,
+    DataQueryFormatterResponseWorkflow,
+    DataQueryResponseWorkflow,
+    //Publish
     PublishConfidenceResponseHandler,
     PublishConfidenceResponseWorkflow,
-    PublishConfidenceRequestWorkflow,
-    PublishFormattingResponseHandler,
-    PublishFormattingRequestWorkflow,
-    PublishFormattingResponseWorkflow,
-    PublishValidationResponseHandler,
-    PublishValidationRequestWorkflow,
-    PublishValidationResponseWorkflow,
-    PublishFlatteningRequestWorkflow,
-    PublishFlatteningResponseWorkflow,
-    PublishFlatteningResponseHandler,
-    UploadValidationResponseHandler,
-    ValidationOnlyValidationResponseHandler,
     PublishDatabaseWorkflow,
+    //Upload
+    UploadFormattingResponseHandler,
+    UploadFormattingRequestWorkflow,
+    UploadFormattingResponseWorkflow,
+    UploadFlatteningRequestWorkflow,
+    UploadFlatteningResponseWorkflow,
+    UploadFlatteningResponseHandler,
+    UploadValidationResponseHandler,
+    UploadDatabaseWorkflow,
+    UploadValidationResponseWorkflow,
+    //Validation Only
+    ValidationOnlyValidationResponseHandler,
+    //On Demand Confidence
     OswOnDemandConfidenceResponseHandler,
+    //On Demand Formatting
     OswOnDemandFormattingResponseHandler,
-    OnDemandFlatteningResponseHandler,
-    BackendServiceResponseHandler
+    //Flex
+    FlexPublishDatabaseWorkflow,
+    FlexPublishValidationResponseHandler,
+    FlexPublishValidationResponseWorkflow,
+    FlexValidationOnlyValidationResponseHandler,
+    FlexUploadValidationResponseHandler,
+    //Pathways
+    PathwaysPublishDatabaseWorkflow,
+    PathwaysPublishValidationResponseHandler,
+    PathwaysPublishValidationResponseWorkflow,
+    PathwaysUploadValidationResponseHandler,
+    PathwaysValidationOnlyValidationResponseHandler
 ];

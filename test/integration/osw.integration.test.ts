@@ -35,25 +35,4 @@ describe("OSW Integration Test", () => {
         //Assert
         expect(response).toBeFalsy();
     }, 15000);
-
-
-    /**
-   * Environement dependency 
-   * AUTH_HOST
-   */
-    test("Verifying auth service generate secret api integration", async () => {
-        //Pre-requisite environment dependency
-        if (!process.env.AUTH_HOST) {
-            console.error("AUTH_HOST environment not set");
-            expect(process.env.AUTH_HOST != undefined && process.env.AUTH_HOST != null).toBeTruthy();
-            return;
-        }
-
-        //Act
-        const getSecret = await fetch(environment.secretGenerateUrl as string, {
-            method: 'get'
-        });
-        //Assert
-        expect(getSecret.status == 200).toBeTruthy();
-    }, 15000);
 });

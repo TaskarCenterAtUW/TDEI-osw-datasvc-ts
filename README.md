@@ -21,13 +21,12 @@ Application configuration is read from .env file. Below are the list of environe
 |STORAGECONNECTION | Storage connection string|
 |PORT |Port on which application will run|
 |AUTH_HOST | Authentication/Authorization url|
-|DATASVC_TOPIC | Data service publishing topic|
 |POSTGRES_DB | Database name|
 |POSTGRES_HOST| Link to the database host |
 |POSTGRES_USER| Database user |
 |POSTGRES_PASSWORD| Database user password|
+|SSL| Database ssl flag|
 |GATEWAY_URL | Gateway Url|
-|USER_MANAGEMENT_HOST | User management url |
 
 ## Local Postgresql database setup
 
@@ -83,7 +82,7 @@ graph LR;
 
 - `Client`, makes HTTP GET calls to `Gateway`
     - Retrive the list of OSW files with/without search criteria.
-    - Download the OSW file given the tdei_record_id
+    - Download the OSW file given the tdei_dataset_id
     
 - `Data Service`, authorizes the every incoming request against the `Auth Service` 
 
@@ -137,9 +136,7 @@ For running integration test, following env variables are required.
 |QUEUECONNECTION | Queue connection string |
 |STORAGECONNECTION | Storage connection string|
 |AUTH_HOST | Host of the authentication service |
-|VALIDATION_SUBSCRIPTION | Upload topic subscription name|
-|VALIDATION_TOPIC | Validation topic name|
-|DATASVC_TOPIC | Data service publishing topic|
+|GATEWAY_URL | Upload topic subscription name|
 
 ## File upload implementation
 
@@ -162,15 +159,15 @@ Example for metadata
 ```json
 
 {
-    "name": "Sample OSW Upload",
+    "name": "Sample Dataset Upload",
     "version": "1.0.2",
-    "description": "This is a sample OSW upload.",
+    "description": "This is a sample Dataset upload.",
     "custom_metadata": {},
     "collected_by": "John Doe",
     "collection_date": "2024-01-18 21:17:48.357173-08",
     "collection_method": "transform",
     "data_source": "3rdParty",
-    "osw_schema_version": "v0.2",
+    "schema_version": "v0.2",
     "valid_from": "2024-01-18 21:17:48.357173-08",
     "valid_to": "2024-01-19 22:17:48.357173-08",
     "dataset_area": {
@@ -240,7 +237,7 @@ The `meta` body is parsed and is validated according to the initial validation c
 
 <!-- ### 4&5. Generating randomUID and upload
 
-Random UUID is generated which will be assigned as `tdei_record_id`. The uploaded file is transferred to storage with path. The path for storage is
+Random UUID is generated which will be assigned as `tdei_dataset_id`. The uploaded file is transferred to storage with path. The path for storage is
 `yyyy/mm/<tdeiProjectGroupId>/<tdeirecordID>`
 
 Eg.
@@ -292,33 +289,20 @@ There are two APIs exposed for calculating the confidence metric for record
 
 ### Initiate  Confidence metric calculation
 
-PATH : `/api/v1/osw/confidence/calculate`
+PATH : `/api/v1/osw/confidence/calculate/{tdei_dataset_id}`
 
 Method: POST
-
-Body:
-
-```json
-{
-      "tdeiRecordId":"<tdeiRecord ID>"
-}
-
-```
+ 
 
 Response:
 
-```json
-{
-  "tdeiRecordId":"<tdeiRecord ID>",
-  "jobId":"<jobId>",
-  "statusUrl":"<status URL>"
-}
-
+```string
+jobId
 ```
 
 ### Get status of the confidence metric job
 
-PATH: `/api/v1/osw/confidence/status/<jobId>`
+PATH: `/api/v1/job?job_id=<jobId>`
 
 Method: GET
 
@@ -327,21 +311,19 @@ Response:
 ```json
 {
     "jobId":"<jobId>",
-    "confidenceValue":"float or 0 if not calculated",
-    "status":"started/calculated/failed",
-    "updatedAt":"Date time of the last update of the status",
+    "status":"IN-PROGRESS/COMPLETED/FAILED",
     "message":"Response message containing error or status information"
 }
 
 ```
 
-The status can be any of `started`, `calculated` or `failed`
+The status can be any of `IN-PROGRESS`, `COMPLETED` or `FAILED`
 
 | Status | Description |
 |-|-|
-| started | Initiated the calculation. Waiting for confidence service to respond|
-| calculated| Calculation done. The value is in `confidenceValue` |
-| failed | Confidence service failed to calculate. `message` will have the error |
+| IN-PROGRESS | Initiated the calculation. Waiting for confidence service to respond|
+| COMPLETED| Calculation done. The value is in `confidenceValue` |
+| FAILED | Confidence service failed to calculate. `message` will have the error |
 
 
 ## On demand formatting for osw
@@ -364,36 +346,31 @@ Body: (multipart-form-data)
 
 Response:
 
-```json
-{
-    "jobId":"<jobId>",
-    "statusUrl":"<status url >"
-}
+```string
+jobId
 
 ```
 
 ### Status request API
 
-Path: `/api/v1/osw/convert/status/<jobId>`
+PATH: `/api/v1/job?job_id=<jobId>`
 
-Method: `GET`
+Method: GET
 
 Response:
 
 ```json
 {
     "jobId":"<jobId>",
-    "status":"<started/completed/failed>",
-    "message":"<any error message. will be blank for completed or started>",
-    "downloadUrl":"<url to download the formatted set>",
-    "conversion":"<type of conversion> osm-osw or osw-osm"
+    "status":"IN-PROGRESS/COMPLETED/FAILED",
+    "message":"Response message containing error or status information"
 }
 
 ```
 
 ### Formatted file download API
 
-Path : `/api/v1/osw/convert/download/<jobId>`
+Path : `/api/v1/job/download/<jobId>`
 Method: `GET`
 
 Response:

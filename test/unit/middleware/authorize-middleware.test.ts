@@ -1,8 +1,8 @@
 import { getMockReq, getMockRes } from "@jest-mock/express"
 import { UnAuthenticated } from "../../../src/exceptions/http/http-exceptions"
 import { mockCoreAuth } from "../../common/mock-utils";
-import oswService from "../../../src/service/osw-service";
 import { authorize } from "../../../src/middleware/authorize-middleware";
+import tdeiCoreService from "../../../src/service/tdei-core-service";
 
 jest.mock('../../../src/service/osw-service');
 describe('Authorize Middleware', () => {
@@ -21,11 +21,11 @@ describe('Authorize Middleware', () => {
         const req = getMockReq()
         const { res, next } = getMockRes();
         req.body.user_id = 'someUserId';
-        req.params.tdei_record_id = 'someRecordId';
+        req.params.tdei_project_group_id = 'someProjectGroupId';
 
-        const mockedOSW = { tdei_project_group_id: 'someProjectGroupId' };
+        const mockedOSW: any = { tdei_project_group_id: 'someProjectGroupId' };
 
-        (oswService.getOSWRecordById as jest.Mock).mockResolvedValueOnce(mockedOSW);
+        jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(mockedOSW);
         mockCoreAuth(true);
 
         await authorize(['approvedRole1', 'approvedRole2'])(req, res, next);
@@ -40,8 +40,9 @@ describe('Authorize Middleware', () => {
         req.body.user_id = 'someUserId';
         req.params.tdei_project_group_id = 'someProjectGroupId';
 
-        const mockedOSW = { tdei_project_group_id: 'someProjectGroupId' };
-        (oswService.getOSWRecordById as jest.Mock).mockResolvedValueOnce(mockedOSW);
+        const mockedOSW: any = { tdei_project_group_id: 'someProjectGroupId' };
+        jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(mockedOSW);
+
         mockCoreAuth(true);
 
         await authorize(['approvedRole1', 'approvedRole2'])(req, res, next);
@@ -62,7 +63,4 @@ describe('Authorize Middleware', () => {
 
         expect(next).toHaveBeenCalledWith(new UnAuthenticated());
     });
-
-    // Add more test cases as needed
-
 });
