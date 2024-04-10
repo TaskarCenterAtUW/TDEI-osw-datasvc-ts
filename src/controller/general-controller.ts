@@ -12,6 +12,7 @@ import { DatasetQueryParams } from "../model/dataset-get-query-params";
 
 
 class GeneralController implements IController {
+
     public path = '/api/v1';
     public router = express.Router();
     constructor() {
@@ -37,7 +38,7 @@ class GeneralController implements IController {
             params.isAdmin = request.body.isAdmin;
             const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
             dataset.forEach(x => {
-                x.download_url = `${this.path}/${x.tdei_dataset_id}`;
+                x.download_url = `${this.path}/${this.getroute(x.data_type)}/${x.tdei_dataset_id}`;
             });
             response.status(200).send(dataset);
         } catch (error) {
@@ -131,6 +132,17 @@ class GeneralController implements IController {
         } catch (error) {
             console.error("Error while processing the download request", error);
             return next(error);
+        }
+    }
+
+    private getroute(data_type: string) {
+        switch (data_type) {
+            case 'osw':
+                return 'osw';
+            case 'pathways':
+                return 'gtfs-pathways';
+            case 'flex':
+                return 'gtfs-flex';
         }
     }
 

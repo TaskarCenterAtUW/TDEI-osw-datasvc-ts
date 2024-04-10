@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { UnAuthenticated } from '../exceptions/http/http-exceptions';
+import { environment } from '../environment/environment';
 
 /**
  * Validates the token and sends the user_id in the req.body
@@ -19,8 +20,34 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     // Get the authorization key
     const bearerHeader = req.headers.authorization;
     if (bearerHeader === '' || bearerHeader === undefined) {
-        // res.status(401).send('Unauthorized');
-        next(new UnAuthenticated());
+        let apiKey = req.headers['x-api-key'];
+
+        if (apiKey === '' || apiKey === undefined) {
+            next(new UnAuthenticated());
+            return;
+        }
+        else {
+            fetch(`${environment.authValidateApiKeyUrl}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: apiKey as string
+            }).then(async response => {
+                if (response.status === 200) {
+                    let result: any = await response.json();
+                    req.body.user_id = result.id;
+                    req.body.isAdmin = false;
+                    next();
+                }
+                else {
+                    next(new UnAuthenticated());
+                }
+            }
+            ).catch(err => {
+                next(new UnAuthenticated());
+            });
+        }
     }
     else {
         // Get the bearer
