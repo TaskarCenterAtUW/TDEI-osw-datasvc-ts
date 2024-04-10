@@ -42,10 +42,7 @@
             ]
         },
         "schema_version": {
-            "type": "string",
-            "enum": [
-                "v0.2"
-            ]
+            "type": "string"
         },
         "valid_from": {
             "type": "string"
