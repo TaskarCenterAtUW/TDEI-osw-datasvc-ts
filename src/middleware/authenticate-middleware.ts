@@ -6,7 +6,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { UnAuthenticated } from '../exceptions/http/http-exceptions';
 import { environment } from '../environment/environment';
-
+import fetch from 'node-fetch';
 /**
  * Validates the token and sends the user_id in the req.body
  * the user id is available as `req.user_id`
