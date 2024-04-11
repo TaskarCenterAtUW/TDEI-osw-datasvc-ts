@@ -14,10 +14,9 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
-import { FileEntityStream, Utility } from "../utility/utility";
 import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import tdeiCoreService from "../service/tdei-core-service";
-import { Readable } from "stream";
+import { Utility } from "../utility/utility";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -188,9 +187,7 @@ class OSWController implements IController {
             // // Add files to the zip archive
             for (const filee of fileEntities) {
                 // Read into a stream
-                const filestream = await filee.getStream();
-
-                archive.append(Readable.from(filestream), { name: filee.fileName, store: true });
+                archive.append(await filee.getStream(), { name: filee.fileName, store: true });
             }
 
             // // Finalize the archive and close the zip stream
