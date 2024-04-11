@@ -13,7 +13,6 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
-import { FileEntityStream } from "../utility/utility";
 import pathwaysService from "../service/pathways-service";
 import { Readable } from "stream";
 /**
@@ -101,9 +100,8 @@ class PathwaysController implements IController {
 
             // // Add files to the zip archive
             for (const filee of fileEntities) {
-                const filestream = await filee.getStream();
+                archive.append(await filee.getStream(), { name: filee.fileName, store: true });
 
-                archive.append(Readable.from(filestream), { name: filee.fileName, store: true });
             }
 
             // // Finalize the archive and close the zip stream
