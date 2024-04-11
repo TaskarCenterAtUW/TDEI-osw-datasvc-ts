@@ -65,15 +65,4 @@ export class DatasetUploadMetadata extends AbstractDomainEntity {
     @Prop()
     @IsNotEmpty()
     schema_version!: string;
-
-    /**
-     * Returns the readable stream of the information
-     * @returns Readable stream for upload
-     */
-    getStream(): NodeJS.ReadableStream {
-        const stringContent = JSON.stringify(this);
-        const buffer = Buffer.from(stringContent)
-        return Readable.from(buffer);
-    }
-
 }

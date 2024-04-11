@@ -7,8 +7,8 @@ class DataSource {
     private pool: Pool = new Pool;
 
     constructor() {
-      // TODO document why this constructor is empty
-    
+        // TODO document why this constructor is empty
+
     }
 
     public initializaDatabase() {
@@ -25,7 +25,7 @@ class DataSource {
         this.pool.on('error', function (err: Error) {
             console.log(`Idle-Client Error:\n${err.message}\n${err.stack}`)
         }).on('connect', () => {
-            console.log("Database initialized successfully !");
+            //console.log("Database connected successfully !");
         });
     }
 
@@ -49,7 +49,7 @@ class DataSource {
 
         } catch (e: any) {
 
-        switch (e.code) {
+            switch (e.code) {
                 case PostgresError.UNIQUE_VIOLATION:
                     throw new UniqueKeyDbException("Duplicate");
                 case PostgresError.FOREIGN_KEY_VIOLATION:

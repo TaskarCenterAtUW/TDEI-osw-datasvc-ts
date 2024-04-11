@@ -13,9 +13,9 @@ export function getMockFileEntity() {
         mimeType: "csv",
         filePath: "test_file_path",
         remoteUrl: "",
-        getStream: function (): Promise<NodeJS.ReadableStream> {
+        getStream: function (): Promise<Readable> {
             const mockedStream = new Readable();
-            mockedStream._read = function () { /* do nothing */ };
+            mockedStream._read = function () { };
             return Promise.resolve(mockedStream);
         },
         getBodyText: function (): Promise<string> {
@@ -23,6 +23,9 @@ export function getMockFileEntity() {
         },
         upload: function (): Promise<FileEntity> {
             return Promise.resolve(this);
+        },
+        uploadStream: function (stream: Readable): Promise<void> {
+            throw new Error("Function not implemented.");
         }
     };
     return fileEntity;
