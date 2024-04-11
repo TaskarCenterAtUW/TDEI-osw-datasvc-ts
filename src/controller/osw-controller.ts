@@ -188,7 +188,6 @@ class OSWController implements IController {
             // // Add files to the zip archive
             for (const filee of fileEntities) {
                 // Read into a stream
-                // const fileEntityReader = new FileEntityStream(filee)
                 const filestream = await filee.getStream();
 
                 archive.append(Readable.from(filestream), { name: filee.fileName, store: true });
