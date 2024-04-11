@@ -15,6 +15,7 @@ import { authenticate } from "../middleware/authenticate-middleware";
 import archiver from 'archiver';
 import { FileEntityStream } from "../utility/utility";
 import pathwaysService from "../service/pathways-service";
+import { Readable } from "stream";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -100,10 +101,9 @@ class PathwaysController implements IController {
 
             // // Add files to the zip archive
             for (const filee of fileEntities) {
-                // Read into a stream
-                const fileEntityReader = new FileEntityStream(filee)
+                const filestream = await filee.getStream();
 
-                archive.append(fileEntityReader, { name: filee.fileName, store: true });
+                archive.append(Readable.from(filestream), { name: filee.fileName, store: true });
             }
 
             // // Finalize the archive and close the zip stream
