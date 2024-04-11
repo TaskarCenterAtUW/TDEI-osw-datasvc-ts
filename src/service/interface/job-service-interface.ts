@@ -1,6 +1,6 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { CreateJobDTO, JobDTO, UpdateJobDTO } from "../../model/job-dto";
-import { JobStatus, JobsQueryParams } from "../../model/jobs-get-query-params";
+import { JobsQueryParams } from "../../model/jobs-get-query-params";
 
 export interface IJobService {
     /**
@@ -32,7 +32,7 @@ export interface IJobService {
      * @param job - The job object containing the job details.
      * @returns A Promise that resolves to the job ID of the created job.
      */
-    createJob(job: CreateJobDTO): Promise<Number>;
+    createJob(job: CreateJobDTO): Promise<number>;
 
     /**
      * Updates a job with the given parameters.

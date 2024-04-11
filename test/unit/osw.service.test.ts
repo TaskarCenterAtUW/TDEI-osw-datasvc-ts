@@ -19,7 +19,6 @@ import { BboxServiceRequest } from "../../src/model/backend-request-interface";
 import { RecordStatus } from "../../src/model/dataset-get-query-params";
 import { CreateJobDTO } from "../../src/model/job-dto";
 import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
-import {TdeiObjectFaker} from "../common/tdei-object-faker"
 
 // group test using describe
 describe("OSW Service Test", () => {
@@ -158,19 +157,19 @@ describe("OSW Service Test", () => {
                 .mockResolvedValue(mockJobId);
 
             // Mock OswFormatJobRequest.from function
-            const mockOswFormatRequest = {
-                jobId: mockJobId,
-                source: mockSource,
-                target: mockTarget,
-                sourceUrl: "mockRemoteUrl",
-            };
+            // const mockOswFormatRequest = {
+            //     jobId: mockJobId,
+            //     source: mockSource,
+            //     target: mockTarget,
+            //     sourceUrl: "mockRemoteUrl",
+            // };
 
             // Mock QueueMessage.from function
-            const mockQueueMessage = {
-                messageId: mockJobId,
-                messageType: 'OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW',
-                data: mockOswFormatRequest,
-            };
+            // const mockQueueMessage = {
+            //     messageId: mockJobId,
+            //     messageType: 'OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW',
+            //     data: mockOswFormatRequest,
+            // };
 
             // Execute the function
             const result = await oswService.processFormatRequest(mockSource, mockTarget, mockUploadedFile, mockUserId);
@@ -179,7 +178,7 @@ describe("OSW Service Test", () => {
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getFormatJobPath).toHaveBeenCalledWith(mockUid);
             expect(result).toBe(mockJobId.toString());
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 'OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW',
                 expect.anything()
             );
@@ -214,7 +213,7 @@ describe("OSW Service Test", () => {
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith(tdeiRecordId);
             expect(jobService.createJob).toHaveBeenCalledWith(expect.anything()); // You may want to provide more specific expectations
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 'OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW',
                 expect.anything()
             );
@@ -252,7 +251,7 @@ describe("OSW Service Test", () => {
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
             expect(storageService.uploadFile).toHaveBeenCalledWith('validation-job-path/original-name.zip', 'application/zip', expect.anything());
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 'OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW',
                 expect.anything()
             );
@@ -283,18 +282,18 @@ describe("OSW Service Test", () => {
             jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
 
             // Call the function
-            let result = await oswService.processPublishRequest(userId, tdeiRecordId);
+            const result = await oswService.processPublishRequest(userId, tdeiRecordId);
 
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getOSWRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(getOSWMetadataByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(dbClient.query).toHaveBeenCalled();
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 'OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW',
                 expect.anything()
             );
-            expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
+            expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, "");
         });
     });
 
@@ -348,7 +347,7 @@ describe("OSW Service Test", () => {
             expect(dbClient.query).toHaveBeenCalled();
             expect(validateMetadataSpy).toHaveBeenCalledWith(expect.any(Object)); // You may want to improve this assertion
             expect(uploadSpy).toHaveBeenCalledTimes(2); // Two files: dataset and metadata
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 'OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW',
                 expect.any(Object)
             );
@@ -371,10 +370,6 @@ describe("OSW Service Test", () => {
                     {
                         owner_project_group: "project-group-id"
                     } as ServiceEntity);
-
-
-            // Mock the behavior of validateMetadata
-            const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateObject').mockResolvedValue("");
 
             // Mock the behavior of checkMetaNameAndVersionUnique
             jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(true);
@@ -415,7 +410,7 @@ describe("OSW Service Test", () => {
 
             // Assert
             expect(dbClient.query).toHaveBeenCalledTimes(2);
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 "ON_DEMAND_DATASET_FLATTENING_REQUEST_WORKFLOW",
                 expect.any(QueueMessage)
             );
@@ -450,7 +445,7 @@ describe("OSW Service Test", () => {
 
             // Assert
             expect(dbClient.query).toHaveBeenCalledTimes(1);
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(mockWorkflowIdentifier,
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(mockWorkflowIdentifier,
                 expect.any(QueueMessage));
             expect(result).toBe(mockJobId);
         });
@@ -526,16 +521,16 @@ describe("OSW Service Test", () => {
                 user_id: backendRequest.user_id,
             });
             const job_id = 111;
-            const queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: "DATA_QUERY_REQUEST_WORKFLOW",
-                data: {
-                    service: backendRequest.service,
-                    user_id: backendRequest.user_id,
-                    parameters: backendRequest.parameters,
-                },
-                publishedDate: "2024-04-02T10:04:58.734Z"
-            });
+            // const queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: "DATA_QUERY_REQUEST_WORKFLOW",
+            //     data: {
+            //         service: backendRequest.service,
+            //         user_id: backendRequest.user_id,
+            //         parameters: backendRequest.parameters,
+            //     },
+            //     publishedDate: "2024-04-02T10:04:58.734Z"
+            // });
             jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
             jest.spyOn(oswService.jobServiceInstance, "createJob").mockResolvedValueOnce(job_id);
             mockAppContext();
@@ -546,7 +541,7 @@ describe("OSW Service Test", () => {
             // Assert
             expect(result).toBe(job_id.toString());
             expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(job);
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 "DATA_QUERY_REQUEST_WORKFLOW",
                 expect.any(QueueMessage)
             );

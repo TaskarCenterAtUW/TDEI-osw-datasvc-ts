@@ -79,6 +79,7 @@ export function mockAppContext() {
 
 export function getMockAuthorizer(result: boolean) {
     const authorizor: IAuthorizer = {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         hasPermission(permissionRequest) {
             return Promise.resolve(result);
         },

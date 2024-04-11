@@ -20,12 +20,12 @@ export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
      * @param delegate_worflow 
      * @param params 
      */
-    async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
+    async handleRequest(message: QueueMessage, delegate_worflow: string[], _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
             const confidenceResponse = ConfidenceJobResponse.from(message.data);
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: confidenceResponse.message,
                 status: confidenceResponse.success ? JobStatus.COMPLETED : JobStatus.FAILED,
@@ -34,7 +34,7 @@ export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
                     confidence_library_version: confidenceResponse.confidence_library_version
                 }
             })
-            let updated_job = await jobService.updateJob(updateJobDTO);
+            const updated_job = await jobService.updateJob(updateJobDTO);
             tdeiCoreService.updateConfidenceMetric(updated_job.request_input.tdei_dataset_id, confidenceResponse);
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);

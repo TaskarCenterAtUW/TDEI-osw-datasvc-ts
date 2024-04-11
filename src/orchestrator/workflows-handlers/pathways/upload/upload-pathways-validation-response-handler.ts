@@ -16,12 +16,12 @@ export class PathwaysUploadValidationResponseHandler extends WorkflowHandlerBase
     * 
     * @param message 
     * @param delegate_worflow 
-    * @param params 
+    * @param _params 
     */
-    async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
+    async handleRequest(message: QueueMessage, delegate_worflow: string[], _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: message.data.message,
                 status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,

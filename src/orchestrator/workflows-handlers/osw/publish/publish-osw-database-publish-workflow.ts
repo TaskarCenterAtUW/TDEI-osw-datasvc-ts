@@ -16,7 +16,7 @@ export class PublishDatabaseWorkflow extends WorkflowBase {
         super(workflowEvent, orchestratorServiceInstance, "OSW_PUBLISH_DATABASE_WORKFLOW");
     }
 
-    async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
+    async handleWorkflow(message: QueueMessage, _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
             const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
@@ -24,7 +24,7 @@ export class PublishDatabaseWorkflow extends WorkflowBase {
             //This workflow triggers at the end of the workflow stages and marks complete of the workflow process
             await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.request_input.tdei_dataset_id, RecordStatus.Publish));
 
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: "Dataset Published Successfully",
                 status: JobStatus.COMPLETED,

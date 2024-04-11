@@ -19,8 +19,8 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
     // Get the authorization key
     const bearerHeader = req.headers.authorization;
-    if (bearerHeader === '' || bearerHeader === undefined) {
-        let apiKey = req.headers['x-api-key'];
+    if (!bearerHeader) {
+        const apiKey = req.headers['x-api-key'];
 
         if (apiKey === '' || apiKey === undefined) {
             next(new UnAuthenticated());
@@ -35,7 +35,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
                 body: apiKey as string
             }).then(async response => {
                 if (response.status === 200) {
-                    let result: any = await response.json();
+                    const result = await response.json();
                     req.body.user_id = result.id;
                     req.body.isAdmin = false;
                     next();
@@ -44,15 +44,15 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
                     next(new UnAuthenticated());
                 }
             }
-            ).catch(err => {
+            ).catch(() => {
                 next(new UnAuthenticated());
             });
         }
     }
     else {
         // Get the bearer
-        const bearer = bearerHeader!.replace(/^Bearer\s/, '');
-        if (bearer === '' || bearer === undefined) {
+        const bearer = bearerHeader?.replace(/^Bearer\s/, '');
+        if (!bearer) {
             next(new UnAuthenticated());
             return
         }

@@ -1,5 +1,4 @@
 import { Core } from "nodets-ms-core";
-import fetch from "node-fetch";
 import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission_request";
 import { environment } from "../../src/environment/environment";
 
@@ -23,7 +22,7 @@ describe("OSW Integration Test", () => {
         }
 
         //Arrange
-        var permissionRequest = new PermissionRequest({
+        const permissionRequest = new PermissionRequest({
             userId: "test_userId",
             projectGroupId: "test_project_group_id",
             permssions: ["tdei-admin", "poc", "osw_data_generator"],

@@ -11,8 +11,6 @@ import { Utility } from "../utility/utility";
 import { InputException } from "../exceptions/http/http-exceptions";
 
 class JobService implements IJobService {
-    constructor() { }
-
     /**
      * Retrieves a list of jobs based on the provided query parameters.
      * @param user_id user_id.
@@ -55,16 +53,16 @@ class JobService implements IJobService {
         if (result.rows[0].download_url == null || result.rows[0].download_url == '')
             throw new HttpException(404, "Download not available for this job.");
 
-        let url = decodeURIComponent(result.rows[0].download_url);
+        const url = decodeURIComponent(result.rows[0].download_url);
 
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
 
-        let fileEntity = await storageClient.getFileFromUrl(url);
+        const fileEntity = await storageClient.getFileFromUrl(url);
         const extension = url.split('.').pop();
         // Check if the extension is one of the expected types
-        if (['txt', 'json', 'zip', 'xml'].includes(extension!)) {
-            const mimeType = Utility.getMimeType(extension!);
+        if (['txt', 'json', 'zip', 'xml'].includes(extension ?? '')) {
+            const mimeType = Utility.getMimeType(extension ?? '');
             fileEntity.mimeType = mimeType;
         } else {
             console.log('Unexpected file type');
@@ -77,7 +75,7 @@ class JobService implements IJobService {
      * @param job - The job object containing the job details.
      * @returns A Promise that resolves to the job ID of the created job.
      */
-    async createJob(job: CreateJobDTO): Promise<Number> {
+    async createJob(job: CreateJobDTO): Promise<number> {
         const result = await dbClient.query(JobEntity.getCreateJobQuery(job));
         return result.rows[0].job_id;
     }
@@ -93,17 +91,17 @@ class JobService implements IJobService {
      * @returns A promise that resolves to updated job object.
      */
     async updateJob(updateJobDTO: UpdateJobDTO): Promise<JobDTO> {
-        var response_exists = updateJobDTO.response_props && Object.keys(updateJobDTO.response_props).length > 0 ? true : false;
-        var download_exists = updateJobDTO.download_url && updateJobDTO.download_url != "" ? true : false;
-        let jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(updateJobDTO.job_id.toString()));
+        const response_exists = updateJobDTO.response_props && Object.keys(updateJobDTO.response_props).length > 0 ? true : false;
+        const download_exists = updateJobDTO.download_url && updateJobDTO.download_url != "" ? true : false;
+        const jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(updateJobDTO.job_id.toString()));
         if (jobDetail.rows.length) {
             // update the response_props with the existing response_props
             updateJobDTO.response_props = response_exists ? { ...jobDetail.rows[0].response_props, ...updateJobDTO.response_props } : jobDetail.rows[0].response_props;
             updateJobDTO.download_url = download_exists ? updateJobDTO.download_url : jobDetail.rows[0].download_url;
         }
 
-        let result = await dbClient.query(JobEntity.getUpdateJobQuery(updateJobDTO));
-        let updatedJob = JobDTO.from(result.rows[0]);
+        const result = await dbClient.query(JobEntity.getUpdateJobQuery(updateJobDTO));
+        const updatedJob = JobDTO.from(result.rows[0]);
         return updatedJob;
     }
 
@@ -115,9 +113,9 @@ class JobService implements IJobService {
      * @returns A Promise that resolves to void.
      */
     async updateJobResponseProps(job_id: string, response_props: any): Promise<void> {
-        var response_exists = response_props && Object.keys(response_props).length > 0 ? true : false;
+        const response_exists = response_props && Object.keys(response_props).length > 0 ? true : false;
         if (response_exists) {
-            let jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
+            const jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
             if (jobDetail.rows.length) {
                 // update the response_props with the existing response_props
                 response_props = { ...jobDetail.rows[0].response_props, ...response_props };

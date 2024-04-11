@@ -17,7 +17,6 @@ import { ConfidenceJobResponse } from "../model/job-request-response/osw-confide
 import { TdeiDate } from "../utility/tdei-date";
 
 class TdeiCoreService implements ITdeiCoreService {
-    constructor() { }
 
     /**
      * Retrieves datasets based on the provided user ID and query parameters.
@@ -64,8 +63,7 @@ class TdeiCoreService implements ITdeiCoreService {
      */
     getFileEntity(fullUrl: string): Promise<FileEntity> {
         const storageClient = Core.getStorageClient();
-        return storageClient!.getFileFromUrl(fullUrl);
-
+        return storageClient ? storageClient?.getFileFromUrl(fullUrl) : Promise.reject(new Error("Storage not configured"));
     }
 
     /**
@@ -78,7 +76,7 @@ class TdeiCoreService implements ITdeiCoreService {
      */
     async createDataset(datasetObj: DatasetEntity): Promise<DatasetDTO> {
         try {
-            datasetObj.dataset_url = decodeURIComponent(datasetObj.dataset_url!);
+            datasetObj.dataset_url = decodeURIComponent(datasetObj.dataset_url ?? '');
 
             await dbClient.query(datasetObj.getInsertQuery());
             const osw = DatasetDTO.from(datasetObj);
@@ -117,17 +115,16 @@ class TdeiCoreService implements ITdeiCoreService {
      * @param version - The version of the metadata.
      * @returns A promise that resolves to a boolean indicating whether the name and version are unique.
      */
-    async checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean> {
+    async checkMetaNameAndVersionUnique(name: string, version: string): Promise<boolean> {
         try {
             const queryObject = {
                 text: `Select * FROM content.metadata 
                 WHERE name=$1 AND version=$2`.replace(/\n/g, ""),
                 values: [name, version],
-            }
-
-            let result = await dbClient.query(queryObject);
+            };
+            const result = await dbClient.query(queryObject);
             //If record exists then throw error
-            return result.rowCount ? result.rowCount > 0 : false;
+            return !!(result.rowCount && result.rowCount > 0);
         } catch (error) {
             console.error("Error checking the name and version", error);
             return Promise.resolve(true);
@@ -195,7 +192,7 @@ class TdeiCoreService implements ITdeiCoreService {
             if (result.rowCount == 0)
                 return undefined;
 
-            let service = ServiceEntity.from(result.rows[0]);
+            const service = ServiceEntity.from(result.rows[0]);
 
             return service;
         } catch (error) {

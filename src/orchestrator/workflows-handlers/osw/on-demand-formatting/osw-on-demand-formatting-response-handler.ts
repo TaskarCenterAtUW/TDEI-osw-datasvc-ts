@@ -19,12 +19,12 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
      * @param delegate_worflow 
      * @param params 
      */
-    async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
+    async handleRequest(message: QueueMessage, delegate_worflow: string[], _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
             const response = OswFormatJobResponse.from(message.data);
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: response.message,
                 status: response.success ? JobStatus.COMPLETED : JobStatus.FAILED,

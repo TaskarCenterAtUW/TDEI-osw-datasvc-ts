@@ -19,14 +19,14 @@ export class UploadFormattingResponseHandler extends WorkflowHandlerBase {
      * @param delegate_worflow 
      * @param params 
      */
-    async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
+    async handleRequest(message: QueueMessage, delegate_worflow: string[], _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         if (message.data.success) {
 
             let download_osm_url = message.data.formatted_url ?? "";
 
             try {
-                download_osm_url = decodeURIComponent(download_osm_url!);
+                download_osm_url = decodeURIComponent(download_osm_url ?? "");
                 const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
                 const job = JobDTO.from(result.rows[0]);
                 //Update dataset with formatted url

@@ -19,10 +19,10 @@ export class PublishHandler extends WorkflowHandlerBase {
         console.log("Triggered PUBLISH_HANDLER :", message.messageType);
         message.messageType = params.response_message_identifier;
 
-        let trigger_workflow = this.orchestratorServiceInstance!.getWorkflowByIdentifier(message.messageType);
-        workflowDatabaseService.updateWorkflowRequest(trigger_workflow?.stage!, message);
+        const trigger_workflow = this.orchestratorServiceInstance?.getWorkflowByIdentifier(message.messageType);
+        workflowDatabaseService.updateWorkflowRequest(trigger_workflow?.stage ?? "", message);
 
-        await this.orchestratorServiceInstance!.publishMessage(params.topic, message)
-        this.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
+        await this.orchestratorServiceInstance?.publishMessage(params.topic, message)
+        this.orchestratorServiceInstance?.delegateWorkflowIfAny(delegate_worflow, message);
     }
 }

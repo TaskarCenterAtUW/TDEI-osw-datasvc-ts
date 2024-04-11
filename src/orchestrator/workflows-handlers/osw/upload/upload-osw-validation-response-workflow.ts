@@ -15,7 +15,7 @@ export class UploadValidationResponseWorkflow extends WorkflowBase {
         super(workflowEvent, orchestratorServiceInstance, "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW");
     }
 
-    async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
+    async handleWorkflow(message: QueueMessage, _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         //do any pre-requisite tasks
 
@@ -23,7 +23,7 @@ export class UploadValidationResponseWorkflow extends WorkflowBase {
             this.delegateWorkflowHandlers(message);
         }
         else {
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: message.data.message,
                 status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,

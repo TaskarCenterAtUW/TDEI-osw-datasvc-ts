@@ -24,7 +24,7 @@ export const authorize = (approvedRoles: string[]) => {
         if (req.params["tdei_dataset_id"]) {
             //Fetch tdei_project_group_id from tdei_dataset_id
             try {
-                let osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
+                const osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
                 req.body.tdei_project_group_id = osw.tdei_project_group_id;
             } catch (error) {
                 if (error instanceof HttpException) {
@@ -45,7 +45,7 @@ export const authorize = (approvedRoles: string[]) => {
         if (!approvedRoles.length)
             return next();
 
-        var authorized = await Utility.authorizeRoles(req.body.user_id, req.body.tdei_project_group_id, approvedRoles);
+        const authorized = await Utility.authorizeRoles(req.body.user_id, req.body.tdei_project_group_id, approvedRoles);
         if (authorized) {
             next();
         }

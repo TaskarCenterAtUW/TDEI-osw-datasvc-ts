@@ -99,7 +99,7 @@ describe("Pathways Service Test", () => {
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
             expect(storageService.uploadFile).toHaveBeenCalledWith('validation-job-path/original-name.zip', 'application/zip', expect.anything(), "gtfspathways");
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 'PATHWAYS_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW',
                 expect.anything()
             );
@@ -131,18 +131,18 @@ describe("Pathways Service Test", () => {
             jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
 
             // Call the function
-            let result = await pathwaysService.processPublishRequest(userId, tdeiRecordId);
+            const result = await pathwaysService.processPublishRequest(userId, tdeiRecordId);
 
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getPathwaysRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(getMetadataByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(dbClient.query).toHaveBeenCalled();
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 'PATHWAYS_PUBLISH_VALIDATION_REQUEST_WORKFLOW',
                 expect.anything()
             );
-            expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
+            expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, "");
         });
     });
 
@@ -196,7 +196,7 @@ describe("Pathways Service Test", () => {
             expect(dbClient.query).toHaveBeenCalled();
             expect(validateMetadataSpy).toHaveBeenCalledWith(expect.any(Object)); // You may want to improve this assertion
             expect(uploadSpy).toHaveBeenCalledTimes(2); // Two files: dataset and metadata
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
+            expect(appContext.orchestratorServiceInstance?.triggerWorkflow).toHaveBeenCalledWith(
                 'PATHWAYS_UPLOAD_VALIDATION_REQUEST_WORKFLOW',
                 expect.any(Object)
             );
@@ -222,7 +222,7 @@ describe("Pathways Service Test", () => {
 
 
             // Mock the behavior of validateMetadata
-            const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateObject').mockResolvedValue("");
+            jest.spyOn(tdeiCoreService, 'validateObject').mockResolvedValue("");
 
             // Mock the behavior of checkMetaNameAndVersionUnique
             jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(true);

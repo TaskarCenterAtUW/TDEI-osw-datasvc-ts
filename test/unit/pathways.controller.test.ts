@@ -2,8 +2,6 @@ import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { InputException } from "../../src/exceptions/http/http-exceptions";
 import { getMockFileEntity } from "../common/mock-utils";
-import { DatasetDTO } from "../../src/model/dataset-dto";
-import tdeiCoreService from "../../src/service/tdei-core-service";
 import pathwaysService from "../../src/service/pathways-service";
 import pathwaysController from "../../src/controller/pathways-controller";
 
@@ -112,7 +110,7 @@ describe("Pathways Controller Test", () => {
 
             test("When requested version info, Expect to return HTTP status 200", async () => {
                 //Arrange
-                let req = getMockReq();
+                const req = getMockReq();
                 const { res, next } = getMockRes();
                 //Act
                 await pathwaysController.getVersions(req, res, next);
@@ -157,7 +155,7 @@ describe("Pathways Controller Test", () => {
         });
 
         it('should process the upload request and return tdei_dataset_id', async () => {
-            const { res, next } = getMockRes();
+            getMockRes();
             const mockTdeiRecordId = 'mock-tdei_dataset_id';
 
             // Mock the processUploadRequest function to return a mock tdei_dataset_id
@@ -172,7 +170,7 @@ describe("Pathways Controller Test", () => {
         });
 
         it('should handle missing dataset file', async () => {
-            const { res, next } = getMockRes();
+            getMockRes();
             // Simulate missing dataset file
             mockRequest.files.dataset = undefined;
 
@@ -184,7 +182,7 @@ describe("Pathways Controller Test", () => {
         });
 
         it('should handle missing metadata file', async () => {
-            const { res, next } = getMockRes();
+            getMockRes();
             // Simulate missing metadata file
             mockRequest.files.metadata = undefined;
 
@@ -196,8 +194,8 @@ describe("Pathways Controller Test", () => {
         });
 
         it('should handle internal server error', async () => {
-            const req = getMockReq();
-            const { res, next } = getMockRes();
+            getMockReq();
+            getMockRes();
             // Simulate an internal server error in the pathwaysService
             const mockError = new Error('Internal Server Error');
             jest.spyOn(pathwaysService, "processUploadRequest").mockRejectedValueOnce(mockError);

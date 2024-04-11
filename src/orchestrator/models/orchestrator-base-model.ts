@@ -13,7 +13,7 @@ export abstract class WorkflowBase {
      * @param message 
      */
     readonly delegateWorkflowHandlers = (message: QueueMessage) => {
-        this.orchestratorServiceInstance!.delegateWorkflowHandlers(message);
+        this.orchestratorServiceInstance?.delegateWorkflowHandlers(message);
     }
 
     /**
@@ -22,7 +22,7 @@ export abstract class WorkflowBase {
      * @param params 
      */
     //Default implemnetation. Can be overriden by child classes
-    async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
+    async handleWorkflow(message: QueueMessage, _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         //do any pre-requisite task
 
@@ -45,7 +45,7 @@ export abstract class WorkflowHandlerBase {
      * @param message 
      */
     readonly delegateWorkflowIfAny = (delegate_worflow: string[], message: QueueMessage) => {
-        this.orchestratorServiceInstance!.delegateWorkflowIfAny(delegate_worflow, message);
+        this.orchestratorServiceInstance?.delegateWorkflowIfAny(delegate_worflow, message);
     }
 
     /**
@@ -55,7 +55,7 @@ export abstract class WorkflowHandlerBase {
          * @param params 
          */
     //Default implemnetation. Can be overriden by child classes
-    async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
+    async handleRequest(message: QueueMessage, delegate_worflow: string[], _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         if (message.data.success)

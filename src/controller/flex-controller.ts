@@ -68,8 +68,8 @@ class FlexController implements IController {
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
     }
 
-    getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
-        let versionsList = new Versions([{
+    getVersions = async (request: Request, response: express.Response, _next: NextFunction) => {
+        const versionsList = new Versions([{
             documentation: environment.gatewayUrl as string,
             specification: "https://github.com/MobilityData/gtfs-flex",
             version: "v2.0"
@@ -139,7 +139,7 @@ class FlexController implements IController {
                 next(new InputException("dataset file input missing"));
             }
 
-            let job_id = await flexService.processValidationOnlyRequest(request.body.user_id, datasetFile);
+            const job_id = await flexService.processValidationOnlyRequest(request.body.user_id, datasetFile);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -163,8 +163,8 @@ class FlexController implements IController {
     */
     processPublishRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let job_id = await flexService.processPublishRequest(request.body.user_id, tdei_dataset_id);
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            const job_id = await flexService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
@@ -190,7 +190,7 @@ class FlexController implements IController {
     processUploadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received upload request');
-            let uploadRequest: IUploadRequest = {
+            const uploadRequest: IUploadRequest = {
                 user_id: request.body.user_id,
                 tdei_project_group_id: request.params["tdei_project_group_id"],
                 tdei_service_id: request.params['tdei_service_id'],
@@ -211,7 +211,7 @@ class FlexController implements IController {
                 return next(new InputException("metadata file input upload missing"));
             }
 
-            let job_id = await flexService.processUploadRequest(uploadRequest);
+            const job_id = await flexService.processUploadRequest(uploadRequest);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 

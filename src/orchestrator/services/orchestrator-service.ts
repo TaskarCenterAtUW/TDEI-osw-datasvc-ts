@@ -91,7 +91,7 @@ export class OrchestratorService {
         console.log("Registering the orchestration workflow and handlers");
         const uniqueArray = [...new Set(workflows)];
         uniqueArray.forEach((x: any) => {
-            let handler = new x(this.workflowEvent, this);
+            new x(this.workflowEvent, this);
         });
     }
 
@@ -122,7 +122,7 @@ export class OrchestratorService {
     private subscribe() {
         console.log("Subscribing TDEI orchestrator subscriptions");
         this.orchestratorConfigContext.subscriptions.forEach(subscription => {
-            var topic = this.getTopicInstance(subscription.topic as string);
+            const topic = this.getTopicInstance(subscription.topic as string);
             topic.subscribe(subscription.subscription as string,
                 {
                     onReceive: this.handleMessage,
@@ -137,7 +137,7 @@ export class OrchestratorService {
      * @param message 
      */
     async triggerWorkflow(workflowIdentifier: string, message: QueueMessage): Promise<void> {
-        let trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(workflowIdentifier);
+        const trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(workflowIdentifier);
         if (trigger_workflow?.type == "TRIGGER") {
 
             message.messageType = workflowIdentifier;
@@ -164,11 +164,11 @@ export class OrchestratorService {
         try {
             console.log("Received message", message.messageType);
             //Get workflow identifier
-            let identifier = message.messageType;
+            const identifier = message.messageType;
             //Update the workflow history
-            let trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(identifier);
+            const trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(identifier);
             if (trigger_workflow) {
-                workflowDatabaseService.updateWorkflowHistory(trigger_workflow?.stage!, message);
+                workflowDatabaseService.updateWorkflowHistory(trigger_workflow?.stage ?? "", message);
 
                 if (trigger_workflow.generic_workflow) {
                     //trigger generic workflow
@@ -190,10 +190,10 @@ export class OrchestratorService {
      * @param message 
      */
     delegateWorkflowHandlers = async (message: QueueMessage): Promise<void> => {
-        let identifier = message.messageType;
+        const identifier = message.messageType;
 
         //Find the workflow to trigger
-        let trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(identifier);
+        const trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(identifier);
         if (trigger_workflow?.type == "TRIGGER") {
             //Log/Insert the workflow history
             await workflowDatabaseService.logWorkflowHistory(
@@ -204,7 +204,7 @@ export class OrchestratorService {
         //Trigger all workflow handlers
         trigger_workflow?.next_steps?.forEach(handler => {
             //Dereference the message object
-            let { ...def_message } = message;
+            const { ...def_message } = message;
             //Delegate handler
             try {
                 this.workflowEvent.emit(handler.process_identifier, def_message, handler.delegate_worflow, handler.params);
@@ -227,7 +227,7 @@ export class OrchestratorService {
                 //trigger workflow
                 console.log("delegateWorkflowIfAny :", workflow);
 
-                let trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(workflow);
+                const trigger_workflow = this.orchestratorConfigContext.getWorkflowByIdentifier(workflow);
                 if (trigger_workflow?.generic_workflow) {
                     //trigger generic workflow
                     this.workflowEvent.emit(GENERIC_WORKFLOW_IDENTIFIER, message);
@@ -246,7 +246,7 @@ export class OrchestratorService {
      * @param message 
      */
     publishMessage = async (topic: string, message: QueueMessage): Promise<void> => {
-        let topicInstance = this.getTopicInstance(topic);
+        const topicInstance = this.getTopicInstance(topic);
         await topicInstance.publish(message);
     }
 
@@ -319,9 +319,9 @@ export class OrchestratorService {
      * Validate declared vs registered workflow & handlers
      */
     validateDeclaredVsRegisteredWorkflowHandlers(): void {
-        let listOfWorkflowsConfigured = this.orchestratorConfigContext.workflows.filter(f => !f.generic_workflow).map(x => x.identifier);
+        const listOfWorkflowsConfigured = this.orchestratorConfigContext.workflows.filter(f => !f.generic_workflow).map(x => x.identifier);
 
-        let wokflowNotRegistered = listOfWorkflowsConfigured.filter(wh => !this.workflowEvent.eventNames().find(x => x === wh));
+        const wokflowNotRegistered = listOfWorkflowsConfigured.filter(wh => !this.workflowEvent.eventNames().find(x => x === wh));
 
         if (wokflowNotRegistered.length) {
             console.log("Below workflows are configured but not registered", wokflowNotRegistered);
@@ -335,7 +335,7 @@ export class OrchestratorService {
             )
         );
 
-        let handlersNotRegistered = listOfHandlersConfigured.filter(wh => !this.workflowEvent.eventNames().find(x => x === wh));
+        const handlersNotRegistered = listOfHandlersConfigured.filter(wh => !this.workflowEvent.eventNames().find(x => x === wh));
         if (handlersNotRegistered.length) {
             console.log("Below handlers are configured but not registered", handlersNotRegistered);
         }

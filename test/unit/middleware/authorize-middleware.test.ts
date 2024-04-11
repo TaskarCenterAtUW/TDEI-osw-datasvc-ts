@@ -6,10 +6,6 @@ import tdeiCoreService from "../../../src/service/tdei-core-service";
 
 jest.mock('../../../src/service/osw-service');
 describe('Authorize Middleware', () => {
-
-    beforeEach(() => {
-    });
-
     it('should call next() if user_id is missing', async () => {
         const req = getMockReq()
         const { res, next } = getMockRes();

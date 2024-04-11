@@ -6,7 +6,6 @@ import healthController from './controller/health-controller';
 import { environment } from './environment/environment';
 import generalController from './controller/general-controller';
 import flexController from './controller/flex-controller';
-import path from 'path';
 import pathwaysController from './controller/pathways-controller';
 
 //Load environment variables

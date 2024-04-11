@@ -14,7 +14,7 @@ const validate = ajv.compile(metaschema);
 export async function metajsonValidator(req: Request, res: Response, next: NextFunction) {
 
     try {
-        let metadataFile = (req.files as any)['metadata'];
+        const metadataFile = (req.files as any)['metadata'];
         if (!metadataFile) {
             throw new InputException("metadata file input upload missing");
         }

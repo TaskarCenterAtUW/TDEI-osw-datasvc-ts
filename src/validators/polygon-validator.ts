@@ -5,6 +5,7 @@ import {
     ValidatorConstraintInterface
 } from 'class-validator';
 import { FeatureCollection } from 'geojson';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const gjv = require("geojson-validation");
 
 function isGeoJsonFeatureCollection(obj: any): boolean {

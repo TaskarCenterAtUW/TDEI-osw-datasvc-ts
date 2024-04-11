@@ -136,14 +136,14 @@ describe("General Controller Test", () => {
                     isAdmin: false
                 }
             });
-            let callParams = {
+            const callParams = {
                 page_size: 10,
                 page_no: 1,
                 isAdmin: false
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
-            let jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
+            const jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
 
             // Act
             await generalController.getJobs(req, res, next);
@@ -170,7 +170,7 @@ describe("General Controller Test", () => {
                     isAdmin: false
                 }
             });
-            let callParams = {
+            const callParams = {
                 job_id: "mock-job-id",
                 page_size: "10",
                 page_no: "1",
@@ -181,7 +181,7 @@ describe("General Controller Test", () => {
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
-            let jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
+            const jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
 
             // Act
             await generalController.getJobs(req, res, next);
@@ -243,7 +243,7 @@ describe("General Controller Test", () => {
             // Arrange
             const req = getMockReq();
             const { res, next } = getMockRes();
-            let file = getMockFileEntity();
+            const file = getMockFileEntity();
             file.mimeType = "application/zip";
             jest.spyOn(jobService, "getJobFileEntity").mockResolvedValueOnce(file);
 

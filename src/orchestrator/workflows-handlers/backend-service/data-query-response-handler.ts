@@ -22,14 +22,14 @@ export class DataQueryResponseHandler extends WorkflowHandlerBase {
      * @param delegate_worflow 
      * @param params 
      */
-    async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
+    async handleRequest(message: QueueMessage, delegate_worflow: string[], _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
 
         try {
             const backendServiceResponse = BackendServiceJobResponse.from(message.data);
             let file_upload_path = "";
             if (backendServiceResponse.file_upload_path != null && backendServiceResponse.file_upload_path != "" && backendServiceResponse.file_upload_path != undefined)
-                file_upload_path = decodeURIComponent(backendServiceResponse.file_upload_path!);
+                file_upload_path = decodeURIComponent(backendServiceResponse.file_upload_path ?? "");
 
             await dbClient.query(JobEntity.getUpdateJobDownloadUrlQuery(message.messageId, file_upload_path));
 
@@ -51,7 +51,7 @@ export class DataQueryResponseHandler extends WorkflowHandlerBase {
                 this.delegateWorkflowIfAny(delegate_worflow, message);
             }
             else {
-                let updateJobDTO = UpdateJobDTO.from({
+                const updateJobDTO = UpdateJobDTO.from({
                     job_id: message.messageId,
                     message: message.data.message,
                     status: JobStatus.COMPLETED,

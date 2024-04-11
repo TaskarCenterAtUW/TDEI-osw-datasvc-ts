@@ -40,8 +40,6 @@ export interface IWorkflowDatabaseService {
 }
 
 class WorkflowDatabaseService implements IWorkflowDatabaseService {
-    constructor() { }
-
     /**
      * Inserts new entry to workflow history table
      * @param message 
@@ -49,7 +47,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
      */
     async logWorkflowHistory(workflow_group: string, workflow_stage: string, message: QueueMessage): Promise<boolean> {
         try {
-            let data = {
+            const data = {
                 reference_id: message.messageId,
                 request_message: message,
                 workflow_group: workflow_group,
@@ -61,7 +59,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
                 reference_id=$1 AND workflow_group=$2 AND workflow_stage=$3 AND obsolete is not true`.replace(/\n/g, ""),
                 values: [data.reference_id, data.workflow_group, data.workflow_stage],
             }
-            let entry = await dbClient.query(querySelectObject);
+            const entry = await dbClient.query(querySelectObject);
             if (entry.rowCount == 0) {
                 const queryObject = {
                     text: `INSERT INTO content.workflow_history(
@@ -101,7 +99,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
      */
     async updateWorkflowHistory(stage: string, message: QueueMessage): Promise<boolean> {
         try {
-            let data = {
+            const data = {
                 workflow_stage: stage,
                 reference_id: message.messageId,
                 response_message: message
@@ -131,7 +129,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
     */
     async updateWorkflowRequest(stage: string, message: QueueMessage): Promise<boolean> {
         try {
-            let data = {
+            const data = {
                 workflow_stage: stage,
                 reference_id: message.messageId,
                 response_message: message
@@ -163,7 +161,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
      */
     async obseleteAnyExistingWorkflowHistory(reference_id: string, workflow_group: string): Promise<boolean> {
         try {
-            let data = {
+            const data = {
                 reference_id: reference_id,
                 workflow_group: workflow_group,
             }
@@ -196,7 +194,7 @@ class WorkflowDatabaseService implements IWorkflowDatabaseService {
                 values: [reference_id, workflow_group],
             }
 
-            let result = await dbClient.query(queryObject);
+            const result = await dbClient.query(queryObject);
             if (result.rowCount == 0) {
                 return Promise.resolve(undefined);
             } else {

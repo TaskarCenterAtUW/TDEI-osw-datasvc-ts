@@ -1,5 +1,4 @@
 import { Core } from "nodets-ms-core";
-import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import dbClient from "../../src/database/data-source";
 import { JobEntity } from "../../src/database/entity/job-entity";
 import HttpException from "../../src/exceptions/http/http-base-exception";
@@ -30,7 +29,7 @@ describe('JobService', () => {
                 values: [] as any[]
             };
             jest.spyOn(params, "getQuery").mockResolvedValueOnce(queryObj);
-            let dbSpy = jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult as any);
+            const dbSpy = jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult as any);
 
             // Act
             const result = await jobService.getJobs(user_id, params);
@@ -133,7 +132,7 @@ describe('JobService', () => {
                     },
                 ],
             };
-            let dbSpy = jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult as any);
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult as any);
 
             // Act
             const result = await jobService.createJob(job);
@@ -161,7 +160,7 @@ describe('JobService', () => {
                     },
                 ],
             };
-            let dbSpy = jest.spyOn(dbClient, "query").mockResolvedValue(mockResult as any);
+            jest.spyOn(dbClient, "query").mockResolvedValue(mockResult as any);
 
             // Act
             const result = await jobService.updateJob(updateJobDTO);

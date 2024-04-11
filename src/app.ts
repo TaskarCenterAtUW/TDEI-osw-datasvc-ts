@@ -10,7 +10,6 @@ import HttpException from "./exceptions/http/http-base-exception";
 import { IOrchestratorService, OrchestratorService } from "./orchestrator/services/orchestrator-service";
 import orchestratorConfig from "./tdei-orchestrator-config.json";
 import workflows from "./orchestrator/workflows-handlers";
-import EventEmitter from "events";
 import appContext from "./app-context";
 
 class App {
@@ -32,7 +31,7 @@ class App {
         //Last middleware to be registered: error handler. 
         // this.app.use(errorHandler); // Not working
 
-        this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+        this.app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
             console.log(err);
             if (err instanceof HttpException) {
                 res.status(err.status).send(err.message);
@@ -55,7 +54,7 @@ class App {
     public get orchestratorServiceInstance() {
         if (!this.orchestratorService)
             this.initializeOrchestrator();
-        return this.orchestratorService!;
+        return this.orchestratorService;
     }
 
     private initializeLibraries() {

@@ -25,7 +25,7 @@ export class DatasetDTO extends AbstractDomainEntity {
     @Prop()
     confidence_level!: number;
     @Prop()
-    custom_metadata!: Object;
+    custom_metadata!: object;
     @Prop()
     collected_by!: string;
     @Prop()

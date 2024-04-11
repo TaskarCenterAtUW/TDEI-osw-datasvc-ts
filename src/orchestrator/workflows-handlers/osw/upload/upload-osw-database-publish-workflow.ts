@@ -16,7 +16,7 @@ export class UploadDatabaseWorkflow extends WorkflowBase {
         super(workflowEvent, orchestratorServiceInstance, "OSW_UPLOAD_DATABASE_WORKFLOW");
     }
 
-    async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
+    async handleWorkflow(message: QueueMessage, _params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
             const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
@@ -24,7 +24,7 @@ export class UploadDatabaseWorkflow extends WorkflowBase {
 
             await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
 
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: "Dataset Uploaded Successfully",
                 status: JobStatus.COMPLETED,

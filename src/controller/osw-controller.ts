@@ -111,13 +111,13 @@ class OSWController implements IController {
             }
 
             //Authorize
-            let osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
-            var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
+            const osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
+            const authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
             if (!authorized) {
                 return next(new UnAuthenticated());
             }
 
-            let backendRequest: TagRoadServiceRequest = {
+            const backendRequest: TagRoadServiceRequest = {
                 user_id: request.body.user_id,
                 service: "dataset_tag_road",
                 parameters: {
@@ -126,7 +126,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.processDatasetTagRoadRequest(backendRequest);
+            const job_id = await oswService.processDatasetTagRoadRequest(backendRequest);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
@@ -147,8 +147,8 @@ class OSWController implements IController {
      * @param response - The HTTP response object.
      * @param next - The next middleware function.
      */
-    getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
-        let versionsList = new Versions([{
+    getVersions = async (request: Request, response: express.Response, _next: NextFunction) => {
+        const versionsList = new Versions([{
             documentation: environment.schemaDocumentationUrl as string ?? '',
             specification: environment.schemaUrl as string ?? '',
             version: "0.2"
@@ -167,8 +167,8 @@ class OSWController implements IController {
     getOswById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            let format = request.query.format as string ?? 'osw';
-            let file_version = request.query.file_version as string ?? 'latest';
+            const format = (request.query.format as string) ?? "osw";
+            const file_version = request.query.file_version as string ?? 'latest';
 
             if (!["latest", "original"].includes(file_version)) {
                 throw new InputException("Invalid file_version value");
@@ -225,7 +225,7 @@ class OSWController implements IController {
                 next(new InputException("dataset file input missing"));
             }
 
-            let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
+            const job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -249,8 +249,8 @@ class OSWController implements IController {
     */
     processPublishRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let job_id = await oswService.processPublishRequest(request.body.user_id, tdei_dataset_id);
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            const job_id = await oswService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
@@ -280,7 +280,7 @@ class OSWController implements IController {
             if (!requestService && !requestService.tdei_dataset_id && !requestService.bbox) {
                 return next(new InputException('required input is empty', response));
             }
-            let backendRequest: BboxServiceRequest = {
+            const backendRequest: BboxServiceRequest = {
                 user_id: request.body.user_id,
                 service: "bbox_intersect",
                 parameters: {
@@ -289,7 +289,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.processBackendRequest(backendRequest, requestService.file_type);
+            const job_id = await oswService.processBackendRequest(backendRequest, requestService.file_type);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
@@ -312,10 +312,10 @@ class OSWController implements IController {
     */
     processFlatteningRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let override = Boolean(request.query.override as string) ? true : false;
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            const override = request.query.override as string ? true : false;
 
-            let job_id = await oswService.processDatasetFlatteningRequest(request.body.user_id, tdei_dataset_id, override);
+            const job_id = await oswService.processDatasetFlatteningRequest(request.body.user_id, tdei_dataset_id, override);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
@@ -339,7 +339,7 @@ class OSWController implements IController {
     processUploadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received upload request');
-            let uploadRequest: IUploadRequest = {
+            const uploadRequest: IUploadRequest = {
                 user_id: request.body.user_id,
                 tdei_project_group_id: request.params["tdei_project_group_id"],
                 tdei_service_id: request.params['tdei_service_id'],
@@ -360,7 +360,7 @@ class OSWController implements IController {
                 return next(new InputException("metadata file input upload missing"));
             }
 
-            let job_id = await oswService.processUploadRequest(uploadRequest);
+            const job_id = await oswService.processUploadRequest(uploadRequest);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -383,12 +383,12 @@ class OSWController implements IController {
      */
     calculateConfidence = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
             if (tdei_dataset_id == undefined) {
                 response.status(400).send('Please add tdei_dataset_id in payload')
                 return next()
             }
-            let job_id = await oswService.calculateConfidence(tdei_dataset_id, request.body.user_id);
+            const job_id = await oswService.calculateConfidence(tdei_dataset_id, request.body.user_id);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -416,8 +416,8 @@ class OSWController implements IController {
             if (uploadedFile == undefined) {
                 throw new InputException("Missing upload file input");
             }
-            let source = request.body['source']; //TODO: Validate the input enums 
-            let target = request.body['target'];
+            const source = request.body["source"]; //TODO: Validate the input enums 
+            const target = request.body["target"];
 
             if (!["osw", "osm"].includes(target) && !["osw", "osm"].includes(source)) {
                 throw new InputException("Invalid source/target value");
@@ -431,7 +431,7 @@ class OSWController implements IController {
                 throw new InputException("Source and Target value cannot be same");
             }
 
-            let job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id);
+            const job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 

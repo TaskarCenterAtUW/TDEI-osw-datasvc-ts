@@ -1,4 +1,4 @@
-import { IsIn, IsISO8601, IsNotEmpty, IsObject, isObject, IsOptional } from "class-validator";
+import { IsIn, IsISO8601, IsNotEmpty, IsObject, IsOptional } from "class-validator";
 import { FeatureCollection } from "geojson";
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 import { Readable } from "stream";
@@ -24,7 +24,7 @@ export class DatasetUploadMetadata extends AbstractDomainEntity {
 
     @Prop()
     @IsOptional()
-    custom_metadata!: Object;
+    custom_metadata!: object;
 
     @Prop()
     @IsNotEmpty()

@@ -63,7 +63,7 @@ class GeneralController implements IController {
    */
     invalidateRecordRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
             await tdeiCoreService.invalidateRecordRequest(request.body.user_id, tdei_dataset_id);
 
             return response.status(200).send(true);

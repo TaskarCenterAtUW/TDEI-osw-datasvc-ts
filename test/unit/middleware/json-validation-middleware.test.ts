@@ -8,7 +8,7 @@ import { InputException } from "../../../src/exceptions/http/http-exceptions"
 
 
 describe('Metadata JSON Validator', () => {
-    let reqData: any = {
+    const reqData: any = {
         files: {
             metadata: [
                 {
@@ -26,7 +26,7 @@ describe('Metadata JSON Validator', () => {
     });
 
     it('should throw InputException if metadata file is missing', async () => {
-        let localObj = { ...reqData };
+        const localObj = { ...reqData };
         const req = getMockReq({ body: localObj });
         const { res, next } = getMockRes();
 
@@ -36,7 +36,7 @@ describe('Metadata JSON Validator', () => {
     });
 
     it('should throw InputException if metadata file contains invalid JSON', async () => {
-        let localObj = { ...reqData };
+        const localObj = { ...reqData };
         localObj.files.metadata[0].buffer = Buffer.from('invalid-json');
         const req = getMockReq({ body: localObj });
         const { res, next } = getMockRes();
