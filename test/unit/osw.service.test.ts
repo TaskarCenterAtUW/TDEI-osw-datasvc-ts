@@ -19,11 +19,11 @@ import { BboxServiceRequest } from "../../src/model/backend-request-interface";
 import { RecordStatus } from "../../src/model/dataset-get-query-params";
 import { CreateJobDTO } from "../../src/model/job-dto";
 import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
-import {TdeiObjectFaker} from "../common/tdei-object-faker"
+import { TdeiObjectFaker } from "../common/tdei-object-faker"
 
 // group test using describe
 describe("OSW Service Test", () => {
-    
+
     describe("Get OSW file by Id", () => {
         describe("Functional", () => {
             test("When requested for get OSW file by tdei_dataset_id, Expect to return FileEntity object", async () => {
@@ -294,7 +294,7 @@ describe("OSW Service Test", () => {
                 'OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW',
                 expect.anything()
             );
-            expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
+            expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(mockJobId.toString(), undefined);
         });
     });
 
