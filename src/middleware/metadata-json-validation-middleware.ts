@@ -9,7 +9,7 @@ import Ajv, { ErrorObject } from "ajv";
 import metaschema from "../../schema/metadata.schema.json";
 import { add } from "date-fns";
 
-const ajv = new Ajv({ allErrors: true, strictSchema: true, strict: true });
+const ajv = new Ajv({ allErrors: true });
 
 export async function metajsonValidator(req: Request, res: Response, next: NextFunction) {
     const validate = ajv.compile(metaschema);
