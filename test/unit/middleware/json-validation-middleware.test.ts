@@ -12,7 +12,21 @@ describe('Metadata JSON Validator', () => {
         files: {
             metadata: [
                 {
-                    buffer: Buffer.from('{"key": "value"}'), // Example JSON data
+                    buffer: Buffer.from(`{
+                        "name": "OSW Upload testing Dev- Issue",
+                        "version": "v1.8",
+                        "description": "Bootstrap",
+                        "custom_metadata": {
+                            "name": "Lara",
+                            "gender": "female"
+                        },
+                        "collected_by": "See best practices document",
+                        "collection_date": "2019-02-10T09:30Z",
+                        "collection_method": "manual",
+                        "data_source": "3rdParty",
+                        "schema_version": "v0.2"
+                    }
+                    `), // Example JSON data
                 },
             ],
         },
@@ -22,12 +36,12 @@ describe('Metadata JSON Validator', () => {
         const req = getMockReq({ body: reqData });
         const { res, next } = getMockRes();
         await metajsonValidator(req, res, next);
-        expect(next).toHaveBeenCalled();
+        expect(next).toHaveBeenCalledWith();
     });
 
     it('should throw InputException if metadata file is missing', async () => {
-        let localObj = { ...reqData };
-        const req = getMockReq({ body: localObj });
+        // let localObj = { ...reqData };
+        const req = getMockReq({ body: {} });
         const { res, next } = getMockRes();
 
         await metajsonValidator(req, res, next);
