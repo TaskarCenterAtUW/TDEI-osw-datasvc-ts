@@ -24,10 +24,10 @@ export async function metajsonValidator(req: Request, res: Response, next: NextF
         if (!valid) {
             let requiredMsg = validate.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.params.missingProperty}`).join(", ");
             let additionalMsg = validate.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(", ");
-            requiredMsg = requiredMsg != "" ? "Required properties : " + requiredMsg + " are missing" : "";
-            additionalMsg = additionalMsg != "" ? "Additional properties found : " + additionalMsg + " is/are not allowed" : "";
+            requiredMsg = requiredMsg != "" ? "Required properties : " + requiredMsg + " missing" : "";
+            additionalMsg = additionalMsg != "" ? "Additional properties found : " + additionalMsg + " not allowed" : "";
             console.error("Metadata json validation error : ", additionalMsg, requiredMsg);
-            next(new InputException((requiredMsg + " \n " + additionalMsg) as string));
+            next(new InputException((requiredMsg + "\n" + additionalMsg) as string));
         }
         else
             next();
