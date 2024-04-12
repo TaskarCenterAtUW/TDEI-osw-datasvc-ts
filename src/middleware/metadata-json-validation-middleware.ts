@@ -9,9 +9,9 @@ import Ajv, { ErrorObject } from "ajv";
 import metaschema from "../../schema/metadata.schema.json";
 
 const ajv = new Ajv({ allErrors: true });
+const validate = ajv.compile(metaschema);
 
 export async function metajsonValidator(req: Request, res: Response, next: NextFunction) {
-    const validate = ajv.compile(metaschema);
 
     try {
         let metadataFile = (req.body.files as any)['metadata'];
