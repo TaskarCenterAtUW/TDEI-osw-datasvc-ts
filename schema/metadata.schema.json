@@ -100,8 +100,6 @@
                         },
                         "required": [
                             "type",
-                            "id",
-                            "properties",
                             "geometry"
                         ]
                     }

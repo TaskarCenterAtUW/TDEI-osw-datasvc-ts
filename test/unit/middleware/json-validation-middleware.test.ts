@@ -24,7 +24,43 @@ describe('Metadata JSON Validator', () => {
                         "collection_date": "2019-02-10T09:30Z",
                         "collection_method": "manual",
                         "data_source": "3rdParty",
-                        "schema_version": "v0.2"
+                        "schema_version": "v0.2",
+                        "dataset_area" : {
+                            "type": "FeatureCollection",
+                            "features": [
+                              {
+                                "type": "Feature",
+                                "properties": {},
+                                "geometry": {
+                                  "coordinates": [
+                                    [
+                                      [
+                                        77.5880749566162,
+                                        12.974950278991258
+                                      ],
+                                      [
+                                        77.58823422871711,
+                                        12.970666567100878
+                                      ],
+                                      [
+                                        77.59399987874258,
+                                        12.97240489386435
+                                      ],
+                                      [
+                                        77.59374504338194,
+                                        12.97526069002987
+                                      ],
+                                      [
+                                        77.5880749566162,
+                                        12.974950278991258
+                                      ]
+                                    ]
+                                  ],
+                                  "type": "Polygon"
+                                }
+                              }
+                            ]
+                          }
                     }
                     `), // Example JSON data
                 },
