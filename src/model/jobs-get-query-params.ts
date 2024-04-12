@@ -55,7 +55,9 @@ export class JobsQueryParams {
         ];
         //Conditions
         const conditions: WhereCondition[] = [];
-        addConditionIfValueExists('content.job.user_id = ', user_id);
+        if (!this.isAdmin) {
+            addConditionIfValueExists('content.job.user_id = ', user_id);
+        }
         addConditionIfValueExists('status = ', this.status);
         addConditionIfValueExists('job_id = ', this.job_id);
         addConditionIfValueExists('job_type = ', this.job_type);

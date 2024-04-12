@@ -15,7 +15,7 @@ export class DatasetQueryParams {
     data_type: TDEIDataType | undefined;
 
     @IsOptional()
-    status: RecordStatus = RecordStatus.Publish;
+    status: RecordStatus = RecordStatus.All;
     @IsOptional()
     name: string | undefined;
     @IsOptional()
@@ -86,14 +86,18 @@ export class DatasetQueryParams {
         addConditionIfValueExists('status !=', 'Draft');
         addConditionIfValueExists('data_type =', this.data_type);
 
-        if (this.status && this.status == RecordStatus["All"] && this.isAdmin) {
+        if (this.status && this.status == RecordStatus["Publish"]) {
+            conditions.push({ clouse: `status = 'Publish' ` });
+        }
+        else if (this.status && this.isAdmin && this.status == RecordStatus["All"]) {
             conditions.push({ clouse: `(status = 'Publish' OR status = 'Pre-Release')` });
+        } else if (this.status && this.isAdmin && this.status == RecordStatus["Pre-Release"]) {
+            conditions.push({ clouse: ` status = 'Pre-Release' ` });
         } else if (this.status && this.status == RecordStatus["Pre-Release"]) {
             conditions.push({ clouse: `(status = 'Pre-Release' AND ur.project_group_id IS NOT NULL)` });
         } else if (this.status && this.status == RecordStatus["All"]) {
             conditions.push({ clouse: `(status = 'Publish' OR (status = 'Pre-Release' AND ur.project_group_id IS NOT NULL))` });
-        } else if (this.status)
-            conditions.push({ clouse: 'status = ', value: this.status });
+        }
 
         addConditionIfValueExists('m.name ILIKE ', this.name ? '%' + this.name + '%' : null);
         addConditionIfValueExists('m.version = ', this.version);
