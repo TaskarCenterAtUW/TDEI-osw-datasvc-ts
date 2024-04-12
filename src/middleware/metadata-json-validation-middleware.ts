@@ -14,19 +14,23 @@ const validate = ajv.compile(metaschema);
 export async function metajsonValidator(req: Request, res: Response, next: NextFunction) {
 
     try {
-        let metadataFile = (req.files as any)['metadata'];
+        let metadataFile = (req.body.files as any)['metadata'];
         if (!metadataFile) {
-            throw new InputException("metadata file input upload missing");
+            throw new InputException("metadata file input missing");
         }
 
         const metadata = JSON.parse(metadataFile[0].buffer);
         const valid = validate(metadata);
         if (!valid) {
-            const message = validate.errors?.map((error: ErrorObject) => error.instancePath.replace('/', "") + " " + error.message).join(", \n");
-            console.error("Metadata json validation error : ", message);
-            next(new InputException(message as string));
+            let requiredMsg = validate.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.params.missingProperty}`).join(", ");
+            let additionalMsg = validate.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(", ");
+            requiredMsg = requiredMsg != "" ? "Required properties : " + requiredMsg + " are missing" : "";
+            additionalMsg = additionalMsg != "" ? "Additional properties found : " + additionalMsg + " is/are not allowed" : "";
+            console.error("Metadata json validation error : ", additionalMsg, requiredMsg);
+            next(new InputException((requiredMsg + " \n " + additionalMsg) as string));
         }
-        next();
+        else
+            next();
     }
     catch (error) {
         if (error instanceof SyntaxError) {
@@ -35,7 +39,7 @@ export async function metajsonValidator(req: Request, res: Response, next: NextF
         }
         else {
             console.error('metajsonValidator middleware error');
-            next(new InputException("metadata file input upload missing"));
+            next(new InputException("metadata file input missing"));
         }
     }
 }
