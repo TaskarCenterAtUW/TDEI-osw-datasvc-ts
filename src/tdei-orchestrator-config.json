@@ -63,37 +63,6 @@
             "group": "PATHWAYS_PUBLISH",
             "stage": "VALIDATION",
             "type": "TRIGGER",
-            "identifier": "PATHWAYS_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
-            "generic_workflow": true,
-            "next_steps": [
-                {
-                    "process_identifier": "PUBLISH_HANDLER",
-                    "params": {
-                        "response_message_identifier": "PATHWAYS_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-                        "topic": "pathways-validation-request"
-                    }
-                }
-            ]
-        },
-        {
-            "group": "PATHWAYS_PUBLISH",
-            "stage": "VALIDATION",
-            "type": "HANDLER",
-            "identifier": "PATHWAYS_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-            "next_steps": [
-                {
-                    "process_identifier": "PATHWAYS_PUBLISH_VALIDATION_RESPONSE_HANDLER",
-                    "params": {},
-                    "delegate_worflow": [
-                        "PATHWAYS_PUBLISH_DATABASE_WORKFLOW"
-                    ]
-                }
-            ]
-        },
-        {
-            "group": "PATHWAYS_PUBLISH",
-            "stage": "DATABASE_PUBLISH",
-            "type": "HANDLER",
             "identifier": "PATHWAYS_PUBLISH_DATABASE_WORKFLOW",
             "next_steps": []
         },
@@ -157,39 +126,8 @@
         },
         {
             "group": "FLEX_PUBLISH",
-            "stage": "VALIDATION",
-            "type": "TRIGGER",
-            "identifier": "FLEX_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
-            "generic_workflow": true,
-            "next_steps": [
-                {
-                    "process_identifier": "PUBLISH_HANDLER",
-                    "params": {
-                        "response_message_identifier": "FLEX_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-                        "topic": "flex-validation-request"
-                    }
-                }
-            ]
-        },
-        {
-            "group": "FLEX_PUBLISH",
-            "stage": "VALIDATION",
-            "type": "HANDLER",
-            "identifier": "FLEX_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
-            "next_steps": [
-                {
-                    "process_identifier": "FLEX_PUBLISH_VALIDATION_RESPONSE_HANDLER",
-                    "params": {},
-                    "delegate_worflow": [
-                        "FLEX_PUBLISH_DATABASE_WORKFLOW"
-                    ]
-                }
-            ]
-        },
-        {
-            "group": "FLEX_PUBLISH",
             "stage": "DATABASE_PUBLISH",
-            "type": "HANDLER",
+            "type": "TRIGGER",
             "identifier": "FLEX_PUBLISH_DATABASE_WORKFLOW",
             "next_steps": []
         },

@@ -19,6 +19,7 @@ import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { IPathwaysService } from "./interface/pathways-service-interface";
 import { DatasetUploadMetadata } from "../model/dataset-upload-meta";
+import { RecordStatus } from "../model/dataset-get-query-params";
 
 class PathwaysService implements IPathwaysService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -65,7 +66,7 @@ class PathwaysService implements IPathwaysService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_identifier = "PATHWAYS_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
+            let workflow_identifier = "PATHWAYS_PUBLISH_DATABASE_WORKFLOW";
             let queueMessage = QueueMessage.from({
                 messageId: job_id.toString(),
                 messageType: workflow_identifier,
@@ -77,7 +78,7 @@ class PathwaysService implements IPathwaysService {
             });
             //Delete exisitng workflow if exists
             let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
-            workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_dataset_id, trigger_workflow?.group!);
+            workflowDatabaseService.obseleteAnyExistingWorkflowHistory(job_id.toString(), trigger_workflow?.group!);
             //Trigger the workflow
             await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
@@ -208,6 +209,7 @@ class PathwaysService implements IPathwaysService {
             const datasetEntity = new DatasetEntity();
             datasetEntity.tdei_dataset_id = uid;
             datasetEntity.data_type = TDEIDataType.pathways;
+            datasetEntity.status = RecordStatus.Draft;
             datasetEntity.tdei_service_id = uploadRequestObject.tdei_service_id;
             datasetEntity.tdei_project_group_id = uploadRequestObject.tdei_project_group_id;
             datasetEntity.derived_from_dataset_id = uploadRequestObject.derived_from_dataset_id;
