@@ -78,7 +78,9 @@ export class DatasetQueryParams {
         //Joins
         const joins: JoinCondition[] = [
             { tableName: 'content.metadata', alias: 'm', on: 'content.dataset.tdei_dataset_id = m.tdei_dataset_id' },
-            { tableName: 'public.user_roles', alias: 'ur', on: `content.dataset.tdei_project_group_id = ur.project_group_id AND ur.user_id = '${user_id}'`, type: 'LEFT' }
+            {
+                tableName: `(select project_group_id, user_id from public.user_roles GROUP BY project_group_id, user_id)`, alias: 'ur', on: `content.dataset.tdei_project_group_id = ur.project_group_id AND ur.user_id = '${user_id}'`, type: 'LEFT'
+            }
         ];
         //Conditions
         const conditions: WhereCondition[] = [];
