@@ -87,9 +87,9 @@ BEGIN
         FROM content.node n
         JOIN (
             SELECT orig_node_id AS node_id FROM temp_intersected_edges
-            UNION ALL
+            UNION
             SELECT dest_node_id AS node_id FROM temp_intersected_edges
-            UNION ALL
+            UNION
             SELECT unnest(node_ids) FROM temp_intersected_zones
         ) e ON n.node_id = e.node_id
 		WHERE tdei_dataset_id = dataset_id
