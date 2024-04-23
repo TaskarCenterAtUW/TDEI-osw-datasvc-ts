@@ -42,7 +42,7 @@ CREATE OR REPLACE FUNCTION content.bbox_intersect(
     x_max_param DECIMAL,
     y_max_param DECIMAL
 )
-RETURNS TABLE(edges json, nodes json, zones json, extensions_points json, extensions_lines json, extensions_polygons json)
+    RETURNS TABLE(edges json, nodes json, zones json, extensions_points json, extensions_lines json, extensions_polygons json) 
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -62,10 +62,10 @@ BEGIN
 
     -- Create temporary table to store intersected zones
     CREATE TEMP TABLE temp_intersected_zones AS
-    SELECT node_ids, z.feature
+    SELECT z.node_ids, z.feature
     FROM content.zone z
     WHERE z.tdei_dataset_id = dataset_id AND ST_Intersects(z.zone_loc, ST_MakeEnvelope(x_min_param, y_min_param, x_max_param, y_max_param, 4326))
-	ORDER by zone_id ASC;
+	ORDER by z.zone_id ASC;
 
     -- Iterate over intersected edges
     FOR temp_row IN
@@ -104,12 +104,14 @@ BEGIN
         RETURN NEXT;
     END LOOP;
 	
-    -- Pull all the point extension intersecting the bbox
+    -- Pull all the zone intersecting the bbox
 	FOR temp_row IN
-        SELECT feature
-        FROM temp_intersected_zones
+     	SELECT feature
+		FROM content.zone z
+		WHERE z.tdei_dataset_id = dataset_id AND ST_Intersects(z.zone_loc, ST_MakeEnvelope(x_min_param, y_min_param, x_max_param, y_max_param, 4326))
+		ORDER by zone_id ASC
     LOOP
-         edges := null;
+        edges := null;
 		nodes := null;
 		zones := temp_row.feature;
 		extensions_points := null;
