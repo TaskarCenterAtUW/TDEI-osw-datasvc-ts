@@ -9,7 +9,7 @@
 
  */
 
-import { IsIn, IsNotEmpty } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional } from "class-validator";
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 
 export class OSWConfidenceJobRequest extends AbstractDomainEntity {
@@ -28,6 +28,10 @@ export class OSWConfidenceJobRequest extends AbstractDomainEntity {
     @Prop()
     @IsIn(['manual', 'release', 'scheduled'])
     trigger_type!: string
+
+    @Prop()
+    @IsOptional()
+    sub_regions_file!: string;
 
     constructor(init?: Partial<OSWConfidenceJobRequest>) {
         super();

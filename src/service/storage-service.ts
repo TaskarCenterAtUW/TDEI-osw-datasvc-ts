@@ -33,6 +33,13 @@ class StorageService {
         return 'jobs/formatting/' + year + '/' + month + '/' + uid;
     }
 
+    getConfidenceJobPath(uid: string): string {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        return 'jobs/confidence/' + year + '/' + month + '/' + uid;
+    }
+
     getValidationJobPath(uid: string): string {
         const today = new Date();
         const year = today.getFullYear();

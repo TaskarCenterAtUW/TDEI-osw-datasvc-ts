@@ -30,7 +30,7 @@ export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
                 message: confidenceResponse.message,
                 status: confidenceResponse.success ? JobStatus.COMPLETED : JobStatus.FAILED,
                 response_props: {
-                    confidence: confidenceResponse.confidence_level,
+                    confidence_scores: message.data.confidence_scores ? JSON.parse(message.data.confidence_scores) : {},
                     confidence_library_version: confidenceResponse.confidence_library_version
                 }
             })

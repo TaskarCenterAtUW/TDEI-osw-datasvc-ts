@@ -26,6 +26,10 @@ export class PublishConfidenceResponseHandler extends WorkflowHandlerBase {
         if (message.data.success) {
             try {
                 const confidenceResponse = ConfidenceJobResponse.from(message.data);
+                if (message.data.confidence_scores) {
+                    let response = JSON.parse(message.data.confidence_scores);
+                    confidenceResponse.confidence_level = response.features[0].properties.confidence_score;
+                }
                 //Fetch the job details from the database
                 const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
                 const job = JobDTO.from(result.rows[0]);
