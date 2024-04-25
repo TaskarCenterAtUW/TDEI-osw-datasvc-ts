@@ -19,6 +19,7 @@ import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
+import { randomUUID } from "crypto";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -183,7 +184,7 @@ class OSWController implements IController {
             const zip = new AdmZip();
 
             //create folder if not exists localFilePath
-            let directory_path = path.join(`${__dirname}//${request.params.id}`);
+            let directory_path = path.join(`${__dirname}//${randomUUID().toString()}`);
             if (!fs.existsSync(directory_path)) {
                 fs.mkdirSync(directory_path);
             }
