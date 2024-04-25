@@ -192,7 +192,6 @@ class OSWController implements IController {
             for (const filee of fileEntities) {
                 // Create a write stream for the local file
                 const localFilePath = path.join(directory_path, filee.fileName);
-                console.log(localFilePath);
 
                 const writeStream = fs.createWriteStream(localFilePath);
 
