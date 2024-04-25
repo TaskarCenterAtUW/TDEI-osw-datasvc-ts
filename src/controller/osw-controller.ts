@@ -17,6 +17,8 @@ import archiver from 'archiver';
 import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
+import AdmZip from 'adm-zip';
+import * as fs from 'fs';
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -173,25 +175,66 @@ class OSWController implements IController {
             if (!["latest", "original"].includes(file_version)) {
                 throw new InputException("Invalid file_version value");
             }
-
             const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format, file_version);
 
-            const zipFileName = 'osw.zip';
+            const zipFileName = `${request.params.id}_${format}_${file_version}.zip`;
 
-            // // Create a new zip archive
-            const archive = archiver('zip', { zlib: { level: 9 } });
-            response.setHeader('Content-Type', 'application/zip');
-            response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-            archive.pipe(response);
+            // Create a new zip archive
+            const zip = new AdmZip();
 
-            // // Add files to the zip archive
-            for (const filee of fileEntities) {
-                // Read into a stream
-                archive.append(await filee.getStream(), { name: filee.fileName, store: true });
+            //create folder if not exists localFilePath
+            let directory_path = path.join(`${__dirname}//${request.params.id}`);
+            if (!fs.existsSync(directory_path)) {
+                fs.mkdirSync(directory_path);
             }
 
-            // // Finalize the archive and close the zip stream
-            archive.finalize();
+            // Add files to the zip archive
+            for (const filee of fileEntities) {
+                // Create a write stream for the local file
+                const localFilePath = path.join(directory_path, filee.fileName);
+
+                const writeStream = fs.createWriteStream(localFilePath);
+
+                // Get the file stream and pipe it to the write stream
+                const fileStream = await filee.getStream();
+                fileStream.pipe(writeStream);
+
+                // Wait for the write stream to finish
+                await new Promise((resolve, reject) => {
+                    writeStream.on('finish', resolve);
+                    writeStream.on('error', reject);
+                });
+
+                // Add the local file to the zip archive
+                zip.addLocalFile(localFilePath);
+
+                // Delete the local file
+                fs.unlinkSync(localFilePath);
+            }
+            fs.rmdirSync(directory_path);
+            // Generate the zip file
+            const zipFile = zip.toBuffer();
+
+            // Set the headers and send the file
+            response.setHeader('Content-Type', 'application/zip');
+            response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
+            response.send(zipFile);
+            // const zipFileName = 'osw.zip';
+
+            // // // Create a new zip archive
+            // const archive = archiver('zip', { zlib: { level: 9 } });
+            // response.setHeader('Content-Type', 'application/zip');
+            // response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
+            // archive.pipe(response);
+
+            // // // Add files to the zip archive
+            // for (const filee of fileEntities) {
+            //     // Read into a stream
+            //     archive.append(await filee.getStream(), { name: filee.fileName, store: true });
+            // }
+
+            // // // Finalize the archive and close the zip stream
+            // archive.finalize();
 
         } catch (error: any) {
             console.error('Error while getting the file stream');
