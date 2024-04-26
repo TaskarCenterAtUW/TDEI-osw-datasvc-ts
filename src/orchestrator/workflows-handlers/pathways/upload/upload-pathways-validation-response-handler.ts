@@ -25,10 +25,13 @@ export class PathwaysUploadValidationResponseHandler extends WorkflowHandlerBase
     async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
-            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
-            const job = JobDTO.from(result.rows[0]);
+            if (message.data.success) {
+                const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+                const job = JobDTO.from(result.rows[0]);
 
-            await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
+                await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
+                this.delegateWorkflowIfAny(delegate_worflow, message);
+            }
 
             let updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
@@ -37,7 +40,6 @@ export class PathwaysUploadValidationResponseHandler extends WorkflowHandlerBase
                 response_props: {}
             })
             await jobService.updateJob(updateJobDTO);
-            this.delegateWorkflowIfAny(delegate_worflow, message);
 
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
