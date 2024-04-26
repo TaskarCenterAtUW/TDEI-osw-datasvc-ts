@@ -5,6 +5,9 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { UpdateJobDTO } from "../../../../model/job-dto";
 import { JobStatus } from "../../../../model/jobs-get-query-params";
 import jobService from "../../../../service/job-service";
+import dbClient from "../../../../database/data-source";
+import { DatasetEntity } from "../../../../database/entity/dataset-entity";
+import { RecordStatus } from "../../../../model/dataset-get-query-params";
 
 export class PathwaysUploadValidationResponseHandler extends WorkflowHandlerBase {
 
@@ -27,7 +30,9 @@ export class PathwaysUploadValidationResponseHandler extends WorkflowHandlerBase
                 status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
                 response_props: {}
             })
-            await jobService.updateJob(updateJobDTO);
+            let job = await jobService.updateJob(updateJobDTO);
+            await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
+
             this.delegateWorkflowIfAny(delegate_worflow, message);
 
         } catch (error) {
