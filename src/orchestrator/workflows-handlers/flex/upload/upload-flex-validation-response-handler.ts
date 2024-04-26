@@ -25,10 +25,11 @@ export class FlexUploadValidationResponseHandler extends WorkflowHandlerBase {
     async handleRequest(message: QueueMessage, delegate_worflow: string[], params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
-            const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
-            const job = JobDTO.from(result.rows[0]);
-
-            await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
+            if (message.data.success) {
+                const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
+                const job = JobDTO.from(result.rows[0]);
+                await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
+            }
 
 
             let updateJobDTO = UpdateJobDTO.from({
