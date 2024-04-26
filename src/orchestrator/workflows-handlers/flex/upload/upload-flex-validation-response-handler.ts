@@ -29,6 +29,7 @@ export class FlexUploadValidationResponseHandler extends WorkflowHandlerBase {
                 const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
                 const job = JobDTO.from(result.rows[0]);
                 await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
+                this.delegateWorkflowIfAny(delegate_worflow, message);
             }
 
 
@@ -39,7 +40,6 @@ export class FlexUploadValidationResponseHandler extends WorkflowHandlerBase {
                 response_props: {}
             })
             await jobService.updateJob(updateJobDTO);
-            this.delegateWorkflowIfAny(delegate_worflow, message);
 
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);

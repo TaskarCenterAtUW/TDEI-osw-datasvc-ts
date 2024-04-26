@@ -30,6 +30,7 @@ export class PathwaysUploadValidationResponseHandler extends WorkflowHandlerBase
                 const job = JobDTO.from(result.rows[0]);
 
                 await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
+                this.delegateWorkflowIfAny(delegate_worflow, message);
             }
 
             let updateJobDTO = UpdateJobDTO.from({
@@ -39,7 +40,6 @@ export class PathwaysUploadValidationResponseHandler extends WorkflowHandlerBase
                 response_props: {}
             })
             await jobService.updateJob(updateJobDTO);
-            this.delegateWorkflowIfAny(delegate_worflow, message);
 
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
