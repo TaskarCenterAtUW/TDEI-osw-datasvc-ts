@@ -17,7 +17,9 @@
         "port": {
             "ENV": "POSTGRES_PORT"
         },
-        "ssl": true
+        "ssl": {
+            "ENV": "SSL"
+        }
     },
     "sql-file": true
 }
