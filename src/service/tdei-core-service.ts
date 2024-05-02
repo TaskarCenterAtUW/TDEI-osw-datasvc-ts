@@ -142,6 +142,10 @@ class TdeiCoreService implements ITdeiCoreService {
      * @returns A Promise that resolves with void when the update is successful, or rejects with an error if there's an issue.
      */
     async updateConfidenceMetric(tdei_dataset_id: string, info: ConfidenceJobResponse): Promise<void> {
+        let confidence_level = 0;
+        if (info.confidence_scores) {
+            confidence_level = info.confidence_scores.features[0].properties.confidence_score;
+        }
         try {
             const queryObject = {
                 text: `UPDATE content.dataset SET 
@@ -151,7 +155,7 @@ class TdeiCoreService implements ITdeiCoreService {
                 updated_at= CURRENT_TIMESTAMP  
                 WHERE 
                 tdei_dataset_id=$4`,
-                values: [info.confidence_level, info.confidence_library_version, TdeiDate.UTC(), tdei_dataset_id]
+                values: [confidence_level, info.confidence_library_version, TdeiDate.UTC(), tdei_dataset_id]
             }
 
             await dbClient.query(queryObject);

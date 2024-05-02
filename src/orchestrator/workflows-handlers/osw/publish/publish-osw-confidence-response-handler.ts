@@ -26,6 +26,7 @@ export class PublishConfidenceResponseHandler extends WorkflowHandlerBase {
         if (message.data.success) {
             try {
                 const confidenceResponse = ConfidenceJobResponse.from(message.data);
+               
                 //Fetch the job details from the database
                 const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
                 const job = JobDTO.from(result.rows[0]);

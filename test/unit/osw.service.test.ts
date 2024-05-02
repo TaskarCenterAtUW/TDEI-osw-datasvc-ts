@@ -190,6 +190,7 @@ describe("OSW Service Test", () => {
         const tdeiRecordId = 'tdei-dataset-id';
         const userId = 'user-id';
 
+
         it('should calculate confidence successfully', async () => {
             // Mock the behavior of getOSWRecordById
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
@@ -208,7 +209,7 @@ describe("OSW Service Test", () => {
             mockAppContext();
 
             // Call the function
-            const result = await oswService.calculateConfidence(tdeiRecordId, userId);
+            const result = await oswService.calculateConfidence(tdeiRecordId, undefined, userId);
 
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result

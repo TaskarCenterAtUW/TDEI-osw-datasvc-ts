@@ -145,11 +145,12 @@ class OswService implements IOswService {
      * Calculates the confidence for a given TDEI dataset.
      * 
      * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param sub_regions_file - The sub-regions file to be used for calculating the confidence.
      * @param user_id - The ID of the user.
      * @returns A Promise that resolves to the ID of the created job.
      * @throws If there is an error calculating the confidence.
      */
-    async calculateConfidence(tdei_dataset_id: string, user_id: string): Promise<string> {
+    async calculateConfidence(tdei_dataset_id: string, sub_regions_file: Express.Multer.File | undefined, user_id: string): Promise<string> {
         // Check and get the record for the same in the database
         try {
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
@@ -157,6 +158,14 @@ class OswService implements IOswService {
             if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
             // Create a job in the database for the same.
+            let sub_regions_upload_url = undefined;
+            if (sub_regions_file) {
+                // Get the upload path
+                const uid = storageService.generateRandomUUID();
+                const folderPath = storageService.getConfidenceJobPath(uid);
+                const uploadPath = path.join(folderPath, sub_regions_file!.originalname)
+                sub_regions_upload_url = await storageService.uploadFile(uploadPath, 'application/json', Readable.from(sub_regions_file.buffer));
+            }
             //TODO: Have to add these based on some of the input data.
 
             let job = CreateJobDTO.from({
@@ -172,6 +181,11 @@ class OswService implements IOswService {
                 user_id: user_id,
             });
 
+            // Add the sub regions file to the request input.
+            if (sub_regions_upload_url) {
+                job.request_input['file_upload_name'] = sub_regions_file!.originalname;
+            }
+
             const job_id = await this.jobServiceInstance.createJob(job);
 
             // Send the details to the confidence metric.
@@ -181,6 +195,8 @@ class OswService implements IOswService {
             confidenceRequestMsg.data_file = dataset.dataset_url;
             //TODO: Once this is done, get the things moved.
             confidenceRequestMsg.meta_file = dataset.metadata_url;
+            if (sub_regions_upload_url)
+                confidenceRequestMsg.sub_regions_file = sub_regions_upload_url;
             confidenceRequestMsg.trigger_type = 'manual';
 
             //Compose the meessage

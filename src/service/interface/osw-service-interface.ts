@@ -48,11 +48,12 @@ export interface IOswService {
      * Calculates the confidence for a given TDEI dataset.
      * 
      * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param sub_regions_file - The sub-regions file to be used for calculating the confidence.
      * @param user_id - The ID of the user.
      * @returns A Promise that resolves to the ID of the created job.
      * @throws If there is an error calculating the confidence.
      */
-    calculateConfidence(tdei_dataset_id: string, user_id: string): Promise<string>;
+    calculateConfidence(tdei_dataset_id: string, sub_regions_file: Express.Multer.File | undefined, user_id: string): Promise<string>;
 
     /**
      * Retrieves the OswStream by its ID.
