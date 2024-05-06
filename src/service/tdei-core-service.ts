@@ -38,6 +38,14 @@ class TdeiCoreService implements ITdeiCoreService {
 
         const list: DatasetDTO[] = result.rows.map(x => {
             const osw = DatasetDTO.from(x);
+            osw.service = {
+                name: x.service_name,
+                tdei_service_id: x.tdei_service_id,
+            };
+            osw.project_group = {
+                name: x.project_group_name,
+                tdei_project_group_id: x.tdei_project_group_id,
+            };
             if (osw.dataset_area) {
                 const polygon = JSON.parse(x.dataset_area2) as Geometry;
                 osw.dataset_area = {
