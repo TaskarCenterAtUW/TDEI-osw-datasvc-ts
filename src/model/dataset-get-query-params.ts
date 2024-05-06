@@ -72,7 +72,7 @@ export class DatasetQueryParams {
             throw new InputException("Invalid bounding box provided." + this.bbox)
 
         //Select columns
-        const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*'];
+        const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*', 'pg.name as project_group_name', 's.name as service_name'];
         //Main table name
         const mainTableName = 'content.dataset';
         //Joins
@@ -80,7 +80,9 @@ export class DatasetQueryParams {
             { tableName: 'content.metadata', alias: 'm', on: 'content.dataset.tdei_dataset_id = m.tdei_dataset_id' },
             {
                 tableName: `(select project_group_id, user_id from public.user_roles GROUP BY project_group_id, user_id)`, alias: 'ur', on: `content.dataset.tdei_project_group_id = ur.project_group_id AND ur.user_id = '${user_id}'`, type: 'LEFT'
-            }
+            },
+            { tableName: 'public.project_group', alias: 'pg', on: 'ur.project_group_id = pg.project_group_id' },
+            { tableName: 'public.service', alias: 's', on: 'content.dataset.tdei_service_id = s.service_id AND ur.project_group_id = s.owner_project_group' }
         ];
         //Conditions
         const conditions: WhereCondition[] = [];

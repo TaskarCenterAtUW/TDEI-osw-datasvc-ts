@@ -9,9 +9,9 @@ export class DatasetDTO extends AbstractDomainEntity {
     @Prop()
     status!: string;
     @Prop()
-    tdei_project_group_id!: string;
+    project_group!: IProjectGroup;
     @Prop()
-    tdei_service_id!: string;
+    service!: IService;
     @Prop()
     name!: string;
     @Prop()
@@ -44,4 +44,14 @@ export class DatasetDTO extends AbstractDomainEntity {
     dataset_area: FeatureCollection | undefined;
     @Prop()
     download_url!: string;
+}
+
+export interface IProjectGroup {
+    tdei_project_group_id: string;
+    name: string;
+}
+
+export interface IService {
+    tdei_service_id: string;
+    name: string;
 }
