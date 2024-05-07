@@ -38,6 +38,7 @@ class TdeiCoreService implements ITdeiCoreService {
 
         const list: DatasetDTO[] = result.rows.map(x => {
             const osw = DatasetDTO.from(x);
+            osw.name = x.dataset_name;
             osw.service = {
                 name: x.service_name,
                 tdei_service_id: x.tdei_service_id,
