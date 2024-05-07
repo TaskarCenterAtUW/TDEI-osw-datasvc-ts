@@ -81,8 +81,8 @@ export class DatasetQueryParams {
             {
                 tableName: `(select project_group_id, user_id from public.user_roles GROUP BY project_group_id, user_id)`, alias: 'ur', on: `content.dataset.tdei_project_group_id = ur.project_group_id AND ur.user_id = '${user_id}'`, type: 'LEFT'
             },
-            { tableName: 'public.project_group', alias: 'pg', on: 'ur.project_group_id = pg.project_group_id' },
-            { tableName: 'public.service', alias: 's', on: 'content.dataset.tdei_service_id = s.service_id AND ur.project_group_id = s.owner_project_group' }
+            { tableName: 'public.project_group', alias: 'pg', on: 'content.dataset.tdei_project_group_id = pg.project_group_id', type: 'LEFT' },
+            { tableName: 'public.service', alias: 's', on: 'content.dataset.tdei_service_id = s.service_id AND content.dataset.tdei_project_group_id = s.owner_project_group', type: 'LEFT' }
         ];
         //Conditions
         const conditions: WhereCondition[] = [];
