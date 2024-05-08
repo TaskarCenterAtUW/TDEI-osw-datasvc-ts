@@ -63,7 +63,7 @@ class HealthController implements IController {
             return;
         }
         // get the path to osw-output folder
-        const filePath = path.resolve(__dirname, '../../../osw-output', fileName);
+        const filePath = path.resolve(__dirname, '../../../osw-output', fileName.toString());
         // Respond with the file stream
         // response.setHeader('Content-Type', 'application/zip');
         // response.setHeader('Content-Disposition', `attachment; filename=seattle.zip`);
