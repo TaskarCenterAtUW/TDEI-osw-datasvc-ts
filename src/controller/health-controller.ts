@@ -29,7 +29,7 @@ class HealthController implements IController {
         // File Url is https://tdeisamplestorage.blob.core.windows.net/osw/test_upload/seattle.zip
         const storageClient = Core.getStorageClient();
         const containerName = "osw";
-        const fileName = request.params.fileName;
+        const fileName = request.query.fileName;
         if (fileName === undefined || fileName === null || fileName === "") {
             response.status(400).send("Please provide a file name in the url");
             return;
@@ -48,7 +48,7 @@ class HealthController implements IController {
 
     testRedirect = async (request: Request, response: express.Response) => {
         // Redirect the response to a different url
-        const fileName = request.params.fileName;
+        const fileName = request.query.fileName;
         if (fileName === undefined || fileName === null || fileName === "") {
             response.status(400).send("Please provide a file name in the url");
             return;
@@ -57,13 +57,13 @@ class HealthController implements IController {
     }
 
     testLocalFile = async (request: Request, response: express.Response) => {
-        const fileName = request.params.fileName;
+        const fileName = request.query.fileName;
         if (fileName === undefined || fileName === null || fileName === "") {
             response.status(400).send("Please provide a file name in the url");
             return;
         }
         // get the path to osw-output folder
-        const filePath = path.resolve(__dirname, '../../../osw-output', fileName);
+        const filePath = path.resolve(__dirname, '../../../osw-output', fileName.toString());
         // Respond with the file stream
         // response.setHeader('Content-Type', 'application/zip');
         // response.setHeader('Content-Disposition', `attachment; filename=seattle.zip`);
