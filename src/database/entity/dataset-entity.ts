@@ -121,6 +121,15 @@ export class DatasetEntity extends BaseDto {
         return queryObject;
     }
 
+    static getUpdateDatasetZipUrlQuery(tdei_dataset_id: string, zip_url: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE content.dataset SET dataset_download_url = $1 , updated_at = CURRENT_TIMESTAMP 
+            WHERE tdei_dataset_id = $2`,
+            values: [zip_url, tdei_dataset_id]
+        }
+        return queryObject;
+    }
+
     static getStatusUpdateQuery(tdei_dataset_id: string, status: RecordStatus): QueryConfig {
         const queryObject = {
             text: `UPDATE content.dataset SET status = $1 , updated_at = CURRENT_TIMESTAMP 

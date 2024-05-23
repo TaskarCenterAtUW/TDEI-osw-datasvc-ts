@@ -28,7 +28,10 @@ export class FlexUploadCompressionResponseHandler extends WorkflowHandlerBase {
             if (message.data.success) {
                 const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
                 const job = JobDTO.from(result.rows[0]);
+                const zip_path = message.data.output_path;
+                console.log('zip path ', zip_path);
                 await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
+                await dbClient.query(DatasetEntity.getUpdateDatasetZipUrlQuery(job.response_props.tdei_dataset_id, zip_path));
                 this.delegateWorkflowIfAny(delegate_worflow, message);
             }
 
