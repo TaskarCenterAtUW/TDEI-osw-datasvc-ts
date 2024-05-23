@@ -48,4 +48,6 @@ export interface IFlexService {
      * @throws Throws an error if an error occurs during processing.
      */
     processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
+
+    processZipRequest(tdei_dataset_id:string): Promise<String>;
 }

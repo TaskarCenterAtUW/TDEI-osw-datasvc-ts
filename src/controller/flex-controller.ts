@@ -65,6 +65,7 @@ class FlexController implements IController {
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processUploadRequest);
         this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
+        this.router.get(`${this.path}/zip/:datasetId`, this.triggerZipRequest);
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -222,6 +223,15 @@ class FlexController implements IController {
             next(new HttpException(500, "Error while processing the upload request"));
         }
     }
+
+    triggerZipRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        console.log('Zip request got');
+        let datasetId = request.params["datasetId"];
+        console.log('datasetId:', datasetId);
+        let job_id = await flexService.processZipRequest(datasetId);
+        return response.status(202).send(job_id);
+    }
+
 }
 
 const flexController = new FlexController();

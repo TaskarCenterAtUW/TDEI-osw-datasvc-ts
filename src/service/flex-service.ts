@@ -291,6 +291,29 @@ class FlexService implements IFlexService {
 
         return fileEntities;
     }
+
+    async processZipRequest(tdei_dataset_id:string): Promise<String> {
+
+        try {
+             
+            
+            let workflow_identifier = "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: tdei_dataset_id,
+                messageType: workflow_identifier,
+                data: {
+                    
+                }
+            });
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+
+            return tdei_dataset_id;
+        }catch(error) {
+            return ''
+        }
+        return ''
+    }
 }
 
 const flexService: IFlexService = new FlexService(jobService, tdeiCoreService);
