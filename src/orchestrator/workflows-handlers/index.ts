@@ -31,6 +31,8 @@ import { DataQueryFormatterResponseHandler } from "./backend-service/data-query-
 import { DataQueryFormatterResponseWorkflow } from "./backend-service/data-query-formatter-response-workflow";
 import { DataQueryResponseWorkflow } from "./backend-service/data-query-response-workflow";
 import { UploadValidationResponseWorkflow } from "./osw/upload/upload-osw-validation-response-workflow";
+import { FlexUploadCompressionResponseHandler } from "./flex/upload/upload-flex-compression-response-handler";
+import { UploadFlexCompressionRequestWorkflow } from "./flex/upload/upload-flex-compression-request-workflow";
 
 export default [
     GenericWorkflow,
@@ -68,6 +70,8 @@ export default [
     FlexPublishValidationResponseWorkflow,
     FlexValidationOnlyValidationResponseHandler,
     FlexUploadValidationResponseHandler,
+    FlexUploadCompressionResponseHandler,
+    UploadFlexCompressionRequestWorkflow,
     //Pathways
     PathwaysPublishDatabaseWorkflow,
     PathwaysPublishValidationResponseHandler,

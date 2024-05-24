@@ -122,6 +122,37 @@
             "next_steps": [
                 {
                     "process_identifier": "FLEX_UPLOAD_VALIDATION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "FLEX_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "FLEX_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "HANDLER",
+            "identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_HANDLER",
                     "params": {}
                 }
             ]
@@ -519,6 +550,11 @@
         {
             "description": "Subscription for pathways validation completion",
             "topic": "pathways-validation-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for dataset zipping completion",
+            "topic": "dataset-zip-response",
             "subscription": "res-handler"
         }
     ]
