@@ -22,11 +22,11 @@ export class UploadFlexCompressionRequestWorkflow extends WorkflowBase {
             const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
             const job = JobDTO.from(result.rows[0]);
             const dataset = await tdeiCoreService.getDatasetDetailsById(job.response_props.tdei_dataset_id);
-            let input_urls = [dataset.dataset_url, dataset.metadata_url]
+            let input_urls = [dataset.latest_dataset_url, dataset.metadata_url]
             if (dataset.changeset_url && dataset.changeset_url != "" && dataset.changeset_url != null)
                 input_urls.push(dataset.changeset_url);
             // get the directory of the dataset
-            let directory = path.dirname(dataset.dataset_url);
+            let directory = path.dirname(dataset.latest_dataset_url);
             console.log('directory ',directory);
             let output_path = directory + '/zip/'+dataset.tdei_dataset_id+'.zip';
             console.log('output path ',output_path);

@@ -65,7 +65,7 @@ class FlexController implements IController {
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processUploadRequest);
         this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.get(`${this.path}/zip/:datasetId`, this.triggerZipRequest);
+        this.router.get(`${this.path}/zip/:datasetId`, this.triggerZipRequest); //TODO: To remove later
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -224,6 +224,7 @@ class FlexController implements IController {
         }
     }
 
+    // Testing code for zip request. To be removed later
     triggerZipRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         console.log('Zip request got');
         let datasetId = request.params["datasetId"];
