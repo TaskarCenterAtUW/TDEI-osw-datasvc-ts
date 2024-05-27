@@ -41,6 +41,9 @@ export function getMockStorageClient() {
         },
         getFileFromUrl: function (): Promise<FileEntity> {
             return Promise.resolve(getMockFileEntity());
+        },
+        getSASUrl: function (): Promise<string> {
+            return Promise.resolve(getMockSASUrl());
         }
     };
     return storageClientObj;
@@ -66,6 +69,10 @@ export function getMockTopic() {
     }
 
     return mockTopic;
+}
+
+export function getMockSASUrl(){
+    return "https://test.com";
 }
 
 export function mockAppContext() {

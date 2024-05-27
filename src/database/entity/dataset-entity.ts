@@ -51,6 +51,8 @@ export class DatasetEntity extends BaseDto {
     latest_dataset_url!: string;
     @Prop()
     latest_osm_url!: string;
+    @Prop()
+    dataset_download_url!: string;
 
     constructor(init?: Partial<DatasetEntity>) {
         super();
