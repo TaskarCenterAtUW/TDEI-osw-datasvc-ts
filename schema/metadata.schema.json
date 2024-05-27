@@ -4,119 +4,557 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-        "name": {
-            "type": "string"
-        },
-        "version": {
-            "type": "string"
-        },
-        "description": {
-            "type": "string"
-        },
-        "custom_metadata": {
-            "type": "object",
-            "properties": {},
-            "required": []
-        },
-        "collected_by": {
-            "type": "string"
-        },
-        "collection_date": {
-            "type": "string"
-        },
-        "collection_method": {
-            "type": "string",
-            "enum": [
-                "manual",
-                "transform",
-                "generated",
-                "AV",
-                "others"
-            ]
-        },
-        "data_source": {
-            "type": "string",
-            "enum": [
-                "3rdParty",
-                "TDEITools",
-                "InHouse"
-            ]
-        },
-        "schema_version": {
-            "type": "string"
-        },
-        "valid_from": {
-            "type": "string"
-        },
-        "valid_to": {
-            "type": "string"
-        },
-        "dataset_area": {
+        "data_provenance": {
             "type": "object",
             "properties": {
-                "type": {
+                "full_dataset_name": {
                     "type": "string"
                 },
-                "features": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "type": {
-                                "type": "string"
-                            },
-                            "id": {
-                                "type": "string"
-                            },
-                            "properties": {
-                                "type": "object",
-                                "properties": {},
-                                "required": []
-                            },
-                            "geometry": {
-                                "type": "object",
-                                "properties": {
-                                    "type": {
-                                        "type": "string"
-                                    },
-                                    "coordinates": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "number"
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                "required": [
-                                    "type",
-                                    "coordinates"
-                                ]
-                            }
+                "other_published_locations": {
+                    "type": "string"
+                },
+                "dataset_update_frequency_months": {
+                    "type": "number"
+                },
+                "schema_validation_run": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
                         },
-                        "required": [
-                            "type",
-                            "geometry"
-                        ]
-                    }
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "schema_validation_run_description": {
+                    "type": "string"
+                },
+                "allow_crowd_contributions": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "location_inaccuracy_factors": {
+                    "type": "string"
                 }
             },
             "required": [
-                "type",
-                "features"
+                "full_dataset_name"
             ]
+        },
+        "dataset_detail": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "custom_metadata": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "properties": {},
+                            "required": []
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "collected_by": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "collection_date": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "valid_from": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "valid_to": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "collection_method": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "manual",
+                                "transform",
+                                "generated",
+                                "AV",
+                                "others"
+                            ]
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "data_source": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "3rdParty",
+                                "TDEITools",
+                                "InHouse"
+                            ]
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "dataset_area": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string"
+                                },
+                                "features": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string"
+                                            },
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "properties": {
+                                                "type": "object",
+                                                "properties": {},
+                                                "required": []
+                                            },
+                                            "geometry": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string"
+                                                    },
+                                                    "coordinates": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "number"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "required": [
+                                                    "type",
+                                                    "coordinates"
+                                                ]
+                                            }
+                                        },
+                                        "required": [
+                                            "type",
+                                            "geometry"
+                                        ]
+                                    }
+                                }
+                            },
+                            "required": [
+                                "type",
+                                "features"
+                            ]
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "schema_version": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "version",
+                "collected_by",
+                "collection_date",
+                "data_source",
+                "schema_version"
+            ]
+        },
+        "dataset_summary": {
+            "type": "object",
+            "properties": {
+                "collection_name": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "department_name": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "city": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "region": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "county": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "key_limitations_of_the_dataset": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "challenges": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "required": []
+        },
+        "maintenance": {
+            "type": "object",
+            "properties": {
+                "official_maintainer": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "last_updated": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "update_frequency": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "authorization_chain": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "maintenance_funded": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "funding_details": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "required": []
+        },
+        "methodology": {
+            "type": "object",
+            "properties": {
+                "point_data_collection_device": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "node_locations_and_attributes_editing_software": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "data_collected_by_people": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "data_collectors": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "data_captured_automatically": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "automated_collection": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "data_collectors_organization": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "data_collector_compensation": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "preprocessing_location": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "preprocessing_by": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "preprocessing_steps": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "data_collection_preprocessing_documentation": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "documentation_uri": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "validation_process_exists": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "validation_process_description": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "validation_conducted_by": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "excluded_data": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "excluded_data_reason": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "required": []
         }
     },
     "required": [
-        "name",
-        "version",
-        "collected_by",
-        "collection_date",
-        "data_source",
-        "schema_version"
+        "dataset_detail"
     ]
 }

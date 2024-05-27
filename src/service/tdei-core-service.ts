@@ -1,7 +1,6 @@
 import { ValidationError, validate } from "class-validator";
 import dbClient from "../database/data-source";
 import { DatasetEntity } from "../database/entity/dataset-entity";
-import { MetadataEntity } from "../database/entity/metadata-entity";
 import { ServiceEntity } from "../database/entity/service-entity";
 import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException, InputException } from "../exceptions/http/http-exceptions";
@@ -15,9 +14,91 @@ import { QueryConfig } from "pg";
 import { DatasetQueryParams } from "../model/dataset-get-query-params";
 import { ConfidenceJobResponse } from "../model/job-request-response/osw-confidence-job-response";
 import { TdeiDate } from "../utility/tdei-date";
+import { MetadataModel } from "../model/metadata.model";
+import { TDEIDataType } from "../model/jobs-get-query-params";
+import Ajv, { ErrorObject } from "ajv";
+import metaschema from "../../schema/metadata.schema.json";
 
+const ajv = new Ajv({ allErrors: true });
+const metadataValidator = ajv.compile(metaschema);
 class TdeiCoreService implements ITdeiCoreService {
     constructor() { }
+
+    /**
+     * Edits the metadata of a TDEI dataset.
+     * 
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param metadataFile - The metadata file to be edited.
+     * @param user_id - The ID of the user performing the edit.
+     * @param data_type - The type of TDEI data.
+     * @returns A Promise that resolves when the metadata is successfully edited.
+     */
+    async editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<void> {
+        const metadataBuffer = JSON.parse(metadataFile.buffer);
+        const metadata = MetadataModel.from(metadataBuffer);
+        await this.validateMetadata(metadata, data_type, tdei_dataset_id);
+        //Date handling
+        metadata.dataset_detail.collection_date = TdeiDate.UTC(metadata.dataset_detail.collection_date);
+        metadata.dataset_detail.valid_from = TdeiDate.UTC(metadata.dataset_detail.valid_from);
+        metadata.dataset_detail.valid_to = TdeiDate.UTC(metadata.dataset_detail.valid_to);
+        //Update the metadata
+        const query = {
+            text: 'UPDATE content.dataset SET metadata_json = $1, updated_at = CURRENT_TIMESTAMP , updated_by = $2 WHERE tdei_dataset_id = $3',
+            values: [MetadataModel.flatten(metadata), user_id, tdei_dataset_id],
+        }
+        await dbClient.query(query);
+    }
+
+    /**
+     * Validates the metadata for a given data type.
+     * 
+     * @param metadata - The metadata to be validated.
+     * @param data_type - The type of data being validated.
+     * @param tdei_dataset_id - The ID of the TDEI dataset. (Optional) Used for Edit Metadata.
+     * @returns A Promise that resolves to a boolean indicating whether the metadata is valid.
+     * @throws {InputException} If the metadata is invalid or if the data type is not supported.
+     */
+    async validateMetadata(metadata: MetadataModel, data_type: TDEIDataType, tdei_dataset_id?: string): Promise<boolean> {
+        //Validate metadata
+        const valid = metadataValidator(metadata);
+        if (!valid) {
+            let requiredMsg = metadataValidator.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.params.missingProperty}`).join(", ");
+            let additionalMsg = metadataValidator.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(", ");
+            let typeMsg = metadataValidator.errors?.filter(z => z.keyword == "type").map((error: ErrorObject) => `${error.instancePath} ${error.message}`).join(", ");
+            requiredMsg = requiredMsg != "" ? "Required properties : " + requiredMsg + " missing" : "";
+            //get type mismatch error
+            additionalMsg = additionalMsg != "" ? "Additional properties found : " + additionalMsg + " not allowed" : "";
+            typeMsg = typeMsg != "" ? "Type mismatch found : " + typeMsg + " mismatched" : "";
+            console.error("Metadata json validation error : ", additionalMsg, requiredMsg, typeMsg);
+            throw new InputException((requiredMsg + "\n" + additionalMsg) as string);
+        }
+
+        switch (data_type) {
+            case "osw":
+                if (!["v0.2"].includes(metadata.dataset_detail.schema_version))
+                    throw new InputException("Schema version is not supported. Please use v0.2 schema version.");
+                break;
+            case "pathways":
+                if (!["v1.0"].includes(metadata.dataset_detail.schema_version))
+                    throw new InputException("Schema version is not supported. Please use v0.2 schema version.");
+                break;
+            case "flex":
+                if (!["v2.0"].includes(metadata.dataset_detail.schema_version))
+                    throw new InputException("Schema version is not supported. Please use v0.2 schema version.");
+                break;
+            default:
+                throw new InputException("Invalid data type");
+        }
+
+        //Check for unique name and version combination
+        if (tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version, tdei_dataset_id))
+            throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
+        if (!tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version))
+            throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
+
+        return true;
+    }
+
 
     /**
      * Retrieves datasets based on the provided user ID and query parameters.
@@ -38,7 +119,8 @@ class TdeiCoreService implements ITdeiCoreService {
 
         const list: DatasetDTO[] = result.rows.map(x => {
             const osw = DatasetDTO.from(x);
-            osw.name = x.dataset_name;
+            // osw.name = x.dataset_name;
+            osw.metadata = MetadataModel.unflatten(x.metadata_json);
             osw.service = {
                 name: x.service_name,
                 tdei_service_id: x.tdei_service_id,
@@ -47,9 +129,9 @@ class TdeiCoreService implements ITdeiCoreService {
                 name: x.project_group_name,
                 tdei_project_group_id: x.tdei_project_group_id,
             };
-            if (osw.dataset_area) {
+            if (osw.metadata.dataset_detail.dataset_area) {
                 const polygon = JSON.parse(x.dataset_area2) as Geometry;
-                osw.dataset_area = {
+                osw.metadata.dataset_detail.dataset_area = {
                     type: "FeatureCollection",
                     features: [
                         {
@@ -101,42 +183,36 @@ class TdeiCoreService implements ITdeiCoreService {
         }
     }
 
-
-    /**
-     * Creates metadata by inserting the provided metadata entity into the database.
-     * 
-     * @param metadataEntity The metadata entity to be inserted.
-     * @returns A promise that resolves when the metadata is successfully created, or rejects with an error if there was a problem.
-     */
-    async createMetadata(metadataEntity: MetadataEntity): Promise<void> {
-        try {
-            await dbClient.query(metadataEntity.getInsertQuery());
-        } catch (error) {
-            if (error instanceof UniqueKeyDbException) {
-                throw new DuplicateException(metadataEntity.tdei_dataset_id);
-            }
-            console.error(`Error saving the metadata for dataset: ${metadataEntity.tdei_dataset_id}`, error);
-            throw error;
-        }
-    }
-
     /**
      * Checks if the name and version are unique.
      * @param name - The name of the metadata.
      * @param version - The version of the metadata.
+     * @param tdei_dataset_id - The ID of the TDEI dataset. (Optional) Used for Edit Metadata.
      * @returns A promise that resolves to a boolean indicating whether the name and version are unique.
      */
-    async checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean> {
+    async checkMetaNameAndVersionUnique(name: string, version: string, tdei_dataset_id?: string): Promise<Boolean> {
         try {
-            const queryObject = {
-                text: `Select * FROM content.metadata 
-                WHERE name=$1 AND version=$2`.replace(/\n/g, ""),
-                values: [name, version],
+            let queryText: string;
+            let values: (string | number)[];
+
+            if (!tdei_dataset_id) {
+                queryText = `SELECT * FROM content.dataset WHERE name=$1 AND version=$2 AND status != 'Deleted'`;
+                values = [name, version];
+            } else {
+                queryText = `SELECT * FROM content.dataset WHERE name=$1 AND version=$2 AND tdei_dataset_id != $3  AND status != 'Deleted'`;
+                values = [name, version, tdei_dataset_id];
             }
 
+            const queryObject = {
+                text: queryText.replace(/\n/g, ""),
+                values: values,
+            };
+
             let result = await dbClient.query(queryObject);
-            //If record exists then throw error
+
+            // If record exists then return true, else false
             return result.rowCount ? result.rowCount > 0 : false;
+
         } catch (error) {
             console.error("Error checking the name and version", error);
             return Promise.resolve(true);
@@ -269,27 +345,6 @@ class TdeiCoreService implements ITdeiCoreService {
     }
 
     /**
-     * Retrieves metadata details by ID.
-     * @param id - The ID of the metadata.
-     * @returns A promise that resolves to the MetadataEntity object.
-     * @throws HttpException with status code 404 if the record is not found.
-     */
-    async getMetadataDetailsById(id: string): Promise<MetadataEntity> {
-        const query = {
-            text: 'Select * from content.metadata WHERE tdei_dataset_id = $1',
-            values: [id],
-        }
-
-        const result = await dbClient.query(query);
-        if (result.rowCount == 0)
-            throw new HttpException(404, `Metadata record with id: ${id} not found`);
-        const record = result.rows[0];
-        const metadata = MetadataEntity.from(record);
-        return metadata;
-    }
-
-
-    /**
      * Deletes a draft dataset with the specified ID from the content.dataset table.
      * 
      * @param tdei_dataset_id - The ID of the draft dataset to delete.
@@ -301,15 +356,7 @@ class TdeiCoreService implements ITdeiCoreService {
             values: [tdei_dataset_id],
         }
         const result = await dbClient.query(query);
-        if (result.rowCount && result.rowCount > 0) {
-            const query = {
-                text: `DELETE FROM content.metadata WHERE tdei_dataset_id = $1`,
-                values: [tdei_dataset_id],
-            }
-            await dbClient.query(query);
-            console.log(`Draft dataset with id: ${tdei_dataset_id} deleted successfully`);
-        }
-        else {
+        if (result.rowCount && result.rowCount == 0) {
             console.log(`Draft dataset with id: ${tdei_dataset_id} not found or not in draft status`);
         }
     }

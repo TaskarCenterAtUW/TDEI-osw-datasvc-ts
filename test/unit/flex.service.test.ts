@@ -117,10 +117,8 @@ describe("Flex Service Test", () => {
                 .mockResolvedValue(<any>{ rowCount: 0 });// Assume no overlap
 
             // Mock the behavior of getFLEXRecordById and getFLEXMetadataById
-            const flexRecordMock = { data_type: 'flex', status: 'Draft', tdei_project_group_id: 'project-group-id' };
-            const metadataMock = { getOverlapQuery: jest.fn() };
+            const flexRecordMock = { data_type: 'flex', status: 'Draft', tdei_project_group_id: 'project-group-id', getOverlapQuery: jest.fn() };
             const getFLEXRecordByIdSpy = jest.spyOn(tdeiCoreService, 'getDatasetDetailsById').mockResolvedValue(<any>flexRecordMock);
-            const getFLEXMetadataByIdSpy = jest.spyOn(tdeiCoreService, 'getMetadataDetailsById').mockResolvedValue(<any>metadataMock);
 
             const mockJobId = 101;
             jest.spyOn(jobService, "createJob")
@@ -136,7 +134,6 @@ describe("Flex Service Test", () => {
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getFLEXRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
-            expect(getFLEXMetadataByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(dbClient.query).toHaveBeenCalled();
             expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
                 'FLEX_PUBLISH_VALIDATION_REQUEST_WORKFLOW',
@@ -161,7 +158,56 @@ describe("Flex Service Test", () => {
             metadataFile: [
                 {
                     originalname: 'metadata.json',
-                    buffer: Buffer.from('{"name": "test", "schema_version": "v2.0"}'),
+                    buffer: Buffer.from(`{"dataset_detail": {
+                        "name": "test-flex",
+                        "description": "test2",
+                        "version": "v1.0",
+                        "custom_metadata": null,
+                        "collected_by": "mahesh",
+                        "collection_date": "2023-01-01T00:00:00",
+                        "valid_from": "2024-02-28T17:09:39.767191",
+                        "valid_to": null,
+                        "collection_method": "manual",
+                        "data_source": "3rdParty",
+                        "dataset_area": {
+                            "type": "FeatureCollection",
+                            "features": [
+                                {
+                                    "type": "Feature",
+                                    "properties": {},
+                                    "geometry": {
+                                        "coordinates": [
+                                            [
+                                                [
+                                                    77.5880749566162,
+                                                    12.974950278991258
+                                                ],
+                                                [
+                                                    77.58823422871711,
+                                                    12.970666567100878
+                                                ],
+                                                [
+                                                    77.59399987874258,
+                                                    12.97240489386435
+                                                ],
+                                                [
+                                                    77.59374504338194,
+                                                    12.97526069002987
+                                                ],
+                                                [
+                                                    77.5880749566162,
+                                                    12.974950278991258
+                                                ]
+                                            ]
+                                        ],
+                                        "type": "Polygon"
+                                    }
+                                }
+                            ]
+                        },
+                        "schema_version": "v2.0"
+                    }
+                }`),
                 },
             ],
             changesetFile: undefined,
@@ -182,19 +228,19 @@ describe("Flex Service Test", () => {
             jest.spyOn(jobService, "createJob")
                 .mockResolvedValue(mockJobId);
             // Mock the behavior of validateMetadata
-            const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateObject').mockResolvedValue("");
+            const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateMetadata').mockResolvedValue(true);
             const uploadSpy = jest.spyOn(storageService, 'uploadFile').mockResolvedValue("file-path");
             jest.spyOn(storageService, "generateRandomUUID").mockReturnValueOnce('mocked-uuid');
 
             // Mock the behavior of checkMetaNameAndVersionUnique
-            jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(false);
+            // jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(false);
 
             // Call the function
             const result = await flexService.processUploadRequest(uploadRequestObject);
 
             // Assertions
             expect(dbClient.query).toHaveBeenCalled();
-            expect(validateMetadataSpy).toHaveBeenCalledWith(expect.any(Object)); // You may want to improve this assertion
+            expect(validateMetadataSpy).toHaveBeenCalled(); // You may want to improve this assertion
             expect(uploadSpy).toHaveBeenCalledTimes(2); // Two files: dataset and metadata
             expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
                 'FLEX_UPLOAD_VALIDATION_REQUEST_WORKFLOW',
@@ -222,10 +268,10 @@ describe("Flex Service Test", () => {
 
 
             // Mock the behavior of validateMetadata
-            const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateObject').mockResolvedValue("");
+            const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateMetadata').mockRejectedValueOnce(new InputException("Duplicate name"));
 
             // Mock the behavior of checkMetaNameAndVersionUnique
-            jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(true);
+            // jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(true);
 
             // Call the function
             expect(flexService.processUploadRequest(uploadRequestObject)).rejects.toThrow(expect.any(InputException)); // Adjust the expected value based on your implementation
