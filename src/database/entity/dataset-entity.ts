@@ -56,7 +56,6 @@ export class DatasetEntity extends BaseDto {
     @Prop()
     dataset_download_url!: string;
     @Prop()
-<<<<<<< feature-metadata-edit
     @IsNotEmpty()
     metadata_json!: MetadataModel;
     //Metadata generated fields
@@ -78,9 +77,7 @@ export class DatasetEntity extends BaseDto {
     @Prop()
     @IsOptional()
     valid_to!: Date;
-=======
     dataset_osm_download_url!: string;
->>>>>>> dev
 
     constructor(init?: Partial<DatasetEntity>) {
         super();
