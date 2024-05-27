@@ -650,6 +650,40 @@ class OswService implements IOswService {
 
         return fileEntities;
     }
+
+   async getDownloadableOSWUrl(id: string, format: string="osw", file_version: string="latest"): Promise<string> {
+
+        let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(id);
+        if (file_version != "latest"){
+            throw new InputException("Only latest version of the file can be downloaded");
+        }
+        if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+            throw new InputException(`${id} is not a osw dataset.`);
+        const storageClient = Core.getStorageClient();
+        if (storageClient == null) throw new Error("Storage not configured");
+        let dataset_db_url = '';
+        if (format == "osm") {
+            if (dataset.dataset_osm_download_url && dataset.dataset_osm_download_url != ''){
+                dataset_db_url = decodeURIComponent(dataset.dataset_osm_download_url);
+            }
+            else
+                throw new HttpException(404, "Requested OSM file format not found");
+        } else {
+            if (dataset.dataset_download_url && dataset.dataset_download_url != ''){
+                dataset_db_url = decodeURIComponent(dataset.dataset_download_url);
+            }
+            else
+                throw new HttpException(404, "Requested OSW file format not found");
+        }
+        let dlUrl = new URL(dataset_db_url);
+        let relative_path = dlUrl.pathname;
+        let container = relative_path.split('/')[1];
+        let file_path_in_container = relative_path.split('/').slice(2).join('/');
+        let sasUrl = storageClient.getSASUrl(container, file_path_in_container,12); // 12 hours expiry
+        return sasUrl;
+
+        
+    }
 }
 
 const oswService: IOswService = new OswService(jobService, tdeiCoreService);

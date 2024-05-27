@@ -33,6 +33,9 @@ import { DataQueryResponseWorkflow } from "./backend-service/data-query-response
 import { UploadValidationResponseWorkflow } from "./osw/upload/upload-osw-validation-response-workflow";
 import { FlexUploadCompressionResponseHandler } from "./flex/upload/upload-flex-compression-response-handler";
 import { UploadFlexCompressionRequestWorkflow } from "./flex/upload/upload-flex-compression-request-workflow";
+import { UploadOswCompressionResponseHandler } from "./osw/upload/upload-osw-compression-response-handler";
+import { UploadCompressionRequestWorkflow } from "./osw/upload/upload-osw-compression-request-workflow";
+import { UploadCompressionOSMRequestWorkflow } from "./osw/upload/upload-osw-compression-osm-request-workflow";
 
 export default [
     GenericWorkflow,
@@ -58,6 +61,9 @@ export default [
     UploadValidationResponseHandler,
     UploadDatabaseWorkflow,
     UploadValidationResponseWorkflow,
+    UploadCompressionRequestWorkflow,
+    UploadOswCompressionResponseHandler,
+    UploadCompressionOSMRequestWorkflow,
     //Validation Only
     ValidationOnlyValidationResponseHandler,
     //On Demand Confidence

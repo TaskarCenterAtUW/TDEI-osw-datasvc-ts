@@ -268,7 +268,7 @@ describe("OSW Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 jest
-                    .spyOn(oswService, "getOswStreamById")
+                    .spyOn(oswService, "getDownloadableOSWUrl")
                     .mockRejectedValueOnce(new HttpException(404, "Record not found"));
                 //Act
                 await oswController.getOswById(req, res, next);
@@ -283,7 +283,7 @@ describe("OSW Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 jest
-                    .spyOn(oswService, "getOswStreamById")
+                    .spyOn(oswService, "getDownloadableOSWUrl")
                     .mockRejectedValueOnce(new Error("Unexpected error"));
                 //Act
                 await oswController.getOswById(req, res, next);
