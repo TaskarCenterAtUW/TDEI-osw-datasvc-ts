@@ -53,6 +53,8 @@ export class DatasetEntity extends BaseDto {
     latest_osm_url!: string;
     @Prop()
     dataset_download_url!: string;
+    @Prop()
+    dataset_osm_download_url!: string;
 
     constructor(init?: Partial<DatasetEntity>) {
         super();
@@ -126,6 +128,15 @@ export class DatasetEntity extends BaseDto {
     static getUpdateDatasetZipUrlQuery(tdei_dataset_id: string, zip_url: string): QueryConfig {
         const queryObject = {
             text: `UPDATE content.dataset SET dataset_download_url = $1 , updated_at = CURRENT_TIMESTAMP 
+            WHERE tdei_dataset_id = $2`,
+            values: [zip_url, tdei_dataset_id]
+        }
+        return queryObject;
+    }
+
+    static getUpdateDatasetOsmZipUrlQuery(tdei_dataset_id: string, zip_url: string): QueryConfig {
+        const queryObject = {
+            text: `UPDATE content.dataset SET dataset_osm_download_url = $1 , updated_at = CURRENT_TIMESTAMP 
             WHERE tdei_dataset_id = $2`,
             values: [zip_url, tdei_dataset_id]
         }
