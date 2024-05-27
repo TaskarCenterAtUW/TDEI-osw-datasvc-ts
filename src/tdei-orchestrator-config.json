@@ -280,9 +280,25 @@
                     "process_identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
-                        "OSW_UPLOAD_DATASET_FLATTENING_REQUEST_WORKFLOW"
+                        "OSW_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+                        "OSW_UPLOAD_COMPRESSION_OSM_REQUEST_WORKFLOW"
                     ]
                 }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_COMPRESSION_OSM_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                } 
             ]
         },
         {
@@ -297,7 +313,7 @@
                         "response_message_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
                         "topic": "dataset-zip-request"
                     }
-                }
+                } 
             ]
         },
         {
@@ -305,9 +321,10 @@
             "stage": "COMPRESSION",
             "type": "HANDLER",
             "identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
             "next_steps": [
                 {
-                    "process_identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_HANDLER",
+                    "process_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
                         "OSW_UPLOAD_DATASET_FLATTENING_REQUEST_WORKFLOW"
