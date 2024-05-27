@@ -31,11 +31,11 @@ CREATE TABLE IF NOT EXISTS content.dataset
 
 CREATE TABLE IF NOT EXISTS content.metadata
 (
-    -- metadata_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    -- tdei_dataset_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    -- name character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    -- version character varying(20) COLLATE pg_catalog."default" NOT NULL,
-    -- description text COLLATE pg_catalog."default",
+    metadata_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    tdei_dataset_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
+    name character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    version character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    description text COLLATE pg_catalog."default",
     custom_metadata json,
     collected_by character varying(40) COLLATE pg_catalog."default" NOT NULL,
     collection_date timestamp without time zone NOT NULL,
@@ -44,10 +44,10 @@ CREATE TABLE IF NOT EXISTS content.metadata
     valid_to timestamp without time zone,
     data_source character varying(40) COLLATE pg_catalog."default" NOT NULL,
     schema_version character varying(10) COLLATE pg_catalog."default" NOT NULL,
-    -- dataset_area geometry,
-    -- CONSTRAINT "PK_metadata_id" PRIMARY KEY (metadata_id),
-    -- CONSTRAINT unq_meta_record_id UNIQUE (tdei_dataset_id),
-    -- CONSTRAINT unq_name_version UNIQUE (name, version)
+    dataset_area geometry,
+    CONSTRAINT "PK_metadata_id" PRIMARY KEY (metadata_id),
+    CONSTRAINT unq_meta_record_id UNIQUE (tdei_dataset_id),
+    CONSTRAINT unq_name_version UNIQUE (name, version)
 );
 
 CREATE INDEX IF NOT EXISTS idx_dataset_area
