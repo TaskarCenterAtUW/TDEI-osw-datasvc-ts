@@ -63,7 +63,7 @@
     "lodash": "4.17.21",
     "multer": "1.4.5-lts.1",
     "node-fetch": "^2.6.7",
-    "nodets-ms-core": "^0.0.12",
+    "nodets-ms-core": "^0.0.13",
     "pg": "^8.8.0",
     "reflect-metadata": "^0.1.13",
     "supertest": "^6.3.3"

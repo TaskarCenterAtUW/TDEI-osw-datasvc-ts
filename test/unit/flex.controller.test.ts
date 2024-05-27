@@ -1,7 +1,7 @@
 import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { InputException } from "../../src/exceptions/http/http-exceptions";
-import { getMockFileEntity } from "../common/mock-utils";
+import { getMockFileEntity, getMockSASUrl } from "../common/mock-utils";
 import { DatasetDTO } from "../../src/model/dataset-dto";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import flexService from "../../src/service/flex-service";
@@ -61,14 +61,14 @@ describe("Flex Controller Test", () => {
     describe("Get Flex file by Id", () => {
 
         describe("Functional", () => {
-            test("When requested for valid tdei_dataset_id, Expect to return downloadable file stream", async () => {
+            test("When requested for valid tdei_dataset_id, Expect to return downloadable file SAS URL", async () => {
                 //Arrange
                 const req = getMockReq();
                 const { res, next } = getMockRes();
 
                 const getFlexByIdSpy = jest
-                    .spyOn(flexService, "getFlexStreamById")
-                    .mockResolvedValueOnce([getMockFileEntity()]);
+                    .spyOn(flexService, "getFlexDownloadUrl")
+                    .mockResolvedValueOnce(getMockSASUrl());
                 //Act
                 await flexController.getFlexById(req, res, next);
                 //Assert
@@ -81,7 +81,7 @@ describe("Flex Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 jest
-                    .spyOn(flexService, "getFlexStreamById")
+                    .spyOn(flexService, "getFlexDownloadUrl")
                     .mockRejectedValueOnce(new HttpException(404, "Record not found"));
                 //Act
                 await flexController.getFlexById(req, res, next);
@@ -96,7 +96,7 @@ describe("Flex Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 jest
-                    .spyOn(flexService, "getFlexStreamById")
+                    .spyOn(flexService, "getFlexDownloadUrl")
                     .mockRejectedValueOnce(new Error("Unexpected error"));
                 //Act
                 await flexController.getFlexById(req, res, next);

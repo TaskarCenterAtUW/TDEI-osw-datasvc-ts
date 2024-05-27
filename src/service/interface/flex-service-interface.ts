@@ -17,6 +17,15 @@ export interface IFlexService {
     getFlexStreamById(id: string): Promise<FileEntity[]>;
 
     /**
+     * Retrieves the Flex Download(SAS) URL by its Dataset Id.
+     * @param id - The ID of the Dataset.
+     * @returns A promise that resolves to the download URL.
+     * @throws HttpException if the FlexStream is not found or if the request record is deleted.
+     * @throws Error if the storage is not configured.
+     */
+    getFlexDownloadUrl(id: string): Promise<string>;
+
+    /**
     * Processes the upload request and performs various validations and operations.
     * 
     * @param uploadRequestObject - The upload request object containing the necessary information.

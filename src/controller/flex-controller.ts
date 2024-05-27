@@ -88,34 +88,18 @@ class FlexController implements IController {
     getFlexById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            const fileEntities: FileEntity[] = await flexService.getFlexStreamById(request.params.id);
-
-            const zipFileName = 'flex.zip';
-
-            // // Create a new zip archive
-            const archive = archiver('zip', { zlib: { level: 9 } });
-            response.setHeader('Content-Type', 'application/zip');
-            response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-            archive.pipe(response);
-
-            // // Add files to the zip archive
-            for (const filee of fileEntities) {
-                archive.append(await filee.getStream(), { name: filee.fileName, store: true });
-
-            }
-
-            // // Finalize the archive and close the zip stream
-            archive.finalize();
+            const sasUrl = await flexService.getFlexDownloadUrl(request.params.id);
+            response.redirect(sasUrl);
 
         } catch (error: any) {
-            console.error('Error while getting the file stream');
+            console.error('Error while getting the file download URL');
             console.error(error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
                 return next(error);
             }
-            response.status(500).send("Error while getting the file stream");
-            next(new HttpException(500, "Error while getting the file stream"));
+            response.status(500).send("Error while getting download URL");
+            next(new HttpException(500, "Error while getting download URL for dataset"));
         }
     }
 
