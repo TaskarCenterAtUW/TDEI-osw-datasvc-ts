@@ -1,7 +1,7 @@
 import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { InputException } from "../../src/exceptions/http/http-exceptions";
-import { getMockFileEntity } from "../common/mock-utils";
+import { getMockFileEntity, getMockSASUrl } from "../common/mock-utils";
 import { DatasetDTO } from "../../src/model/dataset-dto";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import pathwaysService from "../../src/service/pathways-service";
@@ -67,8 +67,8 @@ describe("Pathways Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 const getPathwaysByIdSpy = jest
-                    .spyOn(pathwaysService, "getPathwaysStreamById")
-                    .mockResolvedValueOnce([getMockFileEntity()]);
+                    .spyOn(pathwaysService, "getPathwaysDownloadUrl")
+                    .mockResolvedValueOnce(getMockSASUrl());
                 //Act
                 await pathwaysController.getPathwaysById(req, res, next);
                 //Assert
@@ -81,7 +81,7 @@ describe("Pathways Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 jest
-                    .spyOn(pathwaysService, "getPathwaysStreamById")
+                    .spyOn(pathwaysService, "getPathwaysDownloadUrl")
                     .mockRejectedValueOnce(new HttpException(404, "Record not found"));
                 //Act
                 await pathwaysController.getPathwaysById(req, res, next);
@@ -96,7 +96,7 @@ describe("Pathways Controller Test", () => {
                 const { res, next } = getMockRes();
 
                 jest
-                    .spyOn(pathwaysService, "getPathwaysStreamById")
+                    .spyOn(pathwaysService, "getPathwaysDownloadUrl")
                     .mockRejectedValueOnce(new Error("Unexpected error"));
                 //Act
                 await pathwaysController.getPathwaysById(req, res, next);

@@ -36,6 +36,8 @@ import { UploadFlexCompressionRequestWorkflow } from "./flex/upload/upload-flex-
 import { UploadOswCompressionResponseHandler } from "./osw/upload/upload-osw-compression-response-handler";
 import { UploadCompressionRequestWorkflow } from "./osw/upload/upload-osw-compression-request-workflow";
 import { UploadCompressionOSMRequestWorkflow } from "./osw/upload/upload-osw-compression-osm-request-workflow";
+import { UploadPathwaysCompressionRequestWorkflow } from "./pathways/upload/upload-pathways-compression-request-workflow";
+import { PathwaysUploadCompressionResponseHandler } from "./pathways/upload/upload-pathways-compression-response-handler";
 
 export default [
     GenericWorkflow,
@@ -83,5 +85,7 @@ export default [
     PathwaysPublishValidationResponseHandler,
     PathwaysPublishValidationResponseWorkflow,
     PathwaysUploadValidationResponseHandler,
-    PathwaysValidationOnlyValidationResponseHandler
+    PathwaysValidationOnlyValidationResponseHandler,
+    UploadPathwaysCompressionRequestWorkflow,
+    PathwaysUploadCompressionResponseHandler
 ];
