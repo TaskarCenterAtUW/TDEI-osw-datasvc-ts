@@ -68,8 +68,6 @@ SET metadata_json = jsonb_build_object(
 FROM content.metadata m
 WHERE d.tdei_dataset_id = m.tdei_dataset_id;
 
---Set metadata column to not null
-ALTER TABLE content.dataset ALTER COLUMN metadata_json SET NOT NULL;
 
 -- Add generated column to dataset table 
 ALTER TABLE content.dataset ADD COLUMN name character varying(500) GENERATED ALWAYS AS (((metadata_json ->> 'name'::text))) STORED;
