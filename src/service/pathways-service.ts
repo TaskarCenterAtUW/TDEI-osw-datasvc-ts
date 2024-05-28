@@ -287,6 +287,26 @@ class PathwaysService implements IPathwaysService {
 
         return fileEntities;
     }
+
+    async getPathwaysDownloadUrl(tdei_dataset_id: string): Promise<string> {
+        let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+        if (dataset.data_type && dataset.data_type !== TDEIDataType.pathways)
+            throw new InputException(`${tdei_dataset_id} is not a pathways dataset.`);
+
+        const storageClient = Core.getStorageClient();
+        if (storageClient == null) throw new Error("Storage not configured");
+        const download_url = dataset.dataset_download_url;
+        if (download_url == undefined || download_url == null || download_url == ""){
+            throw new InputException(`${tdei_dataset_id} is not archived yet.`);
+        }
+        let dlUrl = new URL(download_url);
+        let relative_path = dlUrl.pathname;
+        let container = relative_path.split('/')[1];
+        // let file_path = relative_path.split('/').
+        let file_path_in_container = relative_path.split('/').slice(2).join('/');
+        let sasUrl = storageClient.getSASUrl(container, file_path_in_container,12); // 12 hours expiry
+        return sasUrl;
+    }
 }
 
 const pathwaysService: IPathwaysService = new PathwaysService(jobService, tdeiCoreService);
