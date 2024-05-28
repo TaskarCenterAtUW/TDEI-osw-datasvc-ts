@@ -1,7 +1,7 @@
 export class TdeiDate {
 
-    public static UTC(date?: string | Date): string {
-        if (!date) return (new Date()).toISOString();
+    public static UTC(date?: string | Date | null): string {
+        if (!date || date == null) return (new Date()).toISOString();
         return (new Date(date)).toISOString();
     }
 

@@ -5,11 +5,9 @@ import { DatasetEntity } from "../database/entity/dataset-entity";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { IUploadRequest } from "./interface/upload-request-interface";
-import { DatasetUploadMetadata } from "../model/dataset-upload-meta";
 import path from "path";
 import { Readable } from "stream";
 import storageService from "./storage-service";
-import { MetadataEntity } from "../database/entity/metadata-entity";
 import appContext from "../app-context";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
@@ -24,9 +22,12 @@ import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { RecordStatus } from "../model/dataset-get-query-params";
+import { MetadataModel } from "../model/metadata.model";
+import { TdeiDate } from "../utility/tdei-date";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
+
     /**
     * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
     * @param backendRequest The backend request to process.
@@ -232,7 +233,6 @@ class OswService implements IOswService {
     async processPublishRequest(user_id: string, tdei_dataset_id: string): Promise<string> {
         try {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
-            let metadata = await this.tdeiCoreServiceInstance.getMetadataDetailsById(tdei_dataset_id);
 
             if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
@@ -244,7 +244,7 @@ class OswService implements IOswService {
                 throw new InputException(`${tdei_dataset_id} is not in Pre-Release state.`);
 
             // Check if there is a record with the same date
-            const queryResult = await dbClient.query(metadata.getOverlapQuery(TDEIDataType.osw, dataset.tdei_project_group_id, dataset.tdei_service_id));
+            const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.osw, dataset.tdei_project_group_id, dataset.tdei_service_id));
             if (queryResult.rowCount && queryResult.rowCount > 0) {
                 const recordId = queryResult.rows[0]["tdei_dataset_id"];
                 throw new OverlapException(recordId);
@@ -501,18 +501,14 @@ class OswService implements IOswService {
             }
 
             //Validate metadata
-            const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
-            const oswdto = DatasetUploadMetadata.from(metadata);
-            let validation_errors = await this.tdeiCoreServiceInstance.validateObject(oswdto);
-            if (!["v0.2"].includes(oswdto.schema_version))
-                validation_errors = validation_errors + " " + "Schema version is not supported. Please use v0.2 schema version."
-            if (validation_errors) {
-                throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
-            }
+            let metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
+            const metaObj = MetadataModel.from(metadata);
+            await this.tdeiCoreServiceInstance.validateMetadata(metaObj, TDEIDataType.osw);
 
-            //Check for unique name and version combination
-            if (await this.tdeiCoreServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
-                throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
+
+            // //Check for unique name and version combination
+            // if (await this.tdeiCoreServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
+            //     throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
 
             // Generate unique UUID for the upload request 
             const uid = storageService.generateRandomUUID();
@@ -545,13 +541,14 @@ class OswService implements IOswService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
+            //flatten the metadata to level 1
+            metadata = MetadataModel.flatten(metadata);
+            metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
+            metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
+            metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+            //Add metadata to the entity
+            datasetEntity.metadata_json = metadata;
             await this.tdeiCoreServiceInstance.createDataset(datasetEntity);
-
-            // Insert metadata into database
-            const oswMetadataEntity = MetadataEntity.from(metadata);
-            oswMetadataEntity.tdei_dataset_id = uid;
-            oswMetadataEntity.schema_version = metadata.schema_version;
-            await this.tdeiCoreServiceInstance.createMetadata(oswMetadataEntity);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -560,8 +557,8 @@ class OswService implements IOswService {
                 message: 'Job started',
                 request_input: {
                     tdei_service_id: uploadRequestObject.tdei_service_id,
-                    dataset_name: oswMetadataEntity.name,
-                    dataset_version: oswMetadataEntity.version,
+                    dataset_name: metadata.name,
+                    dataset_version: metadata.version,
                     dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
                     metadata_file_upload_name: uploadRequestObject.metadataFile[0].originalname,
                     changeset_file_upload_name: uploadRequestObject.changesetFile ? uploadRequestObject.changesetFile[0].originalname : ""

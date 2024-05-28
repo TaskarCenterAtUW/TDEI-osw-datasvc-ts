@@ -3,11 +3,9 @@ import dbClient from "../../src/database/data-source";
 import { TdeiObjectFaker } from "../common/tdei-object-faker";
 import UniqueKeyDbException from "../../src/exceptions/db/database-exceptions";
 import { DuplicateException, InputException } from "../../src/exceptions/http/http-exceptions";
-import HttpException from "../../src/exceptions/http/http-base-exception";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { DatasetEntity } from "../../src/database/entity/dataset-entity";
 import { DatasetDTO } from "../../src/model/dataset-dto";
-import { MetadataEntity } from "../../src/database/entity/metadata-entity";
 import { ServiceEntity } from "../../src/database/entity/service-entity";
 import { DatasetQueryParams, RecordStatus } from "../../src/model/dataset-get-query-params";
 
@@ -38,7 +36,7 @@ describe("TDEI core Service Test", () => {
 
             test("When requested with all search filters, expect to return Dataset list", async () => {
                 //Arrange
-                const datasetObj = TdeiObjectFaker.getDatasetFromDB();
+                const datasetObj = TdeiObjectFaker.getDatasetVersion();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         datasetObj
@@ -68,7 +66,7 @@ describe("TDEI core Service Test", () => {
 
             test("When requested with invalid date search filter, Expect to throw InputException", async () => {
                 //Arrange
-                const datasetObj = TdeiObjectFaker.getDatasetFromDB();
+                const datasetObj = TdeiObjectFaker.getDatasetVersion();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         datasetObj
@@ -94,7 +92,7 @@ describe("TDEI core Service Test", () => {
 
             test("When requested with invalid bbox search filter, Expect to throw InputException", async () => {
                 //Arrange
-                const datasetObj = TdeiObjectFaker.getDatasetFromDB();
+                const datasetObj = TdeiObjectFaker.getDatasetVersion();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         datasetObj
@@ -120,7 +118,7 @@ describe("TDEI core Service Test", () => {
 
             test("When requested for 'Pre-Release' records and user not associsted with any project groups, Expect to throw InputException", async () => {
                 //Arrange
-                const datasetObj = TdeiObjectFaker.getDatasetFromDB();
+                const datasetObj = TdeiObjectFaker.getDatasetVersion();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         datasetObj
@@ -147,7 +145,7 @@ describe("TDEI core Service Test", () => {
 
             test("When requested for 'Pre-Release' records and user associsted with any project groups, Expect to return DATASET list", async () => {
                 //Arrange
-                const datasetObj = TdeiObjectFaker.getDatasetFromDB();
+                const datasetObj = TdeiObjectFaker.getDatasetVersion();
                 const dummyResponse = <QueryResult<any>>{
                     rows: [
                         datasetObj
@@ -212,81 +210,6 @@ describe("TDEI core Service Test", () => {
                 //Assert
                 await expect(tdeiCoreService.createDataset(datasetObj)).rejects.toThrow();
             });
-        });
-    });
-
-    describe("Create DATASET metadata", () => {
-        describe("Functional", () => {
-            test("When requested for creating DATASET metadata with valid input, Expect to return DatasetDTO object", async () => {
-                //Arrange
-                const metaObj = MetadataEntity.from(TdeiObjectFaker.getMetadataSample());
-
-                const dummyResponse = <QueryResult<any>>{
-                    rows: [
-                        metaObj
-                    ]
-                };
-
-                jest.spyOn(dbClient, "query")
-                    .mockResolvedValueOnce(dummyResponse);
-
-                //Act
-                const result = await tdeiCoreService.createMetadata(metaObj);
-                //Assert
-                expect(result).toBeUndefined();
-            });
-
-            test("When database exception with duplicate tdei_dataset_id occured while processing request, Expect to throw DuplicateException", async () => {
-                //Arrange
-                const metaObj = MetadataEntity.from(TdeiObjectFaker.getMetadataSample());
-                jest.spyOn(dbClient, "query")
-                    .mockRejectedValueOnce(new UniqueKeyDbException("Unique contraint error"));
-
-                //Act
-                //Assert
-                expect(tdeiCoreService.createMetadata(metaObj)).rejects.toThrow();
-            });
-
-            test("When database exception occured while processing request, Expect to throw error", async () => {
-                //Arrange
-                const metaObj = MetadataEntity.from(TdeiObjectFaker.getMetadataSample());
-
-                jest.spyOn(dbClient, "query")
-                    .mockRejectedValueOnce(new Error("Unknown Error"));
-
-                //Act
-                //Assert
-                expect(tdeiCoreService.createMetadata(metaObj)).rejects.toThrow();
-            });
-        });
-    });
-
-    describe('get metadata by Id', () => {
-        it('should resolve with the record if it exists', async () => {
-            const mockId = 'someRecordId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 1,
-                rows: [{ /* mock record data */ }],
-            };
-
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            const result = await tdeiCoreService.getMetadataDetailsById(mockId);
-
-            expect(result instanceof MetadataEntity).toBe(true);
-        });
-
-        it('should throw HttpException with 404 status if the record does not exist', async () => {
-            const mockId = 'nonExistentRecordId';
-            const mockQueryResult = <QueryResult<any>>{
-                rowCount: 0,
-            };
-
-            jest.spyOn(dbClient, "query")
-                .mockResolvedValueOnce(mockQueryResult);
-
-            await expect(tdeiCoreService.getMetadataDetailsById(mockId)).rejects.toThrowError(HttpException);
         });
     });
 

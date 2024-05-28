@@ -8,6 +8,13 @@ import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission
 
 export class Utility {
 
+    public static stringArrayToDBString(input: string[] | string): string {
+        if (Array.isArray(input)) {
+            return input.join(",");
+        }
+        return `"${input}"`;
+    }
+
     /**
      * Authorizes the roles for a user in a TDEI project group.
      * 

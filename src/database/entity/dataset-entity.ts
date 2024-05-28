@@ -1,9 +1,11 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional } from 'class-validator';
 import { Prop } from 'nodets-ms-core/lib/models';
 import { QueryConfig } from 'pg';
 import { BaseDto } from '../../model/base-dto';
 import { TdeiDate } from '../../utility/tdei-date';
 import { RecordStatus } from '../../model/dataset-get-query-params';
+import { MetadataModel } from '../../model/metadata.model';
+import { FeatureCollection } from 'geojson';
 
 export class DatasetEntity extends BaseDto {
     @Prop()
@@ -54,6 +56,27 @@ export class DatasetEntity extends BaseDto {
     @Prop()
     dataset_download_url!: string;
     @Prop()
+    @IsNotEmpty()
+    metadata_json!: MetadataModel;
+    //Metadata generated fields
+    @Prop()
+    @IsNotEmpty()
+    name!: string;
+    @Prop()
+    @IsNotEmpty()
+    version!: string;
+    @Prop()
+    @IsOptional()
+    dataset_area!: FeatureCollection;
+    @Prop()
+    @IsNotEmpty()
+    collection_date!: Date;
+    @Prop()
+    @IsOptional()
+    valid_from!: Date;
+    @Prop()
+    @IsOptional()
+    valid_to!: Date;
     dataset_osm_download_url!: string;
 
     constructor(init?: Partial<DatasetEntity>) {
@@ -81,8 +104,9 @@ export class DatasetEntity extends BaseDto {
                 changeset_url,
                 metadata_url,
                 updated_by,
-                latest_dataset_url)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`.replace(/\n/g, ""),
+                latest_dataset_url,
+                metadata_json)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`.replace(/\n/g, ""),
             values: [this.tdei_dataset_id, this.tdei_service_id, this.tdei_project_group_id, this.data_type,
             this.dataset_url
                 , this.uploaded_by,
@@ -92,7 +116,8 @@ export class DatasetEntity extends BaseDto {
             this.changeset_url ?? null,
             this.metadata_url,
             this.updated_by,
-            this.dataset_url]
+            this.dataset_url,
+            this.metadata_json]
         }
         return queryObject;
     }
@@ -160,4 +185,35 @@ export class DatasetEntity extends BaseDto {
         }
         return queryObject;
     }
+
+    /**
+    * Query where the valid_from and valid_to dates are overlapping
+    * Eg.
+    * If Record has valid_from: 23-Mar-2023 and valid_to:23-Apr-2023
+    *  {valid_from:01-Apr-2023, valid_to: 26-Apr-2023} : Invalid
+    *  {valid_from:20-Mar-2023, valid_to: 26-Apr-2023} : Invalid
+    *  {valid_from:20-Mar-2023, valid_to: 10-Apr-2023} : Invalid
+    *  {valid_from:24-Mar-2023, valid_to: 10-Apr-2023} : Invalid
+    *  {valid_from:24-Mar-2023, valid_to: 10-Apr-2023} : Invalid
+    *  {valid_from:10-Mar-2023, valid_to: 22-Mar-2023} : Valid
+    *  Same ord_id and service_id with the following condition
+    *  input_valid_from >= record_valid_from && input_valid_to 
+    */
+    getOverlapQuery(data_type: string, tdei_project_group_id: string, tdei_service_id: string): QueryConfig {
+        const fromDate = TdeiDate.UTC(this.valid_from);
+        const toDate = this.valid_to ? TdeiDate.UTC(this.valid_to) : TdeiDate.UTC();
+
+        const queryObject = {
+            text: `SELECT ov.tdei_dataset_id from content.dataset ov
+            WHERE 
+            ov.status = 'Publish'
+            AND ov.data_type = $1
+            AND ov.tdei_project_group_id = $2 
+            AND ov.tdei_service_id = $3 
+            AND (ov.valid_from,ov.valid_to) OVERLAPS ($4 , $5)`,
+            values: [data_type, tdei_project_group_id, tdei_service_id, fromDate, toDate]
+        };
+        return queryObject;
+    }
+
 }
