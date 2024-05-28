@@ -80,11 +80,11 @@ class TdeiCoreService implements ITdeiCoreService {
                 break;
             case "pathways":
                 if (!["v1.0"].includes(metadata.dataset_detail.schema_version))
-                    throw new InputException("Schema version is not supported. Please use v0.2 schema version.");
+                    throw new InputException("Schema version is not supported. Please use v1.0 schema version.");
                 break;
             case "flex":
                 if (!["v2.0"].includes(metadata.dataset_detail.schema_version))
-                    throw new InputException("Schema version is not supported. Please use v0.2 schema version.");
+                    throw new InputException("Schema version is not supported. Please use v2.0 schema version.");
                 break;
             default:
                 throw new InputException("Invalid data type");

@@ -9,7 +9,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
---Add metadat column to dataset table
+--Add metadata column to dataset table
 ALTER TABLE content.dataset ADD COLUMN metadata_json json;
 -- Update metadata column with metadata from metadata table
 UPDATE content.dataset d 
@@ -72,7 +72,7 @@ WHERE d.tdei_dataset_id = m.tdei_dataset_id;
 ALTER TABLE content.dataset ALTER COLUMN metadata_json SET NOT NULL;
 
 -- Add generated column to dataset table 
-ALTER TABLE content.dataset ADD COLUMN name character varying(100) GENERATED ALWAYS AS (((metadata_json ->> 'name'::text))) STORED;
+ALTER TABLE content.dataset ADD COLUMN name character varying(500) GENERATED ALWAYS AS (((metadata_json ->> 'name'::text))) STORED;
 ALTER TABLE content.dataset ADD COLUMN version character varying(20) GENERATED ALWAYS AS (((metadata_json ->> 'version'::text))) STORED;
 ALTER TABLE content.dataset 
 ADD COLUMN dataset_area geometry(Polygon, 4326) 

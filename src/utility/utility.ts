@@ -8,7 +8,6 @@ import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission
 
 export class Utility {
 
-    //write utility function to join string array with comma and check if input param is string array and if string return single
     public static stringArrayToDBString(input: string[] | string): string {
         if (Array.isArray(input)) {
             return input.join(",");
