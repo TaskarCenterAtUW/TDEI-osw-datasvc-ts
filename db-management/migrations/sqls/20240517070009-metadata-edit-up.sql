@@ -80,12 +80,16 @@ GENERATED ALWAYS AS (
         THEN NULL
         ELSE ST_GeomFromGeoJSON((metadata_json->'dataset_area' #>> '{features,0,geometry}'))
     END
-) STORED;ALTER TABLE content.dataset ADD COLUMN valid_from timestamp without time zone GENERATED ALWAYS AS (content.tdei_json_read_date(metadata_json, 'valid_from')) STORED;
+) STORED;
+
+ALTER TABLE content.dataset ADD COLUMN valid_from timestamp without time zone GENERATED ALWAYS AS (content.tdei_json_read_date(metadata_json, 'valid_from')) STORED;
 ALTER TABLE content.dataset ADD COLUMN valid_to timestamp without time zone GENERATED ALWAYS AS (content.tdei_json_read_date(metadata_json, 'valid_to')) STORED;
 ALTER TABLE content.dataset ADD COLUMN collection_date timestamp without time zone GENERATED ALWAYS AS (content.tdei_json_read_date(metadata_json, 'collection_date')) STORED;
 
 
 --Add unique contraint on name and version
-ALTER TABLE content.dataset ADD CONSTRAINT dataset_name_version_unique UNIQUE (name, version);
-
+ALTER TABLE content.dataset
+ADD CONSTRAINT dataset_name_version_unique
+EXCLUDE USING btree (name WITH =, version WITH =)
+WHERE (status != 'DELETED');
 
