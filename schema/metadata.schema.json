@@ -21,7 +21,14 @@
                     ]
                 },
                 "dataset_update_frequency_months": {
-                    "type": "number"
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
                 },
                 "schema_validation_run": {
                     "anyOf": [
