@@ -11,7 +11,14 @@
                     "type": "string"
                 },
                 "other_published_locations": {
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
                 },
                 "dataset_update_frequency_months": {
                     "type": "number"
@@ -27,7 +34,14 @@
                     ]
                 },
                 "schema_validation_run_description": {
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
                 },
                 "allow_crowd_contributions": {
                     "anyOf": [
@@ -40,7 +54,14 @@
                     ]
                 },
                 "location_inaccuracy_factors": {
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
                 }
             },
             "required": [
