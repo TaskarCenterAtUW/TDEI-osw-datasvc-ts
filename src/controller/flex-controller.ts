@@ -56,7 +56,7 @@ class FlexController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, this.getFlexById);
+        this.router.get(`${this.path}/:id`, authenticate, this.getFlexById);
         this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
