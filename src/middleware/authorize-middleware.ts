@@ -18,6 +18,12 @@ import { Utility } from '../utility/utility';
 export const authorize = (approvedRoles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         console.log("authorize middleware");
+        let apiKey = req.headers['x-api-key'];
+        //Reject authorization for API key users
+        if (apiKey && apiKey !== '') {
+            return next(new UnAuthenticated());
+        }
+
         if (!req.body.user_id)
             return next(new UnAuthenticated());
 
