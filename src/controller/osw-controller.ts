@@ -130,6 +130,12 @@ class OSWController implements IController {
                 return next(new InputException('required input is empty', response));
             }
 
+            let apiKey = request.headers['x-api-key'];
+            //Reject authorization for API key users
+            if (apiKey && apiKey !== '') {
+                return next(new UnAuthenticated());
+            }
+
             //Authorize
             let osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
             var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
