@@ -1,5 +1,4 @@
 import { environment } from "../environment/environment";
-import fetch from "node-fetch";
 import HttpException from "../exceptions/http/http-base-exception";
 import { Readable } from "stream";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
