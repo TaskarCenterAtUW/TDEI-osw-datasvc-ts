@@ -447,11 +447,14 @@ class TdeiCoreService implements ITdeiCoreService {
             }
 
             //Final Step: Mark the cloned dataset as 'Pre-release'
-            let pre_release_query: QueryConfig = {
-                text: `UPDATE content.dataset SET status = $1 WHERE tdei_dataset_id = $2`.replace(/\n/g, ""),
-                values: [RecordStatus["Pre-Release"], new_tdei_dataset_id]
-            };
-            await dbClient.query(pre_release_query);
+            //build where clause
+            let condition = new Map<string, string>();
+            condition.set("tdei_dataset_id", new_tdei_dataset_id);
+            //build update fields
+            let updateFields = new DatasetEntity({
+                status: RecordStatus["Pre-Release"]
+            });
+            await dbClient.query(DatasetEntity.getUpdateQuery(condition, updateFields));
 
             //return new dataset id
             return new_tdei_dataset_id;
@@ -510,11 +513,6 @@ class TdeiCoreService implements ITdeiCoreService {
                 let osmFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.latest_osm_url);
                 const osmUploadStoragePath = path.join(storageFolderPath, osmFileName);
                 dest_osm_upload_entity = await storageService.cloneFile(dataset_to_be_clone.osm_url, TDEIDataType.osw, osmUploadStoragePath);
-                // let queryConfig: QueryConfig = {
-                //     text: `UPDATE content.dataset SET osm_url = $1, latest_osm_url = $1 WHERE tdei_dataset_id = $2`.replace(/\n/g, ""),
-                //     values: [decodeURIComponent(dest_osm_upload_entity!.remoteUrl), new_tdei_dataset_id]
-                // };
-                // await dbClient.query(queryConfig);
             }
 
             if (dataset_to_be_clone.dataset_osm_download_url) {
@@ -524,32 +522,22 @@ class TdeiCoreService implements ITdeiCoreService {
             }
 
             blob_clone_uploaded = true;
-            //End: Cloning blobs
-            //Update the cloned dataset with new urls
-            let QueryConfig: QueryConfig = {
-                text: `
-                UPDATE content.dataset 
-                SET dataset_url = $1,
-                latest_dataset_url = $1,
-                dataset_download_url = $2,
-                metadata_url = $3,
-                changeset_url = $4,
-                osm_url = $5, 
-                latest_osm_url = $5,
-                dataset_osm_download_url = $6
-                WHERE tdei_dataset_id = $7`.replace(/\n/g, ""),
-                values: [
-                    decodeURIComponent(dest_dataset_upload_entity!.remoteUrl),
-                    dest_dataset_download_entity ? decodeURIComponent(dest_dataset_download_entity!.remoteUrl) : null,
-                    decodeURIComponent(dest_metadata_upload_entity!.remoteUrl),
-                    dest_changeset_upload_entity ? decodeURIComponent(dest_changeset_upload_entity!.remoteUrl) : null,
-                    dest_osm_upload_entity ? decodeURIComponent(dest_osm_upload_entity!.remoteUrl) : null,
-                    dest_osm_download_entity ? decodeURIComponent(dest_osm_download_entity!.remoteUrl) : null,
-                    new_tdei_dataset_id
-                ]
-            };
-
-            await dbClient.query(QueryConfig);
+            //build where clause
+            let condition = new Map<string, string>();
+            condition.set("tdei_dataset_id", new_tdei_dataset_id);
+            //build update fields
+            let updateFields = new DatasetEntity({
+                dataset_url: decodeURIComponent(dest_dataset_upload_entity!.remoteUrl),
+                latest_dataset_url: decodeURIComponent(dest_dataset_upload_entity!.remoteUrl),
+                dataset_download_url: dest_dataset_download_entity ? decodeURIComponent(dest_dataset_download_entity!.remoteUrl) : undefined,
+                metadata_url: decodeURIComponent(dest_metadata_upload_entity!.remoteUrl),
+                changeset_url: dest_changeset_upload_entity ? decodeURIComponent(dest_changeset_upload_entity!.remoteUrl) : undefined,
+                osm_url: dest_osm_upload_entity ? decodeURIComponent(dest_osm_upload_entity!.remoteUrl) : undefined,
+                latest_osm_url: dest_osm_upload_entity ? decodeURIComponent(dest_osm_upload_entity!.remoteUrl) : undefined,
+                dataset_osm_download_url: dest_osm_download_entity ? decodeURIComponent(dest_osm_download_entity!.remoteUrl) : undefined
+            });
+            // //Update the cloned dataset with new urls
+            await dbClient.query(DatasetEntity.getUpdateQuery(condition, updateFields));
         }
 
         async function preReleaseCheck(dataset_to_be_clone: DatasetEntity) {

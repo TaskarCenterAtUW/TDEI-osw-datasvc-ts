@@ -9,6 +9,7 @@ import { FeatureCollection } from 'geojson';
 import { buildUpdateQuery } from '../dynamic-update-query';
 
 export class DatasetEntity extends BaseDto {
+    [key: string]: any;//This is to allow dynamic properties
     @Prop()
     @IsNotEmpty()
     tdei_dataset_id!: string;
@@ -189,19 +190,26 @@ export class DatasetEntity extends BaseDto {
     }
 
 
+
+    /**
+     * Generates an update query for the dataset entity.
+     * 
+     * @param whereCondition - The condition to filter the dataset entity.
+     * @param fields - The fields to update in the dataset entity.
+     * @returns The generated update query.
+     */
     static getUpdateQuery(whereCondition: Map<string, string>, fields: DatasetEntity): QueryConfig {
         const dataToUpdate: any = {};
 
-        // for (const key in fields) {
-        //     if (fields.hasOwnProperty(key) && fields[key] !== undefined) {
-        //         dataToUpdate[key] = fields[key];
-        //     }
-        // }
+        for (const key in fields) {
+            if (fields.hasOwnProperty(key) && fields[key] !== undefined) {
+                dataToUpdate[key] = fields[key];
+            }
+        }
 
         dataToUpdate.updated_at = TdeiDate.UTC();
 
-        const query = buildUpdateQuery('content.job', dataToUpdate, whereCondition);
-
+        const query = buildUpdateQuery('content.dataset', dataToUpdate, whereCondition);
         return query;
     }
 
