@@ -6,6 +6,7 @@ import { TdeiDate } from '../../utility/tdei-date';
 import { RecordStatus } from '../../model/dataset-get-query-params';
 import { MetadataModel } from '../../model/metadata.model';
 import { FeatureCollection } from 'geojson';
+import { buildUpdateQuery } from '../dynamic-update-query';
 
 export class DatasetEntity extends BaseDto {
     @Prop()
@@ -185,6 +186,23 @@ export class DatasetEntity extends BaseDto {
             values: [user_id, tdei_dataset_id]
         }
         return queryObject;
+    }
+
+
+    static getUpdateQuery(whereCondition: Map<string, string>, fields: DatasetEntity): QueryConfig {
+        const dataToUpdate: any = {};
+
+        // for (const key in fields) {
+        //     if (fields.hasOwnProperty(key) && fields[key] !== undefined) {
+        //         dataToUpdate[key] = fields[key];
+        //     }
+        // }
+
+        dataToUpdate.updated_at = TdeiDate.UTC();
+
+        const query = buildUpdateQuery('content.job', dataToUpdate, whereCondition);
+
+        return query;
     }
 
     /**
