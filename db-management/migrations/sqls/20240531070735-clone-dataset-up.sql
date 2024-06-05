@@ -56,9 +56,9 @@ BEGIN
     )
     SELECT 
         data_type,
-        tdei_project_group_id = to_tdei_project_group_id, -- New tdei_project_group_id
-        tdei_service_id = to_tdei_service_id, -- New tdei_service_id
-        derived_from_dataset_id = clone_tdei_dataset_id, -- derived_from_dataset_id is set to the original dataset ID
+        to_tdei_project_group_id as tdei_project_group_id, -- New tdei_project_group_id
+        to_tdei_service_id as tdei_service_id, -- New tdei_service_id
+        clone_tdei_dataset_id as derived_from_dataset_id, -- derived_from_dataset_id is set to the original dataset ID
         dataset_url,metadata_url,changeset_url,osm_url,'Draft' as status,confidence_level,
         cm_version,cm_last_calculated_at,
 		CURRENT_TIMESTAMP, --uploaded_timestamp
