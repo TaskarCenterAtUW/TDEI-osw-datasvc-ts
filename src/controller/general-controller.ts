@@ -86,17 +86,17 @@ class GeneralController implements IController {
                 metafile: metafile
             };
 
-            await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
-            return response.status(200).send();
+            let cloned_dataset_id = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
+            return response.status(200).send(cloned_dataset_id);
 
         } catch (error) {
-            console.error("Error editing the metadata request", error);
+            console.error("Error cloning the dataset request", error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
                 return next(error);
             }
-            response.status(500).send("Error editing the metadata request");
-            next(new HttpException(500, "Error editing the metadata request"));
+            response.status(500).send("Error cloning the dataset request");
+            next(new HttpException(500, "Error cloning the dataset request"));
         }
     }
 

@@ -17,8 +17,8 @@ class StorageService {
         let url = new URL(fullUrl);
         let pathname = url.pathname;
         let filenameWithExtension = pathname.split("/").pop();
-        let filenameWithoutExtension = filenameWithExtension!.split(".").slice(0, -1).join(".");
-        return filenameWithoutExtension;
+        // let filenameWithoutExtension = filenameWithExtension!.split(".").slice(0, -1).join(".");
+        return filenameWithExtension!;
     }
 
     /**
@@ -80,7 +80,7 @@ class StorageService {
      */
     async cloneFile(fileUrl: string, destinationContainerName: string, destinationFilePath: string): Promise<FileEntity | undefined> {
         const client = Core.getStorageClient();
-        let clonedFileEntity = client?.cloneFile(fileUrl, destinationContainerName, destinationFilePath);
+        let clonedFileEntity = client?.cloneFile(decodeURIComponent(fileUrl), destinationContainerName, destinationFilePath);
         return clonedFileEntity;
     }
 
@@ -90,7 +90,7 @@ class StorageService {
      */
     async deleteFile(fileUrl: string) {
         const client = Core.getStorageClient();
-        let fileEntity = await client?.getFileFromUrl(fileUrl);
+        let fileEntity = await client?.getFileFromUrl(decodeURIComponent(fileUrl));
         await fileEntity?.deleteFile();
     }
 }

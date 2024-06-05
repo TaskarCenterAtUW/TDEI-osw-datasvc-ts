@@ -15,7 +15,7 @@ export interface ITdeiCoreService {
    * @param datasetCloneRequestObject - The dataset clone request object.
    * @returns A Promise that resolves to a boolean indicating whether the dataset was cloned successfully.
    */
-  cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<Boolean>;
+  cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<string>;
   /**
    * Edits the metadata of a TDEI dataset.
    * 

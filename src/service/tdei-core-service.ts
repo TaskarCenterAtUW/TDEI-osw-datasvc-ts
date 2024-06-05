@@ -370,15 +370,17 @@ class TdeiCoreService implements ITdeiCoreService {
   * @param datasetCloneRequestObject - The dataset clone request object.
   * @returns A Promise that resolves to a boolean indicating whether the dataset was cloned successfully.
   */
-    async cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<Boolean> {
+    async cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<string> {
         let db_clone_dataset_updated = false;
         let blob_clone_uploaded = false;
         let osw_dataset_elements_cloned = false;
-        let dest_changeset_upload_url: FileEntity | undefined;
-        let dest_dataset_upload_url: FileEntity | undefined;
-        let dest_metadata_upload_url: FileEntity | undefined;
-        let dest_osm_upload_url: FileEntity | undefined;
+        let dest_changeset_upload_entity: FileEntity | undefined;
+        let dest_dataset_upload_entity: FileEntity | undefined;
+        let dest_metadata_upload_entity: FileEntity | undefined;
+        let dest_osm_upload_entity: FileEntity | undefined;
         let new_tdei_dataset_id: string = "";
+        let dest_dataset_download_entity: FileEntity | undefined;
+        let dest_osm_download_entity: FileEntity | undefined;
 
         try {
             //Get the dataset details to be cloned
@@ -396,11 +398,161 @@ class TdeiCoreService implements ITdeiCoreService {
 
             //Validate metadata
             let metadata = JSON.parse(datasetCloneRequestObject.metafile!.buffer);
-
             const metaObj = MetadataModel.from(metadata);
             await this.validateMetadata(metaObj, dataset_to_be_clone.data_type as TDEIDataType);
 
             //Check 'pre-release' dataset belongs to user project group id
+            await preReleaseCheck(dataset_to_be_clone);
+
+            //Date handling for metadata
+            metadata.dataset_detail.collection_date = TdeiDate.UTC(metadata.dataset_detail.collection_date);
+            metadata.dataset_detail.valid_from = TdeiDate.UTC(metadata.dataset_detail.valid_from);
+            metadata.dataset_detail.valid_to = TdeiDate.UTC(metadata.dataset_detail.valid_to);
+            //Flatten metadata for persistence
+            let flat_meta = MetadataModel.flatten(metadata);
+
+            //Clone the dataset
+            let queryConfig: QueryConfig = {
+                text: `SELECT content.tdei_clone_dataset($1, $2, $3, $4, $5)`.replace(/\n/g, ""),
+                values: [
+                    datasetCloneRequestObject.tdei_dataset_id,
+                    datasetCloneRequestObject.tdei_project_group_id,
+                    datasetCloneRequestObject.tdei_service_id,
+                    flat_meta,
+                    datasetCloneRequestObject.user_id
+                ]
+            };
+            let result = await dbClient.query(queryConfig);
+            //Fetch the new dataset id
+            new_tdei_dataset_id = result.rows[0].tdei_clone_dataset;
+            db_clone_dataset_updated = true;
+
+            //Cloning blobs
+            await cloneBlob(dataset_to_be_clone);
+
+            //Specific data type operations
+            if (dataset_to_be_clone.data_type == TDEIDataType.osw) {
+
+                //Clone dataset elements
+                let clone_dataset_query: QueryConfig = {
+                    text: `Select content.tdei_clone_osw_dataset_elements($1, $2, $3)`.replace(/\n/g, ""),
+                    values: [
+                        datasetCloneRequestObject.tdei_dataset_id,
+                        new_tdei_dataset_id,
+                        datasetCloneRequestObject.user_id
+                    ]
+                };
+                await dbClient.query(clone_dataset_query);
+                osw_dataset_elements_cloned = true;
+            }
+
+            //Final Step: Mark the cloned dataset as 'Pre-release'
+            let pre_release_query: QueryConfig = {
+                text: `UPDATE content.dataset SET status = $1 WHERE tdei_dataset_id = $2`.replace(/\n/g, ""),
+                values: [RecordStatus["Pre-Release"], new_tdei_dataset_id]
+            };
+            await dbClient.query(pre_release_query);
+
+            //return new dataset id
+            return new_tdei_dataset_id;
+        } catch (error) {
+            console.error(`Error cloning the dataset: ${datasetCloneRequestObject.tdei_dataset_id}`, error);
+            //Clean up
+            if (db_clone_dataset_updated) {
+                //Delete the cloned dataset
+                await this.deleteDraftDataset(new_tdei_dataset_id);
+            }
+            if (blob_clone_uploaded) {
+                //Delete the cloned blobs
+                if (dest_dataset_upload_entity) await storageService.deleteFile(dest_dataset_upload_entity.remoteUrl);
+                if (dest_metadata_upload_entity) await storageService.deleteFile(dest_metadata_upload_entity.remoteUrl);
+                if (dest_changeset_upload_entity) await storageService.deleteFile(dest_changeset_upload_entity.remoteUrl);
+                if (dest_osm_upload_entity) await storageService.deleteFile(dest_osm_upload_entity.remoteUrl);
+            }
+            if (osw_dataset_elements_cloned) {
+                //Delete the cloned dataset elements
+                let delete_dataset_elements_query: QueryConfig = {
+                    text: `SELECT content.tdei_delete_osw_dataset_elements($1)`.replace(/\n/g, ""),
+                    values: [new_tdei_dataset_id]
+                };
+                await dbClient.query(delete_dataset_elements_query);
+            }
+            throw error;
+        }
+
+        async function cloneBlob(dataset_to_be_clone: DatasetEntity) {
+            const storageFolderPath = storageService.getFolderPath(datasetCloneRequestObject.tdei_project_group_id, new_tdei_dataset_id);
+
+            // Clone dataset file
+            let datasetFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.latest_dataset_url);
+            const datasetUploadStoragePath = path.join(storageFolderPath, datasetFileName);
+            dest_dataset_upload_entity = await storageService.cloneFile(dataset_to_be_clone.latest_dataset_url, "osw", datasetUploadStoragePath);
+
+            if (dataset_to_be_clone.dataset_download_url) {
+                //Clone dataset donwload url
+                let datasetDownloadFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.dataset_download_url);
+                const datasetDownloadStoragePath = path.join(storageFolderPath, datasetDownloadFileName);
+                dest_dataset_download_entity = await storageService.cloneFile(dataset_to_be_clone.dataset_download_url, "osw", datasetDownloadStoragePath);
+            }
+
+            // Clone the metadata file  
+            const metadataStorageFilePath = path.join(storageFolderPath, 'metadata.json');
+            dest_metadata_upload_entity = await storageService.cloneFile(dataset_to_be_clone.metadata_url, "osw", metadataStorageFilePath);
+
+            // Clone the changeset file  
+            if (dataset_to_be_clone.changeset_url) {
+                const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.txt');
+                dest_changeset_upload_entity = await storageService.cloneFile(dataset_to_be_clone.changeset_url, "osw", changesetStorageFilePath);
+            }
+
+            //clone osm file
+            if (dataset_to_be_clone.latest_osm_url) {
+                let osmFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.latest_osm_url);
+                const osmUploadStoragePath = path.join(storageFolderPath, osmFileName);
+                dest_osm_upload_entity = await storageService.cloneFile(dataset_to_be_clone.osm_url, TDEIDataType.osw, osmUploadStoragePath);
+                // let queryConfig: QueryConfig = {
+                //     text: `UPDATE content.dataset SET osm_url = $1, latest_osm_url = $1 WHERE tdei_dataset_id = $2`.replace(/\n/g, ""),
+                //     values: [decodeURIComponent(dest_osm_upload_entity!.remoteUrl), new_tdei_dataset_id]
+                // };
+                // await dbClient.query(queryConfig);
+            }
+
+            if (dataset_to_be_clone.dataset_osm_download_url) {
+                let osmDownloadFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.dataset_osm_download_url);
+                const osmDownloadStoragePath = path.join(storageFolderPath, osmDownloadFileName);
+                dest_osm_download_entity = await storageService.cloneFile(dataset_to_be_clone.dataset_osm_download_url, "osw", osmDownloadStoragePath);
+            }
+
+            blob_clone_uploaded = true;
+            //End: Cloning blobs
+            //Update the cloned dataset with new urls
+            let QueryConfig: QueryConfig = {
+                text: `
+                UPDATE content.dataset 
+                SET dataset_url = $1,
+                latest_dataset_url = $1,
+                dataset_download_url = $2,
+                metadata_url = $3,
+                changeset_url = $4,
+                osm_url = $5, 
+                latest_osm_url = $5
+                dataset_osm_download_url = $6
+                WHERE tdei_dataset_id = $7`.replace(/\n/g, ""),
+                values: [
+                    decodeURIComponent(dest_dataset_upload_entity!.remoteUrl),
+                    dest_dataset_download_entity ? decodeURIComponent(dest_dataset_download_entity!.remoteUrl) : null,
+                    decodeURIComponent(dest_metadata_upload_entity!.remoteUrl),
+                    dest_changeset_upload_entity ? decodeURIComponent(dest_changeset_upload_entity!.remoteUrl) : null,
+                    dest_osm_upload_entity ? decodeURIComponent(dest_osm_upload_entity!.remoteUrl) : null,
+                    dest_osm_download_entity ? decodeURIComponent(dest_osm_download_entity!.remoteUrl) : null,
+                    new_tdei_dataset_id
+                ]
+            };
+
+            await dbClient.query(QueryConfig);
+        }
+
+        async function preReleaseCheck(dataset_to_be_clone: DatasetEntity) {
             if (dataset_to_be_clone.status == RecordStatus["Pre-Release"] && !datasetCloneRequestObject.isAdmin) {
                 let role_to_check = "";
                 if (dataset_to_be_clone.data_type == TDEIDataType.osw) {
@@ -427,99 +579,6 @@ class TdeiCoreService implements ITdeiCoreService {
                     throw new InputException("User does not have permission to clone the dataset");
                 }
             }
-
-            //Date handling for metadata
-            metadata.dataset_detail.collection_date = TdeiDate.UTC(metadata.dataset_detail.collection_date);
-            metadata.dataset_detail.valid_from = TdeiDate.UTC(metadata.dataset_detail.valid_from);
-            metadata.dataset_detail.valid_to = TdeiDate.UTC(metadata.dataset_detail.valid_to);
-            //Flatten metadata for persistence
-            let flat_meta = MetadataModel.flatten(metadata);
-
-            //Clone the dataset
-            let queryConfig: QueryConfig = {
-                text: `SELECT content.tdei_clone_dataset($1, $2, $3, $4, $5)`.replace(/\n/g, ""),
-                values: [
-                    datasetCloneRequestObject.tdei_dataset_id,
-                    datasetCloneRequestObject.tdei_project_group_id,
-                    datasetCloneRequestObject.tdei_service_id,
-                    flat_meta,
-                    datasetCloneRequestObject.user_id
-                ]
-            };
-            let result = await dbClient.query(queryConfig);
-            //Fetch the new dataset id
-            new_tdei_dataset_id = result.rows[0].new_tdei_dataset_id;
-            db_clone_dataset_updated = true;
-
-            //Start: Cloning blobs
-
-            //Path to store the cloned dataset
-            const storageFolderPath = storageService.getFolderPath(datasetCloneRequestObject.tdei_project_group_id, new_tdei_dataset_id);
-
-            // Clone dataset file
-            let datasetFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.latest_dataset_url);
-            const datasetUploadStoragePath = path.join(storageFolderPath, datasetFileName);
-            dest_dataset_upload_url = await storageService.cloneFile(dataset_to_be_clone.latest_dataset_url, "osw", datasetUploadStoragePath);
-
-            // Clone the metadata file  
-            const metadataStorageFilePath = path.join(storageFolderPath, 'metadata.json');
-            dest_metadata_upload_url = await storageService.cloneFile(dataset_to_be_clone.metadata_url, "osw", metadataStorageFilePath);
-
-            // Clone the changeset file  
-            if (dataset_to_be_clone.changeset_url) {
-                const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.txt');
-                dest_changeset_upload_url = await storageService.cloneFile(dataset_to_be_clone.changeset_url, "osw", changesetStorageFilePath);
-            }
-            blob_clone_uploaded = true;
-            //End: Cloning blobs
-
-            //Update the cloned dataset with new urls
-            await dbClient.query(`UPDATE content.dataset SET dataset_url = $1, latest_dataset_url = $1, metadata_url = $2, changeset_url = $3 WHERE tdei_dataset_id = $4`.replace(/\n/g, ""),
-                [dest_dataset_upload_url, dest_metadata_upload_url, dest_changeset_upload_url, new_tdei_dataset_id]);
-
-
-            //Specific data type operations
-            if (dataset_to_be_clone.data_type == TDEIDataType.osw) {
-                //clone osm file
-                if (dataset_to_be_clone.latest_osm_url) {
-                    let osmFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.latest_osm_url);
-                    const osmUploadStoragePath = path.join(storageFolderPath, osmFileName);
-                    dest_osm_upload_url = await storageService.cloneFile(dataset_to_be_clone.osm_url, TDEIDataType.osw, osmUploadStoragePath);
-
-                    await dbClient.query(`UPDATE content.dataset SET osm_url = $1, latest_osm_url = $1 WHERE tdei_dataset_id = $2`.replace(/\n/g, ""), [dest_osm_upload_url, new_tdei_dataset_id]);
-                }
-                //Clone dataset elements
-                await dbClient.query(`Select content.tdei_clone_osw_dataset_elements($1, $2, $3)`.replace(/\n/g, ""), [
-                    datasetCloneRequestObject.tdei_dataset_id,
-                    new_tdei_dataset_id,
-                    datasetCloneRequestObject.user_id
-                ]);
-                osw_dataset_elements_cloned = true;
-            }
-
-            //Mark the cloned dataset as 'Pre-release'
-            await dbClient.query(`UPDATE content.dataset SET status = $1 WHERE tdei_dataset_id = $2`.replace(/\n/g, ""), [RecordStatus["Pre-Release"], new_tdei_dataset_id]);
-
-            return true;
-        } catch (error) {
-            console.error(`Error cloning the dataset: ${datasetCloneRequestObject.tdei_dataset_id}`, error);
-            //Clean up
-            if (db_clone_dataset_updated) {
-                //Delete the cloned dataset
-                await this.deleteDraftDataset(datasetCloneRequestObject.tdei_dataset_id);
-            }
-            if (blob_clone_uploaded) {
-                //Delete the cloned blobs
-                if (dest_dataset_upload_url) await storageService.deleteFile(dest_dataset_upload_url.remoteUrl);
-                if (dest_metadata_upload_url) await storageService.deleteFile(dest_metadata_upload_url.remoteUrl);
-                if (dest_changeset_upload_url) await storageService.deleteFile(dest_changeset_upload_url.remoteUrl);
-                if (dest_osm_upload_url) await storageService.deleteFile(dest_osm_upload_url.remoteUrl);
-            }
-            if (osw_dataset_elements_cloned) {
-                //Delete the cloned dataset elements
-                await dbClient.query(`SELECT content.tdei_delete_osw_dataset_elements($1)`.replace(/\n/g, ""), [new_tdei_dataset_id]);
-            }
-            throw error;
         }
     }
 }

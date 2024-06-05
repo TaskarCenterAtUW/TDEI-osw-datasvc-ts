@@ -181,34 +181,34 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION content.tdei_delete_osw_dataset_elements(
-    tdei_dataset_id text
+    delete_tdei_dataset_id text
 )
 RETURNS void AS $$
 BEGIN
     BEGIN
         -- Delete edge
         DELETE FROM content.edge
-        WHERE tdei_dataset_id = tdei_dataset_id;
+        WHERE tdei_dataset_id = delete_tdei_dataset_id;
 
         -- Delete node
         DELETE FROM content.node
-        WHERE tdei_dataset_id = tdei_dataset_id;
+        WHERE tdei_dataset_id = delete_tdei_dataset_id;
 
         -- Delete zone
         DELETE FROM content.zone
-        WHERE tdei_dataset_id = tdei_dataset_id;
+        WHERE tdei_dataset_id = delete_tdei_dataset_id;
 
         -- Delete extension_line
         DELETE FROM content.extension_line
-        WHERE tdei_dataset_id = tdei_dataset_id;
+        WHERE tdei_dataset_id = delete_tdei_dataset_id;
 
         -- Delete extension_point
         DELETE FROM content.extension_point
-        WHERE tdei_dataset_id = tdei_dataset_id;
+        WHERE tdei_dataset_id = delete_tdei_dataset_id;
 
         -- Delete extension_polygon
         DELETE FROM content.extension_polygon
-        WHERE tdei_dataset_id = tdei_dataset_id;
+        WHERE tdei_dataset_id = delete_tdei_dataset_id;
 
     EXCEPTION
         WHEN OTHERS THEN
