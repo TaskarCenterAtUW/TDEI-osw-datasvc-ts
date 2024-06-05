@@ -77,6 +77,7 @@ export class DatasetEntity extends BaseDto {
     @Prop()
     @IsOptional()
     valid_to!: Date;
+    @Prop()
     dataset_osm_download_url!: string;
 
     constructor(init?: Partial<DatasetEntity>) {

@@ -43,26 +43,34 @@ class GeneralController implements IController {
         this.router.get(`${this.path}/job/download/:job_id`, authenticate, this.getJobDownloadFile); // Download the formatted file
         this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), authenticate,
             async (req, res, next) => {
-                let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
-                req.params["tdei_data_type"] = datasetRecord.data_type;
-                if (datasetRecord.data_type === TDEIDataType.osw) {
-                    authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
-                } else if (datasetRecord.data_type === TDEIDataType.flex) {
-                    authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.flex_data_generator])(req, res, next);
-                } else if (datasetRecord.data_type === TDEIDataType.pathways) {
-                    authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.pathways_data_generator])(req, res, next);
+                try {
+                    let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
+                    req.params["tdei_data_type"] = datasetRecord.data_type;
+                    if (datasetRecord.data_type === TDEIDataType.osw) {
+                        authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
+                    } else if (datasetRecord.data_type === TDEIDataType.flex) {
+                        authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.flex_data_generator])(req, res, next);
+                    } else if (datasetRecord.data_type === TDEIDataType.pathways) {
+                        authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.pathways_data_generator])(req, res, next);
+                    }
+                } catch (error) {
+                    next(error);
                 }
             }, this.editMetadata); // edit Metadata request
         this.router.post(`${this.path}/dataset/clone/:tdei_dataset_id/:tdei_project_group_id/:tdei_service_id`, metadataUpload.single('file'), authenticate, async (req, res, next) => {
-            let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
-            if (datasetRecord)
-                req.params["tdei_data_type"] = datasetRecord.data_type;
-            if (datasetRecord.data_type === TDEIDataType.osw) {
-                authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
-            } else if (datasetRecord.data_type === TDEIDataType.flex) {
-                authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.flex_data_generator])(req, res, next);
-            } else if (datasetRecord.data_type === TDEIDataType.pathways) {
-                authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.pathways_data_generator])(req, res, next);
+            try {
+                let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
+                if (datasetRecord)
+                    req.params["tdei_data_type"] = datasetRecord.data_type;
+                if (datasetRecord.data_type === TDEIDataType.osw) {
+                    await authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
+                } else if (datasetRecord.data_type === TDEIDataType.flex) {
+                    await authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.flex_data_generator])(req, res, next);
+                } else if (datasetRecord.data_type === TDEIDataType.pathways) {
+                    await authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.pathways_data_generator])(req, res, next);
+                }
+            } catch (error) {
+                next(error);
             }
         }, this.cloneDataset); // clone Dataset request
     }

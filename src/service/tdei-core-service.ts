@@ -535,7 +535,7 @@ class TdeiCoreService implements ITdeiCoreService {
                 metadata_url = $3,
                 changeset_url = $4,
                 osm_url = $5, 
-                latest_osm_url = $5
+                latest_osm_url = $5,
                 dataset_osm_download_url = $6
                 WHERE tdei_dataset_id = $7`.replace(/\n/g, ""),
                 values: [
