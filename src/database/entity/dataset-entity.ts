@@ -6,7 +6,7 @@ import { TdeiDate } from '../../utility/tdei-date';
 import { RecordStatus } from '../../model/dataset-get-query-params';
 import { MetadataModel } from '../../model/metadata.model';
 import { FeatureCollection } from 'geojson';
-import { buildUpdateQuery } from '../dynamic-update-query';
+import { QueryCriteria } from '../dynamic-update-query';
 
 export class DatasetEntity extends BaseDto {
     [key: string]: any;//This is to allow dynamic properties
@@ -209,8 +209,8 @@ export class DatasetEntity extends BaseDto {
         }
 
         dataToUpdate.updated_at = TdeiDate.UTC();
-
-        const query = buildUpdateQuery('content.dataset', dataToUpdate, whereCondition);
+        const criteria = new QueryCriteria('content.dataset', dataToUpdate, whereCondition);
+        const query = criteria.buildUpdateQuery();
         return query;
     }
 

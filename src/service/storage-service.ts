@@ -20,7 +20,6 @@ class StorageService {
     }
 
     generateRandomUUID(): string {
-        // const randomUID = randomUUID().toString().replace(/-/g, ''); // Take out the - from UID
         return randomUUID().toString();
     }
 
@@ -33,7 +32,6 @@ class StorageService {
         let url = new URL(fullUrl);
         let pathname = url.pathname;
         let filenameWithExtension = pathname.split("/").pop();
-        // let filenameWithoutExtension = filenameWithExtension!.split(".").slice(0, -1).join(".");
         return filenameWithExtension!;
     }
 
