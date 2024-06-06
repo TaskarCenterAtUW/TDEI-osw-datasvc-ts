@@ -12,6 +12,7 @@ import { DatasetQueryParams } from "../model/dataset-get-query-params";
 import multer, { memoryStorage } from "multer";
 import path from "path";
 import { Utility } from "../utility/utility";
+import { IDatasetCloneRequest } from "../model/request-interfaces";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
@@ -42,21 +43,70 @@ class GeneralController implements IController {
         this.router.get(`${this.path}/job/download/:job_id`, authenticate, this.getJobDownloadFile); // Download the formatted file
         this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), authenticate,
             async (req, res, next) => {
-                let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
-                req.params["tdei_data_type"] = datasetRecord.data_type;
-                if (datasetRecord.data_type === TDEIDataType.osw) {
-                    authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
-                } else if (datasetRecord.data_type === TDEIDataType.flex) {
-                    authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.flex_data_generator])(req, res, next);
-                } else if (datasetRecord.data_type === TDEIDataType.pathways) {
-                    authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.pathways_data_generator])(req, res, next);
-                }
-                else {
-                    next();
+                try {
+                    let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
+                    req.params["tdei_data_type"] = datasetRecord.data_type;
+                    if (datasetRecord.data_type === TDEIDataType.osw) {
+                        authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
+                    } else if (datasetRecord.data_type === TDEIDataType.flex) {
+                        authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.flex_data_generator])(req, res, next);
+                    } else if (datasetRecord.data_type === TDEIDataType.pathways) {
+                        authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.pathways_data_generator])(req, res, next);
+                    }
+                } catch (error) {
+                    next(error);
                 }
             }, this.editMetadata); // edit Metadata request
+        this.router.post(`${this.path}/dataset/clone/:tdei_dataset_id/:tdei_project_group_id/:tdei_service_id`, metadataUpload.single('file'), authenticate, async (req, res, next) => {
+            try {
+                let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
+                if (datasetRecord)
+                    req.params["tdei_data_type"] = datasetRecord.data_type;
+                if (datasetRecord.data_type === TDEIDataType.osw) {
+                    await authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
+                } else if (datasetRecord.data_type === TDEIDataType.flex) {
+                    await authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.flex_data_generator])(req, res, next);
+                } else if (datasetRecord.data_type === TDEIDataType.pathways) {
+                    await authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.pathways_data_generator])(req, res, next);
+                }
+            } catch (error) {
+                next(error);
+            }
+        }, this.cloneDataset); // clone Dataset request
     }
 
+    /**
+  * Request to clone the dataset
+  * @param request 
+  * @param response 
+  * @param next 
+  */
+    cloneDataset = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const metafile = request.file;
+
+            let datasetCloneRequestObject: IDatasetCloneRequest = {
+                tdei_dataset_id: request.params["tdei_dataset_id"],
+                tdei_project_group_id: request.params["tdei_project_group_id"],
+                tdei_service_id: request.params["tdei_service_id"],
+                user_id: request.body.user_id,
+                isAdmin: request.body.isAdmin,
+                metafile: metafile
+            };
+
+            let cloned_dataset_id = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
+            return response.status(200).send(cloned_dataset_id);
+
+        } catch (error) {
+            console.error("Error cloning the dataset request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error cloning the dataset request");
+            next(new HttpException(500, "Error cloning the dataset request"));
+        }
+    }
 
     /**
    * Request edit metadata 

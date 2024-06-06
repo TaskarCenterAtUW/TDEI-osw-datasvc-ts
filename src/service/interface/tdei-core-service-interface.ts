@@ -6,8 +6,16 @@ import { DatasetQueryParams } from "../../model/dataset-get-query-params";
 import { ConfidenceJobResponse } from "../../model/job-request-response/osw-confidence-job-response";
 import { TDEIDataType } from "../../model/jobs-get-query-params";
 import { MetadataModel } from "../../model/metadata.model";
+import { IDatasetCloneRequest } from "../../model/request-interfaces";
 
 export interface ITdeiCoreService {
+  /**
+   * Clones a dataset.
+   * 
+   * @param datasetCloneRequestObject - The dataset clone request object.
+   * @returns A Promise that resolves to a boolean indicating whether the dataset was cloned successfully.
+   */
+  cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<string>;
   /**
    * Edits the metadata of a TDEI dataset.
    * 

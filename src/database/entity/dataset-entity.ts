@@ -6,8 +6,10 @@ import { TdeiDate } from '../../utility/tdei-date';
 import { RecordStatus } from '../../model/dataset-get-query-params';
 import { MetadataModel } from '../../model/metadata.model';
 import { FeatureCollection } from 'geojson';
+import { QueryCriteria } from '../dynamic-update-query';
 
 export class DatasetEntity extends BaseDto {
+    [key: string]: any;//This is to allow dynamic properties
     @Prop()
     @IsNotEmpty()
     tdei_dataset_id!: string;
@@ -77,6 +79,8 @@ export class DatasetEntity extends BaseDto {
     @Prop()
     @IsOptional()
     valid_to!: Date;
+    @Prop()
+    @IsOptional()
     dataset_osm_download_url!: string;
 
     constructor(init?: Partial<DatasetEntity>) {
@@ -184,6 +188,30 @@ export class DatasetEntity extends BaseDto {
             values: [user_id, tdei_dataset_id]
         }
         return queryObject;
+    }
+
+
+
+    /**
+     * Generates an update query for the dataset entity. Typed DB query.
+     * 
+     * @param whereCondition - The condition to filter the dataset entity.
+     * @param fields - The fields to update in the dataset entity.
+     * @returns The generated update query.
+     */
+    static getUpdateQuery(whereCondition: Map<string, string>, fields: DatasetEntity): QueryConfig {
+        const dataToUpdate: any = {};
+
+        for (const key in fields) {
+            if (fields.hasOwnProperty(key) && fields[key] !== undefined) {
+                dataToUpdate[key] = fields[key];
+            }
+        }
+
+        dataToUpdate.updated_at = TdeiDate.UTC();
+        const criteria = new QueryCriteria().setTable('content.dataset').setData(dataToUpdate).setWhere(whereCondition);
+        const query = criteria.buildUpdateQuery();
+        return query;
     }
 
     /**

@@ -2,15 +2,98 @@ import { QueryResult } from "pg";
 import dbClient from "../../src/database/data-source";
 import { TdeiObjectFaker } from "../common/tdei-object-faker";
 import UniqueKeyDbException from "../../src/exceptions/db/database-exceptions";
-import { DuplicateException, InputException } from "../../src/exceptions/http/http-exceptions";
+import { DuplicateException, InputException, ServiceNotFoundException } from "../../src/exceptions/http/http-exceptions";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { DatasetEntity } from "../../src/database/entity/dataset-entity";
 import { DatasetDTO } from "../../src/model/dataset-dto";
 import { ServiceEntity } from "../../src/database/entity/service-entity";
 import { DatasetQueryParams, RecordStatus } from "../../src/model/dataset-get-query-params";
+import { IDatasetCloneRequest } from "../../src/model/request-interfaces";
 
 // group test using describe
 describe("TDEI core Service Test", () => {
+
+    describe("Clone Dataset", () => {
+        test("When cloning a dataset with valid input, expect to return the new dataset ID", async () => {
+            // Arrange
+            const datasetCloneRequestObject: IDatasetCloneRequest = {
+                tdei_dataset_id: "dataset_id",
+                tdei_project_group_id: "project_group_id",
+                tdei_service_id: "service_id",
+                metafile: {
+                    buffer: JSON.stringify(TdeiObjectFaker.getMetadataSample())
+                },
+                user_id: "user_id",
+                isAdmin: false
+            };
+
+            const datasetDetails = TdeiObjectFaker.getDatasetVersion();
+            const service = ServiceEntity.from({ owner_project_group: "project_group_id" });
+
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValue(datasetDetails);
+            jest.spyOn(tdeiCoreService, "getServiceById").mockResolvedValue(service);
+            jest.spyOn(tdeiCoreService, "validateMetadata").mockResolvedValue(true);
+            jest.spyOn(tdeiCoreService, "preReleaseCheck").mockResolvedValue();
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(<QueryResult<any>>{
+                rows: [{ tdei_clone_dataset: "new_dataset_id" }]
+            });
+            jest.spyOn(tdeiCoreService, "cloneBlob").mockResolvedValue();
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(<QueryResult<any>>{});
+
+            // Act
+            const result = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
+
+            // Assert
+            expect(result).toBe("new_dataset_id");
+        });
+
+        test("When cloning a dataset with invalid service ID, expect to throw ServiceNotFoundException", async () => {
+            // Arrange
+            const datasetCloneRequestObject: IDatasetCloneRequest = {
+                tdei_dataset_id: "dataset_id",
+                tdei_project_group_id: "project_group_id",
+                tdei_service_id: "service_id",
+                metafile: {
+                    buffer: JSON.stringify({ /* metadata object */ })
+                },
+                user_id: "user_id",
+                isAdmin: false
+            };
+
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(<QueryResult<any>>{
+                rows: [{ tdei_dataset_id: "dataset_id" }]
+            });
+            jest.spyOn(tdeiCoreService, "getServiceById").mockResolvedValue(undefined);
+
+            // Act & Assert
+            await expect(tdeiCoreService.cloneDataset(datasetCloneRequestObject)).rejects.toThrow(ServiceNotFoundException);
+        });
+
+        test("When cloning a dataset with invalid project group ID, expect to throw InputException", async () => {
+            // Arrange
+            const datasetCloneRequestObject: IDatasetCloneRequest = {
+                tdei_dataset_id: "dataset_id",
+                tdei_project_group_id: "project_group_id",
+                tdei_service_id: "service_id",
+                metafile: {
+                    buffer: JSON.stringify({ /* metadata object */ })
+                },
+                user_id: "user_id",
+                isAdmin: false
+            };
+
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(<QueryResult<any>>{
+                rows: [{ tdei_dataset_id: "dataset_id" }]
+            }); const service = ServiceEntity.from({ owner_project_group: "other_project_group_id" });
+
+            jest.spyOn(tdeiCoreService, "getServiceById").mockResolvedValue(service);
+
+            // Act & Assert
+            await expect(tdeiCoreService.cloneDataset(datasetCloneRequestObject)).rejects.toThrow(InputException);
+        });
+
+    });
+
     describe("Get all Datasets", () => {
         describe("Functional", () => {
             test("When requested with empty search filters, Expect to return Dataset list", async () => {
