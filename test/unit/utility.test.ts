@@ -13,7 +13,7 @@ describe('buildUpdateQuery', () => {
         ]);
 
         // Act
-        const criteria = new QueryCriteria(table, data, where);
+        const criteria = new QueryCriteria().setTable(table).setData(data).setWhere(where);
         const query = criteria.buildUpdateQuery();
 
         // Assert
@@ -31,7 +31,7 @@ describe('buildUpdateQuery', () => {
         const where = new Map<string, string>();
 
         // Act
-        const criteria = new QueryCriteria(table, data, where);
+        const criteria = new QueryCriteria().setTable(table).setData(data).setWhere(where);
         const query = criteria.buildUpdateQuery();
 
         // Assert
@@ -46,7 +46,7 @@ describe('buildUpdateQuery', () => {
         const where = new Map<string, string>();
 
         // Act
-        const criteria = new QueryCriteria(table, data, where);
+        const criteria = new QueryCriteria().setTable(table).setData(data).setWhere(where);
 
         // Assert
         expect(() => criteria.buildUpdateQuery()).toThrow('Invalid QueryCriteria input');

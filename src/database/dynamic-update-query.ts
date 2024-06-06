@@ -4,11 +4,31 @@ export class QueryCriteria {
     private where: Map<string, string>;
     private returnUpdatedRow: boolean;
 
-    constructor(table: string, data: any, where: Map<string, string>, returnUpdatedRow: boolean = false) {
+    constructor() {
+        this.table = '';
+        this.data = {};
+        this.where = new Map();
+        this.returnUpdatedRow = false;
+    }
+
+    setTable(table: string) {
         this.table = table;
+        return this;
+    }
+
+    setData(data: any) {
         this.data = data;
+        return this;
+    }
+
+    setWhere(where: Map<string, string>) {
         this.where = where;
+        return this;
+    }
+
+    setReturnUpdatedRow(returnUpdatedRow: boolean) {
         this.returnUpdatedRow = returnUpdatedRow;
+        return this;
     }
 
     buildUpdateQuery() {

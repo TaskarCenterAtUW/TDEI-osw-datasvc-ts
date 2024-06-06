@@ -209,7 +209,7 @@ export class DatasetEntity extends BaseDto {
         }
 
         dataToUpdate.updated_at = TdeiDate.UTC();
-        const criteria = new QueryCriteria('content.dataset', dataToUpdate, whereCondition);
+        const criteria = new QueryCriteria().setTable('content.dataset').setData(dataToUpdate).setWhere(whereCondition);
         const query = criteria.buildUpdateQuery();
         return query;
     }
