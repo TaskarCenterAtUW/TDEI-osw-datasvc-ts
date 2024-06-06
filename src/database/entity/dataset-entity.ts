@@ -80,6 +80,7 @@ export class DatasetEntity extends BaseDto {
     @IsOptional()
     valid_to!: Date;
     @Prop()
+    @IsOptional()
     dataset_osm_download_url!: string;
 
     constructor(init?: Partial<DatasetEntity>) {
@@ -192,7 +193,7 @@ export class DatasetEntity extends BaseDto {
 
 
     /**
-     * Generates an update query for the dataset entity.
+     * Generates an update query for the dataset entity. Typed DB query.
      * 
      * @param whereCondition - The condition to filter the dataset entity.
      * @param fields - The fields to update in the dataset entity.
