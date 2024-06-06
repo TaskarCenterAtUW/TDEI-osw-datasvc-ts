@@ -386,20 +386,16 @@ class TdeiCoreService implements ITdeiCoreService {
         };
 
         try {
-            //Get the dataset details to be cloned
             let dataset_to_be_clone = await this.getDatasetDetailsById(datasetCloneRequestObject.tdei_dataset_id);
 
-            //Validate request service_id 
             const service = await this.getServiceById(datasetCloneRequestObject.tdei_service_id);
             if (!service) {
-                // Service not found exception.
                 throw new ServiceNotFoundException(datasetCloneRequestObject.tdei_service_id);
             } //Validate service owner project group is same as the request project group
             else if (service!.owner_project_group != datasetCloneRequestObject.tdei_project_group_id) {
                 throw new InputException(`${datasetCloneRequestObject.tdei_project_group_id} id not associated with the tdei_service_id`);
             }
 
-            //Validate metadata
             let metadata = JSON.parse(datasetCloneRequestObject.metafile!.buffer);
             const metaObj = MetadataModel.from(metadata);
             await this.validateMetadata(metaObj, dataset_to_be_clone.data_type as TDEIDataType);
@@ -414,7 +410,6 @@ class TdeiCoreService implements ITdeiCoreService {
             //Flatten metadata for persistence
             let flat_meta = MetadataModel.flatten(metadata);
 
-            //Clone the dataset
             let queryConfig: QueryConfig = {
                 text: `SELECT content.tdei_clone_dataset($1, $2, $3, $4, $5)`.replace(/\n/g, ""),
                 values: [
@@ -426,17 +421,13 @@ class TdeiCoreService implements ITdeiCoreService {
                 ]
             };
             let result = await dbClient.query(queryConfig);
-            //Fetch the new dataset id
             cloneContext.new_tdei_dataset_id = result.rows[0].tdei_clone_dataset;
             cloneContext.db_clone_dataset_updated = true;
 
-            //Cloning blobs
             await this.cloneBlob(dataset_to_be_clone, datasetCloneRequestObject, cloneContext);
 
-            //Specific data type operations
             if (dataset_to_be_clone.data_type == TDEIDataType.osw) {
 
-                //Clone dataset elements
                 let clone_dataset_query: QueryConfig = {
                     text: `Select content.tdei_clone_osw_dataset_elements($1, $2, $3)`.replace(/\n/g, ""),
                     values: [
@@ -450,16 +441,13 @@ class TdeiCoreService implements ITdeiCoreService {
             }
 
             //Final Step: Mark the cloned dataset as 'Pre-release'
-            //build where clause
             let condition = new Map<string, string>();
             condition.set("tdei_dataset_id", cloneContext.new_tdei_dataset_id);
-            //build update fields
             let updateFields = new DatasetEntity({
                 status: RecordStatus["Pre-Release"]
             });
             await dbClient.query(DatasetEntity.getUpdateQuery(condition, updateFields));
 
-            //return new dataset id
             return cloneContext.new_tdei_dataset_id;
         } catch (error) {
             console.error(`Error cloning the dataset: ${datasetCloneRequestObject.tdei_dataset_id}`, error);
