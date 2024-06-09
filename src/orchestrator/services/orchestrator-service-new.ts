@@ -4,6 +4,7 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { EventEmitter } from 'events';
 import { OrchestratorConfigContextNew, Task, Workflow } from "../models/config-model-new";
 import _ from 'lodash';
+import { OrchestratorFunctions } from "./orchestrator-functions";
 
 
 export class OrchestratorServiceNew {
@@ -73,7 +74,7 @@ export class OrchestratorServiceNew {
      * @param workflow 
      * @param message 
      */
-    private handleEventResponse(workflow: Workflow, task: Task, workflow_context: any, message: QueueMessage) {
+    private async handleEventResponse(workflow: Workflow, task: Task, workflow_context: any, message: QueueMessage) {
         console.log("Received event response for task :", task.task_reference_name);
 
         //Extract the output parameters
@@ -88,10 +89,10 @@ export class OrchestratorServiceNew {
         workflow_context[task.name].output = messageOutput;
 
         //get the next task in workflow
-        this.executeNextTask(workflow, task, workflow_context, message);
+        await this.executeNextTask(workflow, task, workflow_context, message.messageId);
     }
 
-    private executeNextTask(workflow: Workflow, task: Task, workflow_context: any, message: QueueMessage) {
+    private async executeNextTask(workflow: Workflow, task: Task, workflow_context: any, messageId: string) {
         let nextTask = this.getNextTask(workflow, task);
         if (nextTask) {
             switch (nextTask.type) {
@@ -106,23 +107,50 @@ export class OrchestratorServiceNew {
                     });
                     //Publish the message
                     let queueMessage = QueueMessage.from({
-                        messageId: message.messageId,
+                        messageId: messageId,
                         messageType: nextTask.task_reference_name,
                         data: messageOutput
                     });
                     //TODO:Save the workflow context & stage
-                    this.publishMessage(nextTask.topic as string, queueMessage);
+                    await this.publishMessage(nextTask.topic as string, queueMessage);
                     break;
                 case "Utility":
                     //TODO:Invoke the utility function
+                    await this.handleUtilityTask(workflow, nextTask, workflow_context, messageId);
                     //TODO:Save the workflow context & stage
-                    this.executeNextTask(workflow, nextTask, workflow_context, message);
                     break;
                 default:
                     console.error("Invalid task type", nextTask.type);
                     break;
             }
         }
+    }
+
+    /**
+     * Handle the utility task
+     * @param workflow 
+     * @param task 
+     * @param workflow_context 
+     * @param message 
+     */
+    private async handleUtilityTask(workflow: Workflow, task: Task, workflow_context: any, messageId: string) {
+
+        console.log("Executing utility task", task.name);
+
+        let inputParams = task.input_params;
+
+        let messageOutput: any = {};
+
+        Object.keys(inputParams).forEach((param: any) => {
+            messageOutput[param] = _.get(workflow_context, inputParams[param]);
+
+        });
+
+        let output = await OrchestratorFunctions.invokeMethod(task.name, messageOutput);
+
+        workflow_context[task.name].output = output;
+
+        await this.executeNextTask(workflow, task, workflow_context, messageId);
     }
 
     /**
@@ -144,7 +172,7 @@ export class OrchestratorServiceNew {
      * Handle the subscribed messages
      * @param message 
      */
-    private handleMessage = (message: QueueMessage) => {
+    private handleMessage = async (message: QueueMessage) => {
         try {
             console.log("Received message", message.messageType);
             //Get workflow identifier
@@ -155,7 +183,7 @@ export class OrchestratorServiceNew {
             if (workflow) {
                 let task = workflow.tasks.find(x => x.task_reference_name == message.messageType);
                 if (task) {
-                    this.handleEventResponse(workflow, task, {}, message);
+                    await this.handleEventResponse(workflow, task, {}, message);
                 }
                 else {
                     console.error("Task not found", message.messageType);
