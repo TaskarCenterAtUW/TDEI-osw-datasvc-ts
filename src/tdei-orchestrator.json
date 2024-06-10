@@ -43,8 +43,8 @@
                     }
                 },
                 {
-                    "name": "workflow_helper",
-                    "task_reference_name": "decodeUrl",
+                    "name": "decode_url",
+                    "task_reference_name": "decode_url",
                     "description": "Helper task to decode the formatted osw file url",
                     "type": "Utility",
                     "input_params": {
@@ -55,17 +55,21 @@
                         "message": "${message}",
                         "url": "${url}"
                     },
-                    "function": "decodeUrl"
+                    "function": "decode_url"
                 },
                 {
-                    "name": "workflow_helper",
-                    "task_reference_name": "update_table",
+                    "name": "update_formatted_url",
+                    "task_reference_name": "update_formatted_url",
                     "description": "Helper task to decode the formatted osw file url",
                     "type": "Utility",
                     "input_params": {
-                        "table_name": "content.dataset",
-                        "condition": "tdei_dataset_id = ${workflow_input.tdei_dataset_id}",
-                        "update_expression": "osm_url = ${workflow_input.decodeUrl.output.url}"
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "${workflow_input.tdei_dataset_id}"
+                        },
+                        "data": {
+                            "osw_url": "${workflow_input.decodeUrl.output.url}"
+                        }
                     },
                     "output_params": {
                         "success": "${success}",
@@ -74,19 +78,19 @@
                     "function": "update_table"
                 },
                 {
-                    "name": "workflow_helper",
-                    "task_reference_name": "osw_upload_getPathDirectory",
+                    "name": "dataset_blob_folder_path",
+                    "task_reference_name": "osw_upload_getDatasetBlobFolderPath",
                     "description": "Helper task to decode the formatted osw file url",
                     "type": "Utility",
                     "input_params": {
-                        "url": "${workflow_input.inut.dataset_url}"
+                        "url": "${workflow_input.input.dataset_url}"
                     },
                     "output_params": {
                         "success": "${success}",
                         "message": "${message}",
-                        "path": "${path}"
+                        "folder_path": "${folder_path}"
                     },
-                    "function": "getPathDirectory"
+                    "function": "get_dataset_blob_folder_path"
                 },
                 {
                     "name": "osw_compression",
@@ -97,11 +101,11 @@
                     "input_params": {
                         "isOsm": true,
                         "input_urls": [
-                            "${workflow_input.decodeUrl.output.url}",
+                            "${workflow_input.decode_url.output.url}",
                             "${workflow_input.metadata_url}",
                             "${workflow_input.changeset_url}"
                         ],
-                        "output_path": "${workflow_input.osw_upload_getPathDirectory.output.path}"
+                        "output_path": "${workflow_input.get_dataset_blob_folder_path.output.folder_path}"
                     },
                     "output_params": {
                         "success": "${message.data.success}",

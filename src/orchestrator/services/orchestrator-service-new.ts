@@ -150,7 +150,13 @@ export class OrchestratorServiceNew {
 
         workflow_context[task.name].output = output;
 
-        await this.executeNextTask(workflow, task, workflow_context, messageId);
+        if (output.success) {
+            await this.executeNextTask(workflow, task, workflow_context, messageId);
+        }
+        else {
+            console.error("Utility task failed", task.name);
+            //TODO:Handle the failure , DB update
+        }
     }
 
     /**
