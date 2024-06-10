@@ -48,11 +48,12 @@ export interface IOswService {
      * Calculates the confidence for a given TDEI dataset.
      * 
      * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param sub_regions_file - The sub-regions file to be used for calculating the confidence.
      * @param user_id - The ID of the user.
      * @returns A Promise that resolves to the ID of the created job.
      * @throws If there is an error calculating the confidence.
      */
-    calculateConfidence(tdei_dataset_id: string, user_id: string): Promise<string>;
+    calculateConfidence(tdei_dataset_id: string, sub_regions_file: Express.Multer.File | undefined, user_id: string): Promise<string>;
 
     /**
      * Retrieves the OswStream by its ID.
@@ -63,6 +64,16 @@ export interface IOswService {
      * @throws Error if the storage is not configured.
      */
     getOswStreamById(id: string, format: string, file_version: string): Promise<FileEntity[]>;
+
+    /**
+     * Retrieves the downloadable URL for an OSW Dataset.
+     * @param id - The ID of the OSW Dataset.
+     * @param format - The format of the OSW Dataset (default is "osw").
+     * @returns A promise that resolves to the downloadable URL.
+     * @throws HttpException if the OSW Dataset is not found or if the request record is deleted.
+     * @throws Error if the storage is not configured.
+     */
+    getDownloadableOSWUrl(id:string, format:string, file_version: string): Promise<string>;
 
     /**
     * Processes the upload request and performs various validations and operations.

@@ -1,6 +1,13 @@
 import { IsEnum, IsOptional } from "class-validator";
 import { JoinCondition, PgQueryObject, SqlORder, WhereCondition, buildQuery } from "../database/dynamic-query-object";
 
+export enum TDEIRole {
+    "tdei-admin" = "tdei-admin",
+    "poc" = "poc",
+    "flex_data_generator" = "flex_data_generator",
+    "pathways_data_generator" = "pathways_data_generator",
+    "osw_data_generator" = "osw_data_generator"
+}
 export enum TDEIDataType {
     "osw" = "osw",
     "pathways" = "pathways",

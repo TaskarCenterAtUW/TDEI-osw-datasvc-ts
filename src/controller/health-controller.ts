@@ -1,5 +1,9 @@
 import express, { Request } from "express";
 import { IController } from "./interface/IController";
+import { Core } from "nodets-ms-core";
+// import storageService from "../service/storage-service";
+import path from "path";
+import fs from "fs";
 
 class HealthController implements IController {
     public path = '/health';
@@ -17,6 +21,8 @@ class HealthController implements IController {
         // return loaded posts
         response.status(200).send("I'm healthy !!");
     }
+
+
 }
 
 const healthController = new HealthController();

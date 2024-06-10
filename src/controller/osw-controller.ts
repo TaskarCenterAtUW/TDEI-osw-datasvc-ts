@@ -20,6 +20,8 @@ import { Utility } from "../utility/utility";
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import { randomUUID } from "crypto";
+import Ajv, { ErrorObject } from "ajv";
+import polygonSchema from "../../schema/polygon.geojson.schema.json";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -27,6 +29,8 @@ import { randomUUID } from "crypto";
   * File filter is added to ensure only files with .zip extension
   * are allowed
   */
+const ajv = new Ajv({ allErrors: true });
+const validatePolygonGeojson = ajv.compile(polygonSchema);
 
 const validate = multer({
     dest: 'validate/',
@@ -55,7 +59,7 @@ const upload = multer({
 });
 
 // Accepted format files for on-demand conversion
-const acceptedFileFormatsForConversion = ['.zip', '.pbf', '.osm', '.xml']
+const acceptedFileFormatsForConversion = ['.zip', '.pbf', '.osm', '.xml'];
 
 const uploadForFormat = multer({
     dest: 'uploads/',
@@ -63,6 +67,19 @@ const uploadForFormat = multer({
     fileFilter: (req, file, cb) => {
         const ext = path.extname(file.originalname);
         if (!acceptedFileFormatsForConversion.includes(ext)) {
+            cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
+
+const acceptedFileFormatsForConfidence = ['.geojson'];
+const confidenceUpload = multer({
+    dest: 'confidence/',
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        if (!acceptedFileFormatsForConfidence.includes(ext)) {
             cb(new FileTypeException());
         }
         cb(null, true);
@@ -77,7 +94,7 @@ class OSWController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, this.getOswById);
+        this.router.get(`${this.path}/:id`, authenticate, this.getOswById);
         this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
@@ -86,7 +103,7 @@ class OSWController implements IController {
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
         this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.calculateConfidence); // Confidence calculation
+        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), authenticate, this.calculateConfidence); // Confidence calculation
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
         this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
@@ -111,6 +128,12 @@ class OSWController implements IController {
             //TODO:: Authorize the request to check user is part of the project group
             if (requestService.source_dataset_id == undefined || requestService.target_dataset_id == undefined) {
                 return next(new InputException('required input is empty', response));
+            }
+
+            let apiKey = request.headers['x-api-key'];
+            //Reject authorization for API key users
+            if (apiKey && apiKey !== '') {
+                return next(new UnAuthenticated());
             }
 
             //Authorize
@@ -176,66 +199,68 @@ class OSWController implements IController {
             if (!["latest", "original"].includes(file_version)) {
                 throw new InputException("Invalid file_version value");
             }
-            const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format, file_version);
+            const redirectUrl = await oswService.getDownloadableOSWUrl(request.params.id, format, file_version);
+            response.redirect(redirectUrl);
+            // const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format, file_version);
 
-            const zipFileName = `${request.params.id}_${format}_${file_version}.zip`;
+            // const zipFileName = `${request.params.id}_${format}_${file_version}.zip`;
 
-            // Create a new zip archive
-            const zip = new AdmZip();
+            // // Create a new zip archive
+            // const zip = new AdmZip();
 
-            //create folder if not exists localFilePath
-            let directory_path = path.join(`${__dirname}//${randomUUID().toString()}`);
-            if (!fs.existsSync(directory_path)) {
-                fs.mkdirSync(directory_path);
-            }
-
-            // Add files to the zip archive
-            for (const filee of fileEntities) {
-                // Create a write stream for the local file
-                const localFilePath = path.join(directory_path, filee.fileName);
-
-                const writeStream = fs.createWriteStream(localFilePath);
-
-                // Get the file stream and pipe it to the write stream
-                const fileStream = await filee.getStream();
-                fileStream.pipe(writeStream);
-
-                // Wait for the write stream to finish
-                await new Promise((resolve, reject) => {
-                    writeStream.on('finish', resolve);
-                    writeStream.on('error', reject);
-                });
-
-                // Add the local file to the zip archive
-                zip.addLocalFile(localFilePath);
-
-                // Delete the local file
-                fs.unlinkSync(localFilePath);
-            }
-            fs.rmdirSync(directory_path);
-            // Generate the zip file
-            const zipFile = zip.toBuffer();
-
-            // Set the headers and send the file
-            response.setHeader('Content-Type', 'application/zip');
-            response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-            response.send(zipFile);
-            // const zipFileName = 'osw.zip';
-
-            // // // Create a new zip archive
-            // const archive = archiver('zip', { zlib: { level: 9 } });
-            // response.setHeader('Content-Type', 'application/zip');
-            // response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-            // archive.pipe(response);
-
-            // // // Add files to the zip archive
-            // for (const filee of fileEntities) {
-            //     // Read into a stream
-            //     archive.append(await filee.getStream(), { name: filee.fileName, store: true });
+            // //create folder if not exists localFilePath
+            // let directory_path = path.join(`${__dirname}//${randomUUID().toString()}`);
+            // if (!fs.existsSync(directory_path)) {
+            //     fs.mkdirSync(directory_path);
             // }
 
-            // // // Finalize the archive and close the zip stream
-            // archive.finalize();
+            // // Add files to the zip archive
+            // for (const filee of fileEntities) {
+            //     // Create a write stream for the local file
+            //     const localFilePath = path.join(directory_path, filee.fileName);
+
+            //     const writeStream = fs.createWriteStream(localFilePath);
+
+            //     // Get the file stream and pipe it to the write stream
+            //     const fileStream = await filee.getStream();
+            //     fileStream.pipe(writeStream);
+
+            //     // Wait for the write stream to finish
+            //     await new Promise((resolve, reject) => {
+            //         writeStream.on('finish', resolve);
+            //         writeStream.on('error', reject);
+            //     });
+
+            //     // Add the local file to the zip archive
+            //     zip.addLocalFile(localFilePath);
+
+            //     // Delete the local file
+            //     fs.unlinkSync(localFilePath);
+            // }
+            // fs.rmdirSync(directory_path);
+            // // Generate the zip file
+            // const zipFile = zip.toBuffer();
+
+            // // Set the headers and send the file
+            // response.setHeader('Content-Type', 'application/zip');
+            // response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
+            // response.send(zipFile);
+            // // const zipFileName = 'osw.zip';
+
+            // // // // Create a new zip archive
+            // // const archive = archiver('zip', { zlib: { level: 9 } });
+            // // response.setHeader('Content-Type', 'application/zip');
+            // // response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
+            // // archive.pipe(response);
+
+            // // // // Add files to the zip archive
+            // // for (const filee of fileEntities) {
+            // //     // Read into a stream
+            // //     archive.append(await filee.getStream(), { name: filee.fileName, store: true });
+            // // }
+
+            // // // // Finalize the archive and close the zip stream
+            // // archive.finalize();
 
         } catch (error: any) {
             console.error('Error while getting the file stream');
@@ -417,6 +442,7 @@ class OSWController implements IController {
         }
     }
 
+
     /**
      * Request sent to calculate the 
      * @param request 
@@ -425,12 +451,29 @@ class OSWController implements IController {
      */
     calculateConfidence = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
+            const subRegionFile = request.file;
             let tdei_dataset_id = request.params["tdei_dataset_id"];
             if (tdei_dataset_id == undefined) {
                 response.status(400).send('Please add tdei_dataset_id in payload')
                 return next()
             }
-            let job_id = await oswService.calculateConfidence(tdei_dataset_id, request.body.user_id);
+
+            if (subRegionFile) {
+                const metadata = JSON.parse(subRegionFile.buffer as any);
+                const valid = validatePolygonGeojson(metadata);
+                if (!valid) {
+                    let requiredMsg = validatePolygonGeojson.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.params.missingProperty}`).join(", ");
+                    let additionalMsg = validatePolygonGeojson.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(", ");
+                    requiredMsg = requiredMsg != "" ? "Required properties : " + requiredMsg + " missing" : "";
+                    additionalMsg = additionalMsg != "" ? "Additional properties found : " + additionalMsg + " not allowed" : "";
+                    console.error("Sub region geojson schema validation error : ", additionalMsg, requiredMsg);
+                    response.status(400).send('Sub region geojson schema validation error')
+                    return next(new InputException((requiredMsg + "\n" + additionalMsg) as string));
+                }
+            }
+
+
+            let job_id = await oswService.calculateConfidence(tdei_dataset_id, subRegionFile, request.body.user_id);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 

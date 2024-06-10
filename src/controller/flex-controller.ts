@@ -56,7 +56,7 @@ class FlexController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, this.getFlexById);
+        this.router.get(`${this.path}/:id`, authenticate, this.getFlexById);
         this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
@@ -65,6 +65,7 @@ class FlexController implements IController {
         ]), metajsonValidator, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processUploadRequest);
         this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
+        this.router.get(`${this.path}/zip/:datasetId`, this.triggerZipRequest); //TODO: To remove later
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -87,34 +88,18 @@ class FlexController implements IController {
     getFlexById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            const fileEntities: FileEntity[] = await flexService.getFlexStreamById(request.params.id);
-
-            const zipFileName = 'flex.zip';
-
-            // // Create a new zip archive
-            const archive = archiver('zip', { zlib: { level: 9 } });
-            response.setHeader('Content-Type', 'application/zip');
-            response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-            archive.pipe(response);
-
-            // // Add files to the zip archive
-            for (const filee of fileEntities) {
-                archive.append(await filee.getStream(), { name: filee.fileName, store: true });
-
-            }
-
-            // // Finalize the archive and close the zip stream
-            archive.finalize();
+            const sasUrl = await flexService.getFlexDownloadUrl(request.params.id);
+            response.redirect(sasUrl);
 
         } catch (error: any) {
-            console.error('Error while getting the file stream');
+            console.error('Error while getting the file download URL');
             console.error(error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
                 return next(error);
             }
-            response.status(500).send("Error while getting the file stream");
-            next(new HttpException(500, "Error while getting the file stream"));
+            response.status(500).send("Error while getting download URL");
+            next(new HttpException(500, "Error while getting download URL for dataset"));
         }
     }
 
@@ -222,6 +207,16 @@ class FlexController implements IController {
             next(new HttpException(500, "Error while processing the upload request"));
         }
     }
+
+    // Testing code for zip request. To be removed later
+    triggerZipRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        console.log('Zip request got');
+        let datasetId = request.params["datasetId"];
+        console.log('datasetId:', datasetId);
+        let job_id = await flexService.processZipRequest(datasetId);
+        return response.status(202).send(job_id);
+    }
+
 }
 
 const flexController = new FlexController();

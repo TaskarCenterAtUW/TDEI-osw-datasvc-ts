@@ -20,7 +20,7 @@ export class ConfidenceJobResponse extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    confidence_level!: string
+    confidence_scores!: any;
 
     @Prop()
     @IsNotEmpty()

@@ -18,10 +18,19 @@ import { Utility } from '../utility/utility';
 export const authorize = (approvedRoles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         console.log("authorize middleware");
+        let apiKey = req.headers['x-api-key'];
+        //Reject authorization for API key users
+        if (apiKey && apiKey !== '') {
+            return next(new UnAuthenticated());
+        }
+
         if (!req.body.user_id)
             return next(new UnAuthenticated());
 
-        if (req.params["tdei_dataset_id"]) {
+        if (req.params["tdei_project_group_id"]) {
+            req.body.tdei_project_group_id = req.params["tdei_project_group_id"];
+        }
+        else if (req.params["tdei_dataset_id"]) {
             //Fetch tdei_project_group_id from tdei_dataset_id
             try {
                 let osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
@@ -32,9 +41,6 @@ export const authorize = (approvedRoles: string[]) => {
                 }
                 return next(new HttpException(500, "Error processing the request"));
             }
-        }
-        else if (req.params["tdei_project_group_id"]) {
-            req.body.tdei_project_group_id = req.params["tdei_project_group_id"];
         }
         else {
             console.error("authorize:tdei_project_group_id cannot be extracted");

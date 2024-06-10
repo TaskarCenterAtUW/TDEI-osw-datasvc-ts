@@ -1,5 +1,4 @@
 import { environment } from "../environment/environment";
-import fetch from "node-fetch";
 import HttpException from "../exceptions/http/http-base-exception";
 import { Readable } from "stream";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
@@ -7,6 +6,13 @@ import { Core } from "nodets-ms-core";
 import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission_request";
 
 export class Utility {
+
+    public static stringArrayToDBString(input: string[] | string): string {
+        if (Array.isArray(input)) {
+            return input.join(",");
+        }
+        return `"${input}"`;
+    }
 
     /**
      * Authorizes the roles for a user in a TDEI project group.

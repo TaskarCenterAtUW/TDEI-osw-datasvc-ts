@@ -17,6 +17,15 @@ export interface IPathwaysService {
     getPathwaysStreamById(id: string): Promise<FileEntity[]>;
 
     /**
+     * Retrieves the Pathways Download(SAS) URL by its Dataset Id.
+     * @param id - The ID of the Dataset.
+     * @returns A promise that resolves to the download URL.
+     * @throws HttpException if the Pathways is not found or if the request record is deleted.
+     * @throws Error if the storage is not configured.
+     */
+    getPathwaysDownloadUrl(id: string): Promise<string>;
+
+    /**
     * Processes the upload request and performs various validations and operations.
     * 
     * @param uploadRequestObject - The upload request object containing the necessary information.

@@ -30,12 +30,11 @@ export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
                 message: confidenceResponse.message,
                 status: confidenceResponse.success ? JobStatus.COMPLETED : JobStatus.FAILED,
                 response_props: {
-                    confidence: confidenceResponse.confidence_level,
+                    confidence_scores: confidenceResponse.confidence_scores ?? {},
                     confidence_library_version: confidenceResponse.confidence_library_version
                 }
             })
-            let updated_job = await jobService.updateJob(updateJobDTO);
-            tdeiCoreService.updateConfidenceMetric(updated_job.request_input.tdei_dataset_id, confidenceResponse);
+            await jobService.updateJob(updateJobDTO);
         } catch (error) {
             console.error(`Error while processing the ${this.eventName} for message type: ${message.messageType}`, error);
         }

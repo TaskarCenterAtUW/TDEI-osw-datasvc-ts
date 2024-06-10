@@ -26,6 +26,37 @@
             "next_steps": [
                 {
                     "process_identifier": "PATHWAYS_UPLOAD_VALIDATION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "PATHWAYS_UPLOAD_COMPRESSION_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "PATHWAYS_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "PATHWAYS_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "HANDLER",
+            "identifier": "PATHWAYS_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PATHWAYS_UPLOAD_COMPRESSION_RESPONSE_HANDLER",
                     "params": {}
                 }
             ]
@@ -122,6 +153,37 @@
             "next_steps": [
                 {
                     "process_identifier": "FLEX_UPLOAD_VALIDATION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "FLEX_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "FLEX_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "HANDLER",
+            "identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_HANDLER",
                     "params": {}
                 }
             ]
@@ -247,6 +309,53 @@
             "next_steps": [
                 {
                     "process_identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "OSW_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+                        "OSW_UPLOAD_COMPRESSION_OSM_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_COMPRESSION_OSM_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                } 
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                } 
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "COMPRESSION",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_HANDLER",
                     "params": {},
                     "delegate_worflow": [
                         "OSW_UPLOAD_DATASET_FLATTENING_REQUEST_WORKFLOW"
@@ -519,6 +628,11 @@
         {
             "description": "Subscription for pathways validation completion",
             "topic": "pathways-validation-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for dataset zipping completion",
+            "topic": "dataset-zip-response",
             "subscription": "res-handler"
         }
     ]

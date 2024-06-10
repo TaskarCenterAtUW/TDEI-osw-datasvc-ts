@@ -26,6 +26,9 @@ export function getMockFileEntity() {
         },
         uploadStream: function (stream: Readable): Promise<void> {
             throw new Error("Function not implemented.");
+        },
+        deleteFile: function (): Promise<void> {
+            return Promise.resolve();
         }
     };
     return fileEntity;
@@ -41,6 +44,12 @@ export function getMockStorageClient() {
         },
         getFileFromUrl: function (): Promise<FileEntity> {
             return Promise.resolve(getMockFileEntity());
+        },
+        getSASUrl: function (): Promise<string> {
+            return Promise.resolve(getMockSASUrl());
+        },
+        cloneFile: function (fileUrl: string, destinationContainerName: string, destinationFilePath: string): Promise<FileEntity> {
+            throw Promise.resolve(getMockFileEntity());
         }
     };
     return storageClientObj;
@@ -66,6 +75,10 @@ export function getMockTopic() {
     }
 
     return mockTopic;
+}
+
+export function getMockSASUrl() {
+    return "https://test.com";
 }
 
 export function mockAppContext() {

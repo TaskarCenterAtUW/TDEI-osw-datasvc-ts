@@ -4,11 +4,9 @@ import dbClient from "../database/data-source";
 import { DatasetEntity } from "../database/entity/dataset-entity";
 import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { IUploadRequest } from "./interface/upload-request-interface";
-import { DatasetUploadMetadata } from "../model/dataset-upload-meta";
 import path from "path";
 import { Readable } from "stream";
 import storageService from "./storage-service";
-import { MetadataEntity } from "../database/entity/metadata-entity";
 import appContext from "../app-context";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
@@ -19,6 +17,8 @@ import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { IFlexService } from "./interface/flex-service-interface";
+import { MetadataModel } from "../model/metadata.model";
+import { TdeiDate } from "../utility/tdei-date";
 
 class FlexService implements IFlexService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -35,7 +35,6 @@ class FlexService implements IFlexService {
     async processPublishRequest(user_id: string, tdei_dataset_id: string): Promise<string> {
         try {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
-            let metadata = await this.tdeiCoreServiceInstance.getMetadataDetailsById(tdei_dataset_id);
 
             if (!dataset.data_type && dataset.data_type !== TDEIDataType.flex)
                 throw new InputException(`${tdei_dataset_id} is not a flex dataset.`);
@@ -44,7 +43,7 @@ class FlexService implements IFlexService {
                 throw new InputException(`${tdei_dataset_id} already publised.`);
 
             // Check if there is a record with the same date
-            const queryResult = await dbClient.query(metadata.getOverlapQuery(TDEIDataType.flex, dataset.tdei_project_group_id, dataset.tdei_service_id));
+            const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.flex, dataset.tdei_project_group_id, dataset.tdei_service_id));
             if (queryResult.rowCount && queryResult.rowCount > 0) {
                 const recordId = queryResult.rows[0]["tdei_dataset_id"];
                 throw new OverlapException(recordId);
@@ -173,18 +172,13 @@ class FlexService implements IFlexService {
             }
 
             //Validate metadata
-            const metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
-            const metaObj = DatasetUploadMetadata.from(metadata);
-            let validation_errors = await this.tdeiCoreServiceInstance.validateObject(metaObj);
-            if (!["v2.0"].includes(metaObj.schema_version))
-                validation_errors = validation_errors + " " + "Schema version is not supported. Please use v2.0 schema version."
-            if (validation_errors) {
-                throw new InputException(`Metadata validation failed with below reasons : \n${validation_errors}`);
-            }
+            let metadata = JSON.parse(uploadRequestObject.metadataFile[0].buffer);
+            const metaObj = MetadataModel.from(metadata);
+            await this.tdeiCoreServiceInstance.validateMetadata(metaObj, TDEIDataType.flex);
 
-            //Check for unique name and version combination
-            if (await this.tdeiCoreServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
-                throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
+            // //Check for unique name and version combination
+            // if (await this.tdeiCoreServiceInstance.checkMetaNameAndVersionUnique(metadata.name, metadata.version))
+            //     throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
 
             // Generate unique UUID for the upload request 
             const uid = storageService.generateRandomUUID();
@@ -216,13 +210,14 @@ class FlexService implements IFlexService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
+            //flatten the metadata to level 1
+            metadata = MetadataModel.flatten(metadata);
+            metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
+            metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
+            metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+            //Add metadata to the entity
+            datasetEntity.metadata_json = metadata;
             await this.tdeiCoreServiceInstance.createDataset(datasetEntity);
-
-            // Insert metadata into database
-            const metadataEntity = MetadataEntity.from(metadata);
-            metadataEntity.tdei_dataset_id = uid;
-            metadataEntity.schema_version = metadata.schema_version;
-            await this.tdeiCoreServiceInstance.createMetadata(metadataEntity);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.flex,
@@ -231,8 +226,8 @@ class FlexService implements IFlexService {
                 message: 'Job started',
                 request_input: {
                     tdei_service_id: uploadRequestObject.tdei_service_id,
-                    dataset_name: metadataEntity.name,
-                    dataset_version: metadataEntity.version,
+                    dataset_name: metadata.name,
+                    dataset_version: metadata.version,
                     dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
                     metadata_file_upload_name: uploadRequestObject.metadataFile[0].originalname,
                     changeset_file_upload_name: uploadRequestObject.changesetFile ? uploadRequestObject.changesetFile[0].originalname : ""
@@ -290,6 +285,49 @@ class FlexService implements IFlexService {
             fileEntities.push(await storageClient.getFileFromUrl(decodeURIComponent(dataset.changeset_url)));
 
         return fileEntities;
+    }
+
+    async processZipRequest(tdei_dataset_id:string): Promise<String> {
+
+        try {
+             
+            
+            let workflow_identifier = "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW";
+            let queueMessage = QueueMessage.from({
+                messageId: tdei_dataset_id,
+                messageType: workflow_identifier,
+                data: {
+                    
+                }
+            });
+            //Trigger the workflow
+            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+
+            return tdei_dataset_id;
+        }catch(error) {
+            return ''
+        }
+        return ''
+    }
+
+    async getFlexDownloadUrl(tdei_dataset_id: string): Promise<string> {
+        let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+        if (dataset.data_type && dataset.data_type !== TDEIDataType.flex)
+            throw new InputException(`${tdei_dataset_id} is not a flex dataset.`);
+
+        const storageClient = Core.getStorageClient();
+        if (storageClient == null) throw new Error("Storage not configured");
+        const download_url = dataset.dataset_download_url;
+        if (download_url == undefined || download_url == null || download_url == ""){
+            throw new InputException(`${tdei_dataset_id} is not archived yet.`);
+        }
+        let dlUrl = new URL(download_url);
+        let relative_path = dlUrl.pathname;
+        let container = relative_path.split('/')[1];
+        // let file_path = relative_path.split('/').
+        let file_path_in_container = relative_path.split('/').slice(2).join('/');
+        let sasUrl = storageClient.getSASUrl(container, file_path_in_container,12); // 12 hours expiry
+        return sasUrl;
     }
 }
 

@@ -299,4 +299,91 @@ describe("General Controller Test", () => {
         });
     });
 
+    describe("cloneDataset", () => {
+        test("When clone dataset request is successful, Expect to return cloned dataset ID", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-tdei_dataset_id",
+                    tdei_project_group_id: "mock-tdei_project_group_id",
+                    tdei_service_id: "mock-tdei_service_id",
+                },
+                body: {
+                    user_id: "mock-user-id",
+                    isAdmin: true,
+                },
+                file: {
+                },
+            });
+            const { res, next } = getMockRes();
+            const clonedDatasetId = "mock-cloned_dataset_id";
+            jest.spyOn(tdeiCoreService, "cloneDataset").mockResolvedValueOnce(clonedDatasetId);
+
+            // Act
+            await generalController.cloneDataset(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(clonedDatasetId);
+        });
+
+        test("When clone dataset request fails with HttpException, Expect to return HTTP status and error message from the exception", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-tdei_dataset_id",
+                    tdei_project_group_id: "mock-tdei_project_group_id",
+                    tdei_service_id: "mock-tdei_service_id",
+                },
+                body: {
+                    user_id: "mock-user-id",
+                    isAdmin: true,
+                },
+                file: {
+                },
+            });
+            const { res, next } = getMockRes();
+            const errorMessage = "Invalid request";
+            const httpException = new HttpException(400, errorMessage);
+            jest.spyOn(tdeiCoreService, "cloneDataset").mockRejectedValueOnce(httpException);
+
+            // Act
+            await generalController.cloneDataset(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith(errorMessage);
+            expect(next).toHaveBeenCalledWith(httpException);
+        });
+
+        test("When clone dataset request fails with unexpected error, Expect to return HTTP status 500 and error message", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-tdei_dataset_id",
+                    tdei_project_group_id: "mock-tdei_project_group_id",
+                    tdei_service_id: "mock-tdei_service_id",
+                },
+                body: {
+                    user_id: "mock-user-id",
+                    isAdmin: true,
+                },
+                file: {
+                },
+            });
+            const { res, next } = getMockRes();
+            const errorMessage = "Error cloning the dataset request";
+            const unexpectedError = new Error("Unexpected error");
+            jest.spyOn(tdeiCoreService, "cloneDataset").mockRejectedValueOnce(unexpectedError);
+
+            // Act
+            await generalController.cloneDataset(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith(errorMessage);
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
 });

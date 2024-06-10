@@ -1,12 +1,41 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { DatasetEntity } from "../../database/entity/dataset-entity";
-import { MetadataEntity } from "../../database/entity/metadata-entity";
 import { ServiceEntity } from "../../database/entity/service-entity";
 import { DatasetDTO } from "../../model/dataset-dto";
 import { DatasetQueryParams } from "../../model/dataset-get-query-params";
 import { ConfidenceJobResponse } from "../../model/job-request-response/osw-confidence-job-response";
+import { TDEIDataType } from "../../model/jobs-get-query-params";
+import { MetadataModel } from "../../model/metadata.model";
+import { IDatasetCloneRequest } from "../../model/request-interfaces";
 
 export interface ITdeiCoreService {
+  /**
+   * Clones a dataset.
+   * 
+   * @param datasetCloneRequestObject - The dataset clone request object.
+   * @returns A Promise that resolves to a boolean indicating whether the dataset was cloned successfully.
+   */
+  cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<string>;
+  /**
+   * Edits the metadata of a TDEI dataset.
+   * 
+   * @param tdei_dataset_id - The ID of the TDEI dataset.
+   * @param metadataFile - The metadata file to be edited.
+   * @param user_id - The ID of the user performing the edit.
+   * @param data_type - The type of TDEI data.
+   * @returns A Promise that resolves when the metadata is successfully edited.
+   */
+  editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<void>;
+  /**
+     * Validates the metadata for a given data type.
+     * 
+     * @param metadata - The metadata to be validated.
+     * @param data_type - The type of data being validated.
+     * @param tdei_dataset_id - The ID of the TDEI dataset. This is optional and is used to exclude the current dataset from the validation.
+     * @returns A Promise that resolves to a boolean indicating whether the metadata is valid.
+     * @throws {InputException} If the metadata is invalid or if the data type is not supported.
+     */
+  validateMetadata(metadata: MetadataModel, data_type: TDEIDataType): Promise<boolean>;
   /**
        * Deletes a draft dataset with the specified ID from the content.dataset table.
        * 
@@ -37,14 +66,6 @@ export interface ITdeiCoreService {
    * @returns A Promise that resolves to the FileEntity.
    */
   getFileEntity(fullUrl: string): Promise<FileEntity>;
-
-  /**
-   * Creates metadata by inserting the provided metadata entity into the database.
-   * 
-   * @param metadataEntity The metadata entity to be inserted.
-   * @returns A promise that resolves when the metadata is successfully created, or rejects with an error if there was a problem.
-   */
-  createMetadata(metadataEntity: MetadataEntity): Promise<void>;
 
   /**
    * Creates a dataset.
@@ -97,12 +118,4 @@ export interface ITdeiCoreService {
    * @throws HttpException with status 400 if the request record is invalid or deleted.
    */
   getDatasetDetailsById(id: string): Promise<DatasetEntity>;
-
-  /**
-   * Retrieves metadata details by ID.
-   * @param id - The ID of the metadata.
-   * @returns A promise that resolves to the MetadataEntity object.
-   * @throws HttpException with status code 404 if the record is not found.
-   */
-  getMetadataDetailsById(id: string): Promise<MetadataEntity>;
 }

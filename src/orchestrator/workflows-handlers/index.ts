@@ -31,6 +31,13 @@ import { DataQueryFormatterResponseHandler } from "./backend-service/data-query-
 import { DataQueryFormatterResponseWorkflow } from "./backend-service/data-query-formatter-response-workflow";
 import { DataQueryResponseWorkflow } from "./backend-service/data-query-response-workflow";
 import { UploadValidationResponseWorkflow } from "./osw/upload/upload-osw-validation-response-workflow";
+import { FlexUploadCompressionResponseHandler } from "./flex/upload/upload-flex-compression-response-handler";
+import { UploadFlexCompressionRequestWorkflow } from "./flex/upload/upload-flex-compression-request-workflow";
+import { UploadOswCompressionResponseHandler } from "./osw/upload/upload-osw-compression-response-handler";
+import { UploadCompressionRequestWorkflow } from "./osw/upload/upload-osw-compression-request-workflow";
+import { UploadCompressionOSMRequestWorkflow } from "./osw/upload/upload-osw-compression-osm-request-workflow";
+import { UploadPathwaysCompressionRequestWorkflow } from "./pathways/upload/upload-pathways-compression-request-workflow";
+import { PathwaysUploadCompressionResponseHandler } from "./pathways/upload/upload-pathways-compression-response-handler";
 
 export default [
     GenericWorkflow,
@@ -56,6 +63,9 @@ export default [
     UploadValidationResponseHandler,
     UploadDatabaseWorkflow,
     UploadValidationResponseWorkflow,
+    UploadCompressionRequestWorkflow,
+    UploadOswCompressionResponseHandler,
+    UploadCompressionOSMRequestWorkflow,
     //Validation Only
     ValidationOnlyValidationResponseHandler,
     //On Demand Confidence
@@ -68,10 +78,14 @@ export default [
     FlexPublishValidationResponseWorkflow,
     FlexValidationOnlyValidationResponseHandler,
     FlexUploadValidationResponseHandler,
+    FlexUploadCompressionResponseHandler,
+    UploadFlexCompressionRequestWorkflow,
     //Pathways
     PathwaysPublishDatabaseWorkflow,
     PathwaysPublishValidationResponseHandler,
     PathwaysPublishValidationResponseWorkflow,
     PathwaysUploadValidationResponseHandler,
-    PathwaysValidationOnlyValidationResponseHandler
+    PathwaysValidationOnlyValidationResponseHandler,
+    UploadPathwaysCompressionRequestWorkflow,
+    PathwaysUploadCompressionResponseHandler
 ];
