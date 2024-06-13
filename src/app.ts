@@ -9,14 +9,17 @@ import dbClient from "./database/data-source";
 import HttpException from "./exceptions/http/http-base-exception";
 import { IOrchestratorService, OrchestratorService } from "./orchestrator/services/orchestrator-service";
 import orchestratorConfig from "./tdei-orchestrator-config.json";
+import orchestratorNewConfig from "./tdei-orchestrator.json";
 import workflows from "./orchestrator/workflows-handlers";
 import EventEmitter from "events";
 import appContext from "./app-context";
+import { IOrchestratorServiceNew, OrchestratorServiceNew } from "./orchestrator/services/orchestrator-service-new";
 
 class App {
     private app: express.Application;
     private port: number;
     private orchestratorService: IOrchestratorService | undefined;
+    private orchestratorServiceNew: IOrchestratorServiceNew | undefined;
 
     constructor(controllers: IController[], port: number) {
         this.app = express();
@@ -49,6 +52,10 @@ class App {
 
         this.orchestratorService.initialize(workflows);
         appContext.orchestratorServiceInstance = this.orchestratorService;
+
+        //new
+        this.orchestratorServiceNew = new OrchestratorServiceNew(orchestratorNewConfig);
+        appContext.orchestratorServiceNewInstance = this.orchestratorServiceNew;
 
     }
 

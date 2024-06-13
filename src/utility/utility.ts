@@ -4,8 +4,20 @@ import { Readable } from "stream";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { Core } from "nodets-ms-core";
 import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission_request";
+import _ from "lodash";
 
 export class Utility {
+
+    public static map_props(inputParams: any, workflow_context: any) {
+        let messageInput: any = {};
+        Object.keys(inputParams).forEach((param: any) => {
+            messageInput[param] = _.get(workflow_context, inputParams[param], null);
+            if (messageInput[param] == null) {
+                return null;
+            }
+        });
+        return messageInput;
+    }
 
     public static stringArrayToDBString(input: string[] | string): string {
         if (Array.isArray(input)) {

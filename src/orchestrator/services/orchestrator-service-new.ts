@@ -2,19 +2,26 @@ import { Core } from "nodets-ms-core";
 import { Topic } from "nodets-ms-core/lib/core/queue/topic";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { EventEmitter } from 'events';
-import { OrchestratorConfigContextNew, Task, Workflow } from "../models/config-model-new";
+import { OrchestratorWorkflowConfig, TaskConfig, WorkflowConfig } from "../models/config-model-new";
 import _ from 'lodash';
-import { OrchestratorFunctions } from "./orchestrator-functions";
+import { WorkflowContext, WorkflowStatus } from "../models/workflow-context.model";
+import { WorkflowDetailsEntity } from "../../database/entity/workflow-details-entity";
+import { Utility } from "../../utility/utility";
 
+export interface IOrchestratorServiceNew {
+    startWorkflow(job_id: string, workflowName: string, workflow_input: any, user_id: string): Promise<void>;
+    executeNextTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: any): Promise<void>;
+    publishMessage(topic: string, message: QueueMessage): Promise<void>;
+}
 
-export class OrchestratorServiceNew {
+export class OrchestratorServiceNew implements IOrchestratorServiceNew {
     private topicCollection = new Map<string, Topic>();
-    private orchestratorConfigContext: OrchestratorConfigContextNew = new OrchestratorConfigContextNew({});
+    private orchestratorConfigContext: OrchestratorWorkflowConfig = new OrchestratorWorkflowConfig({});
     private workflowEvent = new EventEmitter();
 
     constructor(orchestratorConfig: any) {
         console.log("Initializing TDEI Orchestrator service");
-        this.orchestratorConfigContext = new OrchestratorConfigContextNew(orchestratorConfig);
+        this.orchestratorConfigContext = new OrchestratorWorkflowConfig(orchestratorConfig);
     }
 
     /**
@@ -22,7 +29,7 @@ export class OrchestratorServiceNew {
      * @param name 
      * @returns 
      */
-    getWorkflowByName(name: string): Workflow | undefined {
+    getWorkflowByName(name: string): WorkflowConfig | undefined {
         return this.orchestratorConfigContext.getWorkflowByName(name);
     }
 
@@ -30,7 +37,21 @@ export class OrchestratorServiceNew {
      * Initializes the orchestrator
      */
     initialize(workflows: any): void {
+        this.registerWorkflows(workflows);
         this.initializeOrchestrator();
+    }
+
+    /**
+     * Registers the workflows
+     * @param workflows 
+     */
+    registerWorkflows(workflows: any): void {
+        //Register all handlers and workflow
+        console.log("Registering the orchestration workflow handlers");
+        const uniqueArray = [...new Set(workflows)];
+        uniqueArray.forEach((x: any) => {
+            let handler = new x(this.workflowEvent, this);
+        });
     }
 
     /**
@@ -70,92 +91,75 @@ export class OrchestratorServiceNew {
     }
 
     /**
+     * Start the workflow
+     * @param workflowName 
+     * @param workflow_input 
+     */
+    public async startWorkflow(job_id: string, workflowName: string, workflow_input: any, user_id: string) {
+
+        //New workflow
+        let workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflowName);
+        if (!workflowConfig) {
+            console.error("Workflow not found", workflowName);
+            throw new Error("Workflow not found");
+        }
+        if (!workflowConfig.validateInput(workflow_input)) {
+            console.error("Invalid/Missing input for workflow", workflowName);
+            throw new Error("Invalid/Missing input for workflow");
+        }
+        let workflowContext = WorkflowContext.from({
+            workflow_input: workflow_input
+        });
+        workflowContext.start();
+        let workflow_db_details = WorkflowDetailsEntity.from({
+            job_id: job_id,
+            workflow_name: workflowName,
+            workflow_context: workflowContext,
+            status: WorkflowStatus.RUNNING,
+            triggered_by: user_id
+        });
+        //Save the workflow
+        await WorkflowDetailsEntity.saveWorkflow(workflow_db_details);
+        workflowContext.execution_id = workflow_db_details.execution_id;
+        await this.executeTask(workflowConfig, workflowConfig.tasks[0], workflowContext);
+    }
+
+    /**
      * Invokes the event
      * @param workflow 
      * @param message 
      */
-    private async handleEventResponse(workflow: Workflow, task: Task, workflow_context: any, message: QueueMessage) {
-        console.log("Received event response for task :", task.task_reference_name);
+    private async handleEventResponse(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext, message: QueueMessage) {
+        console.log("Received event response for task :", task.name);
 
         //Extract the output parameters
         let outputParams = task.output_params;
         let messageData = message.data;
-        let messageOutput: any = {};
-        //Compose the output parameters
-        Object.keys(outputParams).forEach((param: any) => {
-            messageOutput[param] = _.get(messageData, outputParams[param]);
-        });
 
-        workflow_context[task.name].output = messageOutput;
-
-        //get the next task in workflow
-        await this.executeNextTask(workflow, task, workflow_context, message.messageId);
-    }
-
-    private async executeNextTask(workflow: Workflow, task: Task, workflow_context: any, messageId: string) {
-        let nextTask = this.getNextTask(workflow, task);
-        if (nextTask) {
-            switch (nextTask.type) {
-                case "Event":
-                    //Compose input parameters
-                    let inputParams = nextTask.input_params;
-                    let messageOutput: any = {};
-                    //Compose the input parameters
-                    Object.keys(inputParams).forEach((param: any) => {
-                        messageOutput[param] = _.get(workflow_context, inputParams[param]);
-                        //TODO:Handle not resolved json paths
-                    });
-                    //Publish the message
-                    let queueMessage = QueueMessage.from({
-                        messageId: messageId,
-                        messageType: nextTask.task_reference_name,
-                        data: messageOutput
-                    });
-                    //TODO:Save the workflow context & stage
-                    await this.publishMessage(nextTask.topic as string, queueMessage);
-                    break;
-                case "Utility":
-                    //TODO:Invoke the utility function
-                    await this.handleUtilityTask(workflow, nextTask, workflow_context, messageId);
-                    //TODO:Save the workflow context & stage
-                    break;
-                default:
-                    console.error("Invalid task type", nextTask.type);
-                    break;
-            }
+        let messageOutput: any = Utility.map_props(outputParams, messageData);
+        if (messageOutput == null) {
+            console.error(`Unresolved input parameter for task : ${task.name}`);
+            //TODO: Handle the error
         }
-    }
 
-    /**
-     * Handle the utility task
-     * @param workflow 
-     * @param task 
-     * @param workflow_context 
-     * @param message 
-     */
-    private async handleUtilityTask(workflow: Workflow, task: Task, workflow_context: any, messageId: string) {
+        workflow_context.tasks[task.name].output = messageOutput;
 
-        console.log("Executing utility task", task.name);
-
-        let inputParams = task.input_params;
-
-        let messageOutput: any = {};
-
-        Object.keys(inputParams).forEach((param: any) => {
-            messageOutput[param] = _.get(workflow_context, inputParams[param]);
-
-        });
-
-        let output = await OrchestratorFunctions.invokeMethod(task.name, messageOutput);
-
-        workflow_context[task.name].output = output;
-
-        if (output.success) {
-            await this.executeNextTask(workflow, task, workflow_context, messageId);
+        if (messageOutput.success) {
+            workflow_context.tasks[task.name].completed();
+            workflow_context.updateCurrentTask(workflow_context.tasks[task.name]);
         }
         else {
-            console.error("Utility task failed", task.name);
-            //TODO:Handle the failure , DB update
+            workflow_context.tasks[task.name].fail(messageOutput.message);
+            workflow_context.updateCurrentTask(workflow_context.tasks[task.name]);
+        }
+        //Save the workflow context
+        await WorkflowDetailsEntity.saveWorkflowContext(workflow_context.execution_id, workflow_context);
+
+        if (messageOutput.success) {
+            await this.executeNextTask(workflow, task, workflow_context);
+        }
+        else {
+            console.error(`Task failed for : ${task.name} , workflow : ${workflow.name}, execution_id : ${workflow_context.execution_id}`)
         }
     }
 
@@ -165,7 +169,7 @@ export class OrchestratorServiceNew {
      * @param task 
      * @returns 
      */
-    private getNextTask(workflow: Workflow, task: Task): Task | undefined {
+    private getNextTask(workflow: WorkflowConfig, task: TaskConfig): TaskConfig | undefined {
         let nextTask = workflow.tasks.findIndex(x => x.task_reference_name == task.task_reference_name);
         if (workflow.tasks.length > nextTask + 1) {
             console.log("No more tasks in the workflow");
@@ -174,6 +178,39 @@ export class OrchestratorServiceNew {
         return workflow.tasks[nextTask + 1];
     }
 
+    /**
+     * Execute the next task in the workflow
+     * @param workflow
+     * @param task
+     * @param workflow_context
+     * @param messageId
+     * @returns
+     */
+    async executeNextTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: any) {
+        let nextTask = this.getNextTask(workflow, task);
+        await this.executeTask(workflow, nextTask, workflow_context);
+    }
+
+    private async executeTask(workflow: WorkflowConfig, task: TaskConfig | undefined, workflow_context: WorkflowContext) {
+        if (task) {
+            switch (task.type) {
+                case "Event":
+                    this.workflowEvent.emit("EVENT_TASK_HANDLER", workflow, task, workflow_context);
+                    break;
+                case "Utility":
+                    this.workflowEvent.emit("UTILITY_TASK_HANDLER", workflow, task, workflow_context);
+                    break;
+                default:
+                    console.error("Invalid task type", task.type);
+                    break;
+            }
+        }
+        else {
+            console.log(`Workflow ${workflow.name} completed successfully`);
+        }
+    }
+
+
     /** 
      * Handle the subscribed messages
      * @param message 
@@ -181,15 +218,16 @@ export class OrchestratorServiceNew {
     private handleMessage = async (message: QueueMessage) => {
         try {
             console.log("Received message", message.messageType);
-            //Get workflow identifier
+
             let messageType = message.messageType.split("|");
             let workflow_name = messageType[0];
-            //Update the workflow history
-            let workflow = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
-            if (workflow) {
-                let task = workflow.tasks.find(x => x.task_reference_name == message.messageType);
-                if (task) {
-                    await this.handleEventResponse(workflow, task, {}, message);
+            let task_name = messageType[1];
+            let workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
+            if (workflowConfig) {
+                let taskConfig = workflowConfig.tasks.find(x => x.task_reference_name == task_name);
+                if (taskConfig) {
+                    let wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
+                    await this.handleEventResponse(workflowConfig, taskConfig, wokflow_details!.workflow_context, message);
                 }
                 else {
                     console.error("Task not found", message.messageType);

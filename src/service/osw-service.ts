@@ -573,18 +573,14 @@ class OswService implements IOswService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_identifier = "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    user_id: uploadRequestObject.user_id,// Required field for message authorization
-                    tdei_project_group_id: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
-                    file_upload_path: datasetUploadUrl
-                }
-            });
+            let workflow_start = "osw_upload";
+            let workflow_input = {
+                user_id: uploadRequestObject.user_id,// Required field for message authorization
+                tdei_project_group_id: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
+                dataset_url: datasetUploadUrl
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorServiceNewInstance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, uploadRequestObject.user_id);
 
             //Return the tdei_dataset_id
             return Promise.resolve(job_id.toString());
@@ -651,10 +647,10 @@ class OswService implements IOswService {
         return fileEntities;
     }
 
-   async getDownloadableOSWUrl(id: string, format: string="osw", file_version: string="latest"): Promise<string> {
+    async getDownloadableOSWUrl(id: string, format: string = "osw", file_version: string = "latest"): Promise<string> {
 
         let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(id);
-        if (file_version != "latest"){
+        if (file_version != "latest") {
             throw new InputException("Only latest version of the file can be downloaded");
         }
         if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
@@ -663,13 +659,13 @@ class OswService implements IOswService {
         if (storageClient == null) throw new Error("Storage not configured");
         let dataset_db_url = '';
         if (format == "osm") {
-            if (dataset.dataset_osm_download_url && dataset.dataset_osm_download_url != ''){
+            if (dataset.dataset_osm_download_url && dataset.dataset_osm_download_url != '') {
                 dataset_db_url = decodeURIComponent(dataset.dataset_osm_download_url);
             }
             else
                 throw new HttpException(404, "Requested OSM file format not found");
         } else {
-            if (dataset.dataset_download_url && dataset.dataset_download_url != ''){
+            if (dataset.dataset_download_url && dataset.dataset_download_url != '') {
                 dataset_db_url = decodeURIComponent(dataset.dataset_download_url);
             }
             else
@@ -679,10 +675,10 @@ class OswService implements IOswService {
         let relative_path = dlUrl.pathname;
         let container = relative_path.split('/')[1];
         let file_path_in_container = relative_path.split('/').slice(2).join('/');
-        let sasUrl = storageClient.getSASUrl(container, file_path_in_container,12); // 12 hours expiry
+        let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 12); // 12 hours expiry
         return sasUrl;
 
-        
+
     }
 }
 

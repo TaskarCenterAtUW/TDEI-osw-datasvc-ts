@@ -18,6 +18,7 @@ export class OrchestratorFunctions {
                 url: decodeURIComponent(url)
             });
         } catch (e) {
+            console.error("Error while decoding url", e);
             return Promise.resolve({
                 sucess: false,
                 message: "Error while decoding url",
@@ -51,6 +52,7 @@ export class OrchestratorFunctions {
                 message: "Table updated successfully"
             });
         } catch (e) {
+            console.error("Error while updating table", e);
             return Promise.resolve({
                 success: false,
                 message: "Error while updating table" + e + ", Input : " + input
@@ -74,9 +76,10 @@ export class OrchestratorFunctions {
                 folder_path: output_path
             });
         } catch (error) {
+            console.error("Error while generating blob folder path", error);
             return Promise.resolve({
                 success: false,
-                message: "Error while generating folder path",
+                message: "Error while generating blob folder path",
                 folder_path: ""
             });
         }
