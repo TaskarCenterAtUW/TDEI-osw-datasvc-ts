@@ -37,6 +37,10 @@ export class WorkflowContext extends BaseDto {
     @Prop()
     tasks: { [key: string]: Task } = {};
     @Prop()
+    get tasks_track_number(): number {
+        return Object.keys(this.tasks).length;
+    }
+    @Prop()
     last_updated_at: string = TdeiDate.UTC();
 
     public static failed(context: WorkflowContext, error: string): void {

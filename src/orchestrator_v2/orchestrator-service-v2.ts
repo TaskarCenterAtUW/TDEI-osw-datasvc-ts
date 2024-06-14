@@ -110,7 +110,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
         }
         let workflowContext = WorkflowContext.from({
             workflow_input: workflow_input,
-            total_workflow_tasks: workflowConfig.tasks.length,
+            total_workflow_tasks: workflowConfig.tasks.length
         });
         WorkflowContext.start(workflowContext);
         let workflow_db_details = WorkflowDetailsEntity.from({

@@ -62,13 +62,11 @@ export class WorkflowDetailsEntity extends BaseDto {
                 job_id, 
                 workflow_name,
                 workflow_context,
-                status,
                 triggered_by,
-                created_at,
-                updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            values: [workflow.job_id, workflow.workflow_name, workflow.workflow_context,
-            workflow.status, workflow.triggered_by, TdeiDate.UTC(), TdeiDate.UTC()]
+                created_at
+                )
+                VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            values: [workflow.job_id, workflow.workflow_name, workflow.workflow_context, workflow.triggered_by, TdeiDate.UTC()]
         }
 
         let result = await dbClient.query(queryObject);

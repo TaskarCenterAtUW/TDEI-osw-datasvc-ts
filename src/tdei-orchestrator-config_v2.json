@@ -196,6 +196,26 @@
                         "success": "${data.success}",
                         "message": "${data.message}"
                     }
+                },
+                {
+                    "name": "osw_publish_db",
+                    "task_reference_name": "osw_publish_db",
+                    "description": "Updates the status of the dataset to Pre-Release",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "${workflow_input.tdei_dataset_id}"
+                        },
+                        "data": {
+                            "status": "Pre-Release"
+                        }
+                    },
+                    "output_params": {
+                        "success": "${success}",
+                        "message": "${message}"
+                    },
+                    "function": "update_table"
                 }
             ]
         }
