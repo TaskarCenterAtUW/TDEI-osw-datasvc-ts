@@ -1,14 +1,14 @@
 import { IOrchestratorService } from "./orchestrator/services/orchestrator-service";
-import { IOrchestratorServiceNew } from "./orchestrator/services/orchestrator-service-new";
+import { IOrchestratorService_v2 } from "./orchestrator_v2/orchestrator-service-v2";
 
 export interface IAppContext {
     orchestratorServiceInstance: IOrchestratorService;
-    orchestratorServiceNewInstance: IOrchestratorServiceNew;
+    orchestratorService_v2_Instance: IOrchestratorService_v2;
 }
 
 class AppContext implements IAppContext {
     orchestratorServiceInstance!: IOrchestratorService;
-    orchestratorServiceNewInstance!: IOrchestratorServiceNew;
+    orchestratorService_v2_Instance!: IOrchestratorService_v2;
     constructor() {
     }
 }

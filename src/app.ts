@@ -7,19 +7,17 @@ import { Core } from "nodets-ms-core";
 import { unhandledExceptionAndRejectionHandler } from "./middleware/unhandled-exception-rejection-handler";
 import dbClient from "./database/data-source";
 import HttpException from "./exceptions/http/http-base-exception";
-import { IOrchestratorService, OrchestratorService } from "./orchestrator/services/orchestrator-service";
-import orchestratorConfig from "./tdei-orchestrator-config.json";
-import orchestratorNewConfig from "./tdei-orchestrator.json";
-import workflows from "./orchestrator/workflows-handlers";
-import EventEmitter from "events";
+import { IOrchestratorService } from "./orchestrator/services/orchestrator-service";
+import orchestratorConfig_v2 from "./tdei-orchestrator-config_v2.json";
+import workflowsnew from "./orchestrator_v2/index";
 import appContext from "./app-context";
-import { IOrchestratorServiceNew, OrchestratorServiceNew } from "./orchestrator/services/orchestrator-service-new";
+import { IOrchestratorService_v2, OrchestratorService_v2 } from "./orchestrator_v2/orchestrator-service-v2";
 
 class App {
     private app: express.Application;
     private port: number;
     private orchestratorService: IOrchestratorService | undefined;
-    private orchestratorServiceNew: IOrchestratorServiceNew | undefined;
+    private orchestratorService_v2: IOrchestratorService_v2 | undefined;
 
     constructor(controllers: IController[], port: number) {
         this.app = express();
@@ -47,16 +45,14 @@ class App {
     }
 
     private initializeOrchestrator() {
-        if (!this.orchestratorService)
-            this.orchestratorService = new OrchestratorService(orchestratorConfig);
+        // if (!this.orchestratorService)
+        //     this.orchestratorService = new OrchestratorService(orchestratorConfig);
 
-        this.orchestratorService.initialize(workflows);
-        appContext.orchestratorServiceInstance = this.orchestratorService;
+        // this.orchestratorService.initialize(workflows);
+        // appContext.orchestratorServiceInstance = this.orchestratorService;
 
-        //new
-        this.orchestratorServiceNew = new OrchestratorServiceNew(orchestratorNewConfig);
-        appContext.orchestratorServiceNewInstance = this.orchestratorServiceNew;
-
+        this.orchestratorService_v2 = new OrchestratorService_v2(orchestratorConfig_v2, workflowsnew);
+        appContext.orchestratorService_v2_Instance = this.orchestratorService_v2;
     }
 
     public get orchestratorServiceInstance() {

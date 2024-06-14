@@ -24,6 +24,7 @@ import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { RecordStatus } from "../model/dataset-get-query-params";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
+import { WorkflowName } from "../constants/app-constants";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -475,6 +476,7 @@ class OswService implements IOswService {
      * @throws {Error} If any other error occurs during the process.
      */
     async processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string> {
+        let uid = "";
         try {
 
             //validate derived dataset id
@@ -511,7 +513,7 @@ class OswService implements IOswService {
             //     throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
 
             // Generate unique UUID for the upload request 
-            const uid = storageService.generateRandomUUID();
+            uid = storageService.generateRandomUUID();
 
             //Upload the files to the storage
             const storageFolderPath = storageService.getFolderPath(uploadRequestObject.tdei_project_group_id, uid);
@@ -573,18 +575,23 @@ class OswService implements IOswService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_start = "osw_upload";
+            let workflow_start = WorkflowName.osw_upload;
             let workflow_input = {
                 user_id: uploadRequestObject.user_id,// Required field for message authorization
                 tdei_project_group_id: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
-                dataset_url: datasetUploadUrl
+                dataset_url: decodeURIComponent(datasetUploadUrl),
+                metadata_url: decodeURIComponent(metadataUploadUrl),
+                changeset_url: changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "",
+                tdei_dataset_id: uid,
+                latest_dataset_url: decodeURIComponent(datasetUploadUrl)
             };
             //Trigger the workflow
-            await appContext.orchestratorServiceNewInstance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, uploadRequestObject.user_id);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, uploadRequestObject.user_id);
 
             //Return the tdei_dataset_id
             return Promise.resolve(job_id.toString());
         } catch (error) {
+            await this.tdeiCoreServiceInstance.deleteDraftDataset(uid);
             throw error;
         }
     }

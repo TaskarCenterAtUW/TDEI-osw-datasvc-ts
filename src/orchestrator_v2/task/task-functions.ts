@@ -10,19 +10,19 @@ export class OrchestratorFunctions {
      * @param url
      * @returns decoded url
      **/
-    public static decode_url(url: string): Promise<any> {
+    public static decode_url(input: any): Promise<any> {
         try {
             return Promise.resolve({
-                sucess: true,
+                success: true,
                 message: "Url decoded successfully",
-                url: decodeURIComponent(url)
+                url: decodeURIComponent(input.url)
             });
         } catch (e) {
             console.error("Error while decoding url", e);
             return Promise.resolve({
-                sucess: false,
+                success: false,
                 message: "Error while decoding url",
-                url: url
+                url: input.url
             });
         }
     }
@@ -61,19 +61,23 @@ export class OrchestratorFunctions {
     }
 
     /**
-     * Get the dataset blob folder path
+     * Get the dataset blob folder path for osw , osm
      * @param blobUrl 
      * @param tdei_dataset_id 
      * @returns folder path
      */
-    static async get_dataset_blob_folder_path(blobUrl: string, tdei_dataset_id: string): Promise<any> {
+    static async get_osw_osm_dataset_blob_folder_zip_path(input: any): Promise<any> {
+        let blobUrl: string = input.blobUrl;
+        let tdei_dataset_id: string = input.tdei_dataset_id;
         try {
             let directory = path.dirname(blobUrl);
-            let output_path = directory + '/zip/' + tdei_dataset_id + '.zip';
+            let osm_output_path = `${directory}/zip/${tdei_dataset_id}.osm.zip`;
+            let osw_output_path = `${directory}/zip/${tdei_dataset_id}.osw.zip`;
             return Promise.resolve({
                 success: true,
                 message: "Folder path generated successfully",
-                folder_path: output_path
+                osm_output_path: osm_output_path,
+                osw_output_path: osw_output_path
             });
         } catch (error) {
             console.error("Error while generating blob folder path", error);

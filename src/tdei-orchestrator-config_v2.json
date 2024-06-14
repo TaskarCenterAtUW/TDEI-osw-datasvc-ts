@@ -6,7 +6,11 @@
             "workflow_input": {
                 "user_id": "${user_id}",
                 "tdei_project_group_id": "${tdei_project_group_id}",
-                "dataset_url": "${dataset_url}"
+                "dataset_url": "${dataset_url}",
+                "metadata_url": "${metadata_url}",
+                "changeset_url": "${changeset_url}",
+                "latest_dataset_url": "${latest_dataset_url}",
+                "tdei_dataset_id": "${tdei_dataset_id}"
             },
             "tasks": [
                 {
@@ -14,15 +18,15 @@
                     "task_reference_name": "osw_validation",
                     "description": "Validate the uploaded osw file",
                     "type": "Event",
-                    "topic": "osw-validation-request",
+                    "topic": "temp-request",
                     "input_params": {
                         "user_id": "${workflow_input.user_id}",
                         "tdei_project_group_id": "${workflow_input.tdei_project_group_id}",
                         "file_upload_path": "${workflow_input.dataset_url}"
                     },
                     "output_params": {
-                        "success": "${message.data.success}",
-                        "message": "${message.data.message}"
+                        "success": "${data.success}",
+                        "message": "${data.message}"
                     }
                 },
                 {
@@ -30,16 +34,16 @@
                     "task_reference_name": "osw_osm_formatting",
                     "description": "Format the validated osw file",
                     "type": "Event",
-                    "topic": "osw-formatting-request",
+                    "topic": "temp-request",
                     "input_params": {
                         "user_id": "${workflow_input.user_id}",
                         "tdei_project_group_id": "${workflow_input.tdei_project_group_id}",
                         "file_upload_path": "${workflow_input.dataset_url}"
                     },
                     "output_params": {
-                        "success": "${message.data.success}",
-                        "message": "${message.data.message}",
-                        "formatted_file_path": "${message.data.formatted_url}"
+                        "success": "${data.success}",
+                        "message": "${data.message}",
+                        "formatted_url": "${data.formatted_url}"
                     }
                 },
                 {
@@ -48,7 +52,7 @@
                     "description": "Helper task to decode the formatted osw file url",
                     "type": "Utility",
                     "input_params": {
-                        "url": "${task.osw_formatting.output.formatted_url}"
+                        "url": "${tasks.osw_osm_formatting.output.formatted_url}"
                     },
                     "output_params": {
                         "success": "${success}",
@@ -68,8 +72,8 @@
                             "tdei_dataset_id": "${workflow_input.tdei_dataset_id}"
                         },
                         "data": {
-                            "osm_url": "${task.decode_url.output.url}",
-                            "latest_osm_url": "${task.decode_url.output.url}"
+                            "osm_url": "${tasks.decode_url.output.url}",
+                            "latest_osm_url": "${tasks.decode_url.output.url}"
                         }
                     },
                     "output_params": {
@@ -79,39 +83,41 @@
                     "function": "update_table"
                 },
                 {
-                    "name": "dataset_blob_folder_path",
-                    "task_reference_name": "dataset_blob_folder_path",
+                    "name": "get_osw_osm_dataset_blob_folder_zip_path",
+                    "task_reference_name": "get_osw_osm_dataset_blob_folder_zip_path",
                     "description": "Helper task to decode the formatted osw file url",
                     "type": "Utility",
                     "input_params": {
-                        "url": "${workflow_input.input.dataset_url}"
+                        "blobUrl": "${workflow_input.dataset_url}",
+                        "tdei_dataset_id": "${workflow_input.tdei_dataset_id}"
                     },
                     "output_params": {
                         "success": "${success}",
                         "message": "${message}",
-                        "folder_path": "${folder_path}"
+                        "osm_output_path": "${osm_output_path}",
+                        "osw_output_path": "${osw_output_path}"
                     },
-                    "function": "get_dataset_blob_folder_path"
+                    "function": "get_osw_osm_dataset_blob_folder_zip_path"
                 },
                 {
                     "name": "osm_compression",
                     "task_reference_name": "osm_compression",
                     "description": "Compress the uploaded osw file",
                     "type": "Event",
-                    "topic": "osw-compression-request",
+                    "topic": "temp-request",
                     "input_params": {
                         "isOsm": true,
                         "input_urls": [
-                            "${task.decode_url.output.url}",
+                            "${tasks.decode_url.output.url}",
                             "${workflow_input.metadata_url}",
                             "${workflow_input.changeset_url}"
                         ],
-                        "output_path": "${task.get_dataset_blob_folder_path.output.folder_path}"
+                        "output_path": "${tasks.get_osw_osm_dataset_blob_folder_zip_path.output.osm_output_path}"
                     },
                     "output_params": {
-                        "success": "${message.data.success}",
-                        "message": "${message.data.message}",
-                        "output_path": "${message.data.output_path}"
+                        "success": "${data.success}",
+                        "message": "${data.message}",
+                        "output_path": "${data.output_path}"
                     }
                 },
                 {
@@ -125,7 +131,7 @@
                             "tdei_dataset_id": "${workflow_input.tdei_dataset_id}"
                         },
                         "data": {
-                            "dataset_osm_download_url": "${task.osm_compression.output.output_path}"
+                            "dataset_osm_download_url": "${tasks.osm_compression.output.output_path}"
                         }
                     },
                     "output_params": {
@@ -139,7 +145,7 @@
                     "task_reference_name": "osw_compression",
                     "description": "Compress the uploaded osw file",
                     "type": "Event",
-                    "topic": "osw-compression-request",
+                    "topic": "temp-request",
                     "input_params": {
                         "isOsm": false,
                         "input_urls": [
@@ -147,11 +153,12 @@
                             "${workflow_input.metadata_url}",
                             "${workflow_input.changeset_url}"
                         ],
-                        "output_params": {
-                            "success": "${message.data.success}",
-                            "message": "${message.data.message}",
-                            "output_path": "${message.data.output_path}"
-                        }
+                        "output_path": "${tasks.get_osw_osm_dataset_blob_folder_zip_path.output.osw_output_path}"
+                    },
+                    "output_params": {
+                        "success": "${data.success}",
+                        "message": "${data.message}",
+                        "output_path": "${data.output_path}"
                     }
                 },
                 {
@@ -160,9 +167,13 @@
                     "description": "Helper task to decode the formatted osw file url",
                     "type": "Utility",
                     "input_params": {
-                        "table_name": "content.dataset",
-                        "condition": "tdei_dataset_id = ${workflow_input.tdei_dataset_id}",
-                        "update_expression": "osm_url = ${task.osw_compression.output.output_path}"
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "${workflow_input.tdei_dataset_id}"
+                        },
+                        "data": {
+                            "dataset_download_url": "${tasks.osw_compression.output.output_path}"
+                        }
                     },
                     "output_params": {
                         "success": "${success}",
@@ -175,15 +186,15 @@
                     "task_reference_name": "osw_extract_load",
                     "description": "Load the formatted osw file into the database",
                     "type": "Event",
-                    "topic": "extract-load-request",
+                    "topic": "temp-request",
                     "input_params": {
                         "tdei_dataset_id": "${workflow_input.tdei_dataset_id}",
                         "file_upload_path": "${workflow_input.dataset_url}",
                         "data_type": "osw"
                     },
                     "output_params": {
-                        "success": "${message.data.success}",
-                        "message": "${message.data.message}"
+                        "success": "${data.success}",
+                        "message": "${data.message}"
                     }
                 }
             ]
@@ -192,7 +203,7 @@
     "subscriptions": [
         {
             "description": "Subscription for osw validation completion",
-            "topic": "osw-validation-response",
+            "topic": "temp-response",
             "subscription": "res-handler"
         },
         {
