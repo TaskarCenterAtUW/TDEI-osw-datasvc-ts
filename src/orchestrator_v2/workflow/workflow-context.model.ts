@@ -36,33 +36,40 @@ export class WorkflowContext extends BaseDto {
     total_workflow_tasks!: number;
     @Prop()
     tasks: { [key: string]: Task } = {};
+    @Prop()
+    last_updated_at: string = TdeiDate.UTC();
 
     public static failed(context: WorkflowContext, error: string): void {
         context.status = WorkflowStatus.FAILED;
         context.end_time = TdeiDate.UTC();
         context.current_task_error = error;
         context.current_task_status = WorkflowStatus.FAILED;
+        context.last_updated_at = TdeiDate.UTC();
     }
 
     public static updateCurrentTask(context: WorkflowContext, task: Task): void {
         context.current_task = task.name;
         context.current_task_status = task.status;
         context.current_task_error = task.error ?? "";
+        context.last_updated_at = TdeiDate.UTC();
     }
 
     public static completed(context: WorkflowContext): void {
         context.status = WorkflowStatus.COMPLETED;
         context.end_time = TdeiDate.UTC();
+        context.last_updated_at = TdeiDate.UTC();
     }
 
     public static start(context: WorkflowContext): void {
         context.status = WorkflowStatus.RUNNING;
+        context.last_updated_at = TdeiDate.UTC();
     }
 
     public terminate(context: WorkflowContext, reason: string): void {
         context.status = WorkflowStatus.TERMINATED;
         context.terminated_reason = reason;
         context.terminated_at = TdeiDate.UTC();
+        context.last_updated_at = TdeiDate.UTC();
     }
 }
 
