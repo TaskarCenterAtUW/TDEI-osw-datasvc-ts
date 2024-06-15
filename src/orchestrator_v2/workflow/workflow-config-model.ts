@@ -26,6 +26,7 @@ export class WorkflowConfig {
     description!: string;
     workflow_input!: any;
     tasks: TaskConfig[] = new Array<TaskConfig>();
+    exception_task: TaskConfig[] = new Array<TaskConfig>();
 
     constructor(config: Partial<WorkflowConfig>) {
         Object.assign(this, config);
@@ -33,9 +34,9 @@ export class WorkflowConfig {
 
     validateInput(input: any): boolean {
         let valid = true;
+        let input_keys = Object.keys(input);
         Object.keys(this.workflow_input).forEach(key => {
-            this.workflow_input[key] = _.get(input, this.workflow_input[key].replace(/['"`${}]/g, ""), null);
-            if (this.workflow_input[key] == null) {
+            if (!input_keys.includes(key)) {
                 console.error(`Unresolved input parameter for workflow : ${this.name}, param : ${key} `);
                 valid = false;
             }

@@ -6,12 +6,14 @@ import { OrchestratorWorkflowConfig, TaskConfig, WorkflowConfig } from "./workfl
 import _ from 'lodash';
 import { Task, WorkflowContext, WorkflowStatus } from "./workflow/workflow-context.model";
 import { WorkflowDetailsEntity } from "../database/entity/workflow-details-entity";
-import { Utility } from "../utility/utility";
+import { OrchestratorUtility } from "./orchestrator-utility";
 
 export interface IOrchestratorService_v2 {
     startWorkflow(job_id: string, workflowName: string, workflow_input: any, user_id: string): Promise<void>;
     executeNextTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: any): Promise<void>;
     publishMessage(topic: string, message: QueueMessage): Promise<void>;
+    executeExceptionTasks(workflow: WorkflowConfig, workflow_context: WorkflowContext): Promise<void>;
+    executeNextExceptionTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext): Promise<void>;
 }
 
 export class OrchestratorService_v2 implements IOrchestratorService_v2 {
@@ -138,7 +140,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
             //Extract the output parameters
             let outputParams = task.output_params;
 
-            let messageOutput: any = Utility.map_props(outputParams, message);
+            let messageOutput: any = OrchestratorUtility.map_props(outputParams, message);
             if (messageOutput == null) {
                 const message = `Unresolved input parameter for task : ${task.name}`;
                 console.error(message);
@@ -176,6 +178,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
             Task.fail(workflow_context.tasks[task.name], message);
             WorkflowContext.updateCurrentTask(workflow_context, workflow_context.tasks[task.name]);
             await WorkflowDetailsEntity.saveWorkflowContext(workflow_context.execution_id, workflow_context);
+            this.executeExceptionTasks(workflow, workflow_context);
         }
     }
 
@@ -214,6 +217,63 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
         }
     }
 
+    /**
+    * Get the next exception task in the workflow
+    * @param workflow 
+    * @param task 
+    * @returns 
+    */
+    private getNextExceptionTask(workflow: WorkflowConfig, task: TaskConfig): TaskConfig | undefined {
+        let nextTask = workflow.exception_task.findIndex(x => x.task_reference_name == task.task_reference_name);
+        if ((nextTask + 1) > workflow.exception_task.length) {
+            console.log("No more exception tasks in the workflow");
+            return undefined;
+        }
+        return workflow.exception_task[nextTask + 1];
+    }
+
+    /**
+     * Execute the exception tasks
+     * @param workflow
+     * @param task
+     * @param workflow_context
+     * @returns
+     */
+    async executeExceptionTasks(workflow: WorkflowConfig, workflow_context: WorkflowContext) {
+
+        if (workflow.exception_task.length > 0) {
+            //Execute the first exception task
+            await this.executeTask(workflow, workflow.exception_task[0], workflow_context);
+        }
+        else {
+            console.error("All exception tasks executed successfully");
+        }
+    }
+
+    /**
+    * Execute the next exception task
+    * @param workflow
+    * @param task
+    * @param workflow_context
+    * @returns
+    */
+    async executeNextExceptionTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext) {
+        let nextTask = this.getNextExceptionTask(workflow, task);
+        if (nextTask) {
+            await this.executeTask(workflow, nextTask, workflow_context);
+        }
+        else {
+            console.error("All exception tasks executed successfully");
+        }
+    }
+
+    /**
+     * Execute the task
+     * @param workflow
+     * @param task
+     * @param workflow_context
+     * @returns
+     */
     private async executeTask(workflow: WorkflowConfig, task: TaskConfig | undefined, workflow_context: WorkflowContext) {
         if (task) {
             switch (task.type) {
@@ -222,6 +282,9 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
                     break;
                 case "Utility":
                     this.workflowEvent.emit("UTILITY_TASK_HANDLER", workflow, task, workflow_context);
+                    break;
+                case "Exception":
+                    this.workflowEvent.emit("UTILITY_EXCEPTION_TASK_HANDLER", workflow, task, workflow_context);
                     break;
                 default:
                     console.error("Invalid task type", task.type);

@@ -12,6 +12,19 @@ export class workflowBase_v2 {
         this.workflowEvent.on(eventName, this.handleWorkflow.bind(this));
     }
 
+    /**
+     * Initialize the exception task flow
+     * @param workflow
+     * @param workflow_context
+     */
+    async executeExceptionTasks(workflow: WorkflowConfig, workflow_context: WorkflowContext) {
+        await this.orchestratorServiceInstance.executeExceptionTasks(workflow, workflow_context);
+    }
+
+    async executeNextExceptionTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext) {
+        await this.orchestratorServiceInstance.executeNextExceptionTask(workflow, task, workflow_context);
+    }
+
     async executeNextTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: any) {
         await this.orchestratorServiceInstance.executeNextTask(workflow, task, workflow_context);
     }

@@ -1,7 +1,6 @@
 import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
-import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, FileTypeException, UnAuthenticated } from "../exceptions/http/http-exceptions";
@@ -13,13 +12,9 @@ import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
-import archiver from 'archiver';
 import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
-import AdmZip from 'adm-zip';
-import * as fs from 'fs';
-import { randomUUID } from "crypto";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
 /**
@@ -105,7 +100,7 @@ class OSWController implements IController {
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
         this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), authenticate, this.calculateConfidence); // Confidence calculation
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
+        // this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
     }
@@ -370,31 +365,31 @@ class OSWController implements IController {
         }
     }
 
-    /**
-    * Flatterning the tdei record 
-    * @param request 
-    * @param response 
-    * @param next 
-    * @returns 
-    */
-    processFlatteningRequest = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let override = Boolean(request.query.override as string) ? true : false;
+    // /**
+    // * Flatterning the tdei record 
+    // * @param request 
+    // * @param response 
+    // * @param next 
+    // * @returns 
+    // */
+    // processFlatteningRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+    //     try {
+    //         let tdei_dataset_id = request.params["tdei_dataset_id"];
+    //         let override = Boolean(request.query.override as string) ? true : false;
 
-            let job_id = await oswService.processDatasetFlatteningRequest(request.body.user_id, tdei_dataset_id, override);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
-            return response.status(202).send(job_id);
-        } catch (error) {
-            console.error("Error while processing the flattening request", error);
-            if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
-                return next(error);
-            }
-            response.status(500).send("Error while processing the flattening request");
-            next(new HttpException(500, "Error while processing the flattening request"));
-        }
-    }
+    //         let job_id = await oswService.processDatasetFlatteningRequest(request.body.user_id, tdei_dataset_id, override);
+    //         response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+    //         return response.status(202).send(job_id);
+    //     } catch (error) {
+    //         console.error("Error while processing the flattening request", error);
+    //         if (error instanceof HttpException) {
+    //             response.status(error.status).send(error.message);
+    //             return next(error);
+    //         }
+    //         response.status(500).send("Error while processing the flattening request");
+    //         next(new HttpException(500, "Error while processing the flattening request"));
+    //     }
+    // }
 
     /**
      * Function to create record in the database and upload the gtfs-osw files

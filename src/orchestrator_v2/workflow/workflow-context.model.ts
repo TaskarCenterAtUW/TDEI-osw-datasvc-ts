@@ -9,6 +9,42 @@ export enum WorkflowStatus {
     FAILED = 'FAILED'
 }
 
+
+export class Task extends BaseDto {
+    @Prop()
+    name!: string;
+    @Prop()
+    start_time: string = TdeiDate.UTC();
+    @Prop()
+    end_time!: string;
+    @Prop()
+    status: string = WorkflowStatus.RUNNING;
+    @Prop()
+    message!: string;
+    @Prop()
+    error!: string;
+    @Prop()
+    input!: any;
+    @Prop()
+    output!: any;
+
+    public static completed(task: Task): void {
+        task.status = WorkflowStatus.COMPLETED;
+        task.end_time = TdeiDate.UTC();
+    }
+
+    public static start(task: Task, input: any): void {
+        task.status = WorkflowStatus.RUNNING;
+        task.input = input;
+    }
+
+    public static fail(task: Task, error: string): void {
+        task.status = WorkflowStatus.FAILED;
+        task.error = error;
+        task.end_time = TdeiDate.UTC();
+    }
+}
+
 export class WorkflowContext extends BaseDto {
     @Prop()
     execution_id!: string;
@@ -36,6 +72,8 @@ export class WorkflowContext extends BaseDto {
     total_workflow_tasks!: number;
     @Prop()
     tasks: { [key: string]: Task } = {};
+    @Prop()
+    exception_task: { [key: string]: Task } = {};
     @Prop()
     get tasks_track_number(): number {
         return Object.keys(this.tasks).length;
@@ -74,39 +112,5 @@ export class WorkflowContext extends BaseDto {
         context.terminated_reason = reason;
         context.terminated_at = TdeiDate.UTC();
         context.last_updated_at = TdeiDate.UTC();
-    }
-}
-
-export class Task extends BaseDto {
-    @Prop()
-    name!: string;
-    @Prop()
-    start_time: string = TdeiDate.UTC();
-    @Prop()
-    end_time!: string;
-    @Prop()
-    status: string = WorkflowStatus.RUNNING;
-    @Prop()
-    message!: string;
-    @Prop()
-    error!: string;
-    @Prop()
-    input!: any;
-    @Prop()
-    output!: any;
-
-    public static completed(task: Task): void {
-        task.status = WorkflowStatus.COMPLETED;
-        task.end_time = TdeiDate.UTC();
-    }
-
-    public static start(task: Task): void {
-        task.status = WorkflowStatus.RUNNING;
-    }
-
-    public static fail(task: Task, error: string): void {
-        task.status = WorkflowStatus.FAILED;
-        task.error = error;
-        task.end_time = TdeiDate.UTC();
     }
 }

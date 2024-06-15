@@ -1,3 +1,4 @@
+import { QueryConfig } from "pg";
 import dbClient from "../../database/data-source";
 import { QueryCriteria } from "../../database/dynamic-update-query";
 import path from "path";
@@ -6,23 +7,26 @@ export class OrchestratorFunctions {
     constructor() { }
 
     /**
-     * Function to decode the url
-     * @param url
-     * @returns decoded url
-     **/
-    public static decode_url(input: any): Promise<any> {
+     * Delete the draft dataset
+     * @param input 
+     * @returns void
+     */
+    public static async delete_draft_dataset(input: any): Promise<any> {
         try {
+            const queryConfig = <QueryConfig>{
+                text: `DELETE FROM content.dataset WHERE tdei_dataset_id = $1`,
+                values: [input.tdei_dataset_id]
+            }
+            await dbClient.query(queryConfig);
             return Promise.resolve({
                 success: true,
-                message: "Url decoded successfully",
-                url: decodeURIComponent(input.url)
+                message: "Draft dataset deleted successfully"
             });
-        } catch (e) {
-            console.error("Error while decoding url", e);
+
+        } catch (error) {
             return Promise.resolve({
                 success: false,
-                message: "Error while decoding url",
-                url: input.url
+                message: "Error while deleting draft dataset"
             });
         }
     }
@@ -78,6 +82,33 @@ export class OrchestratorFunctions {
                 message: "Folder path generated successfully",
                 osm_output_path: osm_output_path,
                 osw_output_path: osw_output_path
+            });
+        } catch (error) {
+            console.error("Error while generating blob folder path", error);
+            return Promise.resolve({
+                success: false,
+                message: "Error while generating blob folder path",
+                folder_path: ""
+            });
+        }
+    }
+
+    /**
+     * Get the dataset blob folder path  
+     * @param blobUrl 
+     * @param tdei_dataset_id 
+     * @returns folder path
+     */
+    static async get_blob_folder_path_wo_ext(input: any): Promise<any> {
+        let blobUrl: string = input.blobUrl;
+        let identifier: string = input.identifier;
+        try {
+            let directory = path.dirname(blobUrl);
+            let output_path = `${directory}/zip/${identifier}`;
+            return Promise.resolve({
+                success: true,
+                message: "Folder path generated successfully",
+                folder_path: output_path
             });
         } catch (error) {
             console.error("Error while generating blob folder path", error);
