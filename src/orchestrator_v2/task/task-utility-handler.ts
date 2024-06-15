@@ -17,7 +17,8 @@ export class UtilityHandler extends workflowBase_v2 {
         console.log("Executing utility task", task.name);
 
         workflow_context.tasks[task.name] = Task.from({
-            name: task.name
+            name: task.name,
+            description: task.description
         });
         try {
             let inputParams = task.input_params;

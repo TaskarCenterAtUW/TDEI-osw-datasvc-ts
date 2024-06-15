@@ -14,6 +14,8 @@ export class Task extends BaseDto {
     @Prop()
     name!: string;
     @Prop()
+    description!: string;
+    @Prop()
     start_time: string = TdeiDate.UTC();
     @Prop()
     end_time!: string;
@@ -67,6 +69,8 @@ export class WorkflowContext extends BaseDto {
     @Prop()
     current_task_status!: string;
     @Prop()
+    current_task_description!: string;
+    @Prop()
     current_task_error!: string;
     @Prop()
     total_workflow_tasks!: number;
@@ -92,6 +96,7 @@ export class WorkflowContext extends BaseDto {
     public static updateCurrentTask(context: WorkflowContext, task: Task): void {
         context.current_task = task.name;
         context.current_task_status = task.status;
+        context.current_task_description = task.description;
         context.current_task_error = task.error ?? "";
         context.last_updated_at = TdeiDate.UTC();
     }

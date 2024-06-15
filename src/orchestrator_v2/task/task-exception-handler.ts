@@ -18,7 +18,8 @@ export class TaskExceptionHandler extends workflowBase_v2 {
 
         try {
             workflow_context.exception_task[task.name] = Task.from({
-                name: task.name
+                name: task.name,
+                description: task.description
             });
 
             let inputParams = task.input_params;

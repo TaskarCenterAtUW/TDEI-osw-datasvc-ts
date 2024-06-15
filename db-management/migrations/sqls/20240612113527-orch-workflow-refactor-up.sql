@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS content.workflow_details
    	status character varying(100) GENERATED ALWAYS AS ((workflow_context->>'status')::text) STORED,
    	current_task character varying(255) GENERATED ALWAYS AS ((workflow_context->>'current_task')::text) STORED,
    	current_task_status character varying(100) GENERATED ALWAYS AS ((workflow_context->>'current_task_status')::text) STORED,
+   	current_task_description character varying(1000) GENERATED ALWAYS AS ((workflow_context->>'current_task_description')::text) STORED,
    	current_task_error text GENERATED ALWAYS AS ((workflow_context->>'current_task_error')::text) STORED,
     start_time character varying(100) GENERATED ALWAYS AS ((workflow_context->>'start_time')::text) STORED,    
     end_time character varying(100) GENERATED ALWAYS AS ((workflow_context->>'end_time')::text) STORED,    

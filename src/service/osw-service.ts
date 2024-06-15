@@ -151,7 +151,7 @@ class OswService implements IOswService {
                 user_id: user_id,// Required field for message authorization
                 source: source,
                 target: target,
-                source_url: decodeURIComponent(source_url)
+                sourceUrl: decodeURIComponent(source_url)
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);

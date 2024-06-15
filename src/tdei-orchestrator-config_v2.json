@@ -138,7 +138,7 @@
                             "<%=workflow_input.metadata_url%>",
                             "<%=workflow_input.changeset_url%>"
                         ],
-                        "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.osm.zip"
+                        "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.osw.zip"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",

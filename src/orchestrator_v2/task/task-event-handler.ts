@@ -16,7 +16,8 @@ export class EventHandler extends workflowBase_v2 {
     async handleWorkflow(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext): Promise<void> {
         try {
             workflow_context.tasks[task.name] = Task.from({
-                name: task.name
+                name: task.name,
+                description: task.description
             });
 
             let inputParams = task.input_params;
