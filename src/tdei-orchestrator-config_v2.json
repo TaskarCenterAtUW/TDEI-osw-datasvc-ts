@@ -463,6 +463,7 @@
                     "type": "Event",
                     "topic": "osw-formatting-request",
                     "input_params": {
+                        "jobId": "<%=workflow_input.job_id%>",
                         "source": "<%=workflow_input.source%>",
                         "target": "<%=workflow_input.target%>",
                         "sourceUrl": "<%=workflow_input.sourceUrl%>"
@@ -499,10 +500,10 @@
                     "input_params": {
                         "table": "content.job",
                         "where": {
-                            "tdei_dataset_id": "<%=workflow_input.job_id%>"
+                            "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "download_url": "<%= tasks.osw_formatting_on_demand_compression.output.output_path) %>",
+                            "download_url": "<%= tasks.osw_formatting_on_demand_compression.output.output_path %>",
                             "status": "COMPLETED"
                         }
                     },
