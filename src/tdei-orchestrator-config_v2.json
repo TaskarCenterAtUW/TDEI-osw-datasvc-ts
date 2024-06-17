@@ -570,10 +570,9 @@
                         },
                         "data": {
                             "response_props": {
-                                "confidence_scores": "<%=tasks.osw_confidence_on_demand.output.confidence_scores%>",
+                                "confidence_scores": "<%=JSON.stringify(tasks.osw_confidence_on_demand.output.confidence_scores)%>",
                                 "confidence_library_version": "<%=tasks.osw_confidence_on_demand.output.confidence_library_version%>"
                             },
-                            "cm_last_calculated_at": "CURRENT_TIMESTAMP",
                             "updated_at": "CURRENT_TIMESTAMP",
                             "status": "COMPLETED"
                         }
@@ -1609,7 +1608,7 @@
         {
             "description": "Subscription for osw confidence completion",
             "topic": "osw-confidence-response",
-            "subscription": "test"
+            "subscription": "res-handler"
         },
         {
             "description": "Subscription for extract load request completion",
