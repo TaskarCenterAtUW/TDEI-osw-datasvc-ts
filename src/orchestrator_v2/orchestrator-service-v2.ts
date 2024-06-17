@@ -75,7 +75,42 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * Initializes the workflows
      */
     private initializeOrchestrator() {
-        this.subscribe();
+        let duplicateResult = this.verifyWorkflowTaskUnique(this.orchestratorConfigContext.workflows);
+        if (duplicateResult.length > 0) {
+            let error = duplicateResult.map((x: any) => x.workflow + " : " + x.task).join(",");
+            console.error("Workflow task names are not unique");
+            throw new Error("Workflow task names are not unique :" + error);
+        }
+        else {
+            this.subscribe();
+        }
+    }
+
+    /**
+     * Verify the workflow task names are unique
+     * @param workflow 
+     * @returns 
+     */
+    private verifyWorkflowTaskUnique(workflow: WorkflowConfig[]) {
+        let duplicates: any = [];
+        workflow.forEach(workflow => {
+            let taskNames: string[] = [];
+            workflow.tasks.forEach(task => {
+                taskNames.push(task.task_reference_name);
+            });
+
+            let uniqueTaskNames = _.uniq(taskNames);
+            if (taskNames.length !== uniqueTaskNames.length) {
+                uniqueTaskNames.forEach(uniqueName => {
+                    let count = taskNames.filter(name => name === uniqueName).length;
+                    if (count > 1) {
+                        duplicates.push({ workflow: workflow.name, task: uniqueName });
+                    }
+                });
+            }
+        });
+
+        return duplicates;
     }
 
     /**
