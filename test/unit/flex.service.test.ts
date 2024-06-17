@@ -99,9 +99,11 @@ describe("Flex Service Test", () => {
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
             expect(storageService.uploadFile).toHaveBeenCalledWith('validation-job-path/original-name.zip', 'application/zip', expect.anything(), "gtfsflex");
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
-                'FLEX_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW',
-                expect.anything()
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                'flex_validation_only',
+                expect.anything(),
+                userId
             );
         });
 
@@ -126,7 +128,7 @@ describe("Flex Service Test", () => {
 
             // Mock the behavior of triggerWorkflow and obseleteAnyExistingWorkflowHistory
             mockAppContext();
-            jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
+            // jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
 
             // Call the function
             let result = await flexService.processPublishRequest(userId, tdeiRecordId);
@@ -135,11 +137,13 @@ describe("Flex Service Test", () => {
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getFLEXRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(dbClient.query).toHaveBeenCalled();
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
-                'FLEX_PUBLISH_VALIDATION_REQUEST_WORKFLOW',
-                expect.anything()
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                'flex_publish',
+                expect.anything(),
+                userId
             );
-            expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
+            // expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
         });
     });
 
@@ -242,9 +246,11 @@ describe("Flex Service Test", () => {
             expect(dbClient.query).toHaveBeenCalled();
             expect(validateMetadataSpy).toHaveBeenCalled(); // You may want to improve this assertion
             expect(uploadSpy).toHaveBeenCalledTimes(2); // Two files: dataset and metadata
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
-                'FLEX_UPLOAD_VALIDATION_REQUEST_WORKFLOW',
-                expect.any(Object)
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                'flex_upload',
+                expect.any(Object),
+                uploadRequestObject.user_id
             );
             expect(result).toEqual(mockJobId.toString()); // Adjust the expected value based on your implementation
         });
@@ -254,7 +260,7 @@ describe("Flex Service Test", () => {
             jest.spyOn(tdeiCoreService, "getServiceById")
                 .mockResolvedValue(undefined);
 
-            // Call the function
+            jest.spyOn(dbClient, "query").mockResolvedValue(<any>{ rowCount: 0 });
             expect(flexService.processUploadRequest(uploadRequestObject)).rejects.toThrow(expect.any(ServiceNotFoundException)); // Adjust the expected value based on your implementation
         });
 
@@ -266,7 +272,7 @@ describe("Flex Service Test", () => {
                         owner_project_group: "project-group-id"
                     } as ServiceEntity);
 
-
+            jest.spyOn(dbClient, "query").mockResolvedValue(<any>{ rowCount: 0 });
             // Mock the behavior of validateMetadata
             const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateMetadata').mockRejectedValueOnce(new InputException("Duplicate name"));
 

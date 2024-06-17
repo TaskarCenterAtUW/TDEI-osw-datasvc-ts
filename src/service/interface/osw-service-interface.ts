@@ -33,7 +33,7 @@ export interface IOswService {
     * @returns A Promise that resolves to a string representing the job ID.
     * @throws {InputException} If the request is prohibited while the record is in the Publish state or if the dataset is already flattened without the override flag.
     */
-    processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string>;
+    // processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string>;
     /**
      * Processes a format request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
      * @param source The source format of the file.
@@ -73,7 +73,7 @@ export interface IOswService {
      * @throws HttpException if the OSW Dataset is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    getDownloadableOSWUrl(id:string, format:string, file_version: string): Promise<string>;
+    getDownloadableOSWUrl(id: string, format: string, file_version: string): Promise<string>;
 
     /**
     * Processes the upload request and performs various validations and operations.

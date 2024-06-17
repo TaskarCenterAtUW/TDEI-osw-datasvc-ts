@@ -99,9 +99,11 @@ describe("Pathways Service Test", () => {
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
             expect(storageService.uploadFile).toHaveBeenCalledWith('validation-job-path/original-name.zip', 'application/zip', expect.anything(), "gtfspathways");
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
-                'PATHWAYS_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW',
-                expect.anything()
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                'pathways_validation_only',
+                expect.anything(),
+                userId
             );
         });
 
@@ -126,7 +128,7 @@ describe("Pathways Service Test", () => {
 
             // Mock the behavior of triggerWorkflow and obseleteAnyExistingWorkflowHistory
             mockAppContext();
-            jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
+            // jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
 
             // Call the function
             let result = await pathwaysService.processPublishRequest(userId, tdeiRecordId);
@@ -135,11 +137,13 @@ describe("Pathways Service Test", () => {
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getPathwaysRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
             expect(dbClient.query).toHaveBeenCalled();
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
-                'PATHWAYS_PUBLISH_VALIDATION_REQUEST_WORKFLOW',
-                expect.anything()
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                'pathways_publish',
+                expect.anything(),
+                userId
             );
-            expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
+            // expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(tdeiRecordId, undefined);
         });
     });
 
@@ -242,9 +246,11 @@ describe("Pathways Service Test", () => {
             expect(dbClient.query).toHaveBeenCalled();
             expect(validateMetadataSpy).toHaveBeenCalled(); // You may want to improve this assertion
             expect(uploadSpy).toHaveBeenCalledTimes(2); // Two files: dataset and metadata
-            expect(appContext.orchestratorServiceInstance!.triggerWorkflow).toHaveBeenCalledWith(
-                'PATHWAYS_UPLOAD_VALIDATION_REQUEST_WORKFLOW',
-                expect.any(Object)
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                'pathways_upload',
+                expect.any(Object),
+                uploadRequestObject.user_id
             );
             expect(result).toEqual(mockJobId.toString()); // Adjust the expected value based on your implementation
         });

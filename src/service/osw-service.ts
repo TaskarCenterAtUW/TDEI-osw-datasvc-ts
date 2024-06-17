@@ -9,10 +9,6 @@ import path from "path";
 import { Readable } from "stream";
 import storageService from "./storage-service";
 import appContext from "../app-context";
-import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import workflowDatabaseService from "../orchestrator/services/workflow-database-service";
-import { OSWConfidenceJobRequest } from "../model/job-request-response/osw-confidence-job-request";
-import { OswFormatJobRequest } from "../model/job-request-response/osw-format-job-request";
 import { IOswService } from "./interface/osw-service-interface";
 import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import jobService from "./job-service";
@@ -24,6 +20,7 @@ import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { RecordStatus } from "../model/dataset-get-query-params";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
+import { WorkflowName } from "../constants/app-constants";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -37,10 +34,10 @@ class OswService implements IOswService {
     async processDatasetTagRoadRequest(backendRequest: TagRoadServiceRequest): Promise<string> {
         try {
 
-            //Only if backendRequest.parameters.source_dataset_id id in pre-release status
-            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.source_dataset_id);
+            //Only if backendRequest.parameters.target_dataset_id id in pre-release status
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.target_dataset_id);
             if (dataset.status !== RecordStatus["Pre-Release"])
-                throw new InputException(`Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`);
+                throw new InputException(`Dataset ${backendRequest.parameters.target_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -58,19 +55,33 @@ class OswService implements IOswService {
 
             const job_id = await this.jobServiceInstance.createJob(job);
             //Compose the meessage
-            let workflow_identifier = "DATA_QUERY_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    service: backendRequest.service,
-                    user_id: backendRequest.user_id,
-                    parameters: backendRequest.parameters
-                }
-            });
+            // let workflow_identifier = "DATA_QUERY_REQUEST_WORKFLOW";
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: {
+            //         service: backendRequest.service,
+            //         user_id: backendRequest.user_id,
+            //         parameters: backendRequest.parameters
+            //     }
+            // });
 
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            let workflow_start = WorkflowName.osw_dataset_road_tag;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                service: backendRequest.service,
+                user_id: backendRequest.user_id,
+                parameters: backendRequest.parameters,
+                tdei_dataset_id: backendRequest.parameters.target_dataset_id,
+                metadata_url: dataset.metadata_url,
+                dataset_url: dataset.latest_dataset_url,
+                changeset_url: dataset.changeset_url,
+                tdei_project_group_id: dataset.tdei_project_group_id
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, backendRequest.user_id);
 
             return Promise.resolve(job_id.toString());
         } catch (error) {
@@ -118,21 +129,33 @@ class OswService implements IOswService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_identifier = "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW";
-            const oswFormatRequest = OswFormatJobRequest.from({
-                jobId: job_id.toString(),
+            // let workflow_identifier = "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW";
+            // const oswFormatRequest = OswFormatJobRequest.from({
+            //     jobId: job_id.toString(),
+            //     source: source,
+            //     target: target,
+            //     sourceUrl: source_url
+            // });
+
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: oswFormatRequest
+            // });
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+
+            let workflow_start = WorkflowName.osw_formatting_on_demand;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: user_id,// Required field for message authorization
                 source: source,
                 target: target,
-                sourceUrl: source_url
-            });
-
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: oswFormatRequest
-            });
+                sourceUrl: decodeURIComponent(source_url)
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
 
             // Send the job_id back to the user.
             return Promise.resolve(job_id.toString());
@@ -191,25 +214,37 @@ class OswService implements IOswService {
 
             // Send the details to the confidence metric.
             //TODO: Fill based on the metadata received
-            const confidenceRequestMsg = new OSWConfidenceJobRequest();
-            confidenceRequestMsg.jobId = job_id.toString();
-            confidenceRequestMsg.data_file = dataset.dataset_url;
-            //TODO: Once this is done, get the things moved.
-            confidenceRequestMsg.meta_file = dataset.metadata_url;
-            if (sub_regions_upload_url)
-                confidenceRequestMsg.sub_regions_file = sub_regions_upload_url;
-            confidenceRequestMsg.trigger_type = 'manual';
+            // const confidenceRequestMsg = new OSWConfidenceJobRequest();
+            // confidenceRequestMsg.jobId = job_id.toString();
+            // confidenceRequestMsg.data_file = dataset.dataset_url;
+            // //TODO: Once this is done, get the things moved.
+            // confidenceRequestMsg.meta_file = dataset.metadata_url;
+            // if (sub_regions_upload_url)
+            //     confidenceRequestMsg.sub_regions_file = sub_regions_upload_url;
+            // confidenceRequestMsg.trigger_type = 'manual';
 
-            //Compose the meessage
-            let workflow_identifier = "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: confidenceRequestMsg
-            });
+            // //Compose the meessage
+            // let workflow_identifier = "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW";
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: confidenceRequestMsg
+            // });
 
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+
+            let workflow_start = WorkflowName.osw_confidence_on_demand;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: user_id,// Required field for message authorization
+                dataset_url: dataset.latest_dataset_url,
+                metadata_url: dataset.metadata_url,
+                sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : ""
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
 
             // Send the jobId back to the user.
             return Promise.resolve(job_id.toString());
@@ -265,24 +300,37 @@ class OswService implements IOswService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_identifier = "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW";
-            const confidenceRequestMsg = new OSWConfidenceJobRequest();
-            confidenceRequestMsg.jobId = job_id.toString();
-            confidenceRequestMsg.data_file = dataset.dataset_url;
-            confidenceRequestMsg.meta_file = dataset.metadata_url;
-            confidenceRequestMsg.trigger_type = 'release';
+            // let workflow_identifier = "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW";
+            // const confidenceRequestMsg = new OSWConfidenceJobRequest();
+            // confidenceRequestMsg.jobId = job_id.toString();
+            // confidenceRequestMsg.data_file = dataset.dataset_url;
+            // confidenceRequestMsg.meta_file = dataset.metadata_url;
+            // confidenceRequestMsg.trigger_type = 'release';
 
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: confidenceRequestMsg
-            });
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: confidenceRequestMsg
+            // });
 
-            //Delete exisitng workflow if exists
-            let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
-            workflowDatabaseService.obseleteAnyExistingWorkflowHistory(job_id.toString(), trigger_workflow?.group!);
+            // //Delete exisitng workflow if exists
+            // let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
+            // workflowDatabaseService.obseleteAnyExistingWorkflowHistory(job_id.toString(), trigger_workflow?.group!);
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+
+            //Compose the meessage
+            let workflow_start = WorkflowName.osw_publish;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: user_id,// Required field for message authorization
+                dataset_url: decodeURIComponent(dataset.latest_dataset_url),
+                metadata_url: decodeURIComponent(dataset.metadata_url),
+                tdei_dataset_id: tdei_dataset_id
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
 
             return Promise.resolve(job_id.toString());
         } catch (error) {
@@ -299,74 +347,74 @@ class OswService implements IOswService {
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws {InputException} If the request is prohibited while the record is in the Publish state or if the dataset is already flattened without the override flag.
      */
-    async processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string> {
-        try {
-            let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+    // async processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string> {
+    //     try {
+    //         let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
 
-            if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
-                throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
+    //         if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+    //             throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
 
-            if (dataset.status === 'Publish')
-                throw new InputException(`Request is prohibited while the record is in the Publish state.`);
+    //         if (dataset.status === 'Publish')
+    //             throw new InputException(`Request is prohibited while the record is in the Publish state.`);
 
-            if (!override) {
-                const checkRecordsQueryObject = {
-                    text: `SELECT id  
-                    from content.edge 
-                    WHERE 
-                    tdei_dataset_id = $1 LIMIT 1`.replace(/\n/g, ""),
-                    values: [tdei_dataset_id]
-                };
+    //         if (!override) {
+    //             const checkRecordsQueryObject = {
+    //                 text: `SELECT id  
+    //                 from content.edge 
+    //                 WHERE 
+    //                 tdei_dataset_id = $1 LIMIT 1`.replace(/\n/g, ""),
+    //                 values: [tdei_dataset_id]
+    //             };
 
-                // Check if there is a record with the same date
-                const queryResult = await dbClient.query(checkRecordsQueryObject);
-                if (queryResult.rowCount && queryResult.rowCount > 0) {
-                    throw new InputException(`${tdei_dataset_id} already flattened. If you want to override, please use the override flag.`);
-                }
-            }
-            else {
-                //Delete the existing records
-                const deleteRecordsQueryObject = {
-                    text: `SELECT delete_dataset_records_by_id($1)`.replace(/\n/g, ""),
-                    values: [tdei_dataset_id]
-                };
-                await dbClient.query(deleteRecordsQueryObject);
-            }
+    //             // Check if there is a record with the same date
+    //             const queryResult = await dbClient.query(checkRecordsQueryObject);
+    //             if (queryResult.rowCount && queryResult.rowCount > 0) {
+    //                 throw new InputException(`${tdei_dataset_id} already flattened. If you want to override, please use the override flag.`);
+    //             }
+    //         }
+    //         else {
+    //             //Delete the existing records
+    //             const deleteRecordsQueryObject = {
+    //                 text: `SELECT delete_dataset_records_by_id($1)`.replace(/\n/g, ""),
+    //                 values: [tdei_dataset_id]
+    //             };
+    //             await dbClient.query(deleteRecordsQueryObject);
+    //         }
 
-            let job = CreateJobDTO.from({
-                data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Flatten"],
-                status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
-                request_input: {
-                    tdei_dataset_id: tdei_dataset_id
-                },
-                tdei_project_group_id: dataset.tdei_project_group_id,
-                user_id: user_id,
-            });
+    //         let job = CreateJobDTO.from({
+    //             data_type: TDEIDataType.osw,
+    //             job_type: JobType["Dataset-Flatten"],
+    //             status: JobStatus["IN-PROGRESS"],
+    //             message: 'Job started',
+    //             request_input: {
+    //                 tdei_dataset_id: tdei_dataset_id
+    //             },
+    //             tdei_project_group_id: dataset.tdei_project_group_id,
+    //             user_id: user_id,
+    //         });
 
-            const job_id = await this.jobServiceInstance.createJob(job);
+    //         const job_id = await this.jobServiceInstance.createJob(job);
 
-            //Compose the meessage
-            let workflow_identifier = "ON_DEMAND_DATASET_FLATTENING_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    data_type: "osw",
-                    file_upload_path: dataset.dataset_url,
-                    tdei_dataset_id: tdei_dataset_id
-                }
-            });
+    //         //Compose the meessage
+    //         let workflow_identifier = "ON_DEMAND_DATASET_FLATTENING_REQUEST_WORKFLOW";
+    //         let queueMessage = QueueMessage.from({
+    //             messageId: job_id.toString(),
+    //             messageType: workflow_identifier,
+    //             data: {
+    //                 data_type: "osw",
+    //                 file_upload_path: dataset.dataset_url,
+    //                 tdei_dataset_id: tdei_dataset_id
+    //             }
+    //         });
 
-            //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+    //         //Trigger the workflow
+    //         await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
-            return Promise.resolve(job_id.toString());
-        } catch (error) {
-            return Promise.reject(error);
-        }
-    }
+    //         return Promise.resolve(job_id.toString());
+    //     } catch (error) {
+    //         return Promise.reject(error);
+    //     }
+    // }
 
     /**
      * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
@@ -377,7 +425,7 @@ class OswService implements IOswService {
      */
     async processBackendRequest(backendRequest: BboxServiceRequest, file_type: string): Promise<string> {
         try {
-
+            let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.tdei_dataset_id);
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Queries"],
@@ -394,20 +442,43 @@ class OswService implements IOswService {
             });
 
             const job_id = await this.jobServiceInstance.createJob(job);
-            //Compose the meessage
-            let workflow_identifier = "DATA_QUERY_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    service: backendRequest.service,
-                    user_id: backendRequest.user_id,
-                    parameters: backendRequest.parameters
-                }
-            });
+            // //Compose the meessage
+            // let workflow_identifier = "DATA_QUERY_REQUEST_WORKFLOW";
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: {
+            //         service: backendRequest.service,
+            //         user_id: backendRequest.user_id,
+            //         parameters: backendRequest.parameters
+            //     }
+            // });
 
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            let workflow_start = "";
+            let workflow_input = {};
+
+            if (file_type == 'osm') {
+                workflow_start = WorkflowName.osm_dataset_bbox;
+                workflow_input = {
+                    job_id: job_id.toString(),
+                    service: backendRequest.service,
+                    parameters: backendRequest.parameters,
+                    user_id: backendRequest.user_id,// Required field for message authorization
+                    tdei_project_group_id: dataset.tdei_project_group_id
+                };
+            } else if (file_type == 'osw') {
+                workflow_start = WorkflowName.osw_dataset_bbox;
+                workflow_input = {
+                    job_id: job_id.toString(),
+                    service: backendRequest.service,
+                    parameters: backendRequest.parameters,
+                    user_id: backendRequest.user_id// Required field for message authorization
+                };
+            }
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, backendRequest.user_id);
 
             return Promise.resolve(job_id.toString());
         } catch (error) {
@@ -447,17 +518,25 @@ class OswService implements IOswService {
 
             const job_id = await this.jobServiceInstance.createJob(job);
             //Compose the meessage
-            let workflow_identifier = "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    user_id: user_id, // Required field for message authorization
-                    file_upload_path: datasetUploadUrl
-                }
-            });
+            // let workflow_identifier = "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: {
+            //         user_id: user_id, // Required field for message authorization
+            //         file_upload_path: datasetUploadUrl
+            //     }
+            // });
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            let workflow_start = WorkflowName.osw_validation_only;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: user_id,// Required field for message authorization
+                dataset_url: decodeURIComponent(datasetUploadUrl),
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
 
             return Promise.resolve(job_id.toString());
         } catch (error) {
@@ -475,6 +554,7 @@ class OswService implements IOswService {
      * @throws {Error} If any other error occurs during the process.
      */
     async processUploadRequest(uploadRequestObject: IUploadRequest): Promise<string> {
+        let uid = "";
         try {
 
             //validate derived dataset id
@@ -511,7 +591,7 @@ class OswService implements IOswService {
             //     throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
 
             // Generate unique UUID for the upload request 
-            const uid = storageService.generateRandomUUID();
+            uid = storageService.generateRandomUUID();
 
             //Upload the files to the storage
             const storageFolderPath = storageService.getFolderPath(uploadRequestObject.tdei_project_group_id, uid);
@@ -573,22 +653,24 @@ class OswService implements IOswService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_identifier = "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    user_id: uploadRequestObject.user_id,// Required field for message authorization
-                    tdei_project_group_id: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
-                    file_upload_path: datasetUploadUrl
-                }
-            });
+            let workflow_start = WorkflowName.osw_upload;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: uploadRequestObject.user_id,// Required field for message authorization
+                tdei_project_group_id: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
+                dataset_url: decodeURIComponent(datasetUploadUrl),
+                metadata_url: decodeURIComponent(metadataUploadUrl),
+                changeset_url: changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "",
+                tdei_dataset_id: uid,
+                latest_dataset_url: decodeURIComponent(datasetUploadUrl)
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, uploadRequestObject.user_id);
 
             //Return the tdei_dataset_id
             return Promise.resolve(job_id.toString());
         } catch (error) {
+            await this.tdeiCoreServiceInstance.deleteDraftDataset(uid);
             throw error;
         }
     }
@@ -651,10 +733,10 @@ class OswService implements IOswService {
         return fileEntities;
     }
 
-   async getDownloadableOSWUrl(id: string, format: string="osw", file_version: string="latest"): Promise<string> {
+    async getDownloadableOSWUrl(id: string, format: string = "osw", file_version: string = "latest"): Promise<string> {
 
         let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(id);
-        if (file_version != "latest"){
+        if (file_version != "latest") {
             throw new InputException("Only latest version of the file can be downloaded");
         }
         if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
@@ -663,13 +745,13 @@ class OswService implements IOswService {
         if (storageClient == null) throw new Error("Storage not configured");
         let dataset_db_url = '';
         if (format == "osm") {
-            if (dataset.dataset_osm_download_url && dataset.dataset_osm_download_url != ''){
+            if (dataset.dataset_osm_download_url && dataset.dataset_osm_download_url != '') {
                 dataset_db_url = decodeURIComponent(dataset.dataset_osm_download_url);
             }
             else
                 throw new HttpException(404, "Requested OSM file format not found");
         } else {
-            if (dataset.dataset_download_url && dataset.dataset_download_url != ''){
+            if (dataset.dataset_download_url && dataset.dataset_download_url != '') {
                 dataset_db_url = decodeURIComponent(dataset.dataset_download_url);
             }
             else
@@ -679,10 +761,10 @@ class OswService implements IOswService {
         let relative_path = dlUrl.pathname;
         let container = relative_path.split('/')[1];
         let file_path_in_container = relative_path.split('/').slice(2).join('/');
-        let sasUrl = storageClient.getSASUrl(container, file_path_in_container,12); // 12 hours expiry
+        let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 12); // 12 hours expiry
         return sasUrl;
 
-        
+
     }
 }
 

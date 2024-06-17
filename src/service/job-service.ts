@@ -30,11 +30,25 @@ class JobService implements IJobService {
         const result = await dbClient.query(queryConfig);
 
         const list: JobDTO[] = [];
-        result.rows.forEach(x => {
+        result.rows.map(x => {
             const job = JobDTO.from(x);
             job.download_url = job.download_url ? `/job/download/${job.job_id}` : ''; // do not share internal upload URL
+            job.progress = {
+                total_stages: x['total_workflow_tasks'],
+                current_stage:  x['current_task_description'],
+                completed_stages: x['tasks_track_number'],
+                current_state: x['current_task_status'],
+                current_stage_percent_done: 0,
+                last_updated_at: x['last_updated_at']
+            }
+            if(job.status === 'FAILED') {
+                job.message = x['current_task_error'];
+            }
+            job.current_stage = x['current_task_description'];
+            job.updated_at = x['last_updated_at'];
             list.push(job);
-        })
+        });
+      
         return Promise.resolve(list);
     }
 
