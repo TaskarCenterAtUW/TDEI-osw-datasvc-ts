@@ -278,7 +278,7 @@
                     "output_params": {
                         "success": "<%=data.success%>",
                         "message": "<%=data.message%>",
-                        "confidence_scores": "<%=data.confidence_scores%>",
+                        "confidence_scores": "<%= JSON.stringify(data.confidence_scores)%>",
                         "confidence_library_version": "<%=data.confidence_library_version%>"
                     }
                 },
@@ -554,7 +554,7 @@
                     "output_params": {
                         "success": "<%=data.success%>",
                         "message": "<%=data.message%>",
-                        "confidence_scores": "<%=data.confidence_scores%>",
+                        "confidence_scores": "<%= JSON.stringify(data.confidence_scores)%>",
                         "confidence_library_version": "<%=data.confidence_library_version%>"
                     }
                 },
@@ -1609,7 +1609,7 @@
         {
             "description": "Subscription for osw confidence completion",
             "topic": "osw-confidence-response",
-            "subscription": "res-handler"
+            "subscription": "test"
         },
         {
             "description": "Subscription for extract load request completion",

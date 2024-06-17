@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { TdeiDate } from "../utility/tdei-date";
 
 export class OrchestratorUtility {
     constructor() { }
@@ -12,6 +13,9 @@ export class OrchestratorUtility {
                 } else {
                     compiledTemplate[key] = _.template(template[key])(data);
                     compiledTemplate[key] = compiledTemplate[key].replace(/"true"/g, 'true').replace(/"false"/g, 'false');
+                    if (compiledTemplate[key] === "CURRENT_TIMESTAMP") {
+                        compiledTemplate[key] = TdeiDate.UTC();
+                    }
                 }
             }
         }
