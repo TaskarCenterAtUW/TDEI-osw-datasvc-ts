@@ -29,6 +29,10 @@ export class JobDTO extends AbstractDomainEntity {
     created_at!: string;
     @Prop()
     updated_at!: string;
+    @Prop()
+    current_stage!: string;
+    @Prop()
+    progress!: any;
 }
 
 export class CreateJobDTO extends AbstractDomainEntity {
