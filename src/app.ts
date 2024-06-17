@@ -9,7 +9,7 @@ import dbClient from "./database/data-source";
 import HttpException from "./exceptions/http/http-base-exception";
 import { IOrchestratorService } from "./orchestrator/services/orchestrator-service";
 import orchestratorConfig_v2 from "./tdei-orchestrator-config_v2.json";
-import workflowsnew from "./orchestrator_v2/index";
+import workflows_v2_register from "./orchestrator_v2/index";
 import appContext from "./app-context";
 import { IOrchestratorService_v2, OrchestratorService_v2 } from "./orchestrator_v2/orchestrator-service-v2";
 
@@ -51,7 +51,7 @@ class App {
         // this.orchestratorService.initialize(workflows);
         // appContext.orchestratorServiceInstance = this.orchestratorService;
 
-        this.orchestratorService_v2 = new OrchestratorService_v2(orchestratorConfig_v2, workflowsnew);
+        this.orchestratorService_v2 = new OrchestratorService_v2(orchestratorConfig_v2, workflows_v2_register);
         appContext.orchestratorService_v2_Instance = this.orchestratorService_v2;
     }
 

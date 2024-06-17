@@ -22,7 +22,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     private workflowEvent = new EventEmitter();
 
     constructor(orchestratorConfig: any, workflows: any) {
-        console.log("Initializing TDEI Orchestrator service new");
+        console.log("Initializing TDEI Orchestrator service v2");
         this.orchestratorConfigContext = new OrchestratorWorkflowConfig(orchestratorConfig);
         this.initialize(workflows);
     }
@@ -50,7 +50,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      */
     registerWorkflows(workflows: any): void {
         //Register all handlers and workflow
-        console.log("Registering the orchestration new workflow handlers");
+        console.log("Registering the orchestration v2 workflow handlers");
         const uniqueArray = [...new Set(workflows)];
         uniqueArray.forEach((x: any) => {
             let handler = new x(this.workflowEvent, this);
@@ -117,7 +117,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * Subscribe all
      */
     private subscribe() {
-        console.log("Subscribing TDEI orchestrator new subscriptions");
+        console.log("Subscribing TDEI orchestrator v2 subscriptions");
         this.orchestratorConfigContext.subscriptions.forEach(subscription => {
             var topic = this.getTopicInstance(subscription.topic as string);
             topic.subscribe(subscription.subscription as string,
