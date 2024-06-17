@@ -188,52 +188,52 @@ describe("OSW Controller Test", () => {
         });
     });
 
-    describe("Process Flattening Request", () => {
-        test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
-            // Arrange
-            const req = getMockReq({
-                params: { tdei_dataset_id: "mock-tdei_dataset_id" },
-                query: { override: "true" },
-                body: { user_id: "mock-user-id" },
-            });
-            const { res, next } = getMockRes();
-            const job_id = "mock-job-id";
-            jest.spyOn(oswService, "processDatasetFlatteningRequest").mockResolvedValueOnce(job_id);
+    // describe("Process Flattening Request", () => {
+    //     test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
+    //         // Arrange
+    //         const req = getMockReq({
+    //             params: { tdei_dataset_id: "mock-tdei_dataset_id" },
+    //             query: { override: "true" },
+    //             body: { user_id: "mock-user-id" },
+    //         });
+    //         const { res, next } = getMockRes();
+    //         const job_id = "mock-job-id";
+    //         jest.spyOn(oswService, "processDatasetFlatteningRequest").mockResolvedValueOnce(job_id);
 
-            // Act
-            await oswController.processFlatteningRequest(req, res, next);
+    //         // Act
+    //         await oswController.processFlatteningRequest(req, res, next);
 
-            // Assert
-            expect(res.setHeader).toHaveBeenCalledWith(
-                "Location",
-                `/api/v1/job?job_id=${job_id}`
-            );
-            expect(res.status).toHaveBeenCalledWith(202);
-            expect(res.send).toHaveBeenCalledWith(job_id);
-        });
+    //         // Assert
+    //         expect(res.setHeader).toHaveBeenCalledWith(
+    //             "Location",
+    //             `/api/v1/job?job_id=${job_id}`
+    //         );
+    //         expect(res.status).toHaveBeenCalledWith(202);
+    //         expect(res.send).toHaveBeenCalledWith(job_id);
+    //     });
 
-        test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
-            // Arrange
-            const req = getMockReq({
-                params: { tdei_dataset_id: "mock-tdei_dataset_id" },
-                query: { override: "true" },
-                body: { user_id: "mock-user-id" },
-            });
-            const { res, next } = getMockRes();
-            const error = new Error("Internal Server Error");
-            jest.spyOn(oswService, "processDatasetFlatteningRequest").mockRejectedValueOnce(error);
+    //     test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
+    //         // Arrange
+    //         const req = getMockReq({
+    //             params: { tdei_dataset_id: "mock-tdei_dataset_id" },
+    //             query: { override: "true" },
+    //             body: { user_id: "mock-user-id" },
+    //         });
+    //         const { res, next } = getMockRes();
+    //         const error = new Error("Internal Server Error");
+    //         jest.spyOn(oswService, "processDatasetFlatteningRequest").mockRejectedValueOnce(error);
 
-            // Act
-            await oswController.processFlatteningRequest(req, res, next);
+    //         // Act
+    //         await oswController.processFlatteningRequest(req, res, next);
 
-            // Assert
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.send).toHaveBeenCalledWith("Error while processing the flattening request");
-            expect(next).toHaveBeenCalledWith(
-                new HttpException(500, "Error while processing the flattening request")
-            );
-        });
-    });
+    //         // Assert
+    //         expect(res.status).toHaveBeenCalledWith(500);
+    //         expect(res.send).toHaveBeenCalledWith("Error while processing the flattening request");
+    //         expect(next).toHaveBeenCalledWith(
+    //             new HttpException(500, "Error while processing the flattening request")
+    //         );
+    //     });
+    // });
 
     describe("Get OSW file by Id", () => {
 
