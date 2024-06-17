@@ -21,10 +21,64 @@ import { RecordStatus } from "../model/dataset-get-query-params";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
+import { SpatialJoinRequest } from "../model/request-interfaces";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
 
+    /**
+    * Processes a spatial join request.
+    * 
+    * @param user_id - The ID of the user making the request.
+    * @param requestService - The spatial join request.
+    * @returns The result of the spatial join request.
+    */
+    async processSpatialQueryRequest(user_id: string, requestService: SpatialJoinRequest): Promise<string> {
+        try {
+            const sourceDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.source_dataset_id);
+            const targetDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.target_dataset_id);
+
+            if (!sourceDataset.data_type && sourceDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${requestService.source_dataset_id} is not a osw dataset.`);
+            if (!targetDataset.data_type && targetDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${requestService.target_dataset_id} is not a osw dataset.`);
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Queries"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    source_dataset_id: requestService.source_dataset_id,
+                    source_dimension: requestService.source_dimension,
+                    target_dataset_id: requestService.target_dataset_id,
+                    target_dimension: requestService.target_dimension,
+                    join_condition: requestService.join_condition,
+                    transform_target: requestService.transform_target,
+                    transform_source: requestService.transform_source,
+                    filter_target: requestService.filter_target,
+                    filter_source: requestService.filter_source,
+                    aggregate: requestService.aggregate,
+                    attributes: requestService.attributes
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            let requestInput = {
+                service: "spatial_query",
+                user_id: user_id,
+                parameters: requestService
+            }
+
+            return job_id.toString();
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     /**
     * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
     * @param backendRequest The backend request to process.
