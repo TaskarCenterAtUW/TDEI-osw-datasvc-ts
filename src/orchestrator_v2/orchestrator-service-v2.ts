@@ -189,7 +189,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * @returns 
      */
     private getNextTask(workflow: WorkflowConfig, task: TaskConfig): TaskConfig | undefined {
-        let nextTask = workflow.tasks.findIndex(x => x.task_reference_name == task.task_reference_name);
+        let nextTask = workflow.tasks.findIndex(x => x.task_reference_name.toLowerCase() == task.task_reference_name.toLowerCase());
         if ((nextTask + 1) > workflow.tasks.length) {
             console.log("No more tasks in the workflow");
             return undefined;
@@ -224,7 +224,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     * @returns 
     */
     private getNextExceptionTask(workflow: WorkflowConfig, task: TaskConfig): TaskConfig | undefined {
-        let nextTask = workflow.exception_task.findIndex(x => x.task_reference_name == task.task_reference_name);
+        let nextTask = workflow.exception_task.findIndex(x => x.task_reference_name.toLowerCase() == task.task_reference_name.toLowerCase());
         if ((nextTask + 1) > workflow.exception_task.length) {
             console.log("No more exception tasks in the workflow");
             return undefined;
@@ -309,7 +309,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
                 let task_name = messageType[1];
                 let workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
                 if (workflowConfig) {
-                    let taskConfig = workflowConfig.tasks.find(x => x.task_reference_name == task_name);
+                    let taskConfig = workflowConfig.tasks.find(x => x.task_reference_name.toLowerCase() == task_name.toLowerCase());
                     if (taskConfig) {
                         let wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
                         await this.handleEventResponse(workflowConfig, taskConfig, wokflow_details!.workflow_context, message);

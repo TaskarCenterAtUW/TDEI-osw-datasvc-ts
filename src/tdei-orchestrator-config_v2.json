@@ -92,11 +92,7 @@
                     "topic": "dataset-zip-request",
                     "input_params": {
                         "isOsm": true,
-                        "input_urls": [
-                            "<%= decodeURIComponent(tasks.osw_osm_formatting.output.formatted_url) %>",
-                            "<%=workflow_input.metadata_url%>",
-                            "<%=workflow_input.changeset_url%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_osm_formatting.output.formatted_url), workflow_input.metadata_url, workflow_input.changeset_url]) %>",
                         "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.osm.zip"
                     },
                     "output_params": {
@@ -133,11 +129,7 @@
                     "topic": "dataset-zip-request",
                     "input_params": {
                         "isOsm": false,
-                        "input_urls": [
-                            "<%=workflow_input.latest_dataset_url%>",
-                            "<%=workflow_input.metadata_url%>",
-                            "<%=workflow_input.changeset_url%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([workflow_input.latest_dataset_url, workflow_input.metadata_url, workflow_input.changeset_url]) %>",
                         "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.osw.zip"
                     },
                     "output_params": {
@@ -481,9 +473,7 @@
                     "type": "Event",
                     "topic": "dataset-zip-request",
                     "input_params": {
-                        "input_urls": [
-                            "<%=decodeURIComponent(tasks.osw_osm_formatting_ON_DEMAND.output.formattedUrl)%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_osm_formatting_ON_DEMAND.output.formattedUrl)]) %>",
                         "output_path": "<%=decodeURIComponent(tasks.osw_osm_formatting_ON_DEMAND.output.formattedUrl)%>.zip"
                     },
                     "output_params": {
@@ -624,7 +614,7 @@
             "workflow_input": {
                 "service": "<%=service %>",
                 "user_id": "<%=user_id%>",
-                "parameters": "<%=parameters%>",
+                "parameters": "<%= JSON.stringify(parameters) %>",
                 "tdei_project_group_id": "<%=tdei_project_group_id%>",
                 "tdei_dataset_id": "<%=tdei_dataset_id%>",
                 "metadata_url": "<%=metadata_url%>",
@@ -642,7 +632,7 @@
                     "input_params": {
                         "service": "<%=workflow_input.service%>",
                         "user_id": "<%=workflow_input.user_id%>",
-                        "parameters": "<%=workflow_input.parameters%>"
+                        "parameters": "<%= JSON.stringify(workflow_input.parameters) %>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -667,7 +657,8 @@
                     "output_params": {
                         "success": "<%=success%>",
                         "message": "<%=message%>"
-                    }
+                    },
+                    "function": "update_table"
                 },
                 {
                     "name": "osw_road_tag_osm_formatting",
@@ -703,7 +694,8 @@
                     "output_params": {
                         "success": "<%=success%>",
                         "message": "<%=message%>"
-                    }
+                    },
+                    "function": "update_table"
                 },
                 {
                     "name": "get_blob_folder_path_wo_ext",
@@ -728,11 +720,7 @@
                     "type": "Event",
                     "topic": "dataset-zip-request",
                     "input_params": {
-                        "input_urls": [
-                            "<%=decodeURIComponent(tasks.osw_road_tag_osm_formatting.output.formatted_url)%>",
-                            "<%=workflow_input.metadata_url%>",
-                            "<%=workflow_input.changeset_url%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_road_tag_osm_formatting.output.formatted_url), workflow_input.metadata_url, workflow_input.changeset_url]) %>",
                         "output_path": "<%=decodeURIComponent(tasks.get_blob_folder_path_wo_ext.output.folder_path)%>.osm.zip"
                     },
                     "output_params": {
@@ -742,8 +730,8 @@
                     }
                 },
                 {
-                    "name": "update_osm_db_road_tag",
-                    "task_reference_name": "update_osm_db_road_tag",
+                    "name": "update_osm_download_url_db_road_tag",
+                    "task_reference_name": "update_osm_download_url_db_road_tag",
                     "description": "Updating the dataset osm dataset download url",
                     "type": "Utility",
                     "input_params": {
@@ -758,7 +746,8 @@
                     "output_params": {
                         "success": "<%=success%>",
                         "message": "<%=message%>"
-                    }
+                    },
+                    "function": "update_table"
                 },
                 {
                     "name": "osw_compression_road_tag",
@@ -767,11 +756,7 @@
                     "type": "Event",
                     "topic": "dataset-zip-request",
                     "input_params": {
-                        "input_urls": [
-                            "<%=decodeURIComponent(tasks.osw_dataset_road_tag.output.file_upload_path)%>",
-                            "<%=workflow_input.metadata_url%>",
-                            "<%=workflow_input.changeset_url%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_dataset_road_tag.output.file_upload_path), workflow_input.metadata_url, workflow_input.changeset_url]) %>",
                         "output_path": "<%=decodeURIComponent(tasks.get_blob_folder_path_wo_ext.output.folder_path)%>.osw.zip"
                     },
                     "output_params": {
@@ -797,7 +782,8 @@
                     "output_params": {
                         "success": "<%=success%>",
                         "message": "<%=message%>"
-                    }
+                    },
+                    "function": "update_table"
                 },
                 {
                     "name": "update_osw_db_road_tag_job",
@@ -850,7 +836,7 @@
             "workflow_input": {
                 "service": "<%=service %>",
                 "user_id": "<%=user_id%>",
-                "parameters": "<%=parameters%>",
+                "parameters": "<%= JSON.stringify(parameters) %>",
                 "tdei_project_group_id": "<%=tdei_project_group_id%>",
                 "job_id": "<%=job_id%>"
             },
@@ -864,7 +850,7 @@
                     "input_params": {
                         "service": "<%=workflow_input.service%>",
                         "user_id": "<%=workflow_input.user_id%>",
-                        "parameters": "<%=workflow_input.parameters%>"
+                        "parameters": "<%= JSON.stringify(workflow_input.parameters) %>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -896,9 +882,7 @@
                     "type": "Event",
                     "topic": "dataset-zip-request",
                     "input_params": {
-                        "input_urls": [
-                            "<%=decodeURIComponent(tasks.osm_dataset_bbox_osm_formatting.output.formatted_url)%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osm_dataset_bbox_osm_formatting.output.formatted_url)]) %>",
                         "output_path": "<%=decodeURIComponent(tasks.osm_dataset_bbox_osm_formatting.output.formatted_url)%>.osm.zip"
                     },
                     "output_params": {
@@ -958,7 +942,7 @@
             "workflow_input": {
                 "service": "<%=service %>",
                 "user_id": "<%=user_id%>",
-                "parameters": "<%=parameters%>",
+                "parameters": "<%= JSON.stringify(parameters) %>",
                 "job_id": "<%=job_id%>"
             },
             "tasks": [
@@ -971,7 +955,7 @@
                     "input_params": {
                         "service": "<%=workflow_input.service%>",
                         "user_id": "<%=workflow_input.user_id%>",
-                        "parameters": "<%=workflow_input.parameters%>"
+                        "parameters": "<%= JSON.stringify(workflow_input.parameters) %>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -986,9 +970,7 @@
                     "type": "Event",
                     "topic": "dataset-zip-request",
                     "input_params": {
-                        "input_urls": [
-                            "<%=decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)]) %>",
                         "output_path": "<%=decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)%>.osw.zip"
                     },
                     "output_params": {
@@ -1095,11 +1077,7 @@
                     "topic": "dataset-zip-request",
                     "input_params": {
                         "isOsm": true,
-                        "input_urls": [
-                            "<%=workflow_input.dataset_url%>",
-                            "<%=workflow_input.metadata_url%>",
-                            "<%=workflow_input.changeset_url%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([workflow_input.dataset_url, workflow_input.metadata_url, workflow_input.changeset_url]) %>",
                         "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.flex.zip"
                     },
                     "output_params": {
@@ -1383,11 +1361,7 @@
                     "topic": "dataset-zip-request",
                     "input_params": {
                         "isOsm": true,
-                        "input_urls": [
-                            "<%=workflow_input.dataset_url%>",
-                            "<%=workflow_input.metadata_url%>",
-                            "<%=workflow_input.changeset_url%>"
-                        ],
+                        "input_urls": "<%= JSON.stringify([workflow_input.dataset_url, workflow_input.metadata_url, workflow_input.changeset_url]) %>",
                         "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.pathways.zip"
                     },
                     "output_params": {
