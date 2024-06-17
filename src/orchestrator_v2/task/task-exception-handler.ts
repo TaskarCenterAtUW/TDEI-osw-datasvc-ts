@@ -14,7 +14,7 @@ export class TaskExceptionHandler extends workflowBase_v2 {
     }
 
     async handleWorkflow(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext): Promise<void> {
-        console.log("Executing exception task", task.name);
+        console.log(`Executing exception, workflow : ${workflow.name}, task : ${task.name}, execution_id : ${workflow_context.execution_id}`);
 
         try {
             workflow_context.exception_task[task.name] = Task.from({

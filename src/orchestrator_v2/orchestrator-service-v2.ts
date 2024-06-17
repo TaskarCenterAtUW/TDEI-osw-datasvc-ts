@@ -169,7 +169,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * @param message 
      */
     private async handleEventResponse(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext, message: QueueMessage) {
-        console.log("Received event response for task :", task.name);
+        console.log(`Received event response for workflow : ${workflow.name}, task : ${task.name}, execution_id : ${workflow_context.execution_id}`);
 
         try {
             //Extract the output parameters
@@ -205,6 +205,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
             }
             else {
                 console.error(`Task failed for : ${task.name} , workflow : ${workflow.name}, execution_id : ${workflow_context.execution_id}`)
+                await this.executeExceptionTasks(workflow, workflow_context);
             }
         } catch (error) {
             const message = `Error while handling event task : ${task.name}`;
@@ -213,7 +214,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
             Task.fail(workflow_context.tasks[task.name], message);
             WorkflowContext.updateCurrentTask(workflow_context, workflow_context.tasks[task.name]);
             await WorkflowDetailsEntity.saveWorkflowContext(workflow_context.execution_id, workflow_context);
-            this.executeExceptionTasks(workflow, workflow_context);
+            await this.executeExceptionTasks(workflow, workflow_context);
         }
     }
 
@@ -319,7 +320,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
                     this.workflowEvent.emit("UTILITY_TASK_HANDLER", workflow, task, workflow_context);
                     break;
                 case "Exception":
-                    this.workflowEvent.emit("UTILITY_EXCEPTION_TASK_HANDLER", workflow, task, workflow_context);
+                    this.workflowEvent.emit("EXCEPTION_TASK_HANDLER", workflow, task, workflow_context);
                     break;
                 default:
                     console.error("Invalid task type", task.type);

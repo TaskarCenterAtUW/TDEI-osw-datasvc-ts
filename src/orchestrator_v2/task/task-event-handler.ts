@@ -14,6 +14,7 @@ export class EventHandler extends workflowBase_v2 {
     }
 
     async handleWorkflow(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext): Promise<void> {
+        console.log(`Executing event, workflow : ${workflow.name}, task : ${task.name}, execution_id : ${workflow_context.execution_id}`);
         try {
             workflow_context.tasks[task.name] = Task.from({
                 name: task.name,
@@ -65,7 +66,7 @@ export class EventHandler extends workflowBase_v2 {
             Task.fail(workflow_context.tasks[task.name], message);
             WorkflowContext.updateCurrentTask(workflow_context, workflow_context.tasks[task.name]);
             await this.saveWorkflowContext(workflow_context);
-            this.executeExceptionTasks(workflow, workflow_context);
+            await this.executeExceptionTasks(workflow, workflow_context);
         }
     }
 }

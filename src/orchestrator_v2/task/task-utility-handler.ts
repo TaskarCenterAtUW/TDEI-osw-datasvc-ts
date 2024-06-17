@@ -14,7 +14,7 @@ export class UtilityHandler extends workflowBase_v2 {
     }
 
     async handleWorkflow(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext): Promise<void> {
-        console.log("Executing utility task", task.name);
+        console.log(`Executing utility, workflow : ${workflow.name}, task : ${task.name}, execution_id : ${workflow_context.execution_id}`);
 
         workflow_context.tasks[task.name] = Task.from({
             name: task.name,
@@ -61,7 +61,7 @@ export class UtilityHandler extends workflowBase_v2 {
             }
             else {
                 console.error(`Task failed for : ${task.name} , workflow : ${workflow.name}, execution_id : ${workflow_context.execution_id}`)
-                this.executeExceptionTasks(workflow, workflow_context);
+                await this.executeExceptionTasks(workflow, workflow_context);
             }
         } catch (error) {
             const message = `Error while handling event task : ${task.name}`;
@@ -70,7 +70,7 @@ export class UtilityHandler extends workflowBase_v2 {
             Task.fail(workflow_context.tasks[task.name], message);
             WorkflowContext.updateCurrentTask(workflow_context, workflow_context.tasks[task.name]);
             await this.saveWorkflowContext(workflow_context);
-            this.executeExceptionTasks(workflow, workflow_context);
+            await this.executeExceptionTasks(workflow, workflow_context);
         }
     }
 
