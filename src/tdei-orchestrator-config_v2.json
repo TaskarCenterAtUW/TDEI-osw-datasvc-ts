@@ -270,7 +270,7 @@
                     "type": "Event",
                     "topic": "osw-confidence-request",
                     "input_params": {
-                        "jobId": "<%=workflow_input.job_id%>",
+                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
                         "data_file": "<%=workflow_input.dataset_url%>",
                         "meta_file": "<%=workflow_input.metadata_url%>",
                         "trigger_type": "release"
@@ -545,7 +545,7 @@
                     "type": "Event",
                     "topic": "osw-confidence-request",
                     "input_params": {
-                        "jobId": "<%=workflow_input.job_id%>",
+                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
                         "data_file": "<%=workflow_input.dataset_url%>",
                         "meta_file": "<%=workflow_input.metadata_url%>",
                         "sub_regions_file": "<%=workflow_input.sub_regions_file%>",
