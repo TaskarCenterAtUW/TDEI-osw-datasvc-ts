@@ -76,6 +76,7 @@ export class JobsQueryParams {
         addConditionIfValueExists('content.job.job_id = ', this.job_id);
         addConditionIfValueExists('job_type = ', this.job_type);
         addConditionIfValueExists('tdei_project_group_id = ', this.tdei_project_group_id);
+        conditions.push({ clouse: 'wfd.job_id is not NULL', value: null });
 
         //Sort field
         const sortField = 'wfd.last_updated_at';
