@@ -1,1 +1,1 @@
-/* Replace with your SQL commands */
+DROP TABLE IF EXISTS content.tdei_dataset_spatial_join;
