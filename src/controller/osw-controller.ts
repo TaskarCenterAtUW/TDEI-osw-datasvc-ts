@@ -104,7 +104,7 @@ class OSWController implements IController {
         // this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
-        this.router.post(`${this.path}/spatial-query`, authenticate, this.processSpatialQueryRequest);
+        this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
     }
 
 
@@ -123,6 +123,7 @@ class OSWController implements IController {
 
             const requestService = SpatialJoinRequest.from(request.body);
             await requestService.validateRequestInput();
+            Utility.checkForSqlInjection(request.body);
             const job_id = await oswService.processSpatialQueryRequest(request.body.user_id, requestService);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);

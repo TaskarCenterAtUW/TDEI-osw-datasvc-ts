@@ -39,7 +39,7 @@ export class SpatialJoinRequest extends AbstractDomainEntity {
     source_dataset_id!: string;
     @Prop()
     @IsNotEmpty()
-    @IsIn(['edge', 'node', 'zone'])
+    @IsIn(['edge', 'node', 'zone', 'point', 'node', 'line', 'polygon'])
     source_dimension!: string;
     @Prop()
     @IsNotEmpty()

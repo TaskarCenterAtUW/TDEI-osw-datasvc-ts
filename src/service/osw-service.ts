@@ -67,11 +67,15 @@ class OswService implements IOswService {
 
             const job_id = await this.jobServiceInstance.createJob(job);
 
-            let requestInput = {
-                service: "spatial_query",
-                user_id: user_id,
-                parameters: requestService
+            let workflow_start = WorkflowName.osw_spatial_join;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                service: "spatial_join",
+                parameters: requestService,
+                user_id: user_id
             }
+            //Trigger the workflow
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
 
             return job_id.toString();
         }
