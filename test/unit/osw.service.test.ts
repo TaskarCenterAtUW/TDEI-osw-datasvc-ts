@@ -7,7 +7,6 @@ import HttpException from "../../src/exceptions/http/http-base-exception";
 import { Core } from "nodets-ms-core";
 import storageService from "../../src/service/storage-service";
 import appContext from "../../src/app-context";
-import workflowDatabaseService from "../../src/orchestrator/services/workflow-database-service";
 import { IUploadRequest } from "../../src/service/interface/upload-request-interface";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import tdeiCoreService from "../../src/service/tdei-core-service";
@@ -19,11 +18,129 @@ import { BboxServiceRequest } from "../../src/model/backend-request-interface";
 import { RecordStatus } from "../../src/model/dataset-get-query-params";
 import { CreateJobDTO } from "../../src/model/job-dto";
 import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
-import { TdeiObjectFaker } from "../common/tdei-object-faker"
 import { WorkflowName } from "../../src/constants/app-constants";
+import { SpatialJoinRequest } from "../../src/model/request-interfaces";
 
 // group test using describe
 describe("OSW Service Test", () => {
+
+    describe("processSpatialQueryRequest", () => {
+        test("When source dataset is not a osw dataset, Expect to throw InputException", async () => {
+            mockAppContext();
+            // Arrange
+            const user_id = "mock-user-id";
+            const requestService = SpatialJoinRequest.from({
+                source_dataset_id: "mock-source-dataset-id",
+                target_dataset_id: "mock-target-dataset-id",
+                source_dimension: "edge",
+                target_dimension: "point",
+                join_condition: "ST_Contains(geometry_target, geometry_source)",
+                transform_target: "ST_Buffer(geometry_target, 5)",
+                transform_source: "",
+                filter_target: "highway='footway' AND footway='sidewalk'",
+                filter_source: "highway='street_lamp'",
+                aggregate: ["array_agg(highway)"],
+                attributes: ["highway"]
+            });
+            let job_id = 303;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({
+                data_type: TDEIDataType.flex
+            } as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValue(job_id);
+
+            // Act & Assert
+            await expect(oswService.processSpatialQueryRequest(user_id, requestService)).rejects.toThrow(InputException);
+        });
+
+        test("When target dataset is not a osw dataset, Expect to throw InputException", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = SpatialJoinRequest.from({
+                source_dataset_id: "mock-source-dataset-id",
+                target_dataset_id: "mock-target-dataset-id",
+                source_dimension: "edge",
+                target_dimension: "point",
+                join_condition: "ST_Contains(geometry_target, geometry_source)",
+                transform_target: "ST_Buffer(geometry_target, 5)",
+                transform_source: "",
+                filter_target: "highway='footway' AND footway='sidewalk'",
+                filter_source: "highway='street_lamp'",
+                aggregate: ["array_agg(highway)"],
+                attributes: ["highway"]
+            });
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce({
+                data_type: TDEIDataType.osw
+            } as any).mockResolvedValueOnce({
+                data_type: TDEIDataType.pathways
+            } as any);
+
+            // Act & Assert
+            await expect(oswService.processSpatialQueryRequest(user_id, requestService)).rejects.toThrow(InputException);
+        });
+
+        test("When all conditions are met, Expect to create job, start workflow, and return job_id", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = SpatialJoinRequest.from({
+                source_dataset_id: "mock-source-dataset-id",
+                target_dataset_id: "mock-target-dataset-id",
+                source_dimension: "edge",
+                target_dimension: "point",
+                join_condition: "ST_Contains(geometry_target, geometry_source)",
+                transform_target: "ST_Buffer(geometry_target, 5)",
+                transform_source: "",
+                filter_target: "highway='footway' AND footway='sidewalk'",
+                filter_source: "highway='street_lamp'",
+                aggregate: ["array_agg(highway)"],
+                attributes: ["highway"]
+            });
+
+            const sourceDataset = {
+                data_type: TDEIDataType.osw
+            };
+            const targetDataset = {
+                data_type: TDEIDataType.osw
+            };
+
+            const job_id = 303;
+            const createJobDTO = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Queries"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: requestService,
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
+                .mockResolvedValueOnce(sourceDataset as any)
+                .mockResolvedValueOnce(targetDataset as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValueOnce(job_id);
+            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
+
+            // Act
+            const result = await oswService.processSpatialQueryRequest(user_id, requestService);
+
+            // Assert
+            expect(result).toBe(job_id.toString());
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(createJobDTO);
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                job_id.toString(),
+                WorkflowName.osw_spatial_join,
+                {
+                    job_id: job_id.toString(),
+                    service: "spatial_join",
+                    parameters: requestService,
+                    user_id: user_id
+                },
+                user_id
+            );
+        });
+    });
 
     describe("Get OSW file by Id", () => {
         describe("Functional", () => {
@@ -417,7 +534,7 @@ describe("OSW Service Test", () => {
             // Mock the behavior of getServiceById
             jest.spyOn(tdeiCoreService, "getServiceById")
                 .mockResolvedValue(undefined);
-            jest.spyOn(dbClient, "query").mockResolvedValue({rowCount:0} as any);
+            jest.spyOn(dbClient, "query").mockResolvedValue({ rowCount: 0 } as any);
             // Call the function
             expect(oswService.processUploadRequest(uploadRequestObject)).rejects.toThrow(expect.any(ServiceNotFoundException)); // Adjust the expected value based on your implementation
         });
@@ -430,9 +547,11 @@ describe("OSW Service Test", () => {
                         owner_project_group: "project-group-id"
                     } as ServiceEntity);
 
-            jest.spyOn(dbClient, "query").mockResolvedValue({rowCount:1,rows:[{
-                owner_project_group: "project-group-id"
-            }]} as any);
+            jest.spyOn(dbClient, "query").mockResolvedValue({
+                rowCount: 1, rows: [{
+                    owner_project_group: "project-group-id"
+                }]
+            } as any);
             // Mock the behavior of validateMetadata
             const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateMetadata').mockRejectedValueOnce(new InputException("Duplicate name"));
 
@@ -494,7 +613,7 @@ describe("OSW Service Test", () => {
                     bbox: "string"
                 }
             };
-            jest.spyOn(tdeiCoreService,'getDatasetDetailsById').mockResolvedValueOnce(new DatasetEntity({ data_type: "osw",tdei_project_group_id:'project-group-id' }));
+            jest.spyOn(tdeiCoreService, 'getDatasetDetailsById').mockResolvedValueOnce(new DatasetEntity({ data_type: "osw", tdei_project_group_id: 'project-group-id' }));
 
             const mockJobId = "job_id";
             const mockWorkflowIdentifier = "osm_dataset_bbox";

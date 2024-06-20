@@ -38,9 +38,9 @@ class OswService implements IOswService {
             const sourceDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.source_dataset_id);
             const targetDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.target_dataset_id);
 
-            if (!sourceDataset.data_type && sourceDataset.data_type !== TDEIDataType.osw)
+            if (sourceDataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${requestService.source_dataset_id} is not a osw dataset.`);
-            if (!targetDataset.data_type && targetDataset.data_type !== TDEIDataType.osw)
+            if (targetDataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${requestService.target_dataset_id} is not a osw dataset.`);
 
             let job = CreateJobDTO.from({
