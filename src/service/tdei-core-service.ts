@@ -391,7 +391,10 @@ class TdeiCoreService implements ITdeiCoreService {
             const service = await this.getServiceById(datasetCloneRequestObject.tdei_service_id);
             if (!service) {
                 throw new ServiceNotFoundException(datasetCloneRequestObject.tdei_service_id);
-            } //Validate service owner project group is same as the request project group
+            } else if (service!.service_type != dataset_to_be_clone.data_type) {
+                throw new InputException(`Service type ${service!.service_type} is not same as the dataset type ${dataset_to_be_clone.data_type}`);
+            }
+            //Validate service owner project group is same as the request project group
             else if (service!.owner_project_group != datasetCloneRequestObject.tdei_project_group_id) {
                 throw new InputException(`${datasetCloneRequestObject.tdei_project_group_id} id not associated with the tdei_service_id`);
             }
