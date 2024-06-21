@@ -205,7 +205,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -233,7 +234,7 @@
                 {
                     "name": "osw_upload_failure_db",
                     "task_reference_name": "osw_upload_failure_db",
-                    "description": "Updating the job details",
+                    "description": "Updating the job details on failure",
                     "type": "Exception",
                     "input_params": {
                         "table": "content.job",
@@ -336,7 +337,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -404,7 +406,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -418,7 +421,7 @@
                 {
                     "name": "job_failure_db",
                     "task_reference_name": "job_failure_db",
-                    "description": "Updating the job details",
+                    "description": "Updating the job details on failure",
                     "type": "Exception",
                     "input_params": {
                         "table": "content.job",
@@ -494,7 +497,8 @@
                         },
                         "data": {
                             "download_url": "<%= tasks.osw_formatting_on_demand_compression.output.output_path %>",
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -796,7 +800,8 @@
                         },
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osw_compression_road_tag.output.output_path)%>",
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -810,7 +815,7 @@
                 {
                     "name": "job_failure_db",
                     "task_reference_name": "job_failure_db",
-                    "description": "Updating the job details",
+                    "description": "Updating the job details on failure",
                     "type": "Exception",
                     "input_params": {
                         "table": "content.job",
@@ -902,7 +907,8 @@
                         },
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osm_compression_bbox.output.output_path)%>",
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -916,7 +922,7 @@
                 {
                     "name": "job_failure_db",
                     "task_reference_name": "job_failure_db",
-                    "description": "Updating the job details",
+                    "description": "Updating the job details on failure",
                     "type": "Exception",
                     "input_params": {
                         "table": "content.job",
@@ -990,7 +996,97 @@
                         },
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osw_compression_bbox.output.output_path)%>",
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "FAILED"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
+        },
+        {
+            "name": "osw_spatial_join",
+            "description": "Performs spatial join on the osw dataset",
+            "workflow_input": {
+                "service": "<%=service %>",
+                "user_id": "<%=user_id%>",
+                "parameters": "<%= JSON.stringify(parameters) %>",
+                "job_id": "<%=job_id%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_spatial_join",
+                    "task_reference_name": "osw_spatial_join",
+                    "description": "Performing the spatial join on the osw dataset",
+                    "type": "Event",
+                    "topic": "temp-request",
+                    "input_params": {
+                        "service": "<%=workflow_input.service%>",
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "parameters": "<%= JSON.stringify(workflow_input.parameters) %>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "file_upload_path": "<%=data.file_upload_path%>"
+                    }
+                },
+                {
+                    "name": "osw_compression",
+                    "task_reference_name": "osw_compression",
+                    "description": "Compressing the osw file",
+                    "type": "Event",
+                    "topic": "dataset-zip-request",
+                    "input_params": {
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_spatial_join.output.file_upload_path)]) %>",
+                        "output_path": "<%=decodeURIComponent(tasks.osw_spatial_join.output.file_upload_path)%>.osw.zip"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "output_path": "<%=data.output_path%>"
+                    }
+                },
+                {
+                    "name": "osm_spatial_join_job_db",
+                    "task_reference_name": "osm_spatial_join_job_db",
+                    "description": "Updating the job details",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "download_url": "<%=decodeURIComponent(tasks.osw_compression.output.output_path)%>",
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -1117,7 +1213,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -1131,7 +1228,7 @@
                 {
                     "name": "job_failure_db",
                     "task_reference_name": "job_failure_db",
-                    "description": "Updating the job details",
+                    "description": "Updating the job details on failure",
                     "type": "Exception",
                     "input_params": {
                         "table": "content.job",
@@ -1200,7 +1297,7 @@
                 {
                     "name": "flex_publish_job_update_db",
                     "task_reference_name": "flex_publish_job_update_db",
-                    "description": "Update the job details",
+                    "description": "Updating the job details",
                     "type": "Utility",
                     "input_params": {
                         "table": "content.job",
@@ -1208,7 +1305,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -1276,7 +1374,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -1401,7 +1500,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -1492,7 +1592,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {
@@ -1560,7 +1661,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "COMPLETED"
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
                         }
                     },
                     "output_params": {

@@ -5,9 +5,37 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { Core } from "nodets-ms-core";
 import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission_request";
 import _ from "lodash";
+import { InputException } from "../exceptions/http/http-exceptions";
 
 export class Utility {
-   
+
+    /**
+     * Basic SQL injection check
+     * @param obj
+     */
+    public static checkForSqlInjection(obj: any) {
+        const harmfulKeywords = [';', 'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE'];
+
+        for (let key in obj) {
+            if (typeof obj[key] === 'string') {
+                for (let keyword of harmfulKeywords) {
+                    if (obj[key].toUpperCase().includes(keyword)) {
+                        throw new InputException(`Harmful keyword found in input : ${key}`);
+                    }
+                }
+            } else if (Array.isArray(obj[key])) {
+                for (let item of obj[key]) {
+                    if (typeof item === 'string') {
+                        for (let keyword of harmfulKeywords) {
+                            if (item.toUpperCase().includes(keyword)) {
+                                throw new InputException(`Harmful keyword found in input : ${key}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     public static stringArrayToDBString(input: string[] | string): string {
         if (Array.isArray(input)) {

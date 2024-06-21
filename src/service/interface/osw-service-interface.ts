@@ -3,8 +3,18 @@ import { IUploadRequest } from "./upload-request-interface";
 import { BboxServiceRequest, TagRoadServiceRequest } from "../../model/backend-request-interface";
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
+import { SpatialJoinRequest } from "../../model/request-interfaces";
 
 export interface IOswService {
+    /**
+     * Processes a spatial join request.
+     * 
+     * @param user_id - The ID of the user making the request.
+     * @param requestService - The spatial join request.
+     * @returns The result of the spatial join request.
+     */
+    processSpatialQueryRequest(user_id: string, requestService: SpatialJoinRequest): Promise<string>;
+
     jobServiceInstance: IJobService;
     tdeiCoreServiceInstance: ITdeiCoreService;
 

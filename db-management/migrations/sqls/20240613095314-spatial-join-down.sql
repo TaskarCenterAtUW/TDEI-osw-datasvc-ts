@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS content.tdei_dataset_spatial_join;

@@ -3,12 +3,92 @@ import oswService from "../../src/service/osw-service";
 import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
-import { getMockFileEntity } from "../common/mock-utils";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
 
 // group test using describe
 describe("OSW Controller Test", () => {
+    describe("processSpatialQueryRequest", () => {
+        test("When request body is empty, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processSpatialQueryRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When request body is valid, Expect to process the request and return 202 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "target_dataset_id": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "target_dimension": "edge",
+                    "source_dataset_id": "0d661b69495d47fb838862edf699fe09",
+                    "source_dimension": "point",
+                    "join_condition": "ST_Contains(geometry_target, geometry_source)",
+                    "transform_target": "ST_Buffer(geometry_target, 5)",
+                    "transform_source": null,
+                    "filter_target": "highway='footway' AND footway='sidewalk'",
+                    "filter_source": "highway='street_lamp'",
+                    "aggregate": [
+                        "array_agg(highway)"
+                    ],
+                    "attributes": ["highway"]
+                }
+            });
+            let job_id = "mock-job-id";
+            const { res, next } = getMockRes();
+
+            jest.spyOn(oswService, "processSpatialQueryRequest").mockResolvedValueOnce(job_id);
+            // Act
+            await oswController.processSpatialQueryRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
+        });
+
+        test("When an error occurs, Expect to call next with HttpException and return 500 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: 'mock-user-id',
+                    "target_dataset_id": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "target_dimension": "edge",
+                    "source_dataset_id": "0d661b69495d47fb838862edf699fe09",
+                    "source_dimension": "point",
+                    "join_condition": "ST_Contains(geometry_target, geometry_source)",
+                    "transform_target": "ST_Buffer(geometry_target, 5)",
+                    "transform_source": null,
+                    "filter_target": "highway='footway' AND footway='sidewalk'",
+                    "filter_source": "highway='street_lamp'",
+                    "aggregate": [
+                        "array_agg(highway)"
+                    ],
+                    "attributes": ["highway"]
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new Error("Some error message");
+
+            // Mock the oswService.processSpatialQueryRequest method to throw an error
+            jest.spyOn(oswService, "processSpatialQueryRequest").mockRejectedValue(error);
+
+            // Act
+            await oswController.processSpatialQueryRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the spatial join request");
+        });
+    });
 
     describe("Process Dataset Tag Road Request", () => {
         test("When request body is empty, Expect to return HTTP status 400", async () => {

@@ -17,6 +17,7 @@ import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
+import { SpatialJoinRequest } from "../model/request-interfaces";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -103,6 +104,39 @@ class OSWController implements IController {
         // this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
+        this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
+    }
+
+
+    /**
+     * Spatial join request
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
+    processSpatialQueryRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            if (!request.body) {
+                return next(new InputException('request body is empty', response));
+            }
+
+            const requestService = SpatialJoinRequest.from(request.body);
+            await requestService.validateRequestInput();
+            Utility.checkForSqlInjection(request.body);
+            const job_id = await oswService.processSpatialQueryRequest(request.body.user_id, requestService);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+
+        } catch (error) {
+            console.error("Error while processing the spatial join request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the spatial join request");
+            next(new HttpException(500, "Error while processing the spatial join request"));
+        }
     }
 
     /**

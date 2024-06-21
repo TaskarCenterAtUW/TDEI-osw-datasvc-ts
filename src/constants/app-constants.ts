@@ -12,5 +12,6 @@ export enum WorkflowName {
     "flex_validation_only" = "flex_validation_only",
     "pathways_upload" = "pathways_upload",
     "pathways_publish" = "pathways_publish",
-    "pathways_validation_only" = "pathways_validation_only"
+    "pathways_validation_only" = "pathways_validation_only",
+    "osw_spatial_join" = "osw_spatial_join",
 }
