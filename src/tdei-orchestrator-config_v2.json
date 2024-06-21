@@ -1045,7 +1045,7 @@
                     "task_reference_name": "osw_spatial_join",
                     "description": "Performing the spatial join on the osw dataset",
                     "type": "Event",
-                    "topic": "temp-request",
+                    "topic": "backend-request",
                     "input_params": {
                         "service": "<%=workflow_input.service%>",
                         "user_id": "<%=workflow_input.user_id%>",
