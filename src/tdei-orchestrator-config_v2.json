@@ -1694,6 +1694,84 @@
                     "function": "update_table"
                 }
             ]
+        },
+        {
+            "name": "osw_quality_metric_on_demand",
+            "description": "Calculate the quality metric of dataset and persist optionally",
+            "workflow_input": {
+                "job_id": "<%=job_id%>",
+                "user_id": "<%=user_id%>",
+                "file_url": "<%=file_url%>",
+                "algorithms": "<%=algorithms%>",
+                "persist": "<%=persist%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_quality_metric_on_demand",
+                    "task_reference_name": "osw_quality_metric_on_demand",
+                    "description": "Calculating the Quality metric score of the dataset",
+                    "type": "Event",
+                    "topic": "osw-quality-request",
+                    "input_params": {
+                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
+                        "data_file": "<%=workflow_input.file_url%>",
+                        "algorithms": "<%=workflow_input.algorithms%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "dataset_url": "<%= data.dataset_url %>",
+                        "qm_dataset_url": "<%=data.qm_dataset_url%>"
+                    }
+                },
+                {
+                    "name": "update_quality_metric_job_db",
+                    "task_reference_name": "update_quality_metric_job_db",
+                    "description": "Updating the quality metric score to the job details",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "response_props": {
+                                "dataset_url": "<%=tasks.osw_quality_metric_on_demand.output.dataset_url%>",
+                                "qm_dataset_url": "<%=tasks.osw_quality_metric_on_demand.output.qm_dataset_url%>"
+                            },
+                            "updated_at": "CURRENT_TIMESTAMP",
+                            "status": "COMPLETED"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "FAILED"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
         }
     ],
     "subscriptions": [
@@ -1735,6 +1813,11 @@
         {
             "description": "Subscription for dataset zipping completion",
             "topic": "dataset-zip-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for osw quality metrics completion",
+            "topic": "osw-quality-response",
             "subscription": "res-handler"
         }
     ]

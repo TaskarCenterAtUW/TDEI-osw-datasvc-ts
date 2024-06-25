@@ -14,4 +14,5 @@ export enum WorkflowName {
     "pathways_publish" = "pathways_publish",
     "pathways_validation_only" = "pathways_validation_only",
     "osw_spatial_join" = "osw_spatial_join",
+    "osw_quality_on_demand" = "osw_quality_metric_on_demand",
 }
