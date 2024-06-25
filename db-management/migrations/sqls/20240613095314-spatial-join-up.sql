@@ -127,7 +127,7 @@ IF destination_element = 'node' THEN
     -- Iterate over intersected edges
     FOR temp_row IN
         SELECT feature
-        FROM content.temp_intersected_edges e
+        FROM temp_intersected_edges e
     LOOP
         edges := temp_row.feature;
 		nodes := null;
@@ -157,7 +157,7 @@ IF destination_element = 'node' THEN
 	FOR temp_row IN
      	SELECT z.feature
 		FROM content.zone z
-        INNER JOIN temp_dataset_join_result ON ST_Intersects(z.zone_loc, temp_dataset_join_result.edge_loc)
+        INNER JOIN temp_dataset_join_result ON ST_Intersects(z.zone_loc, temp_dataset_join_result.node_loc)
 	    WHERE z.tdei_dataset_id = destination_dataset_id
 		ORDER by zone_id ASC
     LOOP
@@ -222,7 +222,7 @@ END IF;
 IF destination_element = 'zone' THEN
     -- Iterate over intersected edges
     FOR temp_row IN
-        SELECT feature
+        SELECT e.feature
         FROM content.edge e
         INNER JOIN temp_dataset_join_result z ON ST_Intersects(z.zone_loc, e.edge_loc)
         WHERE e.tdei_dataset_id = destination_dataset_id
@@ -242,8 +242,8 @@ IF destination_element = 'zone' THEN
     	SELECT n.feature
         FROM content.node n
         JOIN (
-            SELECT unnest(node_ids) FROM temp_dataset_join_result
-        ) e ON n.node_id = e.node_id
+            SELECT unnest(node_ids) as node_ids FROM temp_dataset_join_result
+        ) e ON n.node_id = e.node_ids
 		WHERE n.tdei_dataset_id = destination_dataset_id
 		ORDER BY n.node_id ASC
     LOOP
@@ -258,9 +258,9 @@ IF destination_element = 'zone' THEN
 
        -- Pull all the zone intersecting the bbox
 	FOR temp_row IN
-     	SELECT z.feature
+     	SELECT z.feature::jsonb
 		FROM temp_dataset_join_result z
-		ORDER by zone_id ASC
+		ORDER by z.zone_id ASC
     LOOP
         edges := null;
 		nodes := null;
