@@ -65,6 +65,19 @@ export interface IOswService {
      */
     calculateConfidence(tdei_dataset_id: string, sub_regions_file: Express.Multer.File | undefined, user_id: string): Promise<string>;
 
+
+    
+    /**
+     * Calculates the quality metric for a given TDEI dataset.
+     * 
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param algorithms - The algorithms to use for calculating the quality metric.
+     * @param persist - The persist flag.
+     * @returns A Promise that resolves to the ID of the created job.
+     * @throws If there is an error calculating the quality metric.
+     */
+    calculateQualityMetric(tdei_dataset_id:string, algorithms:string[],persist:any, user_id:string):Promise<string>;
+
     /**
      * Retrieves the OswStream by its ID.
      * @param id - The ID of the OswStream.

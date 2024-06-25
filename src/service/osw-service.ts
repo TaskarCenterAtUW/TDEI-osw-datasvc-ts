@@ -824,6 +824,50 @@ class OswService implements IOswService {
 
 
     }
+
+    async calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id:string): Promise<string> {
+        try {
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
+            // Check the input algorithm types
+            if (algorithms.length == 0) {
+                throw new InputException("No quality metric algorithms provided");
+            }
+            // Create job for this
+            let job = CreateJobDTO.from({
+                data_type:TDEIDataType.osw,
+                job_type: JobType["Quality-Metric"], // Change this
+                status: JobStatus["IN-PROGRESS"],
+                request_input:{
+                    tdei_dataset_id: tdei_dataset_id,
+                    algorithms: algorithms,
+                    persist: persist
+                },
+                tdei_project_group_id: dataset.tdei_project_group_id,
+                user_id: user_id
+            })
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            // Start the workflow for this
+            let workflow_start = WorkflowName.osw_quality_on_demand;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: user_id,
+                file_url: dataset.latest_dataset_url,
+                algorithms: algorithms,
+                persist: persist
+            };
+
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
+            return Promise.resolve(job_id.toString());
+
+        } catch(error) {
+            console.log('Error calculating quality metric ', error);
+            return Promise.reject(error);
+        }
+    }
 }
 
 const oswService: IOswService = new OswService(jobService, tdeiCoreService);

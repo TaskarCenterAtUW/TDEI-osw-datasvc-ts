@@ -147,6 +147,12 @@ Here’s an example configuration for a new workflow:
 4. **Specify exception handling tasks** to manage failures.
 5. **Define subscriptions** for listening to responses (`task1-response`).
 
+
+### Testing and debugging new or existing workflows
+There may be a case where you want to update the existing workflow or test with a new workflow. In that case, use `workflow_example.json` file for testing.
+- Simply write the updated workflows in the json file
+- In `app.ts` replace `import orchestratorConfig_v2 from "./tdei-orchestrator-config_v2.json";` line with the new file location.
+
 ### Writing Functions for Specific Logic
 
 For tasks that require specific or custom logic, functions should be defined in `task-functions.ts`. Here are the conventions to follow:
