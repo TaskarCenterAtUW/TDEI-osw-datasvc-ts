@@ -482,9 +482,11 @@ class OSWController implements IController {
             let tdei_dataset_id = request.params["tdei_dataset_id"];
             let algorithms = request.body.algorithms;
             let persist = request.body.persist;
+            if (tdei_dataset_id == undefined) {
+                throw new InputException("Missing tdei_dataset_id input")
+            }
             if (tdei_dataset_id == undefined || algorithms == undefined || persist == undefined) {
-                response.status(400).send('Please add tdei_dataset_id, algorithms, persist in payload')
-                return next()
+                throw new InputException("Please add tdei_dataset_id, algorithms, persist in payload")
             }
             let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, persist,request.body.user_id);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
@@ -496,8 +498,8 @@ class OSWController implements IController {
                 response.status(error.status).send(error.message);
                 return next(error);
             }
-            response.status(500).send("Error while processing the quality metric request");
-            next(new HttpException(500, "Error while processing the quality metric request"));
+            response.status(500).send("Error while processing the quality metric");
+            next(new HttpException(500, "Error while processing the quality metric"));
         }
     }
 }
