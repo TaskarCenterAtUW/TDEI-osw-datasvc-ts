@@ -1,7 +1,6 @@
 import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
-import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, FileTypeException, UnAuthenticated } from "../exceptions/http/http-exceptions";
@@ -13,15 +12,12 @@ import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
-import archiver from 'archiver';
 import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
-import AdmZip from 'adm-zip';
-import * as fs from 'fs';
-import { randomUUID } from "crypto";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
+import { SpatialJoinRequest } from "../model/request-interfaces";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -105,9 +101,44 @@ class OSWController implements IController {
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
         this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), authenticate, this.calculateConfidence); // Confidence calculation
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
+        // this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
+        this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
+        // Route for quality metric request
+        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`,authenticate ,this.createQualityOnDemandRequest);
+    }
+
+
+    /**
+     * Spatial join request
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
+    processSpatialQueryRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            if (!request.body) {
+                return next(new InputException('request body is empty', response));
+            }
+
+            const requestService = SpatialJoinRequest.from(request.body);
+            await requestService.validateRequestInput();
+            Utility.checkForSqlInjection(request.body);
+            const job_id = await oswService.processSpatialQueryRequest(request.body.user_id, requestService);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+
+        } catch (error) {
+            console.error("Error while processing the spatial join request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the spatial join request");
+            next(new HttpException(500, "Error while processing the spatial join request"));
+        }
     }
 
     /**
@@ -201,66 +232,6 @@ class OSWController implements IController {
             }
             const redirectUrl = await oswService.getDownloadableOSWUrl(request.params.id, format, file_version);
             response.redirect(redirectUrl);
-            // const fileEntities: FileEntity[] = await oswService.getOswStreamById(request.params.id, format, file_version);
-
-            // const zipFileName = `${request.params.id}_${format}_${file_version}.zip`;
-
-            // // Create a new zip archive
-            // const zip = new AdmZip();
-
-            // //create folder if not exists localFilePath
-            // let directory_path = path.join(`${__dirname}//${randomUUID().toString()}`);
-            // if (!fs.existsSync(directory_path)) {
-            //     fs.mkdirSync(directory_path);
-            // }
-
-            // // Add files to the zip archive
-            // for (const filee of fileEntities) {
-            //     // Create a write stream for the local file
-            //     const localFilePath = path.join(directory_path, filee.fileName);
-
-            //     const writeStream = fs.createWriteStream(localFilePath);
-
-            //     // Get the file stream and pipe it to the write stream
-            //     const fileStream = await filee.getStream();
-            //     fileStream.pipe(writeStream);
-
-            //     // Wait for the write stream to finish
-            //     await new Promise((resolve, reject) => {
-            //         writeStream.on('finish', resolve);
-            //         writeStream.on('error', reject);
-            //     });
-
-            //     // Add the local file to the zip archive
-            //     zip.addLocalFile(localFilePath);
-
-            //     // Delete the local file
-            //     fs.unlinkSync(localFilePath);
-            // }
-            // fs.rmdirSync(directory_path);
-            // // Generate the zip file
-            // const zipFile = zip.toBuffer();
-
-            // // Set the headers and send the file
-            // response.setHeader('Content-Type', 'application/zip');
-            // response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-            // response.send(zipFile);
-            // // const zipFileName = 'osw.zip';
-
-            // // // // Create a new zip archive
-            // // const archive = archiver('zip', { zlib: { level: 9 } });
-            // // response.setHeader('Content-Type', 'application/zip');
-            // // response.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-            // // archive.pipe(response);
-
-            // // // // Add files to the zip archive
-            // // for (const filee of fileEntities) {
-            // //     // Read into a stream
-            // //     archive.append(await filee.getStream(), { name: filee.fileName, store: true });
-            // // }
-
-            // // // // Finalize the archive and close the zip stream
-            // // archive.finalize();
 
         } catch (error: any) {
             console.error('Error while getting the file stream');
@@ -370,31 +341,6 @@ class OSWController implements IController {
         }
     }
 
-    /**
-    * Flatterning the tdei record 
-    * @param request 
-    * @param response 
-    * @param next 
-    * @returns 
-    */
-    processFlatteningRequest = async (request: Request, response: express.Response, next: NextFunction) => {
-        try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let override = Boolean(request.query.override as string) ? true : false;
-
-            let job_id = await oswService.processDatasetFlatteningRequest(request.body.user_id, tdei_dataset_id, override);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
-            return response.status(202).send(job_id);
-        } catch (error) {
-            console.error("Error while processing the flattening request", error);
-            if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
-                return next(error);
-            }
-            response.status(500).send("Error while processing the flattening request");
-            next(new HttpException(500, "Error while processing the flattening request"));
-        }
-    }
 
     /**
      * Function to create record in the database and upload the gtfs-osw files
@@ -528,6 +474,32 @@ class OSWController implements IController {
             }
             response.status(500).send("Error while processing the format request");
             next(new HttpException(500, "Error while processing the format request"));
+        }
+    }
+
+    createQualityOnDemandRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            let tdei_dataset_id = request.params["tdei_dataset_id"];
+            let algorithms = request.body.algorithms;
+            let persist = request.body.persist;
+            if (tdei_dataset_id == undefined) {
+                throw new InputException("Missing tdei_dataset_id input")
+            }
+            if (tdei_dataset_id == undefined || algorithms == undefined || persist == undefined) {
+                throw new InputException("Please add tdei_dataset_id, algorithms, persist in payload")
+            }
+            let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, persist,request.body.user_id);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+
+        } catch (error) {
+            console.error("Error while processing the quality metric request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the quality metric");
+            next(new HttpException(500, "Error while processing the quality metric"));
         }
     }
 }

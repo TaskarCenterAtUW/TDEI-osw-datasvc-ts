@@ -27,7 +27,8 @@ export enum JobType {
     "Dataset-Publish" = "Dataset-Publish",
     "Dataset-Validate" = "Dataset-Validate",
     "Dataset-Flatten" = "Dataset-Flatten",
-    "Dataset-Queries" = "Dataset-Queries"
+    "Dataset-Queries" = "Dataset-Queries",
+    "Quality-Metric" = "Quality-Metric"
 }
 export class JobsQueryParams {
     @IsOptional()
@@ -52,26 +53,34 @@ export class JobsQueryParams {
 
     getQuery(user_id: string): PgQueryObject {
         //Select columns
-        const selectColumns = ['content.job.*, ue.username as requested_by,pg.name as tdei_project_group_name'];
+        const selectColumns = [`content.job.job_id, content.job.job_type, content.job.data_type, content.job.request_input, content.job.response_props,
+             content.job.download_url, content.job.tdei_project_group_id, content.job.user_id,
+            wfd.created_at,
+            wfd.status, wfd.current_task, wfd.current_task_status, wfd.current_task_description,
+		    wfd.start_time, wfd.end_time,wfd.current_task_error,wfd.total_workflow_tasks,wfd.tasks_track_number,
+            wfd.last_updated_at,
+            ue.username as requested_by,pg.name as tdei_project_group_name`];
         //Main table name
         const mainTableName = 'content.job';
         //Joins
         const joins: JoinCondition[] = [
             { tableName: 'keycloak.user_entity', alias: 'ue', on: `content.job.user_id = ue.id AND ue.id = '${user_id}'`, type: 'LEFT' },
-            { tableName: 'public.project_group', alias: 'pg', on: `content.job.tdei_project_group_id = pg.project_group_id`, type: 'LEFT' }
+            { tableName: 'public.project_group', alias: 'pg', on: `content.job.tdei_project_group_id = pg.project_group_id`, type: 'LEFT' },
+            { tableName: 'content.workflow_details', alias: 'wfd', on: `content.job.job_id = wfd.job_id`, type: 'LEFT' }
         ];
         //Conditions
         const conditions: WhereCondition[] = [];
         if (!this.isAdmin) {
             addConditionIfValueExists('content.job.user_id = ', user_id);
         }
-        addConditionIfValueExists('status = ', this.status);
-        addConditionIfValueExists('job_id = ', this.job_id);
+        addConditionIfValueExists('wfd.status = ', this.status);
+        addConditionIfValueExists('content.job.job_id = ', this.job_id);
         addConditionIfValueExists('job_type = ', this.job_type);
         addConditionIfValueExists('tdei_project_group_id = ', this.tdei_project_group_id);
+        conditions.push({ clouse: 'wfd.job_id is not NULL', value: null });
 
         //Sort field
-        const sortField = 'updated_at';
+        const sortField = 'wfd.last_updated_at';
         const sortOrder = SqlORder.DESC;
         //Build the query
         const queryObject = buildQuery(selectColumns, mainTableName, conditions, joins, sortField, sortOrder, this.page_size, this.page_no);

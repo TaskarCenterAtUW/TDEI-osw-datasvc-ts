@@ -1,4 +1,7 @@
+import { IsIn, IsNotEmpty, ValidationError, validate } from "class-validator";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
+import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
+import { InputException } from "../exceptions/http/http-exceptions";
 
 export interface IDatasetCloneRequest {
     isAdmin: boolean;
@@ -20,4 +23,47 @@ export interface CloneContext {
     new_tdei_dataset_id: string;
     dest_dataset_download_entity?: FileEntity;
     dest_osm_download_entity?: FileEntity;
+}
+
+export class SpatialJoinRequest extends AbstractDomainEntity {
+
+    @Prop()
+    @IsNotEmpty()
+    target_dataset_id!: string;
+    @Prop()
+    @IsNotEmpty()
+    @IsIn(['edge', 'node', 'zone'])
+    target_dimension!: string;
+    @Prop()
+    @IsNotEmpty()
+    source_dataset_id!: string;
+    @Prop()
+    @IsNotEmpty()
+    @IsIn(['edge', 'node', 'zone', 'point', 'node', 'line', 'polygon'])
+    source_dimension!: string;
+    @Prop()
+    @IsNotEmpty()
+    join_condition!: string;
+    @Prop()
+    transform_target!: string;
+    @Prop()
+    transform_source!: string;
+    @Prop()
+    filter_target!: string;
+    @Prop()
+    filter_source!: string;
+    @Prop()
+    aggregate!: string[];
+    @Prop()
+    attributes!: string[];
+
+    async validateRequestInput() {
+        let errors = await validate(this);
+        if (errors.length > 0) {
+            console.log('Input validation failed');
+            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            throw new InputException(`Required fields are missing or invalid: ${message}`);
+        }
+        return true;
+    }
 }

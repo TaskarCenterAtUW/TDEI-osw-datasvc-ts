@@ -3,12 +3,92 @@ import oswService from "../../src/service/osw-service";
 import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
-import { getMockFileEntity } from "../common/mock-utils";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
 
 // group test using describe
 describe("OSW Controller Test", () => {
+    describe("processSpatialQueryRequest", () => {
+        test("When request body is empty, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processSpatialQueryRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When request body is valid, Expect to process the request and return 202 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "target_dataset_id": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "target_dimension": "edge",
+                    "source_dataset_id": "0d661b69495d47fb838862edf699fe09",
+                    "source_dimension": "point",
+                    "join_condition": "ST_Contains(geometry_target, geometry_source)",
+                    "transform_target": "ST_Buffer(geometry_target, 5)",
+                    "transform_source": null,
+                    "filter_target": "highway='footway' AND footway='sidewalk'",
+                    "filter_source": "highway='street_lamp'",
+                    "aggregate": [
+                        "array_agg(highway)"
+                    ],
+                    "attributes": ["highway"]
+                }
+            });
+            let job_id = "mock-job-id";
+            const { res, next } = getMockRes();
+
+            jest.spyOn(oswService, "processSpatialQueryRequest").mockResolvedValueOnce(job_id);
+            // Act
+            await oswController.processSpatialQueryRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
+        });
+
+        test("When an error occurs, Expect to call next with HttpException and return 500 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: 'mock-user-id',
+                    "target_dataset_id": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "target_dimension": "edge",
+                    "source_dataset_id": "0d661b69495d47fb838862edf699fe09",
+                    "source_dimension": "point",
+                    "join_condition": "ST_Contains(geometry_target, geometry_source)",
+                    "transform_target": "ST_Buffer(geometry_target, 5)",
+                    "transform_source": null,
+                    "filter_target": "highway='footway' AND footway='sidewalk'",
+                    "filter_source": "highway='street_lamp'",
+                    "aggregate": [
+                        "array_agg(highway)"
+                    ],
+                    "attributes": ["highway"]
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new Error("Some error message");
+
+            // Mock the oswService.processSpatialQueryRequest method to throw an error
+            jest.spyOn(oswService, "processSpatialQueryRequest").mockRejectedValue(error);
+
+            // Act
+            await oswController.processSpatialQueryRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the spatial join request");
+        });
+    });
 
     describe("Process Dataset Tag Road Request", () => {
         test("When request body is empty, Expect to return HTTP status 400", async () => {
@@ -185,53 +265,6 @@ describe("OSW Controller Test", () => {
             expect(res.status).toHaveBeenCalledWith(500);
             expect(res.send).toHaveBeenCalledWith("Error while processing the dataset bbox request");
             expect(next).toHaveBeenCalledWith(new HttpException(500, "Error while processing the dataset bbox request"));
-        });
-    });
-
-    describe("Process Flattening Request", () => {
-        test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
-            // Arrange
-            const req = getMockReq({
-                params: { tdei_dataset_id: "mock-tdei_dataset_id" },
-                query: { override: "true" },
-                body: { user_id: "mock-user-id" },
-            });
-            const { res, next } = getMockRes();
-            const job_id = "mock-job-id";
-            jest.spyOn(oswService, "processDatasetFlatteningRequest").mockResolvedValueOnce(job_id);
-
-            // Act
-            await oswController.processFlatteningRequest(req, res, next);
-
-            // Assert
-            expect(res.setHeader).toHaveBeenCalledWith(
-                "Location",
-                `/api/v1/job?job_id=${job_id}`
-            );
-            expect(res.status).toHaveBeenCalledWith(202);
-            expect(res.send).toHaveBeenCalledWith(job_id);
-        });
-
-        test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
-            // Arrange
-            const req = getMockReq({
-                params: { tdei_dataset_id: "mock-tdei_dataset_id" },
-                query: { override: "true" },
-                body: { user_id: "mock-user-id" },
-            });
-            const { res, next } = getMockRes();
-            const error = new Error("Internal Server Error");
-            jest.spyOn(oswService, "processDatasetFlatteningRequest").mockRejectedValueOnce(error);
-
-            // Act
-            await oswController.processFlatteningRequest(req, res, next);
-
-            // Assert
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.send).toHaveBeenCalledWith("Error while processing the flattening request");
-            expect(next).toHaveBeenCalledWith(
-                new HttpException(500, "Error while processing the flattening request")
-            );
         });
     });
 
@@ -634,6 +667,71 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the format request');
+            expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+    });
+
+    describe('calculate quality metric', () => {
+        let mockRequest: any;
+        let mockResponse: any;
+        let mockNext: jest.Mock;
+
+        beforeEach(() => {
+            mockRequest = getMockReq({
+                body: {
+                    user_id: 'mock-user-id',
+                   
+                    algorithms: ['mock-algorithm'],
+                    persist: true,
+                },
+                params: {
+                    tdei_dataset_id: 'mock-tdei_dataset_id'
+                }
+            });
+
+            mockResponse = {
+                status: jest.fn().mockReturnThis(),
+                send: jest.fn(),
+                setHeader: jest.fn(),
+            };
+
+            mockNext = jest.fn();
+        });
+
+        it('should calculate quality metric and return job_id', async () => {
+            const mockJobId = 'mock-job-id';
+
+            // Mock the calculateQualityMetric function to return mock job_id
+            jest.spyOn(oswService, "calculateQualityMetric").mockResolvedValueOnce(mockJobId);
+
+            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+
+            // expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', '/api/v1/job?job_id=mock-job-id');
+            expect(mockResponse.status).toHaveBeenCalledWith(202);
+            expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
+            expect(mockNext).not.toHaveBeenCalled();
+        });
+
+        it('should handle missing tdei_dataset_id input', async () => {
+            // Simulate missing tdei_dataset_id input
+            mockRequest.params.tdei_dataset_id = undefined;
+
+            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('Missing tdei_dataset_id input');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(Error)); // InputException should be thrown
+        });
+
+        it('should handle error during quality metric calculation', async () => {
+            // Simulate an error during quality metric calculation
+            const mockError = new Error('Error while processing the quality metric');
+            jest.spyOn(oswService, "calculateQualityMetric").mockRejectedValueOnce(mockError);
+
+            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the quality metric');
             expect(mockNext).toHaveBeenCalledWith(mockError);
         });
     });

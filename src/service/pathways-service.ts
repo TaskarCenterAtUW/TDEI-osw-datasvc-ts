@@ -19,6 +19,7 @@ import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import { IPathwaysService } from "./interface/pathways-service-interface";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
+import { WorkflowName } from "../constants/app-constants";
 
 class PathwaysService implements IPathwaysService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -64,21 +65,31 @@ class PathwaysService implements IPathwaysService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_identifier = "PATHWAYS_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    user_id: user_id, // Required field for message authorization
-                    tdei_project_group_id: dataset.tdei_project_group_id,// Required field for message authorization
-                    file_upload_path: dataset.dataset_url
-                }
-            });
-            //Delete exisitng workflow if exists
-            let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
-            workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_dataset_id, trigger_workflow?.group!);
+            // let workflow_identifier = "PATHWAYS_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: {
+            //         user_id: user_id, // Required field for message authorization
+            //         tdei_project_group_id: dataset.tdei_project_group_id,// Required field for message authorization
+            //         file_upload_path: dataset.dataset_url
+            //     }
+            // });
+            // //Delete exisitng workflow if exists
+            // let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
+            // workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_dataset_id, trigger_workflow?.group!);
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            let workflow_start = WorkflowName.pathways_publish;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: user_id,
+                tdei_project_group_id: dataset.tdei_project_group_id,
+                dataset_url: dataset.latest_dataset_url,
+                tdei_dataset_id: tdei_dataset_id,
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
 
             return Promise.resolve(job_id.toString());
         } catch (error) {
@@ -118,17 +129,25 @@ class PathwaysService implements IPathwaysService {
 
             const job_id = await this.jobServiceInstance.createJob(job);
             //Compose the meessage
-            let workflow_identifier = "PATHWAYS_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    user_id: user_id, // Required field for message authorization
-                    file_upload_path: datasetUploadUrl
-                }
-            });
+            // let workflow_identifier = "PATHWAYS_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: {
+            //         user_id: user_id, // Required field for message authorization
+            //         file_upload_path: datasetUploadUrl
+            //     }
+            // });
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            let workflow_start = WorkflowName.pathways_validation_only;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: user_id,
+                dataset_url: datasetUploadUrl
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
 
             return Promise.resolve(job_id.toString());
         } catch (error) {
@@ -243,18 +262,30 @@ class PathwaysService implements IPathwaysService {
             const job_id = await this.jobServiceInstance.createJob(job);
 
             //Compose the meessage
-            let workflow_identifier = "PATHWAYS_UPLOAD_VALIDATION_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
-                messageId: job_id.toString(),
-                messageType: workflow_identifier,
-                data: {
-                    user_id: uploadRequestObject.user_id,// Required field for message authorization
-                    tdei_project_group_id: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
-                    file_upload_path: datasetUploadUrl
-                }
-            });
+            // let workflow_identifier = "PATHWAYS_UPLOAD_VALIDATION_REQUEST_WORKFLOW";
+            // let queueMessage = QueueMessage.from({
+            //     messageId: job_id.toString(),
+            //     messageType: workflow_identifier,
+            //     data: {
+            //         user_id: uploadRequestObject.user_id,// Required field for message authorization
+            //         tdei_project_group_id: uploadRequestObject.tdei_project_group_id,// Required field for message authorization
+            //         file_upload_path: datasetUploadUrl
+            //     }
+            // });
+            // //Trigger the workflow
+            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            let workflow_start = WorkflowName.pathways_upload;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: uploadRequestObject.user_id,
+                tdei_project_group_id: uploadRequestObject.tdei_project_group_id,
+                dataset_url: decodeURIComponent(datasetUploadUrl),
+                tdei_dataset_id: uid,
+                metadata_url: decodeURIComponent(metadataUploadUrl),
+                changeset_url: decodeURIComponent(changesetUploadUrl)
+            };
             //Trigger the workflow
-            await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, uploadRequestObject.user_id);
 
             //Return the tdei_dataset_id
             return Promise.resolve(job_id.toString());
@@ -296,7 +327,7 @@ class PathwaysService implements IPathwaysService {
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
         const download_url = dataset.dataset_download_url;
-        if (download_url == undefined || download_url == null || download_url == ""){
+        if (download_url == undefined || download_url == null || download_url == "") {
             throw new InputException(`${tdei_dataset_id} is not archived yet.`);
         }
         let dlUrl = new URL(download_url);
@@ -304,7 +335,7 @@ class PathwaysService implements IPathwaysService {
         let container = relative_path.split('/')[1];
         // let file_path = relative_path.split('/').
         let file_path_in_container = relative_path.split('/').slice(2).join('/');
-        let sasUrl = storageClient.getSASUrl(container, file_path_in_container,12); // 12 hours expiry
+        let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 12); // 12 hours expiry
         return sasUrl;
     }
 }

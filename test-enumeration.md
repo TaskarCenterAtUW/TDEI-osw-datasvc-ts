@@ -45,33 +45,40 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 
 |Feature Under Test | Test Case Description | Status |
 |-------------------------------------------------------------------------------------|---------|---------------|
-| Authenticate | should call next() and set user_id if authorization header is valid | passed |
-| Authenticate | should call next() with UnAuthenticated error if authorization header is missing | passed |
-| Authenticate | should call next() with UnAuthenticated error if authorization header is empty | passed |
-| Authenticate | should call next() with UnAuthenticated error if bearer is missing | passed |
-| Authenticate | should call next() with UnAuthenticated error if jwt.decode returns null | passed |
-| Health Check | When requested for health check, Expect to returns http status 200 if healthy | passed |
+| JobService -> getJobs | should return an array of JobDTO objects | passed |
+| JobService -> getJobFileEntity | should return the FileEntity associated with the given job ID | passed |
+| JobService -> getJobFileEntity | should throw an InputException if the job is not found | passed |
+| JobService -> getJobFileEntity | should throw an HttpException if the download URL is not available | passed |
+| JobService -> getJobFileEntity | should throw an Error if the storage is not configured | passed |
+| JobService -> createJob | should create a job in the database and return the job ID | passed |
+| JobService -> updateJob | should update a job with the given parameters and return the updated job object | passed |
+| Authorize Middleware | should call next() if user_id is missing | passed |
+| Authorize Middleware | should set tdei_project_group_id from tdei_record_id | passed |
+| Authorize Middleware | should set tdei_project_group_id from params if tdei_record_id is missing | passed |
+| Authorize Middleware | should call next() with UnAuthenticated error if roles are not approved | passed |
+| Flex Service Test -> Get Flex file by Id -> Functional | When requested for get flex file by tdei_dataset_id, Expect to return FileEntity object | passed |
+| Flex Service Test -> Get Flex file by Id -> Functional | When requested for get flex file with invalid tdei_dataset_id, Expect to throw HttpException | passed |
+| Flex Service Test -> Get Flex file by Id -> Functional | When Core failed obtaing storage client, Expect to throw error | passed |
+| Flex Service Test -> process validation only request | should process validation request successfully | passed |
+| Flex Service Test -> process publish request | should process publish request successfully | passed |
+| Flex Service Test -> process upload request | should process upload request successfully | passed |
+| Flex Service Test -> process upload request | should throw ServiceNotFoundException if service id not found | passed |
+| Flex Service Test -> process upload request | should throw InputException if metadata name and version not unique | passed |
 | Metadata JSON Validator | should call next() if metadata file is present and valid JSON | passed |
 | Metadata JSON Validator | should throw InputException if metadata file is missing | passed |
 | Metadata JSON Validator | should throw InputException if metadata file contains invalid JSON | passed |
 | Metadata JSON Validator | should handle general errors by throwing InputException with a default message | passed |
-| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file by tdei_dataset_id, Expect to return FileEntity object | passed |
-| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file by tdei_dataset_id and osm format, Expect to return FileEntity object | passed |
-| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file by tdei_dataset_id and xml format, Expect to return FileEntity object | passed |
-| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file where conversion for osm for tdei_dataset_id not available, Expect to throw HttpException | passed |
-| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file with invalid tdei_dataset_id, Expect to throw HttpException | passed |
-| OSW Service Test -> Get OSW file by Id -> Functional | When Core failed obtaing storage client, Expect to throw error | passed |
-| OSW Service Test -> process format request | should process the format request and return jobId | passed |
-| OSW Service Test -> calculate confidence metric | should calculate confidence successfully | passed |
-| OSW Service Test -> process validation only request | should process validation request successfully | passed |
-| OSW Service Test -> process publish request | should process publish request successfully | passed |
-| OSW Service Test -> process upload request | should process upload request successfully | passed |
-| OSW Service Test -> process upload request | should throw ServiceNotFoundException if service id not found | passed |
-| OSW Service Test -> process upload request | should throw InputException if metadata name and version not unique | passed |
-| OSW Service Test -> Process Dataset Flattening Request | When override is false and there is an existing record, expect to throw InputException | passed |
-| OSW Service Test -> Process Dataset Flattening Request | When override is true, expect to create a new job and trigger the workflow | passed |
-| OSW Service Test -> processBackendRequest | Should create a backend job and trigger the workflow | passed |
-| OSW Service Test -> processBackendRequest | Should throw an error if an exception occurs | passed |
+| Pathways Service Test -> Get Pathways file by Id -> Functional | When requested for get pathways file by tdei_dataset_id, Expect to return FileEntity object | passed |
+| Pathways Service Test -> Get Pathways file by Id -> Functional | When requested for get pathways file with invalid tdei_dataset_id, Expect to throw HttpException | passed |
+| Pathways Service Test -> Get Pathways file by Id -> Functional | When Core failed obtaing storage client, Expect to throw error | passed |
+| Pathways Service Test -> process validation only request | should process validation request successfully | passed |
+| Pathways Service Test -> process publish request | should process publish request successfully | passed |
+| Pathways Service Test -> process upload request | should process upload request successfully | passed |
+| Pathways Service Test -> process upload request | should throw ServiceNotFoundException if service id not found | passed |
+| Pathways Service Test -> process upload request | should throw InputException if metadata name and version not unique | passed |
+| TDEI core Service Test -> Clone Dataset | When cloning a dataset with valid input, expect to return the new dataset ID | passed |
+| TDEI core Service Test -> Clone Dataset | When cloning a dataset with invalid service ID, expect to throw ServiceNotFoundException | passed |
+| TDEI core Service Test -> Clone Dataset | When cloning a dataset with invalid project group ID, expect to throw InputException | passed |
 | TDEI core Service Test -> Get all Datasets -> Functional | When requested with empty search filters, Expect to return Dataset list | passed |
 | TDEI core Service Test -> Get all Datasets -> Functional | When requested with all search filters, expect to return Dataset list | passed |
 | TDEI core Service Test -> Get all Datasets -> Functional | When requested with invalid date search filter, Expect to throw InputException | passed |
@@ -81,11 +88,6 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 | TDEI core Service Test -> Create Dataset version -> Functional | When requested for creating DATASET version with valid input, Expect to return DatasetDTO object | passed |
 | TDEI core Service Test -> Create Dataset version -> Functional | When database exception with duplicate tdei_dataset_id occured while processing request, Expect to throw DuplicateException | passed |
 | TDEI core Service Test -> Create Dataset version -> Functional | When database exception occured while processing request, Expect to throw error | passed |
-| TDEI core Service Test -> Create DATASET metadata -> Functional | When requested for creating DATASET metadata with valid input, Expect to return DatasetDTO object | passed |
-| TDEI core Service Test -> Create DATASET metadata -> Functional | When database exception with duplicate tdei_dataset_id occured while processing request, Expect to throw DuplicateException | passed |
-| TDEI core Service Test -> Create DATASET metadata -> Functional | When database exception occured while processing request, Expect to throw error | passed |
-| TDEI core Service Test -> get metadata by Id | should resolve with the record if it exists | passed |
-| TDEI core Service Test -> get metadata by Id | should throw HttpException with 404 status if the record does not exist | passed |
 | TDEI core Service Test -> check metadata name And version unique | should resolve with true if record with the same name and version exists | passed |
 | TDEI core Service Test -> check metadata name And version unique | should resolve with false if no record with the same name and version exists | passed |
 | TDEI core Service Test -> check metadata name And version unique | should resolve with true if an error occurs during the query | passed |
@@ -94,10 +96,12 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 | TDEI core Service Test -> Invalidate Record Request | should invalidate the record and return true if query result has rowCount > 0 | passed |
 | TDEI core Service Test -> Invalidate Record Request | should not invalidate the record and return false if query result has rowCount <= 0 | passed |
 | TDEI core Service Test -> Invalidate Record Request | should throw an error if an error occurs while invalidating the record | passed |
-| Authorize Middleware | should call next() if user_id is missing | passed |
-| Authorize Middleware | should set tdei_project_group_id from tdei_record_id | passed |
-| Authorize Middleware | should set tdei_project_group_id from params if tdei_record_id is missing | passed |
-| Authorize Middleware | should call next() with UnAuthenticated error if roles are not approved | passed |
+| buildUpdateQuery | should build an update query with set and where clauses | passed |
+| buildUpdateQuery | should build an update query without a where clause | passed |
+| buildUpdateQuery | should throw error if no update fields provided | passed |
+| General Controller Test -> Get Dataset list -> Functional | When requested with empty search criteria, Expect to return Dataset list | passed |
+| General Controller Test -> Get Dataset list -> Functional | When requested with bad collection_date input, Expect to return HTTP status 400 | passed |
+| General Controller Test -> Get Dataset list -> Functional | When unknown or database exception occured while processing request, Expect to return HTTP status 500 | passed |
 | General Controller Test -> Invalidate the record | When requested to invalidate a record, Expect to return http status 200 and true if successful | passed |
 | General Controller Test -> Invalidate the record | When an error occurs while processing the invalidate request, Expect to return http status 500 and error message | passed |
 | General Controller Test -> Invalidate the record | When an HttpException occurs while processing the invalidate request, Expect to return corresponding http status and error message | passed |
@@ -109,15 +113,72 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 | General Controller Test -> Get Job Download File | When invalid job_id is provided, Expect to return HTTP status 400 | passed |
 | General Controller Test -> Get Job Download File | When valid job_id is provided and download file not available, Expect to return HTTP status 404 | passed |
 | General Controller Test -> Get Job Download File | When an error occurs while processing the request, Expect to return the error | passed |
+| General Controller Test -> cloneDataset | When clone dataset request is successful, Expect to return cloned dataset ID | passed |
+| General Controller Test -> cloneDataset | When clone dataset request fails with HttpException, Expect to return HTTP status and error message from the exception | passed |
+| General Controller Test -> cloneDataset | When clone dataset request fails with unexpected error, Expect to return HTTP status 500 and error message | passed |
+| Health Check | When requested for health check, Expect to returns http status 200 if healthy | passed |
+| Pathways Controller Test -> Get Pathways file by Id -> Functional | When requested for valid tdei_dataset_id, Expect to return downloadable file stream | passed |
+| Pathways Controller Test -> Get Pathways file by Id -> Functional | When requested for invalid tdei_dataset_id, Expect to return HTTP status 404 | passed |
+| Pathways Controller Test -> Get Pathways file by Id -> Functional | When unexpected error occured while processing request, Expect to return HTTP status 500 | passed |
+| Pathways Controller Test -> Get Version list -> Functional | When requested version info, Expect to return HTTP status 200 | passed |
+| Pathways Controller Test -> process upload request | should process the upload request and return tdei_dataset_id | passed |
+| Pathways Controller Test -> process upload request | should handle missing dataset file | passed |
+| Pathways Controller Test -> process upload request | should handle missing metadata file | passed |
+| Pathways Controller Test -> process upload request | should handle internal server error | passed |
+| Pathways Controller Test -> process publish request | should process the publish request and return tdei_dataset_id | passed |
+| Pathways Controller Test -> process publish request | should handle internal server error | passed |
+| Pathways Controller Test -> process validation only request | should process the validation request and return job_id | passed |
+| Pathways Controller Test -> process validation only request | should handle validation request with missing dataset file | passed |
+| Pathways Controller Test -> process validation only request | should handle internal server error | passed |
+| Authenticate | should call next() and set user_id if authorization header is valid | passed |
+| Authenticate | should call next() with UnAuthenticated error if authorization header is missing | passed |
+| Authenticate | should call next() with UnAuthenticated error if authorization header is empty | passed |
+| Authenticate | should call next() with UnAuthenticated error if bearer is missing | passed |
+| Authenticate | should call next() with UnAuthenticated error if jwt.decode returns null | passed |
+| OSW Service Test -> processSpatialQueryRequest | When source dataset is not a osw dataset, Expect to throw InputException | passed |
+| OSW Service Test -> processSpatialQueryRequest | When target dataset is not a osw dataset, Expect to throw InputException | passed |
+| OSW Service Test -> processSpatialQueryRequest | When all conditions are met, Expect to create job, start workflow, and return job_id | passed |
+| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file by tdei_dataset_id, Expect to return FileEntity object | passed |
+| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file by tdei_dataset_id and osm format, Expect to return FileEntity object | passed |
+| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file by tdei_dataset_id and osw format, Expect to return FileEntity object | passed |
+| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file where conversion for osm for tdei_dataset_id not available, Expect to throw HttpException | passed |
+| OSW Service Test -> Get OSW file by Id -> Functional | When requested for get OSW file with invalid tdei_dataset_id, Expect to throw HttpException | passed |
+| OSW Service Test -> Get OSW file by Id -> Functional | When Core failed obtaing storage client, Expect to throw error | passed |
+| OSW Service Test -> process format request | should process the format request and return jobId | passed |
+| OSW Service Test -> calculate confidence metric | should calculate confidence successfully | passed |
+| OSW Service Test -> process validation only request | should process validation request successfully | passed |
+| OSW Service Test -> process publish request | should process publish request successfully | passed |
+| OSW Service Test -> process upload request | should process upload request successfully | passed |
+| OSW Service Test -> process upload request | should throw ServiceNotFoundException if service id not found | passed |
+| OSW Service Test -> process upload request | should throw InputException if metadata name and version not unique | passed |
+| OSW Service Test -> processBackendRequest | Should create a backend job and trigger the workflow | passed |
+| OSW Service Test -> processBackendRequest | Should throw an error if an exception occurs | passed |
+| OSW Service Test -> processDatasetTagRoadRequest | When dataset is not in Pre-Release state, Expect to throw InputException | passed |
+| OSW Service Test -> processDatasetTagRoadRequest | When dataset is in Pre-Release state, Expect to create job and trigger workflow | passed |
+| Flex Controller Test -> Get Flex file by Id -> Functional | When requested for valid tdei_dataset_id, Expect to return downloadable file SAS URL | passed |
+| Flex Controller Test -> Get Flex file by Id -> Functional | When requested for invalid tdei_dataset_id, Expect to return HTTP status 404 | passed |
+| Flex Controller Test -> Get Flex file by Id -> Functional | When unexpected error occured while processing request, Expect to return HTTP status 500 | passed |
+| Flex Controller Test -> Get Version list -> Functional | When requested version info, Expect to return HTTP status 200 | passed |
+| Flex Controller Test -> process upload request | should process the upload request and return tdei_dataset_id | passed |
+| Flex Controller Test -> process upload request | should handle missing dataset file | passed |
+| Flex Controller Test -> process upload request | should handle missing metadata file | passed |
+| Flex Controller Test -> process upload request | should handle internal server error | passed |
+| Flex Controller Test -> process publish request | should process the publish request and return tdei_dataset_id | passed |
+| Flex Controller Test -> process publish request | should handle internal server error | passed |
+| Flex Controller Test -> process validation only request | should process the validation request and return job_id | passed |
+| Flex Controller Test -> process validation only request | should handle validation request with missing dataset file | passed |
+| Flex Controller Test -> process validation only request | should handle internal server error | passed |
+| OSW Controller Test -> processSpatialQueryRequest | When request body is empty, Expect to call next with InputException | passed |
+| OSW Controller Test -> processSpatialQueryRequest | When request body is valid, Expect to process the request and return 202 status code | passed |
+| OSW Controller Test -> processSpatialQueryRequest | When an error occurs, Expect to call next with HttpException and return 500 status code | passed |
+| OSW Controller Test -> Process Dataset Tag Road Request | When request body is empty, Expect to return HTTP status 400 | passed |
+| OSW Controller Test -> Process Dataset Tag Road Request | When required input is empty, Expect to return HTTP status 400 | passed |
+| OSW Controller Test -> Process Dataset Tag Road Request | When user is not authorized, Expect to return HTTP status 401 | passed |
+| OSW Controller Test -> Process Dataset Tag Road Request | When request is valid, Expect to return HTTP status 202 with job_id | passed |
+| OSW Controller Test -> Process Dataset Tag Road Request | When an error occurs while processing the request, Expect to return HTTP status 500 | passed |
 | OSW Controller Test -> Process Dataset Bbox Request | When request body is empty, Expect to return HTTP status 400 | passed |
 | OSW Controller Test -> Process Dataset Bbox Request | When request is valid, Expect to return HTTP status 202 with job_id | passed |
 | OSW Controller Test -> Process Dataset Bbox Request | When an error occurs while processing the request, Expect to return HTTP status 500 | passed |
-| OSW Controller Test -> Process Flattening Request | When request is valid, Expect to return HTTP status 202 with job_id | passed |
-| OSW Controller Test -> Process Flattening Request | When an error occurs while processing the request, Expect to return HTTP status 500 | passed |
-| OSW Controller Test -> Get OSW list -> Functional | When requested with empty search criteria, Expect to return OSW list | passed |
-| OSW Controller Test -> Get OSW list -> Functional | When requested with bad collection_date input, Expect to return HTTP status 400 | passed |
-| OSW Controller Test -> Get OSW list -> Functional | When unknown or database exception occured while processing request, Expect to return HTTP status 500 | passed |
-| OSW Controller Test -> Get OSW file by Id -> Functional | When requested for valid tdei_dataset_id, Expect to return downloadable file stream | passed |
 | OSW Controller Test -> Get OSW file by Id -> Functional | When requested for invalid tdei_dataset_id, Expect to return HTTP status 404 | passed |
 | OSW Controller Test -> Get OSW file by Id -> Functional | When unexpected error occured while processing request, Expect to return HTTP status 500 | passed |
 | OSW Controller Test -> Get Version list -> Functional | When requested version info, Expect to return HTTP status 200 | passed |
@@ -137,4 +198,3 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 | OSW Controller Test -> create format request | should handle missing upload file input | passed |
 | OSW Controller Test -> create format request | should handle error during format request processing | passed |
 | OSW Integration Test | Verifying auth service hasPermission api integration | passed |
-| OSW Integration Test | Verifying auth service generate secret api integration | passed |

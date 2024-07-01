@@ -91,6 +91,14 @@ export function mockAppContext() {
         getWorkflowByIdentifier: jest.fn(),
         initialize: jest.fn()
     };
+
+    appContext.orchestratorService_v2_Instance = {
+        startWorkflow: jest.fn(),
+        executeNextTask: jest.fn(),
+        publishMessage: jest.fn(),
+        executeExceptionTasks : jest.fn(),
+        executeNextExceptionTask: jest.fn(),
+    }
 }
 
 export function getMockAuthorizer(result: boolean) {
