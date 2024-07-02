@@ -25,7 +25,7 @@ export interface ITdeiCoreService {
    * @param data_type - The type of TDEI data.
    * @returns A Promise that resolves when the metadata is successfully edited.
    */
-  editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<void>;
+  editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<string>;
   /**
      * Validates the metadata for a given data type.
      * 

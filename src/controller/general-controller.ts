@@ -118,9 +118,9 @@ class GeneralController implements IController {
         try {
             const metafile = request.file;
 
-            await tdeiCoreService.editMetadata(request.params["tdei_dataset_id"], metafile, request.body.user_id, request.params["tdei_data_type"] as TDEIDataType);
+            let job_id = await tdeiCoreService.editMetadata(request.params["tdei_dataset_id"], metafile, request.body.user_id, request.params["tdei_data_type"] as TDEIDataType);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(200).send();
-
         } catch (error) {
             console.error("Error editing the metadata request", error);
             if (error instanceof HttpException) {
