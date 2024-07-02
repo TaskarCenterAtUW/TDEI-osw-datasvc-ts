@@ -15,13 +15,17 @@ import { DatasetQueryParams, RecordStatus } from "../model/dataset-get-query-par
 import { ConfidenceJobResponse } from "../model/job-request-response/osw-confidence-job-response";
 import { TdeiDate } from "../utility/tdei-date";
 import { MetadataModel } from "../model/metadata.model";
-import { TDEIDataType, TDEIRole } from "../model/jobs-get-query-params";
+import { JobStatus, JobType, TDEIDataType, TDEIRole } from "../model/jobs-get-query-params";
 import Ajv, { ErrorObject } from "ajv";
 import metaschema from "../../schema/metadata.schema.json";
 import { CloneContext, IDatasetCloneRequest } from "../model/request-interfaces";
 import storageService from "./storage-service";
 import path from "path";
 import { Readable } from "stream";
+import { WorkflowName } from "../constants/app-constants";
+import { CreateJobDTO } from "../model/job-dto";
+import jobService from "./job-service";
+import appContext from "../app-context";
 
 const ajv = new Ajv({ allErrors: true });
 const metadataValidator = ajv.compile(metaschema);
@@ -37,7 +41,7 @@ class TdeiCoreService implements ITdeiCoreService {
      * @param data_type - The type of TDEI data.
      * @returns A Promise that resolves when the metadata is successfully edited.
      */
-    async editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<void> {
+    async editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<string> {
         let dataset_to_be_edited = await this.getDatasetDetailsById(tdei_dataset_id);
         const metadataBuffer = JSON.parse(metadataFile.buffer);
         const metadata = MetadataModel.from(metadataBuffer);
@@ -61,6 +65,39 @@ class TdeiCoreService implements ITdeiCoreService {
 
         // Upload the metadata file  
         await storageService.uploadFile(fileRelativePath, 'text/json', Readable.from(metadataFile.buffer), containerName);
+
+        //Create job
+        let job = CreateJobDTO.from({
+            data_type: TDEIDataType.osw,
+            job_type: JobType["Edit-Metadata"],
+            status: JobStatus["IN-PROGRESS"],
+            message: 'Job started',
+            request_input: {
+                tdei_dataset_id: tdei_dataset_id,
+                metadata_file_upload_name: metadataFile.originalname
+            },
+            user_id: user_id,
+            tdei_project_group_id: dataset_to_be_edited.tdei_project_group_id
+        });
+
+        const job_id = await jobService.createJob(job);
+
+        //Compose the meessage
+        let workflow_start = dataset_to_be_edited.data_type == TDEIDataType.osw ? WorkflowName.osw_edit_metadata : WorkflowName.edit_metadata;
+        let workflow_input = {
+            job_id: job_id.toString(),
+            user_id: user_id,// Required field for message authorization
+            tdei_dataset_id: tdei_dataset_id,
+            dataset_url: decodeURIComponent(dataset_to_be_edited.latest_dataset_url),
+            metadata_url: decodeURIComponent(dataset_to_be_edited.metadata_url),
+            changeset_url: dataset_to_be_edited.changeset_url ? decodeURIComponent(dataset_to_be_edited.changeset_url) : "",
+            dataset_osm_url: dataset_to_be_edited.latest_osm_url ? decodeURIComponent(dataset_to_be_edited.latest_osm_url) : ""
+        };
+        //Trigger the workflow
+        await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+        console.log(`Edit metadata job started with job_id: ${job_id}`);
+
+        return job_id.toString();
     }
 
     /**

@@ -28,7 +28,8 @@ export enum JobType {
     "Dataset-Validate" = "Dataset-Validate",
     "Dataset-Flatten" = "Dataset-Flatten",
     "Dataset-Queries" = "Dataset-Queries",
-    "Quality-Metric" = "Quality-Metric"
+    "Quality-Metric" = "Quality-Metric",
+    "Edit-Metadata" = "Edit-Metadata"
 }
 export class JobsQueryParams {
     @IsOptional()
