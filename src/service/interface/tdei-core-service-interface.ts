@@ -15,7 +15,7 @@ export interface ITdeiCoreService {
    * @param datasetCloneRequestObject - The dataset clone request object.
    * @returns A Promise that resolves to a boolean indicating whether the dataset was cloned successfully.
    */
-  cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<string>;
+  cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<{ new_tdei_dataset_id: string, job_id: string }>;
   /**
    * Edits the metadata of a TDEI dataset.
    * 
@@ -25,7 +25,7 @@ export interface ITdeiCoreService {
    * @param data_type - The type of TDEI data.
    * @returns A Promise that resolves when the metadata is successfully edited.
    */
-  editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<void>;
+  editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<string>;
   /**
      * Validates the metadata for a given data type.
      * 

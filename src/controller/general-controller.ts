@@ -94,8 +94,9 @@ class GeneralController implements IController {
                 metafile: metafile
             };
 
-            let cloned_dataset_id = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
-            return response.status(200).send(cloned_dataset_id);
+            let clone_result = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
+            response.setHeader('Location', `/api/v1/job?job_id=${clone_result.job_id}`);
+            return response.status(200).send(clone_result.new_tdei_dataset_id);
 
         } catch (error) {
             console.error("Error cloning the dataset request", error);
@@ -118,9 +119,9 @@ class GeneralController implements IController {
         try {
             const metafile = request.file;
 
-            await tdeiCoreService.editMetadata(request.params["tdei_dataset_id"], metafile, request.body.user_id, request.params["tdei_data_type"] as TDEIDataType);
+            let job_id = await tdeiCoreService.editMetadata(request.params["tdei_dataset_id"], metafile, request.body.user_id, request.params["tdei_data_type"] as TDEIDataType);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(200).send();
-
         } catch (error) {
             console.error("Error editing the metadata request", error);
             if (error instanceof HttpException) {

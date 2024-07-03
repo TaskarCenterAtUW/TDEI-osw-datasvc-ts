@@ -38,13 +38,14 @@ describe("TDEI core Service Test", () => {
                 rows: [{ tdei_clone_dataset: "new_dataset_id" }]
             });
             jest.spyOn(tdeiCoreService, "cloneBlob").mockResolvedValue();
+            jest.spyOn(tdeiCoreService, "triggerCloneWorkflow").mockResolvedValue("job_id");
             jest.spyOn(dbClient, "query").mockResolvedValueOnce(<QueryResult<any>>{});
 
             // Act
             const result = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
 
             // Assert
-            expect(result).toBe("new_dataset_id");
+            expect(result.new_tdei_dataset_id).toBe("new_dataset_id");
         });
 
         test("When cloning a dataset with invalid service ID, expect to throw ServiceNotFoundException", async () => {

@@ -18,11 +18,9 @@ export interface CloneContext {
     osw_dataset_elements_cloned: boolean;
     dest_changeset_upload_entity?: FileEntity;
     dest_dataset_upload_entity?: FileEntity;
-    dest_metadata_upload_entity?: FileEntity;
+    dest_metadata_upload_entity?: string;
     dest_osm_upload_entity?: FileEntity;
     new_tdei_dataset_id: string;
-    dest_dataset_download_entity?: FileEntity;
-    dest_osm_download_entity?: FileEntity;
 }
 
 export class SpatialJoinRequest extends AbstractDomainEntity {
