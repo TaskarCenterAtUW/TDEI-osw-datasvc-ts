@@ -83,7 +83,7 @@ class TdeiCoreService implements ITdeiCoreService {
         const job_id = await jobService.createJob(job);
 
         //Compose the meessage
-        let workflow_start = dataset_to_be_edited.data_type == TDEIDataType.osw ? WorkflowName.osw_edit_metadata : WorkflowName.edit_metadata;
+        let workflow_start = dataset_to_be_edited.data_type == TDEIDataType.osw ? WorkflowName.build_osw_osm_dataset_download : WorkflowName.build_dataset_download;
         let workflow_input = {
             job_id: job_id.toString(),
             user_id: user_id,// Required field for message authorization
@@ -418,7 +418,7 @@ class TdeiCoreService implements ITdeiCoreService {
   * @param datasetCloneRequestObject - The dataset clone request object.
   * @returns A Promise that resolves to a boolean indicating whether the dataset was cloned successfully.
   */
-    async cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<string> {
+    async cloneDataset(datasetCloneRequestObject: IDatasetCloneRequest): Promise<{ new_tdei_dataset_id: string, job_id: string }> {
 
         let cloneContext: CloneContext = {
             db_clone_dataset_updated: false,
@@ -429,8 +429,6 @@ class TdeiCoreService implements ITdeiCoreService {
             dest_metadata_upload_entity: undefined,
             dest_osm_upload_entity: undefined,
             new_tdei_dataset_id: "",
-            dest_dataset_download_entity: undefined,
-            dest_osm_download_entity: undefined
         };
 
         try {
@@ -499,7 +497,9 @@ class TdeiCoreService implements ITdeiCoreService {
             });
             await dbClient.query(DatasetEntity.getUpdateQuery(condition, updateFields));
 
-            return cloneContext.new_tdei_dataset_id;
+            let job_id = this.triggerCloneWorkflow(cloneContext, dataset_to_be_clone, cloneContext.new_tdei_dataset_id, datasetCloneRequestObject.user_id, datasetCloneRequestObject);
+
+            return { new_tdei_dataset_id: cloneContext.new_tdei_dataset_id, job_id: (await job_id).toString() };
         } catch (error) {
             console.error(`Error cloning the dataset: ${datasetCloneRequestObject.tdei_dataset_id}`, error);
             //Clean up
@@ -510,7 +510,7 @@ class TdeiCoreService implements ITdeiCoreService {
             if (cloneContext.blob_clone_uploaded) {
                 //Delete the cloned blobs
                 if (cloneContext.dest_dataset_upload_entity) await storageService.deleteFile(cloneContext.dest_dataset_upload_entity.remoteUrl);
-                if (cloneContext.dest_metadata_upload_entity) await storageService.deleteFile(cloneContext.dest_metadata_upload_entity.remoteUrl);
+                if (cloneContext.dest_metadata_upload_entity) await storageService.deleteFile(cloneContext.dest_metadata_upload_entity);
                 if (cloneContext.dest_changeset_upload_entity) await storageService.deleteFile(cloneContext.dest_changeset_upload_entity.remoteUrl);
                 if (cloneContext.dest_osm_upload_entity) await storageService.deleteFile(cloneContext.dest_osm_upload_entity.remoteUrl);
             }
@@ -526,6 +526,52 @@ class TdeiCoreService implements ITdeiCoreService {
         }
 
 
+    }
+
+
+    /**
+     * Triggers the clone workflow for a dataset.
+     * 
+     * @param cloneContext - The clone context.
+     * @param dataset_to_be_clone - The dataset to be cloned.
+     * @param new_tdei_dataset_id - The ID of the new TDEI dataset.
+     * @param user_id - The ID of the user triggering the workflow.
+     * @param datasetCloneRequestObject - The dataset clone request object.
+     * @returns The ID of the job created for the clone workflow.
+     */
+    async triggerCloneWorkflow(cloneContext: CloneContext, dataset_to_be_clone: DatasetEntity, new_tdei_dataset_id: string, user_id: string, datasetCloneRequestObject: IDatasetCloneRequest) {
+        //Create job
+        let job = CreateJobDTO.from({
+            data_type: TDEIDataType.osw,
+            job_type: JobType["Clone-Dataset"],
+            status: JobStatus["IN-PROGRESS"],
+            message: 'Job started',
+            request_input: {
+                to_be_cloned_tdei_dataset_id: datasetCloneRequestObject.tdei_dataset_id,
+                new_tdei_dataset_id: new_tdei_dataset_id
+            },
+            user_id: user_id,
+            tdei_project_group_id: datasetCloneRequestObject.tdei_project_group_id
+        });
+
+        const job_id = await jobService.createJob(job);
+
+        //Compose the meessage
+        let workflow_start = dataset_to_be_clone.data_type == TDEIDataType.osw ? WorkflowName.build_osw_osm_dataset_download : WorkflowName.build_dataset_download;
+        let workflow_input = {
+            job_id: job_id.toString(),
+            user_id: user_id,// Required field for message authorization
+            tdei_dataset_id: new_tdei_dataset_id,
+            dataset_url: decodeURIComponent(cloneContext.dest_dataset_upload_entity!.remoteUrl),
+            metadata_url: decodeURIComponent(cloneContext.dest_metadata_upload_entity!),
+            changeset_url: cloneContext.dest_changeset_upload_entity ? decodeURIComponent(cloneContext.dest_changeset_upload_entity!.remoteUrl) : "",
+            dataset_osm_url: cloneContext.dest_osm_upload_entity ? decodeURIComponent(cloneContext.dest_osm_upload_entity!.remoteUrl) : ""
+        };
+        //Trigger the workflow
+        await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+        console.log(`Clone dataset job started with job_id: ${job_id}`);
+
+        return job_id.toString();
     }
 
     /**
@@ -557,16 +603,10 @@ class TdeiCoreService implements ITdeiCoreService {
         const datasetUploadStoragePath = path.join(storageFolderPath, datasetFileName);
         cloneContext.dest_dataset_upload_entity = await storageService.cloneFile(dataset_to_be_clone.latest_dataset_url, containerName, datasetUploadStoragePath);
 
-        if (dataset_to_be_clone.dataset_download_url) {
-            //Clone dataset donwload url
-            let datasetDownloadFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.dataset_download_url);
-            const datasetDownloadStoragePath = path.join(storageFolderPath, datasetDownloadFileName);
-            cloneContext.dest_dataset_download_entity = await storageService.cloneFile(dataset_to_be_clone.dataset_download_url, containerName, datasetDownloadStoragePath);
-        }
 
         // Clone the metadata file  
         const metadataStorageFilePath = path.join(storageFolderPath, 'metadata.json');
-        cloneContext.dest_metadata_upload_entity = await storageService.cloneFile(dataset_to_be_clone.metadata_url, containerName, metadataStorageFilePath);
+        cloneContext.dest_metadata_upload_entity = await storageService.uploadFile(metadataStorageFilePath, 'text/json', Readable.from(datasetCloneRequestObject.metafile.buffer), containerName);
 
         // Clone the changeset file  
         if (dataset_to_be_clone.changeset_url) {
@@ -578,14 +618,9 @@ class TdeiCoreService implements ITdeiCoreService {
         if (dataset_to_be_clone.latest_osm_url) {
             let osmFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.latest_osm_url);
             const osmUploadStoragePath = path.join(storageFolderPath, osmFileName);
-            cloneContext.dest_osm_upload_entity = await storageService.cloneFile(dataset_to_be_clone.osm_url, TDEIDataType.osw, osmUploadStoragePath);
+            cloneContext.dest_osm_upload_entity = await storageService.cloneFile(dataset_to_be_clone.latest_osm_url, containerName, osmUploadStoragePath);
         }
 
-        if (dataset_to_be_clone.dataset_osm_download_url) {
-            let osmDownloadFileName = storageService.getStorageFileNameFromUrl(dataset_to_be_clone.dataset_osm_download_url);
-            const osmDownloadStoragePath = path.join(storageFolderPath, osmDownloadFileName);
-            cloneContext.dest_osm_download_entity = await storageService.cloneFile(dataset_to_be_clone.dataset_osm_download_url, containerName, osmDownloadStoragePath);
-        }
 
         cloneContext.blob_clone_uploaded = true;
         //build where clause
@@ -595,12 +630,10 @@ class TdeiCoreService implements ITdeiCoreService {
         let updateFields = new DatasetEntity({
             dataset_url: decodeURIComponent(cloneContext.dest_dataset_upload_entity!.remoteUrl),
             latest_dataset_url: decodeURIComponent(cloneContext.dest_dataset_upload_entity!.remoteUrl),
-            dataset_download_url: cloneContext.dest_dataset_download_entity ? decodeURIComponent(cloneContext.dest_dataset_download_entity!.remoteUrl) : undefined,
-            metadata_url: decodeURIComponent(cloneContext.dest_metadata_upload_entity!.remoteUrl),
+            metadata_url: decodeURIComponent(cloneContext.dest_metadata_upload_entity),
             changeset_url: cloneContext.dest_changeset_upload_entity ? decodeURIComponent(cloneContext.dest_changeset_upload_entity!.remoteUrl) : undefined,
             osm_url: cloneContext.dest_osm_upload_entity ? decodeURIComponent(cloneContext.dest_osm_upload_entity!.remoteUrl) : undefined,
             latest_osm_url: cloneContext.dest_osm_upload_entity ? decodeURIComponent(cloneContext.dest_osm_upload_entity!.remoteUrl) : undefined,
-            dataset_osm_download_url: cloneContext.dest_osm_download_entity ? decodeURIComponent(cloneContext.dest_osm_download_entity!.remoteUrl) : undefined
         });
         // //Update the cloned dataset with new urls
         await dbClient.query(DatasetEntity.getUpdateQuery(condition, updateFields));

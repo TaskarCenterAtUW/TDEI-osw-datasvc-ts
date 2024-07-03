@@ -94,8 +94,9 @@ class GeneralController implements IController {
                 metafile: metafile
             };
 
-            let cloned_dataset_id = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
-            return response.status(200).send(cloned_dataset_id);
+            let clone_result = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
+            response.setHeader('Location', `/api/v1/job?job_id=${clone_result.job_id}`);
+            return response.status(200).send(clone_result.new_tdei_dataset_id);
 
         } catch (error) {
             console.error("Error cloning the dataset request", error);
