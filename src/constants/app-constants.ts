@@ -15,6 +15,6 @@ export enum WorkflowName {
     "pathways_validation_only" = "pathways_validation_only",
     "osw_spatial_join" = "osw_spatial_join",
     "osw_quality_on_demand" = "osw_quality_metric_on_demand",
-    "osw_edit_metadata" = "osw_edit_metadata",
-    "edit_metadata" = "edit_metadata"
+    "build_dataset_download" = "build_dataset_download",
+    "build_osw_osm_dataset_download" = "build_osw_osm_dataset_download",
 }
