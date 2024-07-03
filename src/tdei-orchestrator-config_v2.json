@@ -441,8 +441,8 @@
             ]
         },
         {
-            "name": "osw_edit_metadata",
-            "description": "Edit the metadata of the dataset",
+            "name": "build_osw_osm_dataset_download",
+            "description": "Clone the dataset",
             "workflow_input": {
                 "user_id": "<%=user_id%>",
                 "job_id": "<%=job_id%>",
@@ -589,8 +589,8 @@
             ]
         },
         {
-            "name": "edit_metadata",
-            "description": "Edit the metadata of the dataset",
+            "name": "build_dataset_download",
+            "description": "Clone the dataset (flex, Pathways)",
             "workflow_input": {
                 "user_id": "<%=user_id%>",
                 "job_id": "<%=job_id%>",
