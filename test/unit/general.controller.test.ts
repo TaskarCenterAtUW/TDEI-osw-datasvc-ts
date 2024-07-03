@@ -316,15 +316,15 @@ describe("General Controller Test", () => {
                 },
             });
             const { res, next } = getMockRes();
-            const clonedDatasetId = "mock-cloned_dataset_id";
-            jest.spyOn(tdeiCoreService, "cloneDataset").mockResolvedValueOnce(clonedDatasetId);
+            const result = { new_tdei_dataset_id: "cloned-dataset-id", job_id: "job-id" };
+            jest.spyOn(tdeiCoreService, "cloneDataset").mockResolvedValueOnce(result);
 
             // Act
             await generalController.cloneDataset(req, res, next);
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.send).toHaveBeenCalledWith(clonedDatasetId);
+            expect(res.send).toHaveBeenCalledWith(result.new_tdei_dataset_id);
         });
 
         test("When clone dataset request fails with HttpException, Expect to return HTTP status and error message from the exception", async () => {
