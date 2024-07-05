@@ -54,12 +54,9 @@ class OswService implements IOswService {
                     target_dataset_id: requestService.target_dataset_id,
                     target_dimension: requestService.target_dimension,
                     join_condition: requestService.join_condition,
-                    transform_target: requestService.transform_target,
-                    transform_source: requestService.transform_source,
-                    filter_target: requestService.filter_target,
-                    filter_source: requestService.filter_source,
-                    aggregate: requestService.aggregate,
-                    attributes: requestService.attributes
+                    filter_target: requestService.join_filter_target,
+                    filter_source: requestService.join_filter_source,
+                    aggregate: requestService.aggregate
                 },
                 tdei_project_group_id: '',
                 user_id: user_id,
@@ -825,7 +822,7 @@ class OswService implements IOswService {
 
     }
 
-    async calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id:string): Promise<string> {
+    async calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id: string): Promise<string> {
         try {
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
             if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
@@ -836,10 +833,10 @@ class OswService implements IOswService {
             }
             // Create job for this
             let job = CreateJobDTO.from({
-                data_type:TDEIDataType.osw,
+                data_type: TDEIDataType.osw,
                 job_type: JobType["Quality-Metric"], // Change this
                 status: JobStatus["IN-PROGRESS"],
-                request_input:{
+                request_input: {
                     tdei_dataset_id: tdei_dataset_id,
                     algorithms: algorithms,
                     persist: persist
@@ -863,7 +860,7 @@ class OswService implements IOswService {
 
             return Promise.resolve(job_id.toString());
 
-        } catch(error) {
+        } catch (error) {
             console.log('Error calculating quality metric ', error);
             return Promise.reject(error);
         }
