@@ -28,6 +28,19 @@ import { SpatialJoinRequest } from "../model/request-interfaces";
 const ajv = new Ajv({ allErrors: true });
 const validatePolygonGeojson = ajv.compile(polygonSchema);
 
+const tagQuality = multer({
+    dest: 'tagQuality/',
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const allowedFileTypes = ['.json'];
+        const ext = path.extname(file.originalname);
+        if (!allowedFileTypes.includes(ext)) {
+            cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
+
 const validate = multer({
     dest: 'validate/',
     storage: memoryStorage(),
@@ -106,7 +119,33 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
         this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
         // Route for quality metric request
-        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`,authenticate ,this.createQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, authenticate, this.createQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
+    }
+
+
+    /**
+     * Calculates the quality metric for a given osw entity tags.
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
+    tagQualityMetric = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const tagFile = request.file;
+
+            let result = await oswService.calculateTagQualityMetric(request.params["tdei_dataset_id"], tagFile, request.body.user_id);
+            return response.status(200).send(result);
+        } catch (error) {
+            console.error("Error calculating the quality metric for a given osw entity tags", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error calculating the quality metric for a given osw entity tags");
+            next(new HttpException(500, "Error calculating the quality metric for a given osw entity tags"));
+        }
     }
 
 
@@ -488,7 +527,7 @@ class OSWController implements IController {
             if (tdei_dataset_id == undefined || algorithms == undefined || persist == undefined) {
                 throw new InputException("Please add tdei_dataset_id, algorithms, persist in payload")
             }
-            let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, persist,request.body.user_id);
+            let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, persist, request.body.user_id);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 

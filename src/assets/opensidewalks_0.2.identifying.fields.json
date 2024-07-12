@@ -1,0 +1,198 @@
+{
+  "Alley": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "service",
+      "service": "alley"
+    }
+  },
+  "Bench": {
+    "entity_type": "point",
+    "identifying_key_val": {
+      "amenity": "bench"
+    }
+  },
+  "Bollard": {
+    "entity_type": "point",
+    "identifying_key_val": {
+      "barrier": "bollard"
+    }
+  },
+  "Crossing": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "footway": "crossing",
+      "highway": "footway"
+    }
+  },
+  "CurbRamp": {
+    "entity_type": "node",
+    "identifying_key_val": {
+      "barrier": "kerb",
+      "kerb": "lowered"
+    }
+  },
+  "Driveway": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "service",
+      "service": "driveway"
+    }
+  },
+  "Fence": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "barrier": "fence"
+    }
+  },
+  "FireHydrant": {
+    "entity_type": "point",
+    "identifying_key_val": {
+      "emergency": "fire_hydrant"
+    }
+  },
+  "FlushCurb": {
+    "entity_type": "node",
+    "identifying_key_val": {
+      "barrier": "kerb",
+      "kerb": "flush"
+    }
+  },
+  "Footway": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "footway"
+    }
+  },
+  "GenericCurb": {
+    "entity_type": "node",
+    "identifying_key_val": {
+      "barrier": "kerb"
+    }
+  },
+  "LivingStreet": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "living_street"
+    }
+  },
+  "Manhole": {
+    "entity_type": "point",
+    "identifying_key_val": {
+      "man_made": "manhole"
+    }
+  },
+  "ParkingAisle": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "service",
+      "service": "parking_aisle"
+    }
+  },
+  "Pedestrian": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "pedestrian"
+    }
+  },
+  "PedestrianZone": {
+    "entity_type": "zone",
+    "identifying_key_val": {
+      "highway": "pedestrian"
+    }
+  },
+  "PowerPole": {
+    "entity_type": "point",
+    "identifying_key_val": {
+      "power": "pole"
+    }
+  },
+  "PrimaryStreet": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "primary"
+    }
+  },
+  "RaisedCurb": {
+    "entity_type": "node",
+    "identifying_key_val": {
+      "barrier": "kerb",
+      "kerb": "raised"
+    }
+  },
+  "ResidentialStreet": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "residential"
+    }
+  },
+  "RolledCurb": {
+    "entity_type": "node",
+    "identifying_key_val": {
+      "barrier": "kerb",
+      "kerb": "rolled"
+    }
+  },
+  "SecondaryStreet": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "secondary"
+    }
+  },
+  "ServiceRoad": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "service"
+    }
+  },
+  "Sidewalk": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "footway": "sidewalk",
+      "highway": "footway"
+    }
+  },
+  "Steps": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "steps"
+    }
+  },
+  "StreetLamp": {
+    "entity_type": "point",
+    "identifying_key_val": {
+      "highway": "street_lamp"
+    }
+  },
+  "TertiaryStreet": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "tertiary"
+    }
+  },
+  "TrafficIsland": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "footway": "traffic_island",
+      "highway": "footway"
+    }
+  },
+  "TrunkRoad": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "trunk"
+    }
+  },
+  "UnclassifiedRoad": {
+    "entity_type": "edge",
+    "identifying_key_val": {
+      "highway": "unclassified"
+    }
+  },
+  "WasteBasket": {
+    "entity_type": "point",
+    "identifying_key_val": {
+      "amenity": "waste_basket"
+    }
+  }
+}
