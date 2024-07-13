@@ -66,19 +66,27 @@ export class JobsQueryParams {
         const mainTableName = 'content.job';
         //Joins
         const joins: JoinCondition[] = [
-            { tableName: 'keycloak.user_entity', alias: 'ue', on: `content.job.user_id = ue.id AND ue.id = '${user_id}'`, type: 'LEFT' },
+            { tableName: 'keycloak.user_entity', alias: 'ue', on: `content.job.user_id = ue.id`, type: 'LEFT' },
             { tableName: 'public.project_group', alias: 'pg', on: `content.job.tdei_project_group_id = pg.project_group_id`, type: 'LEFT' },
             { tableName: 'content.workflow_details', alias: 'wfd', on: `content.job.job_id = wfd.job_id`, type: 'LEFT' }
         ];
+
+        if (!this.isAdmin) {
+            joins.push({ tableName: 'public.user_roles', alias: 'urs', on: `urs.user_id  = '${user_id}'`, type: 'LEFT' });
+        }
+
         //Conditions
         const conditions: WhereCondition[] = [];
         if (!this.isAdmin) {
-            addConditionIfValueExists('content.job.user_id = ', user_id);
+            conditions.push({ clouse: 'urs.project_group_id = pg.project_group_id', value: null });
+            addConditionIfValueExists('urs.project_group_id = ', this.tdei_project_group_id);
+        }
+        else {
+            addConditionIfValueExists('pg.project_group_id = ', this.tdei_project_group_id);
         }
         addConditionIfValueExists('wfd.status = ', this.status);
         addConditionIfValueExists('content.job.job_id = ', this.job_id);
         addConditionIfValueExists('job_type = ', this.job_type);
-        addConditionIfValueExists('tdei_project_group_id = ', this.tdei_project_group_id);
         conditions.push({ clouse: 'wfd.job_id is not NULL', value: null });
 
         //Sort field
