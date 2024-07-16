@@ -205,6 +205,10 @@ class GeneralController implements IController {
                 return next(new InputException('Input validation failed with below reasons : \n' + validation_message, response));
             }
 
+            if (!params.isAdmin) {
+                if (!params.tdei_project_group_id) throw new InputException('tdei_project_group_id is required for non-admin user');
+            }
+
             const jobInfo = await jobService.getJobs(request.body.user_id, params);
 
             response.status(200).send(jobInfo);
