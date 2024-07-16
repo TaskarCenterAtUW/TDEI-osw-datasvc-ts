@@ -142,7 +142,7 @@ describe("General Controller Test", () => {
                 page_no: 1,
                 isAdmin: false,
                 tdei_project_group_id: "mock-tdei-project-group-id",
-                show_all: false
+                show_group_jobs: false
 
             }
             const { res, next } = getMockRes();
@@ -182,7 +182,7 @@ describe("General Controller Test", () => {
                 job_type: "Dataset-Upload",
                 tdei_project_group_id: "mock-tdei-project-group-id",
                 isAdmin: false,
-                show_all: false
+                show_group_jobs: false
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);

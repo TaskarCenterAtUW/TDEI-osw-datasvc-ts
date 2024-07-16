@@ -49,7 +49,7 @@ export class JobsQueryParams {
     @IsOptional()
     page_size = 10;
     @IsOptional()
-    show_all = false;
+    show_group_jobs = false;
     isAdmin = false;
 
     constructor(init?: Partial<JobsQueryParams>) {
@@ -111,7 +111,7 @@ export class JobsQueryParams {
             addConditionIfValueExists('pg.project_group_id = ', this.tdei_project_group_id);
         }
 
-        if (!this.show_all) {
+        if (!this.show_group_jobs) {
             //Default show only user's jobs
             addConditionIfValueExists('content.job.user_id = ', user_id);
         }
