@@ -8,6 +8,80 @@ import { Utility } from "../../src/utility/utility";
 
 // group test using describe
 describe("OSW Controller Test", () => {
+    describe("tagQualityMetric", () => {
+        test("When requested with valid parameters, Expect to return HTTP status 200 and the result", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-dataset-id"
+                },
+                file: "mock-tag-file",
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const expectedResult = "mock-result";
+            jest.spyOn(oswService, "calculateTagQualityMetric").mockResolvedValueOnce(expectedResult);
+
+            // Act
+            await oswController.tagQualityMetric(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(expectedResult);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When an error occurs while calculating the quality metric, Expect to return HTTP status 500 and an error message", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-dataset-id"
+                },
+                file: "mock-tag-file",
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new Error("Error calculating the quality metric");
+            jest.spyOn(oswService, "calculateTagQualityMetric").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.tagQualityMetric(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error calculating the quality metric for a given osw entity tags");
+            expect(next).toHaveBeenCalledWith(new HttpException(500, "Error calculating the quality metric for a given osw entity tags"));
+        });
+
+        test("When an HttpException occurs, Expect to return the corresponding HTTP status and error message", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-dataset-id"
+                },
+                file: "mock-tag-file",
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new HttpException(400, "Bad request");
+            jest.spyOn(oswService, "calculateTagQualityMetric").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.tagQualityMetric(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+    });
+
     describe("processSpatialQueryRequest", () => {
         test("When request body is empty, Expect to call next with InputException", async () => {
             // Arrange
@@ -680,7 +754,7 @@ describe("OSW Controller Test", () => {
             mockRequest = getMockReq({
                 body: {
                     user_id: 'mock-user-id',
-                   
+
                     algorithms: ['mock-algorithm'],
                     persist: true,
                 },

@@ -61,7 +61,7 @@ export class JobsQueryParams {
         const selectColumns = [`content.job.job_id, content.job.job_type, content.job.data_type, content.job.request_input, content.job.response_props,
              content.job.download_url, content.job.tdei_project_group_id, content.job.user_id,
             wfd.created_at,
-            wfd.status, wfd.current_task, wfd.current_task_status, wfd.current_task_description,
+            content.job.status, wfd.current_task, wfd.current_task_status, wfd.current_task_description,
 		    wfd.start_time, wfd.end_time,wfd.current_task_error,wfd.total_workflow_tasks,wfd.tasks_track_number,
             wfd.last_updated_at,
             ue.username as requested_by,pg.name as tdei_project_group_name`];
@@ -115,7 +115,7 @@ export class JobsQueryParams {
             //Default show only user's jobs
             addConditionIfValueExists('content.job.user_id = ', user_id);
         }
-        addConditionIfValueExists('wfd.status = ', this.status);
+        addConditionIfValueExists('content.job.status = ', this.status);
         addConditionIfValueExists('content.job.job_id = ', this.job_id);
         addConditionIfValueExists('job_type = ', this.job_type);
 

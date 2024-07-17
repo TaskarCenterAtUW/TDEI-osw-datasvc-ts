@@ -24,6 +24,131 @@ import { SpatialJoinRequest } from "../../src/model/request-interfaces";
 // group test using describe
 describe("OSW Service Test", () => {
 
+    describe("calculateTagQualityMetric", () => {
+        test("When called with valid inputs, Expect to return tag quality metrics", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const tagFile = {
+                buffer: JSON.stringify([
+                    {
+                        entity_type: "Sidewalk",
+                        tags: ["surface", "width"],
+                    },
+                    {
+                        entity_type: "Footway",
+                        tags: ["surface", "width"],
+                    },
+                ]),
+            };
+            const user_id = "mock-user-id";
+            const expectedMetrics = [
+                {
+                    entity_type: "Sidewalk",
+                    overall_quality_metric: 50,
+                    metric_details: {
+                        surface_percentage: 25,
+                        width_percentage: 25,
+                    },
+                    total_entity_count: 10,
+                },
+                {
+                    entity_type: "Footway",
+                    overall_quality_metric: 75,
+                    metric_details: {
+                        surface_percentage: 25,
+                        width_percentage: 25,
+                    },
+                    total_entity_count: 20,
+                },
+            ];
+
+            jest.spyOn(dbClient, "query")
+                .mockResolvedValue(<any>{ rows: expectedMetrics });
+
+            // Act
+            const result = await oswService.calculateTagQualityMetric(
+                tdei_dataset_id,
+                tagFile,
+                user_id
+            );
+
+            // Assert
+            expect(result).toEqual(expectedMetrics);
+            expect(dbClient.query).toHaveBeenCalledTimes(1);
+        });
+
+        test("When called with invalid entity type, Expect to input exception", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const tagFile = {
+                buffer: JSON.stringify([
+                    {
+                        entity_type: "SidewalkInvalid",
+                        tags: ["surface", "width"],
+                    },
+                    {
+                        entity_type: "FootwayInvalid",
+                        tags: ["surface", "width"],
+                    },
+                ]),
+            };
+            const user_id = "mock-user-id";
+
+            let dbSpy = jest.spyOn(dbClient, "query")
+                .mockResolvedValue(<any>{ rows: [] });
+
+            // Assert
+            await expect(
+                oswService.calculateTagQualityMetric(tdei_dataset_id, tagFile, user_id)
+            ).rejects.toThrow(InputException);
+            expect(dbSpy).not.toHaveBeenCalled();
+        });
+
+        test("When called with invalid tag, Expect to input exception", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const tagFile = {
+                buffer: JSON.stringify([
+                    {
+                        entity_type: "Sidewalk",
+                        tags: ["surface_Invalid", "width"],
+                    },
+                    {
+                        entity_type: "Footway",
+                        tags: ["surface_Invalid", "width"],
+                    },
+                ]),
+            };
+            const user_id = "mock-user-id";
+
+            let dbSpy = jest.spyOn(dbClient, "query")
+                .mockResolvedValue(<any>{ rows: [] });
+
+            // Assert
+            await expect(
+                oswService.calculateTagQualityMetric(tdei_dataset_id, tagFile, user_id)
+            ).rejects.toThrow(InputException);
+            expect(dbSpy).not.toHaveBeenCalled();
+        });
+
+        test("When called with empty tag list, Expect to throw an InputException", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const tagFile = {
+                buffer: JSON.stringify([]),
+            };
+            const user_id = "mock-user-id";
+            let dbSpy = jest.spyOn(dbClient, "query")
+                .mockResolvedValue(<any>{ rows: [] });
+            // Act & Assert
+            await expect(
+                oswService.calculateTagQualityMetric(tdei_dataset_id, tagFile, user_id)
+            ).rejects.toThrow(InputException);
+            expect(dbSpy).not.toHaveBeenCalled();
+        });
+
+    });
+
     describe("processSpatialQueryRequest", () => {
         test("When source dataset is not a osw dataset, Expect to throw InputException", async () => {
             mockAppContext();
