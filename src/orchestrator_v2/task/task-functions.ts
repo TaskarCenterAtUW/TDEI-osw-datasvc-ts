@@ -6,6 +6,45 @@ import path from "path";
 export class OrchestratorFunctions {
     constructor() { }
 
+
+    public static async bbox_response_validation(input: any): Promise<any> {
+        try {
+            if (input.success && input.file_upload_path.length == 0) {
+                //Terminate the workflow as no further processing is required
+                let where = new Map<string, string>();
+                where.set("job_id", input.job_id);
+                let data = {
+                    "status": "COMPLETED",
+                    "message": input.message
+                };
+
+                let query = new QueryCriteria()
+                    .setTable("content.job")
+                    .setData(data)
+                    .setWhere(where);
+
+                await dbClient.query(query.buildUpdateQuery());
+
+                return Promise.resolve({
+                    success: true,
+                    terminate: true,
+                    message: input.message
+                });
+            }
+            else {
+                return Promise.resolve({
+                    success: true,
+                    message: "Bbox response validated successfully"
+                });
+            }
+        } catch (error) {
+            return Promise.resolve({
+                success: false,
+                message: "Error while validating the bbox response"
+            });
+        }
+    }
+
     /**
      * Delete the draft dataset
      * @param input 

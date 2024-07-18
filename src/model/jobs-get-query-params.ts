@@ -58,7 +58,7 @@ export class JobsQueryParams {
 
     getQuery(user_id: string): PgQueryObject {
         //Select columns
-        const selectColumns = [`content.job.job_id, content.job.job_type, content.job.data_type, content.job.request_input, content.job.response_props,
+        const selectColumns = [`content.job.job_id, content.job.job_type,content.job.message, content.job.data_type, content.job.request_input, content.job.response_props,
              content.job.download_url, content.job.tdei_project_group_id, content.job.user_id,
             wfd.created_at,
             content.job.status, wfd.current_task, wfd.current_task_status, wfd.current_task_description,
