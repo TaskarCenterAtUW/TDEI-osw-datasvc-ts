@@ -1121,6 +1121,23 @@
                     }
                 },
                 {
+                    "name": "osm_bbox_response_validation",
+                    "task_reference_name": "osm_bbox_response_validation",
+                    "description": "Validating the bbox response",
+                    "type": "Utility",
+                    "input_params": {
+                        "job_id": "<%=workflow_input.job_id%>",
+                        "success": "<%=tasks.osm_dataset_bbox.output.success%>",
+                        "message": "<%=tasks.osm_dataset_bbox.output.message%>",
+                        "file_upload_path": "<%=tasks.osm_dataset_bbox.output.file_upload_path%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "bbox_response_validation"
+                },
+                {
                     "name": "osm_dataset_bbox_osm_formatting",
                     "task_reference_name": "osm_dataset_bbox_osm_formatting",
                     "description": "Converting the osw dataset to osm",
@@ -1225,6 +1242,23 @@
                         "message": "<%=data.message%>",
                         "file_upload_path": "<%=data.file_upload_path%>"
                     }
+                },
+                {
+                    "name": "osw_bbox_response_validation",
+                    "task_reference_name": "osw_bbox_response_validation",
+                    "description": "Validating the bbox response",
+                    "type": "Utility",
+                    "input_params": {
+                        "job_id": "<%=workflow_input.job_id%>",
+                        "success": "<%=tasks.osw_dataset_bbox.output.success%>",
+                        "message": "<%=tasks.osw_dataset_bbox.output.message%>",
+                        "file_upload_path": "<%=tasks.osw_dataset_bbox.output.file_upload_path%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "bbox_response_validation"
                 },
                 {
                     "name": "osw_compression_bbox",
