@@ -78,28 +78,28 @@ fs.readFile('src/assets/opensidewalks_0.2.schema.json', 'utf8', (err, data) => {
             "entity_type": "zone"
         },
         "PowerPole": {
-            "entity_type": "point"
+            "entity_type": "extension_point"
         },
         "FireHydrant": {
-            "entity_type": "point"
+            "entity_type": "extension_point"
         },
         "Bench": {
-            "entity_type": "point"
+            "entity_type": "extension_point"
         },
         "WasteBasket": {
-            "entity_type": "point"
+            "entity_type": "extension_point"
         },
         "Bollard": {
-            "entity_type": "point"
+            "entity_type": "extension_point"
         },
         "Manhole": {
-            "entity_type": "point"
+            "entity_type": "extension_point"
         },
         "StreetLamp": {
-            "entity_type": "point"
+            "entity_type": "extension_point"
         },
         "Fence": {
-            "entity_type": "edge"
+            "entity_type": "extension_line"
         }
     };
     // Parse the JSON data
