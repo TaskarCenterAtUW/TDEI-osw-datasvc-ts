@@ -7,13 +7,13 @@
     }
   },
   "Bench": {
-    "entity_type": "point",
+    "entity_type": "extension_point",
     "identifying_key_val": {
       "amenity": "bench"
     }
   },
   "Bollard": {
-    "entity_type": "point",
+    "entity_type": "extension_point",
     "identifying_key_val": {
       "barrier": "bollard"
     }
@@ -40,13 +40,13 @@
     }
   },
   "Fence": {
-    "entity_type": "edge",
+    "entity_type": "extension_line",
     "identifying_key_val": {
       "barrier": "fence"
     }
   },
   "FireHydrant": {
-    "entity_type": "point",
+    "entity_type": "extension_point",
     "identifying_key_val": {
       "emergency": "fire_hydrant"
     }
@@ -77,7 +77,7 @@
     }
   },
   "Manhole": {
-    "entity_type": "point",
+    "entity_type": "extension_point",
     "identifying_key_val": {
       "man_made": "manhole"
     }
@@ -102,7 +102,7 @@
     }
   },
   "PowerPole": {
-    "entity_type": "point",
+    "entity_type": "extension_point",
     "identifying_key_val": {
       "power": "pole"
     }
@@ -159,7 +159,7 @@
     }
   },
   "StreetLamp": {
-    "entity_type": "point",
+    "entity_type": "extension_point",
     "identifying_key_val": {
       "highway": "street_lamp"
     }
@@ -190,7 +190,7 @@
     }
   },
   "WasteBasket": {
-    "entity_type": "point",
+    "entity_type": "extension_point",
     "identifying_key_val": {
       "amenity": "waste_basket"
     }
