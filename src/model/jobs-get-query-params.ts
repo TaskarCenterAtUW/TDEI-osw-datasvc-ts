@@ -106,6 +106,7 @@ export class JobsQueryParams {
             //Required param if non-admin user else result will produce duplicate rows
             if (!this.tdei_project_group_id) throw new InputException('tdei_project_group_id is required for non-admin user');
             addConditionIfValueExists('ur.project_group_id = ', this.tdei_project_group_id);
+            conditions.push({ clouse: `(COALESCE(content.job.tdei_project_group_id, '') = '' OR content.job.tdei_project_group_id ='${this.tdei_project_group_id}')`, value: null });
         }
         else {
             addConditionIfValueExists('pg.project_group_id = ', this.tdei_project_group_id);
