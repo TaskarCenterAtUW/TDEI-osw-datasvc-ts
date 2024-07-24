@@ -13,6 +13,12 @@ export class UnAuthenticated extends HttpException {
     }
 }
 
+export class ForbiddenAccess extends HttpException {
+    constructor() {
+        super(403, `User not authorized to perform this action.`);
+    }
+}
+
 export class ForeignKeyException extends HttpException {
     constructor(name: string) {
         super(400, `No reference found for the constraint '${name}' in the system.`);

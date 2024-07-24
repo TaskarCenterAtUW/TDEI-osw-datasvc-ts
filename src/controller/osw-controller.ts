@@ -3,7 +3,7 @@ import express from "express";
 import { IController } from "./interface/IController";
 import oswService from "../service/osw-service";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, FileTypeException, UnAuthenticated } from "../exceptions/http/http-exceptions";
+import { InputException, FileTypeException, UnAuthenticated, ForbiddenAccess } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
 import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
@@ -210,7 +210,7 @@ class OSWController implements IController {
             let osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
             var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
             if (!authorized) {
-                return next(new UnAuthenticated());
+                return next(new ForbiddenAccess());
             }
 
             let backendRequest: TagRoadServiceRequest = {

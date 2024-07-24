@@ -3,7 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { UnAuthenticated } from '../exceptions/http/http-exceptions';
+import { ForbiddenAccess, UnAuthenticated } from '../exceptions/http/http-exceptions';
 import HttpException from '../exceptions/http/http-base-exception';
 import tdeiCoreService from '../service/tdei-core-service';
 import { Utility } from '../utility/utility';
@@ -56,7 +56,7 @@ export const authorize = (approvedRoles: string[]) => {
             next();
         }
         else {
-            next(new UnAuthenticated());
+            next(new ForbiddenAccess());
         }
     }
 }

@@ -1,5 +1,5 @@
 import { getMockReq, getMockRes } from "@jest-mock/express"
-import { UnAuthenticated } from "../../../src/exceptions/http/http-exceptions"
+import { ForbiddenAccess, UnAuthenticated } from "../../../src/exceptions/http/http-exceptions"
 import { mockCoreAuth } from "../../common/mock-utils";
 import { authorize } from "../../../src/middleware/authorize-middleware";
 import tdeiCoreService from "../../../src/service/tdei-core-service";
@@ -51,7 +51,7 @@ describe('Authorize Middleware', () => {
         expect(next).toHaveBeenCalledWith();
     });
 
-    it('should call next() with UnAuthenticated error if roles are not approved', async () => {
+    it('should call next() with forbidden error if roles are not approved', async () => {
         const req = getMockReq()
         const { res, next } = getMockRes();
         req.body.user_id = 'someUserId';
@@ -61,6 +61,6 @@ describe('Authorize Middleware', () => {
 
         await authorize(['approvedRole1', 'approvedRole2'])(req, res, next);
 
-        expect(next).toHaveBeenCalledWith(new UnAuthenticated());
+        expect(next).toHaveBeenCalledWith(new ForbiddenAccess());
     });
 });

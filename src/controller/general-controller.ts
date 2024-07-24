@@ -2,7 +2,7 @@ import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
 import HttpException from "../exceptions/http/http-base-exception";
-import { FileTypeException, InputException, UnAuthenticated } from "../exceptions/http/http-exceptions";
+import { FileTypeException, InputException } from "../exceptions/http/http-exceptions";
 import { authenticate } from "../middleware/authenticate-middleware";
 import { JobsQueryParams, TDEIDataType, TDEIRole } from "../model/jobs-get-query-params";
 import jobService from "../service/job-service";
@@ -11,7 +11,6 @@ import { authorize } from "../middleware/authorize-middleware";
 import { DatasetQueryParams } from "../model/dataset-get-query-params";
 import multer, { memoryStorage } from "multer";
 import path from "path";
-import { Utility } from "../utility/utility";
 import { IDatasetCloneRequest } from "../model/request-interfaces";
 
 
