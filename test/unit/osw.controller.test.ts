@@ -2,7 +2,7 @@ import oswController from "../../src/controller/osw-controller";
 import oswService from "../../src/service/osw-service";
 import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
-import { InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
+import { ForbiddenAccess, InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
 
@@ -201,7 +201,7 @@ describe("OSW Controller Test", () => {
             expect(next).toHaveBeenCalledWith(inputException);
         });
 
-        test("When user is not authorized, Expect to return HTTP status 401", async () => {
+        test("When user is not authorized, Expect to return HTTP status 403", async () => {
             // Arrange
             const req = getMockReq({
                 query: {
@@ -215,7 +215,7 @@ describe("OSW Controller Test", () => {
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
             jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(false);
-            const unauthenticatedException = new UnAuthenticated();
+            const unauthenticatedException = new ForbiddenAccess();
             jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(unauthenticatedException);
 
             // Act

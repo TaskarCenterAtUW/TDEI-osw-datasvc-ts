@@ -419,7 +419,7 @@ class OswService implements IOswService {
                     tdei_dataset_id: tdei_dataset_id,
                     trigger_type: 'manual'
                 },
-                tdei_project_group_id: dataset.tdei_project_group_id,
+                tdei_project_group_id: '',
                 user_id: user_id,
             });
 
@@ -1004,7 +1004,7 @@ class OswService implements IOswService {
                     algorithms: algorithms,
                     persist: persist
                 },
-                tdei_project_group_id: dataset.tdei_project_group_id,
+                tdei_project_group_id: '',
                 user_id: user_id
             })
             const job_id = await this.jobServiceInstance.createJob(job);
