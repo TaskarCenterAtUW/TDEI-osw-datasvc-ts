@@ -2,7 +2,7 @@ import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
 import HttpException from "../exceptions/http/http-base-exception";
-import { FileTypeException, InputException, UnAuthenticated } from "../exceptions/http/http-exceptions";
+import { FileTypeException, InputException } from "../exceptions/http/http-exceptions";
 import { authenticate } from "../middleware/authenticate-middleware";
 import { JobsQueryParams, TDEIDataType, TDEIRole } from "../model/jobs-get-query-params";
 import jobService from "../service/job-service";
@@ -11,7 +11,6 @@ import { authorize } from "../middleware/authorize-middleware";
 import { DatasetQueryParams } from "../model/dataset-get-query-params";
 import multer, { memoryStorage } from "multer";
 import path from "path";
-import { Utility } from "../utility/utility";
 import { IDatasetCloneRequest } from "../model/request-interfaces";
 
 
@@ -203,6 +202,10 @@ class GeneralController implements IController {
 
             if (validation_message) {
                 return next(new InputException('Input validation failed with below reasons : \n' + validation_message, response));
+            }
+
+            if (!params.isAdmin) {
+                if (!params.tdei_project_group_id) throw new InputException('tdei_project_group_id is required for non-admin user');
             }
 
             const jobInfo = await jobService.getJobs(request.body.user_id, params);

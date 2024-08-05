@@ -130,6 +130,7 @@ describe("General Controller Test", () => {
             // Arrange
             const req = getMockReq({
                 query: {
+                    tdei_project_group_id: "mock-tdei-project-group-id"
                 },
                 body: {
                     user_id: "mock-user-id",
@@ -139,7 +140,10 @@ describe("General Controller Test", () => {
             let callParams = {
                 page_size: 10,
                 page_no: 1,
-                isAdmin: false
+                isAdmin: false,
+                tdei_project_group_id: "mock-tdei-project-group-id",
+                show_group_jobs: false
+
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
@@ -177,7 +181,8 @@ describe("General Controller Test", () => {
                 status: "COMPLETED",
                 job_type: "Dataset-Upload",
                 tdei_project_group_id: "mock-tdei-project-group-id",
-                isAdmin: false
+                isAdmin: false,
+                show_group_jobs: false
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
@@ -221,9 +226,34 @@ describe("General Controller Test", () => {
             expect(next).toHaveBeenCalledWith(new InputException('Input validation failed with below reasons : \n' + "wrong-job-type is not a valid job type"));
         });
 
+        test("Non Admin when requested with missing tdei_project_group_id, Expect to return HTTP status 400", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    job_id: "mock-job-id",
+                    page_size: "10",
+                    page_no: "1",
+                    status: "wrong-job-type",
+                    job_type: "wrong-job-type"
+                },
+                body: {
+                    user_id: "mock-user-id",
+                    isAdmin: false
+                }
+            });
+
+            const { res, next } = getMockRes();
+
+            // Act
+            await generalController.getJobs(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(400);
+        });
+
         test("When an error occurs while processing the request, Expect to return HTTP status 500", async () => {
             // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
+            const req = getMockReq({ params: { job_id: "mock-job-id" }, query: { tdei_project_group_id: "mock-tdei-project-group-id" } });
             const { res, next } = getMockRes();
             const error = new Error("Internal Server Error");
             jest.spyOn(jobService, "getJobs").mockRejectedValueOnce(error);

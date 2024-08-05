@@ -14,7 +14,7 @@ export class Utility {
      * @param obj
      */
     public static checkForSqlInjection(obj: any) {
-        const harmfulKeywords = [';', 'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE'];
+        const harmfulKeywords = [';', 'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE', '--'];
 
         for (let key in obj) {
             if (typeof obj[key] === 'string') {

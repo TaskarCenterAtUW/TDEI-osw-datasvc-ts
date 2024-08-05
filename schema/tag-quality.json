@@ -1,0 +1,254 @@
+[
+    {
+        "entity_type": "Footway",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "Crossing",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot",
+            "crossing:markings"
+        ]
+    },
+    {
+        "entity_type": "Sidewalk",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "TrafficIsland",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "Pedestrian",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "Steps",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot",
+            "step_count",
+            "climb"
+        ]
+    },
+    {
+        "entity_type": "LivingStreet",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "PrimaryStreet",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "SecondaryStreet",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "TertiaryStreet",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "ResidentialStreet",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "ServiceRoad",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "Driveway",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "Alley",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "ParkingAisle",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "UnclassifiedRoad",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "TrunkRoad",
+        "tags": [
+            "surface",
+            "width",
+            "incline",
+            "length",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "GenericCurb",
+        "tags": [
+            "tactile_paving"
+        ]
+    },
+    {
+        "entity_type": "FlushCurb",
+        "tags": [
+            "tactile_paving"
+        ]
+    },
+    {
+        "entity_type": "RaisedCurb",
+        "tags": [
+            "tactile_paving"
+        ]
+    },
+    {
+        "entity_type": "RolledCurb",
+        "tags": [
+            "tactile_paving"
+        ]
+    },
+    {
+        "entity_type": "CurbRamp",
+        "tags": [
+            "tactile_paving"
+        ]
+    },
+    {
+        "entity_type": "PedestrianZone",
+        "tags": [
+            "surface",
+            "description",
+            "name",
+            "foot"
+        ]
+    },
+    {
+        "entity_type": "Fence",
+        "tags": [
+            "length"
+        ]
+    }
+]

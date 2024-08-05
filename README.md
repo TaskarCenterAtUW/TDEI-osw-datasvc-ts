@@ -65,6 +65,20 @@ Follow the steps to install the node packages required for testing the applicati
 
 When new test cases are written, it is required to run `npm run generate-test-enumeration` which will update the test-enumeration.md file with latest test case changes.
 
+## Constraints
+
+1. The maximum size for the payload of a POST request is restricted to 100kb.
+
+## OSW entity identification fields
+OpenSidewalks Schema entities are identified by their set of attributes. Fields that uniquely identify an entity type are called identifying fields, this information is required for tag quality metric.
+below is the command to run whenever the new OSW schema gets generated. 
+
+```shell
+node generate-test-enumeration.js
+```
+
+* Please review and update the script when OSW schema version changes.
+
 ## System flow
 ---
 

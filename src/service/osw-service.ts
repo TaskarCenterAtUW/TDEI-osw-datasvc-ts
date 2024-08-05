@@ -22,9 +22,172 @@ import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
 import { SpatialJoinRequest } from "../model/request-interfaces";
+import { TagQualityMetricResponse, TagQualityMetricRequest } from "../model/tag-quality-metric";
+import oswSchema from "../assets/opensidewalks_0.2.schema.json";
+import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
+import { Utility } from "../utility/utility";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
+
+    /*
+        REFERENCE SCRIPT
+            WITH sidewalk_attributes AS (
+            SELECT
+            (CASE WHEN width is not null THEN 1 ELSE 0 END) AS has_width,
+            (CASE WHEN surface is not null THEN 1 ELSE 0 END) AS has_surface,
+            (CASE WHEN incline is not null THEN 1 ELSE 0 END) AS has_incline
+            FROM content.edge
+            WHERE highway = 'footway' AND footway = 'sidewalk'
+            ),
+            kerb_attributes AS (
+            SELECT
+            (CASE WHEN crossing_markings IS NOT NULL AND crossing_markings = 'yes' THEN 1 ELSE 0 END) AS has_marked,
+            (CASE WHEN crossing_markings IS NOT NULL AND crossing_markings = 'no' THEN 1 ELSE 0 END) AS has_unmarked
+            FROM content.edge
+            WHERE highway = 'footway' AND footway = 'crossing'
+            )
+            SELECT
+            'sidewalk' AS type,
+            (ROUND(CASE WHEN COUNT(*) > 0 THEN (SUM(has_width) + SUM(has_surface) + SUM(has_incline)) * 100.0 / (COUNT(*) * 3) ELSE 0 END, 2)) as overall_quality_metric,
+            JSON_BUILD_OBJECT(
+            'width_percentage', ROUND(CASE WHEN COUNT(*) > 0 THEN SUM(has_width) * 100.0 / COUNT(*) ELSE 0 END, 2),
+            'surface_percentage', ROUND(CASE WHEN COUNT(*) > 0 THEN SUM(has_surface) * 100.0 / COUNT(*) ELSE 0 END, 2),
+            'incline_percentage', ROUND(CASE WHEN COUNT(*) > 0 THEN SUM(has_incline) * 100.0 / COUNT(*) ELSE 0 END, 2)
+            ) AS metric_details
+            FROM sidewalk_attributes
+
+            UNION ALL
+
+            SELECT
+            'kerb' AS type,
+            (ROUND(CASE WHEN COUNT(*) > 0 THEN (SUM(has_marked) + SUM(has_unmarked)) * 100.0 / (COUNT(*) * 2) ELSE 0 END, 2)) as overall_quality_metric,
+            JSON_BUILD_OBJECT(
+            'marked_percentage', ROUND(CASE WHEN COUNT(*) > 0 THEN SUM(has_marked) * 100.0 / COUNT(*) ELSE 0 END, 2),
+            'unmarked_percentage', ROUND(CASE WHEN COUNT(*) > 0 THEN SUM(has_unmarked) * 100.0 / COUNT(*) ELSE 0 END, 2)
+            ) AS metric_details
+            FROM kerb_attributes;
+    */
+    /**
+      * Processes a dataset tagging request.
+      * 
+      * @param user_id - The ID of the user making the request.
+      * @param tdei_dataset_id - The ID of the TDEI dataset.
+      * @param tagFile - The tag file to be uploaded.
+      * @returns A Promise that resolves to the tag quality metric details.
+      * @throws If there is an error processing the tagging request.
+      */
+    async calculateTagQualityMetric(tdei_dataset_id: string, tagFile: any, user_id: string): Promise<any> {
+
+        const tagFileBuffer = JSON.parse(tagFile!.buffer);
+
+        Utility.checkForSqlInjection(tagFileBuffer);
+
+        let tag_list: TagQualityMetricRequest[] = [];
+        for (let tagItem of tagFileBuffer) {
+            tag_list.push(TagQualityMetricRequest.from(tagItem));
+        }
+
+        if (tag_list.length == 0)
+            throw new InputException("No tags found in the tag file");
+
+        //Validate the tag input data
+        let definitions: any = oswSchema.definitions;
+        for (let tagItem of tag_list) {
+
+            if (!definitions[tagItem.entity_type])
+                throw new InputException(`Entity type ${tagItem.entity_type} not found in the schema`);
+
+            let entitySchema = definitions[`${tagItem.entity_type}Fields`].properties;
+
+            for (let tag of tagItem.tags) {
+                if (!entitySchema[tag])
+                    throw new InputException(`Tag ${tag} not found in the schema for ${tagItem.entity_type}`);
+            }
+        }
+
+        // Function to build CTE
+        const buildCTE = (tagItem: any, identifying_fields: any) => {
+            let cte = ` ${tagItem.entity_type} AS (SELECT`;
+
+            tagItem.tags.forEach((key: any) => {
+                let key_str = key.replace(":", "_");
+                cte += ` (CASE WHEN "${key}" is not null THEN 1 ELSE 0 END) AS has_${key_str},`;
+            });
+
+            cte = cte.slice(0, -1);
+            cte += ` FROM content.${identifying_fields.entity_type} WHERE  tdei_dataset_id = '${tdei_dataset_id}' AND `;
+
+            Object.keys(identifying_fields.identifying_key_val).forEach((key: any) => {
+                cte += `  ${key} = '${identifying_fields.identifying_key_val[key as keyof typeof identifying_fields]}' AND`;
+            });
+
+            cte = cte.slice(0, -3);
+            cte += `),`;
+
+            return cte;
+        };
+
+        // Function to build query
+        const buildQuery = (tagItem: any) => {
+            let query = ` SELECT '${tagItem.entity_type}' AS entity_type,(ROUND(CASE WHEN COUNT(*) > 0 THEN (`;
+
+            tagItem.tags.forEach((key: any) => {
+                let key_str = key.replace(":", "_");
+                query += `SUM(has_${key_str}) + `;
+            });
+
+            query = query.slice(0, -2);
+            query += `) * 100.0 / (COUNT(*) * ${tagItem.tags.length}) ELSE 0 END, 2)) as overall_quality_metric,
+            JSON_BUILD_OBJECT(`;
+
+            tagItem.tags.forEach((key: any) => {
+                let key_str = key.replace(":", "_");
+                query += `'${key}_percentage', ROUND(CASE WHEN COUNT(*) > 0 THEN SUM(has_${key_str}) * 100.0 / COUNT(*) ELSE 0 END, 2),`;
+            });
+
+            query = query.slice(0, -1);
+            query += `) AS metric_details, COUNT(*) as total_entity_count FROM ${tagItem.entity_type} `;
+
+            return query;
+        };
+
+        // Build dynamic query 
+        let tagQueryCTE = 'WITH';
+        let tagQuery = '';
+
+        // Iterate over tag list
+        tag_list.forEach((tagItem: any, index: number) => {
+            let identifying_fields = osw_identifying_fields[tagItem.entity_type as keyof typeof osw_identifying_fields];
+
+            // Build CTE
+            tagQueryCTE += buildCTE(tagItem, identifying_fields);
+
+            // Build query
+            tagQuery += buildQuery(tagItem);
+
+            if (index < tag_list.length - 1) {
+                tagQuery += ` UNION ALL `;
+            }
+        });
+
+        tagQueryCTE = tagQueryCTE.slice(0, -1);
+        tagQuery = tagQueryCTE + tagQuery;
+
+        // Execute query
+        let result = await dbClient.query(tagQuery);
+
+        if (result.rows.length == 0) {
+            throw new InputException("No data found for the tags provided");
+        }
+
+        let tagQualityMetrics: TagQualityMetricResponse[] = [];
+        result.rows.forEach((row: any) => {
+            tagQualityMetrics.push(TagQualityMetricResponse.from(row));
+        });
+
+        return tagQualityMetrics;
+    }
 
     /**
     * Processes a spatial join request.
@@ -54,12 +217,9 @@ class OswService implements IOswService {
                     target_dataset_id: requestService.target_dataset_id,
                     target_dimension: requestService.target_dimension,
                     join_condition: requestService.join_condition,
-                    transform_target: requestService.transform_target,
-                    transform_source: requestService.transform_source,
-                    filter_target: requestService.filter_target,
-                    filter_source: requestService.filter_source,
-                    aggregate: requestService.aggregate,
-                    attributes: requestService.attributes
+                    filter_target: requestService.join_filter_target,
+                    filter_source: requestService.join_filter_source,
+                    aggregate: requestService.aggregate
                 },
                 tdei_project_group_id: '',
                 user_id: user_id,
@@ -259,7 +419,7 @@ class OswService implements IOswService {
                     tdei_dataset_id: tdei_dataset_id,
                     trigger_type: 'manual'
                 },
-                tdei_project_group_id: dataset.tdei_project_group_id,
+                tdei_project_group_id: '',
                 user_id: user_id,
             });
 
@@ -825,7 +985,7 @@ class OswService implements IOswService {
 
     }
 
-    async calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id:string): Promise<string> {
+    async calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id: string): Promise<string> {
         try {
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
             if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
@@ -836,15 +996,15 @@ class OswService implements IOswService {
             }
             // Create job for this
             let job = CreateJobDTO.from({
-                data_type:TDEIDataType.osw,
+                data_type: TDEIDataType.osw,
                 job_type: JobType["Quality-Metric"], // Change this
                 status: JobStatus["IN-PROGRESS"],
-                request_input:{
+                request_input: {
                     tdei_dataset_id: tdei_dataset_id,
                     algorithms: algorithms,
                     persist: persist
                 },
-                tdei_project_group_id: dataset.tdei_project_group_id,
+                tdei_project_group_id: '',
                 user_id: user_id
             })
             const job_id = await this.jobServiceInstance.createJob(job);
@@ -863,7 +1023,7 @@ class OswService implements IOswService {
 
             return Promise.resolve(job_id.toString());
 
-        } catch(error) {
+        } catch (error) {
             console.log('Error calculating quality metric ', error);
             return Promise.reject(error);
         }

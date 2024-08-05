@@ -1,39 +1,39 @@
 ALTER TABLE IF EXISTS content.edge
-    ADD COLUMN updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    ADD COLUMN IF NOT EXISTS  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
 
 ALTER TABLE IF EXISTS content.edge
-    ADD COLUMN updated_by character varying(40);
+    ADD COLUMN IF NOT EXISTS  updated_by character varying(40);
 
 ALTER TABLE IF EXISTS content.node
-    ADD COLUMN updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    ADD COLUMN IF NOT EXISTS  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
 
 ALTER TABLE IF EXISTS content.node
-    ADD COLUMN updated_by character varying(40);
+    ADD COLUMN IF NOT EXISTS  updated_by character varying(40);
 
 
 ALTER TABLE IF EXISTS content.zone
-    ADD COLUMN updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    ADD COLUMN IF NOT EXISTS  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
 
 ALTER TABLE IF EXISTS content.zone
-    ADD COLUMN updated_by character varying(40);
+    ADD COLUMN IF NOT EXISTS  updated_by character varying(40);
 
 ALTER TABLE IF EXISTS content.extension_line
-    ADD COLUMN updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    ADD COLUMN IF NOT EXISTS  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
 
 ALTER TABLE IF EXISTS content.extension_line
-    ADD COLUMN updated_by character varying(40);
+    ADD COLUMN IF NOT EXISTS  updated_by character varying(40);
 
 ALTER TABLE IF EXISTS content.extension_point
-    ADD COLUMN updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    ADD COLUMN IF NOT EXISTS  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
 
 ALTER TABLE IF EXISTS content.extension_point
-    ADD COLUMN updated_by character varying(40);
+    ADD COLUMN IF NOT EXISTS  updated_by character varying(40);
 
 ALTER TABLE IF EXISTS content.extension_polygon
-    ADD COLUMN updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    ADD COLUMN IF NOT EXISTS  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
 
 ALTER TABLE IF EXISTS content.extension_polygon
-    ADD COLUMN updated_by character varying(40);
+    ADD COLUMN IF NOT EXISTS  updated_by character varying(40);
 
 CREATE OR REPLACE FUNCTION content.tdei_clone_dataset(
     clone_tdei_dataset_id text,

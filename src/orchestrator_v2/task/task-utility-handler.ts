@@ -56,12 +56,23 @@ export class UtilityHandler extends workflowBase_v2 {
             //Save the workflow context
             await this.saveWorkflowContext(workflow_context);
 
-            if (output.success) {
-                await this.executeNextTask(workflow, task, workflow_context);
+            //If task is then stop the workflow executions
+            if (!output.terminate) {
+                {
+                    if (output.success) {
+                        await this.executeNextTask(workflow, task, workflow_context);
+                    }
+                    else {
+                        console.error(`Task failed for : ${task.name} , workflow : ${workflow.name}, execution_id : ${workflow_context.execution_id}`)
+                        await this.executeExceptionTasks(workflow, workflow_context);
+                    }
+                }
             }
             else {
-                console.error(`Task failed for : ${task.name} , workflow : ${workflow.name}, execution_id : ${workflow_context.execution_id}`)
-                await this.executeExceptionTasks(workflow, workflow_context);
+                //When terminated, Mark the workflow as completed
+                WorkflowContext.completed(workflow_context);
+                await this.saveWorkflowContext(workflow_context);
+                console.log(`Workflow ${workflow.name} completed successfully`);
             }
         } catch (error) {
             const message = `Error while handling event task : ${task.name}`;
