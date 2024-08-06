@@ -1,0 +1,107 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Schema for tdei orchestrator config",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "workflows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "anyOf": [
+                            {
+                                "const": "TRIGGER",
+                                "title": "Represents the workflow that initiates a process"
+                            },
+                            {
+                                "const": "HANDLER",
+                                "title": "Represents the workflow that manages or processes data"
+                            }
+                        ]
+                    },
+                    "stage": {
+                        "type": "string",
+                        "description": "Specifies the stage of the workflow. Stages are used to categorize the steps in a workflow process"
+                    },
+                    "group": {
+                        "type": "string",
+                        "description": "Specifies the group of the workflow. Groups are used to categorize related workflows"
+                    },
+                    "identifier": {
+                        "type": "string",
+                        "description": "Uniquely identifies the workflow. This is used to reference the workflow in the system"
+                    },
+                    "generic_workflow": {
+                        "type": "boolean",
+                        "description": "A boolean that indicates whether the workflow is generic. If true, the workflow forwards the message to the next step without any processing and does not require a Workflow request/response class to be defined"
+                    },
+                    "next_steps": {
+                        "type": "array",
+                        "description": "An array that specifies the next steps to respond to the workflow request",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "process_identifier": {
+                                    "type": "string",
+                                    "description": "A string that names the process handler. The process handler is the function or method that handles the processing for this step of the workflow"
+                                },
+                                "params": {
+                                    "type": "object",
+                                    "description": "An object that contains parameters to be passed to the process handler",
+                                    "properties": {},
+                                    "required": []
+                                },
+                                "delegate_worflow": {
+                                    "description": "An Array, used to delegate process to other workflows",
+                                    "type": "array"
+                                }
+                            },
+                            "required": [
+                                "process_identifier"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "type",
+                    "stage",
+                    "group",
+                    "identifier"
+                ]
+            }
+        },
+        "subscriptions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "A string that provides a free text description of the subscription. This could be used to give more context or details about the subscription"
+                    },
+                    "topic": {
+                        "type": "string",
+                        "description": "A string that specifies the name of the topic where the messages are posted. In a publish-subscribe pattern, a topic is a category or a label that acts as a 'bucket' where publishers send messages and subscribers receive messages."
+                    },
+                    "subscription": {
+                        "type": "string",
+                        "description": "Subscription name to listen to topic messages"
+                    }
+                },
+                "required": [
+                    "topic",
+                    "subscription"
+                ]
+            }
+        }
+    },
+    "required": [
+        "workflows",
+        "subscriptions"
+    ]
+}

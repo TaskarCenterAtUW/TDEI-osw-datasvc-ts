@@ -2,27 +2,26 @@ import App from './app';
 import dotenv from 'dotenv';
 import "reflect-metadata";
 import oswController from './controller/osw-controller';
-import { DataSource } from 'typeorm';
-import { AppDataSource } from './database/data-source';
 import healthController from './controller/health-controller';
 import { environment } from './environment/environment';
+import generalController from './controller/general-controller';
+import flexController from './controller/flex-controller';
+import path from 'path';
+import pathwaysController from './controller/pathways-controller';
 
 //Load environment variables
 dotenv.config()
 
 const PORT: number = environment.appPort;
 
-new App(
+const appContext = new App(
     [
         oswController,
-        healthController
+        healthController,
+        generalController,
+        flexController,
+        pathwaysController
     ],
     PORT,
-).listen();
-
-//Initialize the database
-AppDataSource.initialize().then(async (dataSource: DataSource) => {
-    console.log("Database initialized successfully !");
-}).catch(error => console.log("Error setting up the database : ", error))
-
-
+);
+appContext.listen();

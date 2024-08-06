@@ -8,17 +8,32 @@ dotenv.config();
 export const environment = {
     appName: process.env.npm_package_name,
     eventBus: {
-        connectionString: process.env.EVENT_BUS_CONNECTION,
+        connectionString: process.env.QUEUECONNECTION,
+        formatterTopic: process.env.FORMATTER_TOPIC,
+        dataServiceTopic: process.env.DATASVC_TOPIC,
+        validationSubscription: process.env.VALIDATION_SUBSCRIPTION,
         uploadTopic: process.env.UPLOAD_TOPIC,
-        uploadSubscription: process.env.UPLOAD_SUBSCRIPTION
+        confidenceRequestTopic: process.env.CONF_REQ_TOPIC,
+        confidenceResponseTopic: process.env.CONF_RES_TOPIC,
+        confidenceResponseSubscription: process.env.CONF_RES_SUB,
+        formatterSubscription: process.env.FORMATTER_SUBSCRIPTION,
+        validationTopic: process.env.VALIDATION_TOPIC
     },
     database: {
         username: process.env.POSTGRES_USER,
         host: process.env.POSTGRES_HOST,
         password: process.env.POSTGRES_PASSWORD,
         database: process.env.POSTGRES_DB,
-        ssl: Boolean(process.env.SSL),
+        ssl: process.env.SSL ? (process.env.SSL!.toLowerCase() === 'true' ? true : false) : true,
         port: parseInt(process.env.POSTGRES_PORT ?? "5432"),
     },
-    appPort: parseInt(process.env.APPLICATION_PORT ?? "8080")
+    appPort: parseInt(process.env.PORT ?? "8080"),
+    authPermissionUrl: process.env.AUTH_HOST + '/api/v1/hasPermission',
+    authValidateApiKeyUrl: process.env.AUTH_HOST + '/api/v1/validateApiKey',
+    secretGenerateUrl: process.env.AUTH_HOST + '/api/v1/generateSecret',
+    gatewayUrl: process.env.GATEWAY_URL,
+    serviceUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/service',
+    userProjectGroupRolesUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/project-group-roles',
+    schemaDocumentationUrl: process.env.DOCUMENTATION_URL,
+    schemaUrl: process.env.SCHEMA_URL
 }

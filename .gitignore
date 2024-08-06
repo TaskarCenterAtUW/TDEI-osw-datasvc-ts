@@ -168,3 +168,4 @@ tsconfig.nx-tmp
 .npmrc
 /node_modules
 package-lock.json
+test-report.html

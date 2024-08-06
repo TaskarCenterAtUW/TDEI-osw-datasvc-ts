@@ -1,0 +1,639 @@
+{
+    "$schema": "../schema/tdei-orchestrator.schema.json",
+    "workflows": [
+        {
+            "group": "PATHWAYS_UPLOAD",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "PATHWAYS_UPLOAD_VALIDATION_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "PATHWAYS_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
+                        "topic": "pathways-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_UPLOAD",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "PATHWAYS_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PATHWAYS_UPLOAD_VALIDATION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "PATHWAYS_UPLOAD_COMPRESSION_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "PATHWAYS_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "PATHWAYS_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "HANDLER",
+            "identifier": "PATHWAYS_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PATHWAYS_UPLOAD_COMPRESSION_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_VALIDATION_ONLY",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "PATHWAYS_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "PATHWAYS_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
+                        "topic": "pathways-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_VALIDATION_ONLY",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "PATHWAYS_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PATHWAYS_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_PUBLISH",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "PATHWAYS_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "PATHWAYS_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
+                        "topic": "pathways-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_PUBLISH",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "PATHWAYS_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PATHWAYS_PUBLISH_VALIDATION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "PATHWAYS_PUBLISH_DATABASE_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "PATHWAYS_PUBLISH",
+            "stage": "DATABASE_PUBLISH",
+            "type": "HANDLER",
+            "identifier": "PATHWAYS_PUBLISH_DATABASE_WORKFLOW",
+            "next_steps": []
+        },
+        {
+            "group": "FLEX_UPLOAD",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "FLEX_UPLOAD_VALIDATION_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "FLEX_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
+                        "topic": "flex-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "FLEX_UPLOAD",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "FLEX_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "FLEX_UPLOAD_VALIDATION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "FLEX_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "FLEX_UPLOAD",
+            "stage": "COMPRESSION",
+            "type": "HANDLER",
+            "identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "FLEX_UPLOAD_COMPRESSION_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "group": "FLEX_VALIDATION_ONLY",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "FLEX_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "FLEX_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
+                        "topic": "flex-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "FLEX_VALIDATION_ONLY",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "FLEX_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "FLEX_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "group": "FLEX_PUBLISH",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "FLEX_PUBLISH_VALIDATION_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "FLEX_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
+                        "topic": "flex-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "FLEX_PUBLISH",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "FLEX_PUBLISH_VALIDATION_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "FLEX_PUBLISH_VALIDATION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "FLEX_PUBLISH_DATABASE_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "FLEX_PUBLISH",
+            "stage": "DATABASE_PUBLISH",
+            "type": "HANDLER",
+            "identifier": "FLEX_PUBLISH_DATABASE_WORKFLOW",
+            "next_steps": []
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_VALIDATION_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
+                        "topic": "osw-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_UPLOAD_VALIDATION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "OSW_UPLOAD_FORMATTING_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "FILE_FORMATTING",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_FORMATTING_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_WORKFLOW",
+                        "topic": "osw-formatting-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "FILE_FORMATTING",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_UPLOAD_FORMATTING_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "OSW_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+                        "OSW_UPLOAD_COMPRESSION_OSM_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_COMPRESSION_OSM_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                } 
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "COMPRESSION",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_COMPRESSION_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+                        "topic": "dataset-zip-request"
+                    }
+                } 
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "COMPRESSION",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_UPLOAD_COMPRESSION_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "OSW_UPLOAD_DATASET_FLATTENING_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "DATASET_FLATTENING",
+            "type": "TRIGGER",
+            "identifier": "OSW_UPLOAD_DATASET_FLATTENING_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_UPLOAD_DATASET_FLATTENING_RESPONSE_WORKFLOW",
+                        "topic": "extract-load-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "DATASET_FLATTENING",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_DATASET_FLATTENING_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_UPLOAD_DATASET_FLATTENING_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "OSW_UPLOAD_DATABASE_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "UPLOAD_OSW",
+            "stage": "DATABASE_PUBLISH",
+            "type": "HANDLER",
+            "identifier": "OSW_UPLOAD_DATABASE_WORKFLOW",
+            "next_steps": []
+        },
+        {
+            "group": "PUBLISH_OSW",
+            "stage": "CONFIDENCE_METRIC",
+            "type": "TRIGGER",
+            "identifier": "OSW_PUBLISH_CONFIDENCE_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW",
+                        "topic": "osw-confidence-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "PUBLISH_OSW",
+            "stage": "CONFIDENCE_METRIC",
+            "type": "HANDLER",
+            "identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_PUBLISH_CONFIDENCE_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "OSW_PUBLISH_DATABASE_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "PUBLISH_OSW",
+            "stage": "DATABASE_PUBLISH",
+            "type": "HANDLER",
+            "identifier": "OSW_PUBLISH_DATABASE_WORKFLOW",
+            "next_steps": []
+        },
+        {
+            "group": "VALIDATION_ONLY_OSW",
+            "stage": "VALIDATION",
+            "type": "TRIGGER",
+            "identifier": "OSW_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
+                        "topic": "osw-validation-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "VALIDATION_ONLY_OSW",
+            "stage": "VALIDATION",
+            "type": "HANDLER",
+            "identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_VALIDATION_ONLY_VALIDATION_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "group": "OSW_ON_DEMAND_FORMATTING",
+            "stage": "FORMATTING",
+            "type": "TRIGGER",
+            "identifier": "OSW_ON_DEMAND_FORMATTING_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
+                        "topic": "osw-formatting-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "OSW_ON_DEMAND_FORMATTING",
+            "stage": "FORMATTING",
+            "type": "HANDLER",
+            "identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_ON_DEMAND_FORMATTING_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "group": "OSW_ON_DEMAND_CONFIDENCE_METRIC",
+            "stage": "CONFIDENCE_METRIC",
+            "type": "TRIGGER",
+            "identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
+                        "topic": "osw-confidence-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "OSW_ON_DEMAND_CONFIDENCE_METRIC",
+            "stage": "CONFIDENCE_METRIC",
+            "type": "HANDLER",
+            "identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "OSW_ON_DEMAND_CONFIDENCE_METRIC_RESPONSE_HANDLER",
+                    "params": {}
+                }
+            ]
+        },
+        {
+            "group": "DATA_QUERY",
+            "stage": "PROCESSING",
+            "type": "TRIGGER",
+            "identifier": "DATA_QUERY_REQUEST_WORKFLOW",
+            "generic_workflow": true,
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "DATA_QUERY_RESPONSE_WORKFLOW",
+                        "topic": "backend-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "DATA_QUERY",
+            "stage": "PROCESSING",
+            "type": "HANDLER",
+            "identifier": "DATA_QUERY_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "DATA_QUERY_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "DATA_QUERY_FORMATTING_REQUEST_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "DATA_QUERY",
+            "stage": "FILE_FORMATTING",
+            "type": "TRIGGER",
+            "identifier": "DATA_QUERY_FORMATTING_REQUEST_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "PUBLISH_HANDLER",
+                    "params": {
+                        "response_message_identifier": "DATA_QUERY_FORMATTING_RESPONSE_WORKFLOW",
+                        "topic": "osw-formatting-request"
+                    }
+                }
+            ]
+        },
+        {
+            "group": "DATA_QUERY",
+            "stage": "FILE_FORMATTING",
+            "type": "HANDLER",
+            "identifier": "DATA_QUERY_FORMATTING_RESPONSE_WORKFLOW",
+            "next_steps": [
+                {
+                    "process_identifier": "DATA_QUERY_FORMATTING_RESPONSE_HANDLER",
+                    "params": {},
+                    "delegate_worflow": [
+                        "DATA_QUERY_DATABASE_WORKFLOW"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "DATA_QUERY",
+            "stage": "DATABASE_PUBLISH",
+            "type": "HANDLER",
+            "identifier": "DATA_QUERY_DATABASE_WORKFLOW",
+            "next_steps": []
+        }
+    ],
+    "subscriptions": [
+        {
+            "description": "Subscription for osw validation completion",
+            "topic": "osw-validation-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for osw formatting completion",
+            "topic": "osw-formatting-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for osw confidence completion",
+            "topic": "osw-confidence-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for extract load request completion",
+            "topic": "extract-load-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for backend service completion",
+            "topic": "backend-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for flex validation completion",
+            "topic": "flex-validation-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for pathways validation completion",
+            "topic": "pathways-validation-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for dataset zipping completion",
+            "topic": "dataset-zip-response",
+            "subscription": "res-handler"
+        }
+    ]
+}
