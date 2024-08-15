@@ -40,10 +40,19 @@ const upload = multer({
     dest: 'uploads/',
     storage: memoryStorage(),
     fileFilter: (req, file, cb) => {
-        const allowedFileTypes = ['.zip', '.txt', '.json'];
+        let allowedFileTypes: string[] = [];
+        if (file.fieldname === 'metadata') {
+            allowedFileTypes = ['.json'];
+        }
+        else if (file.fieldname === 'dataset') {
+            allowedFileTypes = ['.zip'];
+        }
+        else if (file.fieldname === 'changeset') {
+            allowedFileTypes = ['.zip', '.osc'];
+        }
         const ext = path.extname(file.originalname);
         if (!allowedFileTypes.includes(ext)) {
-            cb(new FileTypeException());
+            cb(new HttpException(400, `Invalid file format for ${file.fieldname} , allowed formats are ${allowedFileTypes.join(", ")}`));
         }
         cb(null, true);
     }

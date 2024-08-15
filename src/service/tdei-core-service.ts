@@ -610,7 +610,7 @@ class TdeiCoreService implements ITdeiCoreService {
 
         // Clone the changeset file  
         if (dataset_to_be_clone.changeset_url) {
-            const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.txt');
+            const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.zip');
             cloneContext.dest_changeset_upload_entity = await storageService.cloneFile(dataset_to_be_clone.changeset_url, containerName, changesetStorageFilePath);
         }
 
