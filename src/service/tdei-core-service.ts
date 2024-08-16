@@ -113,15 +113,15 @@ class TdeiCoreService implements ITdeiCoreService {
         //Validate metadata
         const valid = metadataValidator(metadata);
         if (!valid) {
-            let requiredMsg = metadataValidator.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.params.missingProperty}`).join(", ");
-            let additionalMsg = metadataValidator.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(", ");
-            let typeMsg = metadataValidator.errors?.filter(z => z.keyword == "type").map((error: ErrorObject) => `${error.instancePath} ${error.message}`).join(", ");
-            requiredMsg = requiredMsg != "" ? "Required properties : " + requiredMsg + " missing" : "";
+            let requiredMsg = metadataValidator.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.instancePath} : ${error.params.missingProperty}`).join(`, \n`);
+            let additionalMsg = metadataValidator.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(`, \n`);
+            let typeMsg = metadataValidator.errors?.filter(z => z.keyword == "type").map((error: ErrorObject) => `${error.instancePath} ${error.message}`).join(`, \n`);
+            requiredMsg = requiredMsg != "" ? `Missing required properties : \n ${requiredMsg} ` : "";
             //get type mismatch error
-            additionalMsg = additionalMsg != "" ? "Additional properties found : " + additionalMsg + " not allowed" : "";
-            typeMsg = typeMsg != "" ? "Type mismatch found : " + typeMsg + " mismatched" : "";
+            additionalMsg = additionalMsg != "" ? `\n Additional properties found are not allowed : \n ${additionalMsg} ` : "";
+            typeMsg = typeMsg != "" ? `\n Type mismatch found : \n ${typeMsg}  mismatched` : "";
             console.error("Metadata json validation error : ", additionalMsg, requiredMsg, typeMsg);
-            throw new InputException((requiredMsg + "\n" + additionalMsg) as string);
+            throw new InputException((`${requiredMsg} \n ${additionalMsg} \n ${typeMsg}`) as string);
         }
 
         switch (data_type) {
@@ -247,10 +247,10 @@ class TdeiCoreService implements ITdeiCoreService {
             let values: (string | number)[];
 
             if (!tdei_dataset_id) {
-                queryText = `SELECT * FROM content.dataset WHERE name=$1 AND version=$2 AND status != 'Deleted'`;
+                queryText = `SELECT * FROM content.dataset WHERE name = $1 AND version = $2 AND status != 'Deleted'`;
                 values = [name, version];
             } else {
-                queryText = `SELECT * FROM content.dataset WHERE name=$1 AND version=$2 AND tdei_dataset_id != $3  AND status != 'Deleted'`;
+                queryText = `SELECT * FROM content.dataset WHERE name = $1 AND version = $2 AND tdei_dataset_id != $3  AND status != 'Deleted'`;
                 values = [name, version, tdei_dataset_id];
             }
 
@@ -286,17 +286,17 @@ class TdeiCoreService implements ITdeiCoreService {
             const queryObject = {
                 text: `UPDATE content.dataset SET 
                 confidence_level = $1,
-                cm_version= $2, 
-                cm_last_calculated_at=$3,
-                updated_at= CURRENT_TIMESTAMP  
+                cm_version = $2,
+                cm_last_calculated_at = $3,
+                updated_at = CURRENT_TIMESTAMP  
                 WHERE 
-                tdei_dataset_id=$4`,
+                tdei_dataset_id = $4`,
                 values: [confidence_level, info.confidence_library_version, TdeiDate.UTC(), tdei_dataset_id]
             }
 
             await dbClient.query(queryObject);
         } catch (error) {
-            console.error(`Error updating the confidence metric for dataset: ${tdei_dataset_id}`, error);
+            console.error(`Error updating the confidence metric for dataset: ${tdei_dataset_id} `, error);
             throw error;
         }
     }
@@ -339,7 +339,7 @@ class TdeiCoreService implements ITdeiCoreService {
 
             return service;
         } catch (error) {
-            console.error(`Error while fetching the service details for service_id: ${service_id}`, error);
+            console.error(`Error while fetching the service details for service_id: ${service_id} `, error);
             return undefined;
         }
     }
@@ -363,7 +363,7 @@ class TdeiCoreService implements ITdeiCoreService {
             throw new InputException(`${tdei_dataset_id} not found.`);
 
         } catch (error) {
-            console.error(`Error invalidating the record for dataset_id: ${tdei_dataset_id}`, error);
+            console.error(`Error invalidating the record for dataset_id: ${tdei_dataset_id} `, error);
             throw error;
         }
     }
@@ -387,7 +387,7 @@ class TdeiCoreService implements ITdeiCoreService {
             throw new HttpException(404, `Record with id: ${id} not found`);
 
         if (result.rows[0].status == "Deleted")
-            throw new HttpException(400, `Requested record with id: ${id} is invalid/deleted`);
+            throw new HttpException(400, `Requested record with id: ${id} is invalid / deleted`);
 
         const record = result.rows[0];
         const osw = DatasetEntity.from(record);
@@ -438,7 +438,9 @@ class TdeiCoreService implements ITdeiCoreService {
             if (!service) {
                 throw new ServiceNotFoundException(datasetCloneRequestObject.tdei_service_id);
             } else if (service!.service_type != dataset_to_be_clone.data_type) {
-                throw new InputException(`Service type ${service!.service_type} is not same as the dataset type ${dataset_to_be_clone.data_type}`);
+                throw new InputException(`Service type ${service!.service_type
+                    } is not same as the dataset type ${dataset_to_be_clone.data_type
+                    }`);
             }
             //Validate service owner project group is same as the request project group
             else if (service!.owner_project_group != datasetCloneRequestObject.tdei_project_group_id) {
@@ -501,7 +503,7 @@ class TdeiCoreService implements ITdeiCoreService {
 
             return { new_tdei_dataset_id: cloneContext.new_tdei_dataset_id, job_id: (await job_id).toString() };
         } catch (error) {
-            console.error(`Error cloning the dataset: ${datasetCloneRequestObject.tdei_dataset_id}`, error);
+            console.error(`Error cloning the dataset: ${datasetCloneRequestObject.tdei_dataset_id} `, error);
             //Clean up
             if (cloneContext.db_clone_dataset_updated) {
                 //Delete the cloned dataset
@@ -569,7 +571,7 @@ class TdeiCoreService implements ITdeiCoreService {
         };
         //Trigger the workflow
         await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
-        console.log(`Clone dataset job started with job_id: ${job_id}`);
+        console.log(`Clone dataset job started with job_id: ${job_id} `);
 
         return job_id.toString();
     }
@@ -661,7 +663,7 @@ class TdeiCoreService implements ITdeiCoreService {
             let queryConfig: QueryConfig = {
                 text: `SELECT * from public.user_roles ur
                 INNER JOIN public.roles r on ur.role_id = r.role_id
-                WHERE user_id = $1 AND project_group_id = $2 AND r.name IN ('tdei_admin', 'poc', $3)`.replace(/\n/g, ""),
+                WHERE user_id = $1 AND project_group_id = $2 AND r.name IN('tdei_admin', 'poc', $3)`.replace(/\n/g, ""),
                 values: [
                     datasetCloneRequestObject.user_id,
                     dataset_to_be_clone.tdei_project_group_id,

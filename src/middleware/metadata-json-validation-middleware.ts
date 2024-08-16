@@ -22,10 +22,10 @@ export async function metajsonValidator(req: Request, res: Response, next: NextF
         const metadata = JSON.parse(metadataFile[0].buffer);
         const valid = validate(metadata);
         if (!valid) {
-            let requiredMsg = validate.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.params.missingProperty}`).join(", ");
-            let additionalMsg = validate.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(", ");
-            requiredMsg = requiredMsg != "" ? "Required properties : " + requiredMsg + " missing" : "";
-            additionalMsg = additionalMsg != "" ? "Additional properties found : " + additionalMsg + " not allowed" : "";
+            let requiredMsg = validate.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.instancePath} : ${error.params.missingProperty}`).join(`, \n`);
+            let additionalMsg = validate.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(`, \n`);
+            requiredMsg = requiredMsg != "" ? `Missing required properties : \n ${requiredMsg} ` : "";
+            additionalMsg = additionalMsg != "" ? `\n Additional properties found : \n ${additionalMsg} not allowed` : "";
             console.error("Metadata json validation error : ", additionalMsg, requiredMsg);
             next(new InputException((requiredMsg + "\n" + additionalMsg) as string));
         }
