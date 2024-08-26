@@ -1,7 +1,6 @@
 import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
-import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, FileTypeException } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
@@ -12,7 +11,6 @@ import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
-import archiver from 'archiver';
 import flexService from "../service/flex-service";
 /**
   * Multer for multiple uploads
@@ -39,10 +37,19 @@ const upload = multer({
     dest: 'uploads/',
     storage: memoryStorage(),
     fileFilter: (req, file, cb) => {
-        const allowedFileTypes = ['.zip', '.txt', '.json'];
+        let allowedFileTypes: string[] = [];
+        if (file.fieldname === 'metadata') {
+            allowedFileTypes = ['.json'];
+        }
+        else if (file.fieldname === 'dataset') {
+            allowedFileTypes = ['.zip'];
+        }
+        else if (file.fieldname === 'changeset') {
+            allowedFileTypes = ['.zip', '.osc'];
+        }
         const ext = path.extname(file.originalname);
         if (!allowedFileTypes.includes(ext)) {
-            cb(new FileTypeException());
+            cb(new HttpException(400, `Invalid file format for ${file.fieldname} , allowed formats are ${allowedFileTypes.join(", ")}`));
         }
         cb(null, true);
     }

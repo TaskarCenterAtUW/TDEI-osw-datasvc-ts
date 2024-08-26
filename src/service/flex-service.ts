@@ -20,6 +20,7 @@ import { IFlexService } from "./interface/flex-service-interface";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
+import AdmZip from "adm-zip";
 
 class FlexService implements IFlexService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -216,8 +217,14 @@ class FlexService implements IFlexService {
             // Upload the changeset file  
             let changesetUploadUrl = "";
             if (uploadRequestObject.changesetFile) {
-                const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.txt');
-                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'text/plain', Readable.from(uploadRequestObject.changesetFile[0].buffer), "gtfsflex");
+                let zipBuffer = uploadRequestObject.changesetFile[0].buffer;
+                if (uploadRequestObject.changesetFile[0].originalname.endsWith('.osc')) {
+                    const zip = new AdmZip();
+                    zip.addFile(uploadRequestObject.changesetFile[0].originalname, uploadRequestObject.changesetFile[0].buffer);
+                    zipBuffer = zip.toBuffer();
+                }
+                const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.zip');
+                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'application/zip', Readable.from(zipBuffer), "gtfsflex");
             }
 
             // Insert dataset version into database

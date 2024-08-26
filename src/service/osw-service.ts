@@ -26,6 +26,7 @@ import { TagQualityMetricResponse, TagQualityMetricRequest } from "../model/tag-
 import oswSchema from "../assets/opensidewalks_0.2.schema.json";
 import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
 import { Utility } from "../utility/utility";
+import AdmZip from "adm-zip";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -822,8 +823,14 @@ class OswService implements IOswService {
             // Upload the changeset file  
             let changesetUploadUrl = "";
             if (uploadRequestObject.changesetFile) {
-                const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.txt');
-                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'text/plain', Readable.from(uploadRequestObject.changesetFile[0].buffer));
+                let zipBuffer = uploadRequestObject.changesetFile[0].buffer;
+                if (uploadRequestObject.changesetFile[0].originalname.endsWith('.osc')) {
+                    const zip = new AdmZip();
+                    zip.addFile(uploadRequestObject.changesetFile[0].originalname, uploadRequestObject.changesetFile[0].buffer);
+                    zipBuffer = zip.toBuffer();
+                }
+                const changesetStorageFilePath = path.join(storageFolderPath, 'changeset.zip');
+                changesetUploadUrl = await storageService.uploadFile(changesetStorageFilePath, 'application/zip', Readable.from(zipBuffer));
             }
 
             // Insert osw version into database
