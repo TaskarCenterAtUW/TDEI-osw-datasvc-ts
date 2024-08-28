@@ -398,8 +398,8 @@ class OswService implements IOswService {
         try {
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
 
-            if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
-                throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
+            if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`Confidence calculation is not supported for ${dataset.data_type} datasets.`);
             // Create a job in the database for the same.
             let sub_regions_upload_url = undefined;
             if (sub_regions_file) {
