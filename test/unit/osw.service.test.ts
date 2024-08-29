@@ -467,6 +467,32 @@ describe("OSW Service Test", () => {
                 userId
             );
         });
+
+        it('should throw error for confidence request is not for osw dataset', async () => {
+            // Mock the behavior of getOSWRecordById
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'pathways',
+                    download_osw_url: 'download-osw-url',
+                    download_metadata_url: 'download-metadata-url',
+                }));
+
+            // Mock createOSWFormatJob function
+            const mockJobId = 101;
+            jest.spyOn(jobService, "createJob")
+                .mockResolvedValue(mockJobId);
+
+            // Mock the behavior of triggerWorkflow
+            mockAppContext();
+
+            // Call the function
+            const resultAsync = oswService.calculateConfidence(tdeiRecordId, undefined, userId);
+
+            // Assertions
+            expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith(tdeiRecordId);
+            expect(resultAsync).rejects.toThrow(InputException);
+
+        });
     });
 
     describe('process validation only request', () => {
