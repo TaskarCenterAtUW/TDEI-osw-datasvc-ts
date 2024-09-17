@@ -1021,7 +1021,7 @@ class OswService implements IOswService {
                 status: JobStatus["IN-PROGRESS"],
                 request_input: {
                     tdei_dataset_id: tdei_dataset_id,
-                    algorithms: algorithm,
+                    algorithm: algorithm,
                     sub_regions_file: sub_regions_upload_url ? sub_regions_file!.originalname : ""
                 },
                 tdei_project_group_id: '',
@@ -1035,7 +1035,7 @@ class OswService implements IOswService {
                 job_id: job_id.toString(),
                 user_id: user_id,
                 file_url: dataset.latest_dataset_url,
-                algorithms: algorithm,
+                algorithm: algorithm,
                 sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : ""
             };
 
