@@ -1994,8 +1994,8 @@
                 "job_id": "<%=job_id%>",
                 "user_id": "<%=user_id%>",
                 "file_url": "<%=file_url%>",
-                "algorithms": "<%=algorithms%>",
-                "persist": "<%=persist%>"
+                "algorithm": "<%=algorithm%>",
+                "sub_regions_file":"<%=sub_regions_file%>"
             },
             "tasks": [
                 {
@@ -2007,7 +2007,8 @@
                     "input_params": {
                         "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
                         "data_file": "<%=workflow_input.file_url%>",
-                        "algorithms": "<%=workflow_input.algorithms%>"
+                        "algorithm": "<%=workflow_input.algorithm%>",
+                        "sub_regions_file": "<%=workflow_input.sub_regions_file%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
