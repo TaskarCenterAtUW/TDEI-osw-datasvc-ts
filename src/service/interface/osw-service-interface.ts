@@ -83,12 +83,12 @@ export interface IOswService {
      * Calculates the quality metric for a given TDEI dataset.
      * 
      * @param tdei_dataset_id - The ID of the TDEI dataset.
-     * @param algorithms - The algorithms to use for calculating the quality metric.
-     * @param persist - The persist flag.
+     * @param algorithm - The algorithm to use for calculating the quality metric.
+     * @param sub_regions_file - (Optional) The sub-regions file to be used for calculating the quality metric.
      * @returns A Promise that resolves to the ID of the created job.
      * @throws If there is an error calculating the quality metric.
      */
-    calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id: string): Promise<string>;
+    calculateQualityMetric(tdei_dataset_id: string, algorithm: string, sub_regions_file:any, user_id: string): Promise<string>;
 
     /**
      * Retrieves the OswStream by its ID.

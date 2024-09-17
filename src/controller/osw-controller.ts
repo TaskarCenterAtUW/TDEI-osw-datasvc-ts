@@ -104,6 +104,20 @@ const confidenceUpload = multer({
     }
 });
 
+// Accepted file formats for quality metric calculation
+const qualityUpload = multer({
+    dest: 'quality/',
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const allowedFileTypes = ['.geojson'];
+        const ext = path.extname(file.originalname);
+        if (!allowedFileTypes.includes(ext)) {
+            cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
+
 class OSWController implements IController {
     public path = '/api/v1/osw';
     public router = express.Router();
@@ -128,7 +142,7 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
         this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
         // Route for quality metric request
-        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, authenticate, this.createQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, qualityUpload.single('file'),authenticate, this.createQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
     }
 
@@ -528,15 +542,16 @@ class OSWController implements IController {
     createQualityOnDemandRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let algorithms = request.body.algorithms;
-            let persist = request.body.persist;
+            const subRegionFile = request.file;
+            let algorithms = request.body.algorithm;
+            // let persist = request.body.persist;
             if (tdei_dataset_id == undefined) {
                 throw new InputException("Missing tdei_dataset_id input")
             }
-            if (tdei_dataset_id == undefined || algorithms == undefined || persist == undefined) {
-                throw new InputException("Please add tdei_dataset_id, algorithms, persist in payload")
+            if (tdei_dataset_id == undefined || algorithms == undefined) {
+                throw new InputException("Please add tdei_dataset_id, algorithm in payload")
             }
-            let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, persist, request.body.user_id);
+            let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, subRegionFile, request.body.user_id);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 

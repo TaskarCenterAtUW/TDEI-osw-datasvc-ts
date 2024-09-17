@@ -992,14 +992,22 @@ class OswService implements IOswService {
 
     }
 
-    async calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id: string): Promise<string> {
+    async calculateQualityMetric(tdei_dataset_id: string, algorithm: string, sub_regions_file: any, user_id: string): Promise<string> {
         try {
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
             if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
             // Check the input algorithm types
-            if (algorithms.length == 0) {
+            if (algorithm.length == 0) {
                 throw new InputException("No quality metric algorithms provided");
+            }
+            let sub_regions_upload_url = undefined;
+            if (sub_regions_file) {
+                // Get the upload path
+                const uid = storageService.generateRandomUUID();
+                const folderPath = storageService.getQualityMetricJobPath(uid);
+                const uploadPath = path.join(folderPath, sub_regions_file!.originalname)
+                sub_regions_upload_url = await storageService.uploadFile(uploadPath, 'application/json', Readable.from(sub_regions_file.buffer));
             }
             // Create job for this
             let job = CreateJobDTO.from({
@@ -1008,8 +1016,8 @@ class OswService implements IOswService {
                 status: JobStatus["IN-PROGRESS"],
                 request_input: {
                     tdei_dataset_id: tdei_dataset_id,
-                    algorithms: algorithms,
-                    persist: persist
+                    algorithms: algorithm,
+                    sub_regions_file: sub_regions_upload_url ? sub_regions_file!.originalname : ""
                 },
                 tdei_project_group_id: '',
                 user_id: user_id
@@ -1022,8 +1030,8 @@ class OswService implements IOswService {
                 job_id: job_id.toString(),
                 user_id: user_id,
                 file_url: dataset.latest_dataset_url,
-                algorithms: algorithms,
-                persist: persist
+                algorithms: algorithm,
+                sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : ""
             };
 
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
