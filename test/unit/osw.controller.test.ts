@@ -755,8 +755,7 @@ describe("OSW Controller Test", () => {
                 body: {
                     user_id: 'mock-user-id',
 
-                    algorithms: ['mock-algorithm'],
-                    persist: true,
+                    algorithm: 'mock-algorithm',
                 },
                 params: {
                     tdei_dataset_id: 'mock-tdei_dataset_id'
