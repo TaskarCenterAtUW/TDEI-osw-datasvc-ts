@@ -64,6 +64,7 @@ const upload = multer({
         }
         else if (file.fieldname === 'dataset') {
             allowedFileTypes = ['.zip'];
+            req.body["dataset_file_size"] = file.size;
         }
         else if (file.fieldname === 'changeset') {
             allowedFileTypes = ['.zip', '.osc'];
@@ -421,7 +422,8 @@ class OSWController implements IController {
                 derived_from_dataset_id: request.query?.derived_from_dataset_id ? request.query?.derived_from_dataset_id as string : "",
                 datasetFile: (request.files as any)['dataset'],
                 metadataFile: (request.files as any)['metadata'],
-                changesetFile: (request.files as any)['changeset']
+                changesetFile: (request.files as any)['changeset'],
+                dataset_file_size_bytes: request.body["dataset_file_size"]
             }
 
             if (!uploadRequest.datasetFile) {

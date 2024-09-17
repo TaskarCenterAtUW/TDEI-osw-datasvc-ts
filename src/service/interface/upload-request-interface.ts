@@ -6,4 +6,5 @@ export interface IUploadRequest {
     datasetFile: any;
     metadataFile: any;
     changesetFile: any;
+    dataset_file_size_bytes: number;
 }
