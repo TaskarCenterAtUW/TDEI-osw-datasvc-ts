@@ -755,7 +755,7 @@ describe("OSW Controller Test", () => {
                 body: {
                     user_id: 'mock-user-id',
 
-                    algorithms: ['mock-algorithm'],
+                    algorithm: 'mock-algorithm',
                     persist: true,
                 },
                 params: {
