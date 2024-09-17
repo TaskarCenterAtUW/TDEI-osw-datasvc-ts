@@ -1001,6 +1001,11 @@ class OswService implements IOswService {
             if (algorithm.length == 0) {
                 throw new InputException("No quality metric algorithms provided");
             }
+            const acceptedAlgorithms = ['fixed','ixn'] // Need to move it somewhere.
+            if (!acceptedAlgorithms.includes(algorithm)) {
+                throw new InputException("Invalid quality metric algorithm provided");
+            }
+            
             let sub_regions_upload_url = undefined;
             if (sub_regions_file) {
                 // Get the upload path
