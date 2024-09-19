@@ -144,7 +144,7 @@ class OSWController implements IController {
         // Route for quality metric request
         this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, qualityUpload.single('file'),authenticate, this.createQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
-        this.router.post(`${this.path}/dataset-add-inclination/`, authenticate, this.createInclineRequest);
+        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, authenticate, this.createInclineRequest);
     }
 
 
@@ -577,14 +577,9 @@ class OSWController implements IController {
      */
     createInclineRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-
-            const requestService = JSON.parse(JSON.stringify(request.query));
-            if (!requestService) {
-                return next(new InputException('request body is empty', response));
-            }
-
-            if (requestService.dataset_id == undefined) {
-                return next(new InputException('required input is empty', response));
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            if (tdei_dataset_id == undefined) {
+                throw new InputException("Missing tdei_dataset_id input")
             }
 
             let apiKey = request.headers['x-api-key'];
@@ -594,7 +589,7 @@ class OSWController implements IController {
             }
 
             //Authorize
-            let osw = await tdeiCoreService.getDatasetDetailsById(requestService.dataset_id);
+            let osw = await tdeiCoreService.getDatasetDetailsById(tdei_dataset_id);
             var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
             if (!authorized) {
                 return next(new ForbiddenAccess());
@@ -604,7 +599,7 @@ class OSWController implements IController {
                 user_id: request.body.user_id,
                 service: "add_inclination",
                 parameters: {
-                    dataset_id: requestService.dataset_id
+                    dataset_id: tdei_dataset_id
                 }
             }
 

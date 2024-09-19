@@ -1069,9 +1069,8 @@ class OswService implements IOswService {
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
-                    service: backendRequest.service,
                     user_id: backendRequest.user_id,
-                    parameters: backendRequest.parameters
+                    dataset_id: backendRequest.parameters.dataset_id
                 },
                 tdei_project_group_id: '',
                 user_id: backendRequest.user_id,
@@ -1082,12 +1081,12 @@ class OswService implements IOswService {
             let workflow_start = WorkflowName.osw_dataset_incline_tag;
             let workflow_input = {
                 job_id: job_id.toString(),
-                service: backendRequest.service,
                 user_id: backendRequest.user_id,
-                parameters: backendRequest.parameters,
-                tdei_dataset_id: backendRequest.parameters.dataset_id,
                 dataset_url: dataset.latest_dataset_url,
-                tdei_project_group_id: dataset.tdei_project_group_id
+                metadata_url: dataset.metadata_url,
+                changeset_url: dataset.changeset_url,
+                tdei_project_group_id: dataset.tdei_project_group_id,
+                tdei_dataset_id: dataset.tdei_dataset_id
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, backendRequest.user_id);

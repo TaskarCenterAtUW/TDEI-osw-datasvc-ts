@@ -2070,13 +2070,13 @@
             "name": "osw_dataset_incline_tag",
             "description": "Update the dataset with incline tags",
             "workflow_input": {
-                "service": "<%=service %>",
-                "user_id": "<%=user_id%>",
-                "parameters": "<%= JSON.stringify(parameters) %>",
-                "tdei_project_group_id": "<%=tdei_project_group_id%>",
-                "tdei_dataset_id": "<%=tdei_dataset_id%>",
                 "job_id": "<%=job_id%>",
-                "dataset_url": "<%=dataset_url%>"
+                "user_id": "<%=user_id%>",
+                "dataset_url": "<%=dataset_url%>",
+                "metadata_url": "<%=metadata_url%>",
+                "changeset_url": "<%=changeset_url%>",
+                "tdei_dataset_id":"<%=tdei_dataset_id%>",
+                "tdei_project_group_id":"<%=tdei_project_group_id%>"
             },
             "tasks": [
                 {
@@ -2159,7 +2159,7 @@
                     "description": "Getting the blob folder path for zip upload",
                     "type": "Utility",
                     "input_params": {
-                        "blobUrl": "<%=workflow_input.dataset_url%>",
+                        "blobUrl": "<%=tasks.osw_dataset_incline_tag.output.file_upload_path%>",
                         "identifier": "<%=workflow_input.tdei_dataset_id%>"
                     },
                     "output_params": {
