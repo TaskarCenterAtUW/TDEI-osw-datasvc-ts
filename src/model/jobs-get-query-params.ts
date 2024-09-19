@@ -31,7 +31,8 @@ export enum JobType {
     "Dataset-Queries" = "Dataset-Queries",
     "Quality-Metric" = "Quality-Metric",
     "Edit-Metadata" = "Edit-Metadata",
-    "Clone-Dataset" = "Clone-Dataset"
+    "Clone-Dataset" = "Clone-Dataset",
+    "Dataset-Incline-Tag" = "Dataset-Incline-Tag"
 }
 export class JobsQueryParams {
     @IsOptional()
