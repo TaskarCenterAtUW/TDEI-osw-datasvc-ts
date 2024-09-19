@@ -143,7 +143,7 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
         this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
         // Route for quality metric request
-        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, qualityUpload.single('file'),authenticate, this.createQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, this.createQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
     }
 
@@ -422,8 +422,7 @@ class OSWController implements IController {
                 derived_from_dataset_id: request.query?.derived_from_dataset_id ? request.query?.derived_from_dataset_id as string : "",
                 datasetFile: (request.files as any)['dataset'],
                 metadataFile: (request.files as any)['metadata'],
-                changesetFile: (request.files as any)['changeset'],
-                dataset_file_size_bytes: request.body["dataset_file_size"]
+                changesetFile: (request.files as any)['changeset']
             }
 
             if (!uploadRequest.datasetFile) {
