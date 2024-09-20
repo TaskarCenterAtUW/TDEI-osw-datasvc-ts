@@ -10,6 +10,14 @@ import { IDatasetCloneRequest } from "../../model/request-interfaces";
 
 export interface ITdeiCoreService {
   /**
+* Fetches the data metrics
+*/
+  getDataMetrics(): Promise<any>;
+  /**
+   * Fetches the system metrics
+   */
+  getSystemMetrics(): Promise<any>;
+  /**
    * Clones a dataset.
    * 
    * @param datasetCloneRequestObject - The dataset clone request object.

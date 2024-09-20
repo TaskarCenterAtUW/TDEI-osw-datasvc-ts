@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS content.osw_stats
     area_km2 double precision,
     num_kerbs bigint,
     CONSTRAINT osw_stats_pkey PRIMARY KEY (tdei_dataset_id)
-)
+);
 
 CREATE OR REPLACE FUNCTION content.tdei_update_osw_stats(p_tdei_dataset_id character varying)
 RETURNS void
@@ -95,12 +95,6 @@ DECLARE
     result JSON;
 BEGIN
     WITH
-         dataset_stat_cte AS (
-            SELECT 
-            COUNT(tdei_dataset_id) as totaluploads,
-            SUM(upload_file_size_bytes) AS totalSizeByt
-            FROM content.dataset WHERE status not in ('Deleted', 'Draft')
-        ),
         osw_dataset_edges_cte AS (
             SELECT 
             SUM(num_edges) as num_edges,
@@ -147,6 +141,56 @@ BEGIN
                 'totalSizeMB', ROUND(dmc.pathways_totalSizeByt / 1048576.0, 2)
             )
           )
+        )
+    ) INTO result
+    FROM osw_dataset_edges_cte odec
+    CROSS JOIN datset_metric_cte dmc;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION content.tdei_fetch_system_metrics()
+RETURNS JSON AS $$
+DECLARE
+    result JSON;
+BEGIN
+    -- Using CTEs to aggregate metrics from multiple tables
+    WITH
+         dataset_stat_cte AS (
+            SELECT 
+            COUNT(tdei_dataset_id) as totaluploads,
+            SUM(upload_file_size_bytes) AS totalSizeByt
+            FROM content.dataset WHERE status not in ('Deleted', 'Draft')
+        ),
+        users_cte AS (
+            SELECT count(Distinct(user_id)) as totalUsers FROM public.user_roles ur
+            INNER JOIN public.roles r ON ur.role_id = r.role_id
+            WHERE r.name != 'tdei_admin'
+        ),
+        project_groups_cte AS (
+            SELECT COUNT(*) as totalProjectGroups FROM public.project_group WHERE is_active = 'true'
+        ),
+        services_cte AS (
+            SELECT 
+            COUNT(*) AS totalServices,
+            SUM(CASE WHEN service_type = 'osw' THEN 1 ELSE 0 END) AS osw_count,
+            SUM(CASE WHEN service_type = 'flex' THEN 1 ELSE 0 END) AS flex_count,
+            SUM(CASE WHEN service_type = 'pathways' THEN 1 ELSE 0 END) AS pathways_count
+            FROM public.service WHERE is_active = 'true'
+        )
+    -- Build the JSON result
+    SELECT json_build_object(
+        'systemMetrics', json_build_object(
+            'totalUsers', uc.totalUsers,
+            'totalServices', sc.totalServices,
+            'totalProjectGroups', pgc.totalProjectGroups,
+            'servicesByType', json_build_object(
+                'osw', sc.osw_count,
+                'flex', sc.flex_count,
+                'pathways', sc.pathways_count
+            )
         ),
         'datasetMetrics', json_build_object(
              'totalUploads', json_build_object(
@@ -155,13 +199,17 @@ BEGIN
             )
         )
     ) INTO result
-    FROM osw_dataset_edges_cte odec
-    CROSS JOIN datset_metric_cte dmc
+    FROM users_cte uc
+    CROSS JOIN project_groups_cte pgc
+    CROSS JOIN services_cte sc
     CROSS JOIN dataset_stat_cte dsc;
 
+    -- Return the result as a JSON array
     RETURN result;
 END;
 $$ LANGUAGE plpgsql;
+
+
 
 
 

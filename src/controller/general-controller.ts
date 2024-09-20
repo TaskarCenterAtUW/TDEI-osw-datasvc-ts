@@ -72,6 +72,54 @@ class GeneralController implements IController {
                 next(error);
             }
         }, this.cloneDataset); // clone Dataset request
+        this.router.get(`${this.path}/system-metrics`, authenticate, this.getSystemMetrics);
+        this.router.get(`${this.path}/data-metrics`, authenticate, this.getDataMetrics);
+    }
+
+
+    /**
+     * Get the data metrics
+     * @param request
+     * @param response
+     * @param next
+     */
+    public getDataMetrics = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            var result = await tdeiCoreService.getDataMetrics();
+            return response.status(200).send(result);
+        } catch (error) {
+            let errorMessage = "Error fetching the data metrics";
+            console.error(errorMessage, error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send(errorMessage);
+            next(new HttpException(500, errorMessage));
+        }
+    }
+
+    /**
+    * Get the system metrics
+    * @param request
+    * @param response
+    * @param next
+    */
+    public getSystemMetrics = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            var result = await tdeiCoreService.getSystemMetrics();
+            return response.status(200).send(result);
+
+        } catch (error) {
+            let errorMessage = "Error fetching the system metrics";
+            console.error(errorMessage, error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send(errorMessage);
+            next(new HttpException(500, errorMessage));
+        }
     }
 
     /**
