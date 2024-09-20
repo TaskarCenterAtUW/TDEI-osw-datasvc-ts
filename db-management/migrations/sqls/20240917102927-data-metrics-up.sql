@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS content.osw_stats
     area_union geometry,
     area_km2 double precision,
     num_kerbs bigint,
+    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT osw_stats_pkey PRIMARY KEY (tdei_dataset_id)
 );
 
