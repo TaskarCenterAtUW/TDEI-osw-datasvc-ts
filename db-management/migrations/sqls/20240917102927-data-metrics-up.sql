@@ -1,9 +1,6 @@
 ALTER TABLE content.dataset
 ADD COLUMN IF NOT EXISTS "upload_file_size_bytes" BIGINT DEFAULT NULL;
 
--- ALTER TABLE content.dataset
--- ADD COLUMN IF NOT EXISTS "osw_nodes_concave_hull" GEOMETRY DEFAULT NULL;
-
 CREATE TABLE IF NOT EXISTS content.osw_stats
 (
     tdei_dataset_id character varying(40) COLLATE pg_catalog."default" NOT NULL,
@@ -11,8 +8,8 @@ CREATE TABLE IF NOT EXISTS content.osw_stats
     length_of_sidewalks_mtr real,
     num_edges bigint,
     num_nodes bigint,
-    concave_hull geometry,
-    concave_hull_area_km2 double precision,
+    area_union geometry,
+    area_km2 double precision,
     num_kerbs bigint,
     CONSTRAINT osw_stats_pkey PRIMARY KEY (tdei_dataset_id)
 )
@@ -25,14 +22,15 @@ $$
 DECLARE
     batch_size INT := 1000;
     total_batches INT;
-    final_hull geometry;
-    current_batch geometry;
+    final_area REAL := 0;
+	final_union geometry;
+    union_set geometry;
     batch_number INT := 0;
 BEGIN
-    final_hull := NULL;
+    final_union := null;
     
 	total_batches := GREATEST(CEIL((SELECT COUNT(*) FROM content.node WHERE tdei_dataset_id = p_tdei_dataset_id) / batch_size), 1); 
- 	
+	
 	WITH
 	osw_dataset_edges_cte AS (
             SELECT 
@@ -59,21 +57,21 @@ BEGIN
 			num_kerbs = EXCLUDED.num_kerbs;
 	
     WHILE batch_number < total_batches LOOP
-        SELECT ST_ConcaveHull(ST_Collect(node_loc), 0.85)
-        INTO current_batch
+        SELECT ST_Union(ST_Transform(ST_Buffer(ST_Transform(edge_loc, 3857), 2), 4326))
+        INTO union_set
         FROM (
-            SELECT node_loc
-            FROM content.node
-            WHERE tdei_dataset_id = p_tdei_dataset_id AND ST_IsValid(node_loc) AND ST_Envelope(node_loc) && ST_MakeEnvelope(-180, -90, 180, 90, 4326)
+            SELECT edge_loc
+            FROM content.edge
+            WHERE tdei_dataset_id = p_tdei_dataset_id AND ST_IsValid(edge_loc) AND ST_Envelope(edge_loc) && ST_MakeEnvelope(-180, -90, 180, 90, 4326)
             ORDER BY id
             LIMIT batch_size OFFSET batch_number * batch_size
-        ) AS batch_nodes;
+        ) AS batch_edges;
 
-        IF current_batch IS NOT NULL THEN
-            IF final_hull IS NULL THEN
-                final_hull := current_batch;
+        IF union_set IS NOT NULL THEN
+            IF final_union IS NULL THEN
+                final_union := ST_Transform(union_set, 3857);
             ELSE
-                final_hull := ST_Union(final_hull, current_batch);          
+				final_union := ST_Union(final_union, ST_Transform(union_set, 3857));                 
 			END IF;
         END IF;
 
@@ -81,11 +79,12 @@ BEGIN
     END LOOP;
 
     UPDATE content.osw_stats
-    SET concave_hull = final_hull,
-		 concave_hull_area_km2 = ST_Area(ST_Transform(final_hull, 3857)) / 1000000
+    SET 
+	area_union = final_union,
+	area_km2 = ST_Area(final_union)/1000000 -- km2
     WHERE tdei_dataset_id = p_tdei_dataset_id;
 
-    RAISE NOTICE 'Concave hull updated successfully for dataset id: %', p_tdei_dataset_id;
+    RAISE NOTICE 'OSW stats updated successfully for dataset id: %', p_tdei_dataset_id;
 END;
 $$;
 
@@ -108,8 +107,10 @@ BEGIN
             ROUND(CAST((SUM(length_of_sidewalks_mtr)/1000) AS numeric),2) as length_of_sidewalks_km,
             SUM(num_crossings) AS num_crossings,
             SUM(num_nodes) as num_nodes,
-            SUM(concave_hull_area_km2) as concave_hull_area_km2
-            FROM content.osw_stats
+            SUM(area_km2) as area_km2
+            FROM content.osw_stats os
+            INNER JOIN content.dataset ds ON os.tdei_dataset_id = ds.tdei_dataset_id
+            WHERE ds.status not in ('Deleted', 'Draft')
         ),
         datset_metric_cte AS (
             SELECT 
@@ -134,7 +135,7 @@ BEGIN
                     'length_of_sidewalks_km', odec.length_of_sidewalks_km,
                     'num_edges', odec.num_edges,
                     'num_nodes', odec.num_nodes,
-                    'concave_hull_area_km2', ROUND(CAST(odec.concave_hull_area_km2 as DECIMAL),2)
+                    'area_km2', ROUND(CAST(odec.area_km2 as DECIMAL),2)
                 )
             ),
             'flex', json_build_object(
