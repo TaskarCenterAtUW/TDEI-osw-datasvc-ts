@@ -64,6 +64,7 @@ const upload = multer({
         }
         else if (file.fieldname === 'dataset') {
             allowedFileTypes = ['.zip'];
+            req.body["dataset_file_size"] = file.size;
         }
         else if (file.fieldname === 'changeset') {
             allowedFileTypes = ['.zip', '.osc'];
@@ -142,7 +143,7 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
         this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
         // Route for quality metric request
-        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, qualityUpload.single('file'),authenticate, this.createQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, this.createQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
     }
 

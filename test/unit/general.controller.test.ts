@@ -416,4 +416,78 @@ describe("General Controller Test", () => {
         });
     });
 
+    describe("getSystemMetrics", () => {
+        test("When requested, Expect to return system metrics", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            const systemMetrics = { "totalUsers": 100 };
+            const getSystemMetricsSpy = jest
+                .spyOn(tdeiCoreService, "getSystemMetrics")
+                .mockResolvedValueOnce(systemMetrics);
+
+            // Act
+            let resp = await generalController.getSystemMetrics(req, res, next);
+
+            // Assert
+            expect(getSystemMetricsSpy).toHaveBeenCalledTimes(1);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(systemMetrics);
+        });
+
+        test("When an error occurs, Expect to return HTTP status 500", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            const errorMessage = "Error fetching the system metrics";
+            const getSystemMetricsSpy = jest
+                .spyOn(tdeiCoreService, "getSystemMetrics")
+                .mockRejectedValueOnce(new Error(errorMessage));
+
+            // Act
+            await generalController.getSystemMetrics(req, res, next);
+
+            // Assert
+            expect(getSystemMetricsSpy).toHaveBeenCalledTimes(1);
+            expect(next).toHaveBeenCalledWith(new Error(errorMessage));
+        });
+    });
+
+    describe("getDataMetrics", () => {
+        test("When requested, Expect to return data metrics", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            const dataMetrics = { "totalUsers": 100 };
+            const getDataMetricsSpy = jest
+                .spyOn(tdeiCoreService, "getDataMetrics")
+                .mockResolvedValueOnce(dataMetrics);
+
+            // Act
+            let resp = await generalController.getDataMetrics(req, res, next);
+
+            // Assert
+            expect(getDataMetricsSpy).toHaveBeenCalledTimes(1);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(dataMetrics);
+        });
+
+        test("When an error occurs, Expect to return HTTP status 500", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            const errorMessage = "Error fetching the data metrics";
+            const getDataMetricsSpy = jest
+                .spyOn(tdeiCoreService, "getDataMetrics")
+                .mockRejectedValueOnce(new Error(errorMessage));
+
+            // Act
+            await generalController.getDataMetrics(req, res, next);
+
+            // Assert
+            expect(getDataMetricsSpy).toHaveBeenCalledTimes(1);
+            expect(next).toHaveBeenCalledWith(new Error(errorMessage));
+        });
+    });
+
 });

@@ -239,6 +239,8 @@ class FlexService implements IFlexService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
+            datasetEntity.upload_file_size_bytes = uploadRequestObject.datasetFile[0].size;
+
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
             metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
