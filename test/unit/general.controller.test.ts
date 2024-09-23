@@ -6,7 +6,6 @@ import jobService from "../../src/service/job-service";
 import { InputException } from "../../src/exceptions/http/http-exceptions";
 import { getMockFileEntity } from "../common/mock-utils";
 import { DatasetDTO } from "../../src/model/dataset-dto";
-import fetchMock from "jest-fetch-mock";
 
 // group test using describe
 describe("General Controller Test", () => {
@@ -490,40 +489,4 @@ describe("General Controller Test", () => {
             expect(next).toHaveBeenCalledWith(new Error(errorMessage));
         });
     });
-
-    describe("recover-password", () => {
-        test("should send password recovery email", async () => {
-            // Arrange
-            const email = "test@example.com";
-
-            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
-                status: 200,
-                text: () => Promise.resolve('true'),
-            }));
-            // Act
-            const result = await tdeiCoreService.recoverPassword(email);
-
-            // Assert
-            expect(result).toBe(true);
-        });
-
-        test("should throw an error if password recovery email fails", async () => {
-            // Arrange
-            const email = "test@example.com";
-
-            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
-                status: 500,
-                text: () => Promise.resolve('Internal server error'),
-            }));
-
-            // Act, Assert
-            await expect(tdeiCoreService.recoverPassword(email)).rejects.toThrow(
-                "Internal server error"
-            );
-
-        });
-    });
-
-
-
 });

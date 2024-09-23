@@ -10,6 +10,11 @@ import { IDatasetCloneRequest } from "../../model/request-interfaces";
 
 export interface ITdeiCoreService {
   /*
+ Send the email to the user with the email verification link
+ *@param email - The email of the user
+ */
+  verifyEmail(email: string): Promise<Boolean>;
+  /*
   Send the email to the user with the password recovery link
   *@param email - The email of the user
   */

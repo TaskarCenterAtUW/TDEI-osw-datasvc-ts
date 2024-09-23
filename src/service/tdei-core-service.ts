@@ -34,6 +34,51 @@ const metadataValidator = ajv.compile(metaschema);
 class TdeiCoreService implements ITdeiCoreService {
     constructor() { }
 
+    /*
+     Send the email to the user with the password recovery link
+     *@param email - The email of the user
+     */
+    async verifyEmail(email: string): Promise<Boolean> {
+        try {
+            let requestBody = {
+                "username": email,
+                "email_actions": [
+                    "VERIFY_EMAIL"
+                ]
+            }
+            const result = await fetch(environment.triggerEmailUrl as string, {
+                method: 'post',
+                body: JSON.stringify(requestBody),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            let data;
+            try {
+                data = await result.text();
+                try {
+                    data = JSON.parse(data);
+                } catch (e) {
+                    // data is not JSON, so leave it as text
+                }
+            } catch (e) {
+                console.error('Failed to parse result', e);
+            }
+
+            if (result.status != undefined && result.status != 200)
+                throw new HttpException(result.status, data);
+
+            return Boolean(data);
+        } catch (error: any) {
+            console.error(error);
+            if (error instanceof HttpException) {
+                if (error.status == 404)
+                    throw new InputException("User not found");
+                throw error;
+            }
+
+            throw new Error("Error while sending the email verification link");
+        }
+    }
 
     /*
      Send the email to the user with the password recovery link
