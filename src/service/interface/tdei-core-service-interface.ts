@@ -9,6 +9,11 @@ import { MetadataModel } from "../../model/metadata.model";
 import { IDatasetCloneRequest } from "../../model/request-interfaces";
 
 export interface ITdeiCoreService {
+  /*
+  Send the email to the user with the password recovery link
+  *@param email - The email of the user
+  */
+  recoverPassword(email: string): Promise<Boolean>;
   /**
 * Fetches the data metrics
 */
