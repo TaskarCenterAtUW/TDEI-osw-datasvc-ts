@@ -58,7 +58,7 @@ BEGIN
 			num_kerbs = EXCLUDED.num_kerbs;
 	
     WHILE batch_number < total_batches LOOP
-        SELECT ST_Union(ST_Transform(ST_Buffer(ST_Transform(edge_loc, 3857), 2), 4326))
+        SELECT ST_Union(ST_Transform(ST_Buffer(ST_Transform(edge_loc, 3857), 8), 4326))
         INTO union_set
         FROM (
             SELECT edge_loc
