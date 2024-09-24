@@ -21,7 +21,7 @@ LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    batch_size INT := 1000;
+    batch_size INT := 5000;
     total_batches INT;
     final_area REAL := 0;
 	final_union geometry;
@@ -36,14 +36,14 @@ BEGIN
 	osw_dataset_edges_cte AS (
             SELECT 
             count(*) as num_edges,
-            COUNT(CASE WHEN footway = 'sidewalk' THEN 1 ELSE 0 END) AS num_sidewalks,
+            SUM(CASE WHEN footway = 'sidewalk' THEN 1 ELSE 0 END) AS num_sidewalks,
             SUM(CASE WHEN footway = 'sidewalk' THEN length ELSE 0 END) AS length_of_sidewalks_mtr,
-            COUNT(CASE WHEN footway = 'crossing' THEN 1 ELSE 0 END) AS num_crossings
+            SUM(CASE WHEN footway = 'crossing' THEN 1 ELSE 0 END) AS num_crossings
             FROM content.edge WHERE tdei_dataset_id = p_tdei_dataset_id
         ),
          osw_dataset_nodes_cte AS (
             SELECT COUNT(*) as num_nodes,
-            COUNT(CASE WHEN barrier = 'kerb' THEN 1 ELSE 0 END) AS num_kerbs
+            SUM(CASE WHEN barrier = 'kerb' THEN 1 ELSE 0 END) AS num_kerbs
             FROM content.node WHERE tdei_dataset_id = p_tdei_dataset_id
         )
 	    INSERT INTO content.osw_stats (tdei_dataset_id, num_crossings, length_of_sidewalks_mtr, num_edges, num_nodes, num_kerbs)
@@ -109,9 +109,9 @@ BEGIN
         ),
         datset_metric_cte AS (
             SELECT 
-            COUNT(CASE WHEN data_type = 'osw' THEN 1 ELSE 0 END) AS osw_totalDatasets,
-            COUNT(CASE WHEN data_type = 'flex' THEN 1 ELSE 0 END) AS flex_totalDatasets,
-            COUNT(CASE WHEN data_type = 'pathways' THEN 1 ELSE 0 END) AS pathways_totalDatasets,
+            SUM(CASE WHEN data_type = 'osw' THEN 1 ELSE 0 END) AS osw_totalDatasets,
+            SUM(CASE WHEN data_type = 'flex' THEN 1 ELSE 0 END) AS flex_totalDatasets,
+            SUM(CASE WHEN data_type = 'pathways' THEN 1 ELSE 0 END) AS pathways_totalDatasets,
             SUM(CASE WHEN data_type = 'osw' THEN upload_file_size_bytes ELSE 0 END) AS osw_totalSizeByt,
             SUM(CASE WHEN data_type = 'flex' THEN upload_file_size_bytes ELSE 0 END) AS flex_totalSizeByt,
             SUM(CASE WHEN data_type = 'pathways' THEN upload_file_size_bytes ELSE 0 END) AS pathways_totalSizeByt
