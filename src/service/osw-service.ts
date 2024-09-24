@@ -1055,7 +1055,7 @@ class OswService implements IOswService {
     * @returns A Promise that resolves to a string representing the job ID.
     * @throws Throws an error if an error occurs during processing.
     */
-    async calculateInclanation(backendRequest: InclinationServiceRequest): Promise<string> {
+    async calculateInclination(backendRequest: InclinationServiceRequest): Promise<string> {
         try {
 
             //Only if backendRequest.parameters.target_dataset_id id in pre-release status

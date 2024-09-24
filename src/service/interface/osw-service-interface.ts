@@ -151,5 +151,5 @@ export interface IOswService {
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
-    calculateInclanation(backendRequest: InclinationServiceRequest): Promise<string>;
+    calculateInclination(backendRequest: InclinationServiceRequest): Promise<string>;
 }

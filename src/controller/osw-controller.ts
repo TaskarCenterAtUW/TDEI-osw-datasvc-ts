@@ -603,7 +603,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.calculateInclanation(backendRequest);
+            let job_id = await oswService.calculateInclination(backendRequest);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
