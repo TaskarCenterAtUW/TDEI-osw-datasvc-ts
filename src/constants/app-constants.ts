@@ -17,4 +17,5 @@ export enum WorkflowName {
     "osw_quality_on_demand" = "osw_quality_metric_on_demand",
     "build_dataset_download" = "build_dataset_download",
     "build_osw_osm_dataset_download" = "build_osw_osm_dataset_download",
+    "osw_dataset_incline_tag" = "osw_dataset_incline_tag",
 }

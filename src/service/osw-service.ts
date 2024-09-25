@@ -10,7 +10,7 @@ import { Readable } from "stream";
 import storageService from "./storage-service";
 import appContext from "../app-context";
 import { IOswService } from "./interface/osw-service-interface";
-import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
+import { BboxServiceRequest, InclinationServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import jobService from "./job-service";
 import { IJobService } from "./interface/job-service-interface";
 import { CreateJobDTO } from "../model/job-dto";
@@ -1048,6 +1048,54 @@ class OswService implements IOswService {
         } catch (error) {
             console.log('Error calculating quality metric ', error);
             return Promise.reject(error);
+        }
+    }
+
+    /**
+    * Processes a inclination request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
+    * @param backendRequest The backend request to process.
+    * @returns A Promise that resolves to a string representing the job ID.
+    * @throws Throws an error if an error occurs during processing.
+    */
+    async calculateInclination(backendRequest: InclinationServiceRequest): Promise<string> {
+        try {
+
+            //Only if backendRequest.parameters.target_dataset_id id in pre-release status
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.dataset_id);
+            if (dataset.status !== RecordStatus["Pre-Release"])
+                throw new InputException(`Dataset ${backendRequest.parameters.dataset_id} is not in Pre-Release state. Dataset incline tagging request allowed in Pre-Release state only.`);
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Incline-Tag"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    user_id: backendRequest.user_id,
+                    dataset_id: backendRequest.parameters.dataset_id
+                },
+                tdei_project_group_id: '',
+                user_id: backendRequest.user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+            
+            let workflow_start = WorkflowName.osw_dataset_incline_tag;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: backendRequest.user_id,
+                dataset_url: dataset.latest_dataset_url,
+                metadata_url: dataset.metadata_url,
+                changeset_url: dataset.changeset_url,
+                tdei_project_group_id: dataset.tdei_project_group_id,
+                tdei_dataset_id: dataset.tdei_dataset_id
+            };
+            //Trigger the workflow
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, backendRequest.user_id);
+
+            return Promise.resolve(job_id.toString());
+        } catch (error) {
+            throw error;
         }
     }
 }

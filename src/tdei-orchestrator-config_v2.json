@@ -2065,6 +2065,227 @@
                     "function": "update_table"
                 }
             ]
+        },
+        {
+            "name": "osw_dataset_incline_tag",
+            "description": "Update the dataset with incline tags",
+            "workflow_input": {
+                "job_id": "<%=job_id%>",
+                "user_id": "<%=user_id%>",
+                "dataset_url": "<%=dataset_url%>",
+                "metadata_url": "<%=metadata_url%>",
+                "changeset_url": "<%=changeset_url%>",
+                "tdei_dataset_id":"<%=tdei_dataset_id%>",
+                "tdei_project_group_id":"<%=tdei_project_group_id%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_dataset_incline_tag",
+                    "task_reference_name": "osw_dataset_incline_tag",
+                    "description": "Updating the dataset with incline tags",
+                    "type": "Event",
+                    "topic": "osw-incline-request",
+                    "input_params": {
+                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "dataset_url": "<%=workflow_input.dataset_url%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "file_upload_path": "<%=data.file_upload_path%>"
+                    }
+                },
+                {
+                    "name": "update_osw_incline_tag_url_db",
+                    "task_reference_name": "update_osw_incline_tag_url_db",
+                    "description": "Updating the updated osw dataset url",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "latest_dataset_url": "<%=decodeURIComponent(tasks.osw_dataset_incline_tag.output.file_upload_path)%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "osw_incline_tag_osm_formatting",
+                    "task_reference_name": "osw_incline_tag_osm_formatting",
+                    "description": "Formating the updated dataset to osm",
+                    "type": "Event",
+                    "topic": "osw-formatting-request",
+                    "input_params": {
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "tdei_project_group_id": "<%=workflow_input.tdei_project_group_id%>",
+                        "file_upload_path": "<%=decodeURIComponent(tasks.osw_dataset_incline_tag.output.file_upload_path)%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "formatted_url": "<%=data.formatted_url%>"
+                    }
+                },
+                {
+                    "name": "update_osm_db_incline_tag",
+                    "task_reference_name": "update_osm_db_incline_tag",
+                    "description": "Updating the dataset osm file url",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "latest_osm_url": "<%=decodeURIComponent(tasks.osw_incline_tag_osm_formatting.output.formatted_url)%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "get_incline_blob_folder_path_wo_ext",
+                    "task_reference_name": "get_incline_blob_folder_path_wo_ext",
+                    "description": "Getting the blob folder path for zip upload",
+                    "type": "Utility",
+                    "input_params": {
+                        "blobUrl": "<%=tasks.osw_dataset_incline_tag.output.file_upload_path%>",
+                        "identifier": "<%=workflow_input.tdei_dataset_id%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>",
+                        "folder_path": "<%=folder_path%>"
+                    },
+                    "function": "get_blob_folder_path_wo_ext"
+                },
+                {
+                    "name": "osm_compression_incline_tag",
+                    "task_reference_name": "osm_compression_incline_tag",
+                    "description": "Compressing the osm file",
+                    "type": "Event",
+                    "topic": "dataset-zip-request",
+                    "input_params": {
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_incline_tag_osm_formatting.output.formatted_url), workflow_input.metadata_url, workflow_input.changeset_url]) %>",
+                        "output_path": "<%=decodeURIComponent(tasks.get_incline_blob_folder_path_wo_ext.output.folder_path)%>.osm.zip"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "output_path": "<%=data.output_path%>"
+                    }
+                },
+                {
+                    "name": "update_osm_download_url_db_incline_tag",
+                    "task_reference_name": "update_osm_download_url_db_incline_tag",
+                    "description": "Updating the dataset osm dataset download url",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "dataset_osm_download_url": "<%=tasks.osm_compression_incline_tag.output.output_path%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "osw_compression_incline_tag",
+                    "task_reference_name": "osw_compression_incline_tag",
+                    "description": "Compressing the osw dataset",
+                    "type": "Event",
+                    "topic": "dataset-zip-request",
+                    "input_params": {
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_dataset_incline_tag.output.file_upload_path), workflow_input.metadata_url, workflow_input.changeset_url]) %>",
+                        "output_path": "<%=decodeURIComponent(tasks.get_incline_blob_folder_path_wo_ext.output.folder_path)%>.osw.zip"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "output_path": "<%=data.output_path%>"
+                    }
+                },
+                {
+                    "name": "update_osw_db_incline_tag",
+                    "task_reference_name": "update_osw_db_incline_tag",
+                    "description": "Updating the dataset download url",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "dataset_download_url": "<%=tasks.osw_compression_road_incline.output.output_path%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "update_osw_db_incline_tag_job",
+                    "task_reference_name": "update_osw_db_incline_tag_job",
+                    "description": "Updating the job details",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "download_url": "<%=decodeURIComponent(tasks.osw_compression_incline_tag.output.output_path)%>",
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "FAILED"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
         }
     ],
     "subscriptions": [
@@ -2111,6 +2332,11 @@
         {
             "description": "Subscription for osw quality metrics completion",
             "topic": "osw-quality-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for inclination to be added to the dataset",
+            "topic": "osw-incline-response",
             "subscription": "res-handler"
         }
     ]

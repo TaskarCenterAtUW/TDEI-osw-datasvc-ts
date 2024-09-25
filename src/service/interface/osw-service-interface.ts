@@ -1,6 +1,6 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { IUploadRequest } from "./upload-request-interface";
-import { BboxServiceRequest, TagRoadServiceRequest } from "../../model/backend-request-interface";
+import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } from "../../model/backend-request-interface";
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
 import { SpatialJoinRequest } from "../../model/request-interfaces";
@@ -142,4 +142,14 @@ export interface IOswService {
      * @throws Throws an error if an error occurs during processing.
      */
     processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
+
+
+    /**
+     * Calculates inclination for a given TDEI dataset.
+     * 
+     * @param backendRequest The backend request to process.
+     * @returns A Promise that resolves to a string representing the job ID.
+     * @throws Throws an error if an error occurs during processing.
+     */
+    calculateInclination(backendRequest: InclinationServiceRequest): Promise<string>;
 }

@@ -12,7 +12,7 @@ import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
-import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
+import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } from "../model/backend-request-interface";
 import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
 import Ajv, { ErrorObject } from "ajv";
@@ -145,6 +145,7 @@ class OSWController implements IController {
         // Route for quality metric request
         this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, this.createIXNQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
+        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, authenticate, this.createInclineRequest);
     }
 
 
@@ -565,6 +566,56 @@ class OSWController implements IController {
             }
             response.status(500).send("Error while processing the quality metric");
             next(new HttpException(500, "Error while processing the quality metric"));
+        }
+    }
+
+
+    /**
+     * Request to calculate the inclination for the given dataset
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
+    createInclineRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            if (tdei_dataset_id == undefined) {
+                throw new InputException("Missing tdei_dataset_id input")
+            }
+
+            let apiKey = request.headers['x-api-key'];
+            //Reject authorization for API key users
+            if (apiKey && apiKey !== '') {
+                return next(new UnAuthenticated());
+            }
+
+            //Authorize
+            let osw = await tdeiCoreService.getDatasetDetailsById(tdei_dataset_id);
+            var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
+            if (!authorized) {
+                return next(new ForbiddenAccess());
+            }
+
+            let backendRequest: InclinationServiceRequest = {
+                user_id: request.body.user_id,
+                service: "add_inclination",
+                parameters: {
+                    dataset_id: tdei_dataset_id
+                }
+            }
+
+            let job_id = await oswService.calculateInclination(backendRequest);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing the incline dataset request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the incline dataset request");
+            next(new HttpException(500, "Error while processing the incline dataset request"));
         }
     }
 }

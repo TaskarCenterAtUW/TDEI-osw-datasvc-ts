@@ -16,3 +16,12 @@ export interface TagRoadServiceRequest {
         target_dataset_id: string;
     };
 }
+
+
+export interface InclinationServiceRequest {
+    user_id: string;
+    service: string;
+    parameters: {
+        dataset_id: string;
+    };
+}
