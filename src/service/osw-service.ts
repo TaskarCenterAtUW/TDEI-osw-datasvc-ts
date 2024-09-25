@@ -846,6 +846,8 @@ class OswService implements IOswService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
+            datasetEntity.upload_file_size_bytes = uploadRequestObject.datasetFile[0].size;
+
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
             metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
@@ -1001,11 +1003,11 @@ class OswService implements IOswService {
             if (algorithm.length == 0) {
                 throw new InputException("No quality metric algorithms provided");
             }
-            const acceptedAlgorithms = ['fixed','ixn'] // Need to move it somewhere.
+            const acceptedAlgorithms = ['fixed', 'ixn'] // Need to move it somewhere.
             if (!acceptedAlgorithms.includes(algorithm)) {
                 throw new InputException("Invalid quality metric algorithm provided");
             }
-            
+
             let sub_regions_upload_url = undefined;
             if (sub_regions_file) {
                 // Get the upload path

@@ -777,7 +777,7 @@ describe("OSW Controller Test", () => {
             // Mock the calculateQualityMetric function to return mock job_id
             jest.spyOn(oswService, "calculateQualityMetric").mockResolvedValueOnce(mockJobId);
 
-            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+            await oswController.createIXNQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
 
             // expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', '/api/v1/job?job_id=mock-job-id');
             expect(mockResponse.status).toHaveBeenCalledWith(202);
@@ -789,7 +789,7 @@ describe("OSW Controller Test", () => {
             // Simulate missing tdei_dataset_id input
             mockRequest.params.tdei_dataset_id = undefined;
 
-            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+            await oswController.createIXNQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
             expect(mockResponse.send).toHaveBeenCalledWith('Missing tdei_dataset_id input');
@@ -801,7 +801,7 @@ describe("OSW Controller Test", () => {
             const mockError = new Error('Error while processing the quality metric');
             jest.spyOn(oswService, "calculateQualityMetric").mockRejectedValueOnce(mockError);
 
-            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+            await oswController.createIXNQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the quality metric');

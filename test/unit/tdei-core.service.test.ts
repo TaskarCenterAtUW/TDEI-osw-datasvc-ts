@@ -9,6 +9,7 @@ import { DatasetDTO } from "../../src/model/dataset-dto";
 import { ServiceEntity } from "../../src/database/entity/service-entity";
 import { DatasetQueryParams, RecordStatus } from "../../src/model/dataset-get-query-params";
 import { IDatasetCloneRequest } from "../../src/model/request-interfaces";
+import fetchMock from "jest-fetch-mock";
 
 // group test using describe
 describe("TDEI core Service Test", () => {
@@ -398,6 +399,104 @@ describe("TDEI core Service Test", () => {
             // Act & Assert
             await expect(tdeiCoreService.invalidateRecordRequest(user_id, tdei_dataset_id)).rejects.toThrow(error);
             expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
+        });
+    });
+
+    describe("recover-password", () => {
+        test("should send password recovery email", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 200,
+                text: () => Promise.resolve('true'),
+            }));
+            // Act
+            const result = await tdeiCoreService.recoverPassword(email);
+
+            // Assert
+            expect(result).toBe(true);
+        });
+
+        test("should throw an error if email not found", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 404,
+                text: () => Promise.resolve('User not found'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.recoverPassword(email)).rejects.toThrow(
+                "User not found"
+            );
+
+        });
+
+        test("should throw an error if password recovery email fails", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 500,
+                text: () => Promise.resolve('Internal server error'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.recoverPassword(email)).rejects.toThrow(
+                "Internal server error"
+            );
+
+        });
+    });
+
+    describe("verify email", () => {
+        test("should send email verification link", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 200,
+                text: () => Promise.resolve('true'),
+            }));
+            // Act
+            const result = await tdeiCoreService.verifyEmail(email);
+
+            // Assert
+            expect(result).toBe(true);
+        });
+
+        test("should throw an error if email not found", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 404,
+                text: () => Promise.resolve('User not found'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.verifyEmail(email)).rejects.toThrow(
+                "User not found"
+            );
+
+        });
+
+        test("should throw an error if email verification link sending fails", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 500,
+                text: () => Promise.resolve('Internal server error'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.verifyEmail(email)).rejects.toThrow(
+                "Internal server error"
+            );
+
         });
     });
 });

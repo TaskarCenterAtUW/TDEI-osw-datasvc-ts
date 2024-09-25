@@ -82,6 +82,9 @@ export class DatasetEntity extends BaseDto {
     @Prop()
     @IsOptional()
     dataset_osm_download_url!: string;
+    @Prop()
+    @IsOptional()
+    upload_file_size_bytes!: number;
 
     constructor(init?: Partial<DatasetEntity>) {
         super();
@@ -109,8 +112,9 @@ export class DatasetEntity extends BaseDto {
                 metadata_url,
                 updated_by,
                 latest_dataset_url,
-                metadata_json)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`.replace(/\n/g, ""),
+                metadata_json,
+                upload_file_size_bytes)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`.replace(/\n/g, ""),
             values: [this.tdei_dataset_id, this.tdei_service_id, this.tdei_project_group_id, this.data_type,
             this.dataset_url
                 , this.uploaded_by,
@@ -121,7 +125,8 @@ export class DatasetEntity extends BaseDto {
             this.metadata_url,
             this.updated_by,
             this.dataset_url,
-            this.metadata_json]
+            this.metadata_json,
+            this.upload_file_size_bytes ?? null]
         }
         return queryObject;
     }
