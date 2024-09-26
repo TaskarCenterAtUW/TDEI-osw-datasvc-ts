@@ -10,6 +10,8 @@ import { ServiceEntity } from "../../src/database/entity/service-entity";
 import { DatasetQueryParams, RecordStatus } from "../../src/model/dataset-get-query-params";
 import { IDatasetCloneRequest } from "../../src/model/request-interfaces";
 import fetchMock from "jest-fetch-mock";
+import { MetadataModel } from "../../src/model/metadata.model";
+import { TDEIDataType } from "../../src/model/jobs-get-query-params";
 
 // group test using describe
 describe("TDEI core Service Test", () => {
@@ -497,6 +499,46 @@ describe("TDEI core Service Test", () => {
                 "Internal server error"
             );
 
+        });
+    });
+
+    describe('validateMetadata', () => {
+        it('should throw an InputException if the metadata is invalid', async () => {
+            // Arrange
+            const metadata = new MetadataModel();
+            metadata.dataset_detail.schema_version = "v0.1"; // Invalid schema version
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw)).rejects.toThrow(InputException);
+        });
+
+        it('should throw an InputException if the data type is not supported', async () => {
+            // Arrange
+            const metadata = new MetadataModel();
+            metadata.dataset_detail.schema_version = "v0.2"; // Valid schema version
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, "invalid-data-type" as any)).rejects.toThrow(InputException);
+        });
+
+        it('Support polygon dataset area, should return valid metadata', async () => {
+            // Arrange
+            let metadata = MetadataModel.from({});
+            metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSample()));
+            jest.spyOn(tdeiCoreService, "checkMetaNameAndVersionUnique").mockResolvedValue(false);
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw, 'tdei_dataset_id')).resolves.toBeTruthy();
+        });
+
+        it('Support multi polygon dataset area, should return valid metadata', async () => {
+            // Arrange
+            let metadata = MetadataModel.from({});
+            metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSampleMultiPolygon()));
+            jest.spyOn(tdeiCoreService, "checkMetaNameAndVersionUnique").mockResolvedValue(false);
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw, 'tdei_dataset_id')).resolves.toBeTruthy();
         });
     });
 });
