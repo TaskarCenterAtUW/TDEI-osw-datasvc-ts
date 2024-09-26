@@ -68,6 +68,7 @@ class App {
 
     private initializeMiddlewares() {
         this.app.use(helmet());
+        this.app.use(bodyParser.text());
         this.app.use(bodyParser.json());
     }
 

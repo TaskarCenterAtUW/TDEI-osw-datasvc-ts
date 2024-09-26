@@ -63,6 +63,13 @@ class StorageService {
         return 'jobs/confidence/' + year + '/' + month + '/' + uid;
     }
 
+    getQualityMetricJobPath(uid: string): string {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        return 'jobs/quality-metric/' + year + '/' + month + '/' + uid;
+    }
+
     getValidationJobPath(uid: string): string {
         const today = new Date();
         const year = today.getFullYear();

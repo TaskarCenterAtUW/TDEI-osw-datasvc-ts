@@ -9,6 +9,9 @@ import { DatasetDTO } from "../../src/model/dataset-dto";
 import { ServiceEntity } from "../../src/database/entity/service-entity";
 import { DatasetQueryParams, RecordStatus } from "../../src/model/dataset-get-query-params";
 import { IDatasetCloneRequest } from "../../src/model/request-interfaces";
+import fetchMock from "jest-fetch-mock";
+import { MetadataModel } from "../../src/model/metadata.model";
+import { TDEIDataType } from "../../src/model/jobs-get-query-params";
 
 // group test using describe
 describe("TDEI core Service Test", () => {
@@ -398,6 +401,144 @@ describe("TDEI core Service Test", () => {
             // Act & Assert
             await expect(tdeiCoreService.invalidateRecordRequest(user_id, tdei_dataset_id)).rejects.toThrow(error);
             expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
+        });
+    });
+
+    describe("recover-password", () => {
+        test("should send password recovery email", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 200,
+                text: () => Promise.resolve('true'),
+            }));
+            // Act
+            const result = await tdeiCoreService.recoverPassword(email);
+
+            // Assert
+            expect(result).toBe(true);
+        });
+
+        test("should throw an error if email not found", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 404,
+                text: () => Promise.resolve('User not found'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.recoverPassword(email)).rejects.toThrow(
+                "User not found"
+            );
+
+        });
+
+        test("should throw an error if password recovery email fails", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 500,
+                text: () => Promise.resolve('Internal server error'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.recoverPassword(email)).rejects.toThrow(
+                "Internal server error"
+            );
+
+        });
+    });
+
+    describe("verify email", () => {
+        test("should send email verification link", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 200,
+                text: () => Promise.resolve('true'),
+            }));
+            // Act
+            const result = await tdeiCoreService.verifyEmail(email);
+
+            // Assert
+            expect(result).toBe(true);
+        });
+
+        test("should throw an error if email not found", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 404,
+                text: () => Promise.resolve('User not found'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.verifyEmail(email)).rejects.toThrow(
+                "User not found"
+            );
+
+        });
+
+        test("should throw an error if email verification link sending fails", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 500,
+                text: () => Promise.resolve('Internal server error'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.verifyEmail(email)).rejects.toThrow(
+                "Internal server error"
+            );
+
+        });
+    });
+
+    describe('validateMetadata', () => {
+        it('should throw an InputException if the metadata is invalid', async () => {
+            // Arrange
+            const metadata = new MetadataModel();
+            metadata.dataset_detail.schema_version = "v0.1"; // Invalid schema version
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw)).rejects.toThrow(InputException);
+        });
+
+        it('should throw an InputException if the data type is not supported', async () => {
+            // Arrange
+            const metadata = new MetadataModel();
+            metadata.dataset_detail.schema_version = "v0.2"; // Valid schema version
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, "invalid-data-type" as any)).rejects.toThrow(InputException);
+        });
+
+        it('Support polygon dataset area, should return valid metadata', async () => {
+            // Arrange
+            let metadata = MetadataModel.from({});
+            metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSample()));
+            jest.spyOn(tdeiCoreService, "checkMetaNameAndVersionUnique").mockResolvedValue(false);
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw, 'tdei_dataset_id')).resolves.toBeTruthy();
+        });
+
+        it('Support multi polygon dataset area, should return valid metadata', async () => {
+            // Arrange
+            let metadata = MetadataModel.from({});
+            metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSampleMultiPolygon()));
+            jest.spyOn(tdeiCoreService, "checkMetaNameAndVersionUnique").mockResolvedValue(false);
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw, 'tdei_dataset_id')).resolves.toBeTruthy();
         });
     });
 });
