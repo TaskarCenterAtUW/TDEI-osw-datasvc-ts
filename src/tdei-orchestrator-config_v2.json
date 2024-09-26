@@ -2232,7 +2232,7 @@
                             "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
                         },
                         "data": {
-                            "dataset_download_url": "<%=tasks.osw_compression_incline_tag.output.output_path%>"
+                            "dataset_download_url": "<%=tasks.osw_compression_road_incline.output.output_path%>"
                         }
                     },
                     "output_params": {
