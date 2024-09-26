@@ -7,6 +7,7 @@ import {
 import { FeatureCollection } from 'geojson';
 const gjv = require("geojson-validation");
 
+
 function isGeoJsonFeatureCollection(obj: any): boolean {
     return 'type' in obj && 'features' in obj;
 }
@@ -15,6 +16,7 @@ function isGeoJsonFeatureCollection(obj: any): boolean {
 export class isPolygon implements ValidatorConstraintInterface {
     message = ["Not a valid polygon coordinates."];
     validate(featureCollection: FeatureCollection) {
+       
         if (!isGeoJsonFeatureCollection(featureCollection)) {
             this.message = ["Please specify valid geojson."];
             return false;
@@ -33,6 +35,7 @@ export class isPolygon implements ValidatorConstraintInterface {
         }
 
         const polygon = featureCollection.features[0].geometry;
+        
         const valid = gjv.isPolygon(polygon);
         if (!valid) {
             this.message = gjv.isPolygon(polygon, true);

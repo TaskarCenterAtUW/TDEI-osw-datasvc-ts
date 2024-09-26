@@ -13,6 +13,7 @@ import orchestratorConfig_v2 from "./tdei-orchestrator-config_v2.json";
 import workflows_v2_register from "./orchestrator_v2/index";
 import appContext from "./app-context";
 import { IOrchestratorService_v2, OrchestratorService_v2 } from "./orchestrator_v2/orchestrator-service-v2";
+import { DummyOrchestrator_v2 } from "./orchestrator_v2/dummy_orchestrator";
 
 class App {
     private app: express.Application;
@@ -52,7 +53,7 @@ class App {
         // this.orchestratorService.initialize(workflows);
         // appContext.orchestratorServiceInstance = this.orchestratorService;
 
-        this.orchestratorService_v2 = new OrchestratorService_v2(orchestratorConfig_v2, workflows_v2_register);
+        this.orchestratorService_v2 = new DummyOrchestrator_v2();//new OrchestratorService_v2(orchestratorConfig_v2, workflows_v2_register);
         appContext.orchestratorService_v2_Instance = this.orchestratorService_v2;
     }
 
