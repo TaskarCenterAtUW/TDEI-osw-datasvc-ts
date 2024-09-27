@@ -2032,6 +2032,7 @@
                                 "dataset_url": "<%=tasks.osw_quality_metric_on_demand.output.dataset_url%>",
                                 "qm_dataset_url": "<%=tasks.osw_quality_metric_on_demand.output.qm_dataset_url%>"
                             },
+                            "download_url": "<%=tasks.osw_quality_metric_on_demand.output.qm_dataset_url%>",
                             "updated_at": "CURRENT_TIMESTAMP",
                             "status": "COMPLETED"
                         }
