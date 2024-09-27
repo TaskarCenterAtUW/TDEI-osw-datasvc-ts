@@ -2243,6 +2243,22 @@
                     "function": "update_table"
                 },
                 {
+                    "name": "osw_extract_load",
+                    "task_reference_name": "osw_extract_load",
+                    "description": "Unpacking the osw dataset elements to the database",
+                    "type": "Event",
+                    "topic": "extract-load-request",
+                    "input_params": {
+                        "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>",
+                        "file_upload_path": "<%=tasks.osw_compression_incline_tag.output.output_path%>",
+                        "data_type": "osw"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>"
+                    }
+                },
+                {
                     "name": "update_osw_db_incline_tag_job",
                     "task_reference_name": "update_osw_db_incline_tag_job",
                     "description": "Updating the job details",
