@@ -11,6 +11,15 @@ export enum RecordStatus {
     "Draft" = "Draft",
     "All" = "All"
 }
+
+export enum SortField {
+    status = 'd.status',
+    valid_from = 'd.valid_from',
+    valid_to = 'd.valid_to',
+    uploaded_timestamp = 'd.uploaded_timestamp',
+    project_group_name = 'pg.name',
+}
+
 export class DatasetQueryParams {
     @IsOptional()
     data_type: TDEIDataType | undefined;
@@ -132,7 +141,10 @@ export class DatasetQueryParams {
     excluded_data: string | undefined;
     @IsOptional()
     excluded_data_reason: string | undefined;
-
+    @IsOptional()
+    sort_field: SortField = SortField.uploaded_timestamp;
+    @IsOptional()
+    sort_order: SqlORder = SqlORder.DESC;
 
 
     isAdmin = false;
@@ -244,10 +256,10 @@ export class DatasetQueryParams {
         addConditionIfValueExists('d.metadata_json->>\'excluded_data_reason\' ILIKE ', this.excluded_data_reason ? '%' + this.excluded_data_reason + '%' : null);
 
         //Sort field
-        const sortField = 'uploaded_timestamp';
-        const sortOrder = SqlORder.DESC;
+        // const sortField = 'uploaded_timestamp';
+        // const sortOrder = SqlORder.DESC;
         //Build the query
-        const queryObject = buildQuery(selectColumns, mainTableName, conditions, joins, sortField, sortOrder, this.page_size, this.page_no);
+        const queryObject = buildQuery(selectColumns, mainTableName, conditions, joins, this.sort_field, this.sort_order, this.page_size, this.page_no);
 
         function addConditionIfValueExists(clouse: string, value: any) {
             if (value) {
