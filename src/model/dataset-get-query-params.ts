@@ -142,7 +142,7 @@ export class DatasetQueryParams {
     @IsOptional()
     excluded_data_reason: string | undefined;
     @IsOptional()
-    sort_field: SortField = SortField.uploaded_timestamp;
+    sort_field: string = "uploaded_timestamp";
     @IsOptional()
     sort_order: SqlORder = SqlORder.DESC;
 
