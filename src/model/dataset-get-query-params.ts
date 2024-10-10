@@ -157,8 +157,9 @@ export class DatasetQueryParams {
         //Validate inputs
         if (!Object.keys(SortField).includes(this.sort_field))
             throw new InputException("Invalid sort field provided." + this.sort_field);
-        if (!Object.keys(SqlORder).includes(this.sort_order))
-            throw new InputException("Invalid sort order provided." + this.sort_order);
+        if (!Object.keys(SqlORder).map(key => key.toLowerCase()).includes(this.sort_order.toLowerCase())) {
+            throw new InputException("Invalid sort order provided: " + this.sort_order);
+        }
 
         if (this.valid_from && !TdeiDate.isValid(this.valid_from))
             throw new InputException("Invalid date provided." + this.valid_from)
