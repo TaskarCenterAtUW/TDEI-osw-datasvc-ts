@@ -66,7 +66,7 @@ class OswService implements IOswService {
             let workflow_start = WorkflowName.osw_union_join;
             let workflow_input = {
                 job_id: job_id.toString(),
-                service: "union_join",
+                service: "union_dataset",
                 parameters: requestService,
                 user_id: user_id
             }

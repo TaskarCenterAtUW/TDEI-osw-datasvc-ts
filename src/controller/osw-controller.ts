@@ -166,18 +166,18 @@ class OSWController implements IController {
             const requestService = UnionRequest.from(request.body);
             await requestService.validateRequestInput();
             Utility.checkForSqlInjection(request.body);
-            const job_id = await oswService.processSpatialQueryRequest(request.body.user_id, requestService);
+            const job_id = await oswService.processUnionRequest(request.body.user_id, requestService);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
-            console.error("Error while processing the spatial join request", error);
+            console.error("Error while processing the union dataset request", error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
                 return next(error);
             }
-            response.status(500).send("Error while processing the spatial join request");
-            next(new HttpException(500, "Error while processing the spatial join request"));
+            response.status(500).send("Error while processing the union dataset request");
+            next(new HttpException(500, "Error while processing the union dataset request"));
         }
     }
 
