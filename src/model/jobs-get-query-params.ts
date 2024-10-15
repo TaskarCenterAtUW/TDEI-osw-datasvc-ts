@@ -28,11 +28,15 @@ export enum JobType {
     "Dataset-Publish" = "Dataset-Publish",
     "Dataset-Validate" = "Dataset-Validate",
     "Dataset-Flatten" = "Dataset-Flatten",
-    "Dataset-Queries" = "Dataset-Queries",
+    // "Dataset-Queries" = "Dataset-Queries",
     "Quality-Metric" = "Quality-Metric",
     "Edit-Metadata" = "Edit-Metadata",
     "Clone-Dataset" = "Clone-Dataset",
-    "Dataset-Incline-Tag" = "Dataset-Incline-Tag"
+    "Dataset-Incline-Tag" = "Dataset-Incline-Tag",
+    "Dataset-Road-Tag" = "Dataset-Road-Tag",
+    "Dataset-Bbox" = "Dataset-Bbox",
+    "Dataset-Spatial-Join" = "Dataset-Spatial-Join",
+    "Dataset-Union" = "Dataset-Union"
 }
 export class JobsQueryParams {
     @IsOptional()
