@@ -306,3 +306,8 @@ BEGIN
 RETURN;
 END;
 $BODY$;
+
+--Migration to update job_type for Dataset-Queries generic type to specific types
+Update content.job set job_type='Dataset-BBox' where job_type='Dataset-Queries' and request_input::text like '%bbox_intersect%'; 
+Update content.job set job_type='Dataset-Road-Tag' where job_type='Dataset-Queries' and request_input::text like '%dataset_tag_road%';
+Update content.job set job_type='Dataset-Spatial-Join'  where job_type='Dataset-Queries' and request_input::text like '%join_condition%';
