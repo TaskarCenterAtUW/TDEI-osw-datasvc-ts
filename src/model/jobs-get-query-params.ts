@@ -34,7 +34,7 @@ export enum JobType {
     "Clone-Dataset" = "Clone-Dataset",
     "Dataset-Incline-Tag" = "Dataset-Incline-Tag",
     "Dataset-Road-Tag" = "Dataset-Road-Tag",
-    "Dataset-Bbox" = "Dataset-Bbox",
+    "Dataset-BBox" = "Dataset-BBox",
     "Dataset-Spatial-Join" = "Dataset-Spatial-Join",
     "Dataset-Union" = "Dataset-Union"
 }

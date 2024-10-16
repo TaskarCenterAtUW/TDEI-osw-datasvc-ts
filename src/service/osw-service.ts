@@ -695,7 +695,7 @@ class OswService implements IOswService {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.tdei_dataset_id);
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Bbox"],
+                job_type: JobType["Dataset-BBox"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
