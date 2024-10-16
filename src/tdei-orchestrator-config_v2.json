@@ -2305,7 +2305,7 @@
             ]
         },
         {
-            "name": "osw_union_join",
+            "name": "osw_union_dataset",
             "description": "Performs union join on the osw dataset",
             "workflow_input": {
                 "service": "<%=service %>",
@@ -2315,8 +2315,8 @@
             },
             "tasks": [
                 {
-                    "name": "osw_union_join",
-                    "task_reference_name": "osw_union_join",
+                    "name": "osw_union",
+                    "task_reference_name": "osw_union",
                     "description": "Performing the union join on the osw datasets",
                     "type": "Event",
                     "topic": "backend-request",
@@ -2338,8 +2338,8 @@
                     "type": "Event",
                     "topic": "dataset-zip-request",
                     "input_params": {
-                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_union_join.output.file_upload_path)]) %>",
-                        "output_path": "<%=decodeURIComponent(tasks.osw_union_join.output.file_upload_path)%>.osw.zip"
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_union.output.file_upload_path)]) %>",
+                        "output_path": "<%=decodeURIComponent(tasks.osw_union.output.file_upload_path)%>.osw.zip"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",

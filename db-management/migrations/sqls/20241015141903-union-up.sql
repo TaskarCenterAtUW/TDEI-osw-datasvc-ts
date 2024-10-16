@@ -12,7 +12,7 @@ DECLARE
 BEGIN
     ------------------------------ Nodes -------------------------------------
 	-- Create temporary table to store node map
-    CREATE TEMP TABLE temp_node_map ON COMMIT DROP AS
+    CREATE TEMP TABLE temp_node_map AS
     WITH
     joined_nodes AS (
         -- self join on points to create equivalence classes
@@ -38,7 +38,7 @@ BEGIN
     )
     SELECT * FROM node_map; 
     
-    CREATE TEMP TABLE temp_conflated_nodes ON COMMIT DROP AS
+    CREATE TEMP TABLE temp_conflated_nodes AS
     WITH numbered_nodes AS (
         SELECT DISTINCT ON (newid, newloc) 
             newid AS id, 
@@ -64,11 +64,8 @@ BEGIN
         feature::jsonb
     FROM sequence_nodes;
 
-    ------------------------------ Export NODES -------------------------------------
-  
-     -- Iterate over intersected edges
-    FOR temp_row IN
-        SELECT json_build_object(
+  CREATE TEMP TABLE feature_nodes AS
+   SELECT json_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(loc)::json,
              'properties', 
@@ -76,20 +73,11 @@ BEGIN
                 || ((feature->'properties') - '_id') 
             )
         ) AS feature
-        FROM temp_conflated_nodes
-    LOOP
-        edges := null;
-		nodes := temp_row.feature;
-        zones := null;
-		extensions_points := null;
-		extensions_lines := null;
-		extensions_polygons := null;
-        RETURN NEXT;
-    END LOOP;
+    FROM temp_conflated_nodes;
     
 ------------------------------ Edges -------------------------------------
 	-- The lines we want in the output
-    CREATE TEMP TABLE temp_repaired_edges ON COMMIT DROP AS
+    CREATE TEMP TABLE temp_repaired_edges AS
     WITH
     edge_vertices AS (
         SELECT l.id, (pt).geom as loc, (pt).path[1] as ord
@@ -151,11 +139,9 @@ BEGIN
         ORDER BY id  -- Optionally, you can add a secondary ordering criterion
     ) l ON w.wid = l.id;
 
--- 	------------------------------ Export EDGES -------------------------------------
 
- -- Iterate over intersected edges
-    FOR temp_row IN
-        SELECT json_build_object(
+     CREATE TEMP TABLE feature_edges AS
+   SELECT json_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(loc)::json,
              'properties', 
@@ -163,16 +149,7 @@ BEGIN
                 || ((feature->'properties') - '_id') 
             )
         ) AS feature
-        FROM temp_conflated_edges
-    LOOP
-        edges := temp_row.feature;
-		nodes := null;
-        zones := null;
-		extensions_points := null;
-		extensions_lines := null;
-		extensions_polygons := null;
-        RETURN NEXT;
-    END LOOP;
+    FROM temp_conflated_edges;
     
 -- 	------------------------------ POLYGON -------------------------------------
 
@@ -184,7 +161,7 @@ BEGIN
     ) INTO zone_exists;
     
     IF zone_exists THEN
-    	CREATE TEMP TABLE temp_repaired_polygon ON COMMIT DROP AS
+    	CREATE TEMP TABLE temp_repaired_polygon AS
     	  -- For each line, map any old points to its new point 
     	  -- and rebuild the line accordingly
     	WITH
@@ -216,7 +193,7 @@ BEGIN
     	)
     	SELECT * FROM new_polygon;
     
-    	CREATE TEMP TABLE temp_conflated_polygons ON COMMIT DROP AS
+    	CREATE TEMP TABLE temp_conflated_polygons AS
             WITH 
             unique_poly as (
               SELECT min(id) as id, loc
@@ -255,29 +232,76 @@ BEGIN
                 FROM temp_repaired_polygon
                 ORDER BY id  
             ) l ON w.id = l.id;
-    		
-    	------------------------------ Export Polygon -------------------------------------
-          
-         FOR temp_row IN
-            SELECT json_build_object(
-                'type', 'Feature',
-                'geometry', ST_AsGeoJSON(loc)::json,
-                 'properties', 
-                ( jsonb_build_object( '_id', id_sequence::text ) 
-                    || ((feature->'properties') - '_id') 
-                )
-            ) AS feature
-            FROM temp_conflated_polygons
-        LOOP
+    
+     CREATE TEMP TABLE feature_polygon AS
+   SELECT json_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(loc)::json,
+             'properties', 
+            ( jsonb_build_object( '_id', id_sequence::text ) 
+                || ((feature->'properties') - '_id') 
+            )
+        ) AS feature
+    FROM temp_conflated_polygons;
+    
+   END IF; 
+      ------------------------------ Export NODES -------------------------------------
+  
+     -- Iterate over intersected edges
+    FOR temp_row IN
+        SELECT feature
+        FROM feature_nodes
+    LOOP
         edges := null;
-		nodes := null;
-        zones := temp_row.feature;
+		nodes := temp_row.feature;
+        zones := null;
 		extensions_points := null;
 		extensions_lines := null;
 		extensions_polygons := null;
         RETURN NEXT;
     END LOOP;
-     END IF;
+    
+    -- 	------------------------------ Export EDGES -------------------------------------
+
+ -- Iterate over intersected edges
+    FOR temp_row IN
+        SELECT feature
+        FROM feature_edges
+    LOOP
+        edges := temp_row.feature;
+		nodes := null;
+        zones := null;
+		extensions_points := null;
+		extensions_lines := null;
+		extensions_polygons := null;
+        RETURN NEXT;
+    END LOOP;
+    
+    	------------------------------ Export Polygon -------------------------------------
+          
+        IF zone_exists THEN
+            FOR temp_row IN
+                SELECT feature
+                FROM feature_polygons
+            LOOP
+            edges := null;
+    		nodes := null;
+            zones := temp_row.feature;
+    		extensions_points := null;
+    		extensions_lines := null;
+    		extensions_polygons := null;
+            RETURN NEXT;
+        END LOOP;
+      END IF; 
+
+
+ -- Drop the temporary table
+    DROP TABLE IF EXISTS temp_intersected_edges;
+    DROP TABLE IF EXISTS temp_conflated_edges;
+    DROP TABLE IF EXISTS temp_conflated_polygons;
+    DROP TABLE IF EXISTS feature_edges;
+    DROP TABLE IF EXISTS feature_edges;
+    DROP TABLE IF EXISTS feature_polygons;
      
 RETURN;
 END;

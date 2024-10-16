@@ -23,7 +23,7 @@ export class DataQueryFormatterRequestWorkflow extends WorkflowBase {
             const job = JobDTO.from(result.rows[0]);
 
             var tdei_dataset_id;
-            if (job.job_type == JobType["Dataset-Queries"]) {
+            if (job.job_type == JobType["Dataset-Road-Tag"] || job.job_type == JobType["Dataset-Bbox"]) {
                 //Tag road dataset service DB manipulation request
                 if (job.request_input.service == "dataset_tag_road") {
                     tdei_dataset_id = job.request_input.parameters.target_dataset_id

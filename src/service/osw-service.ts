@@ -63,7 +63,7 @@ class OswService implements IOswService {
 
             const job_id = await this.jobServiceInstance.createJob(job);
 
-            let workflow_start = WorkflowName.osw_union_join;
+            let workflow_start = WorkflowName.osw_union_dataset;
             let workflow_input = {
                 job_id: job_id.toString(),
                 service: "union_dataset",
