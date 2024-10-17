@@ -809,4 +809,64 @@ describe("OSW Controller Test", () => {
         });
     });
 
+    describe("processUnionQueryRequest", () => {
+        test("When request body is empty, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When request body is valid, Expect to process the request and return 202 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
+                }
+            });
+            let job_id = "mock-job-id";
+            const { res, next } = getMockRes();
+
+            jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce(job_id);
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
+        });
+
+        test("When an error occurs, Expect to call next with HttpException and return 500 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new Error("Some error message");
+
+            // Mock the oswService.processUnionQueryRequest method to throw an error
+            jest.spyOn(oswService, "processUnionRequest").mockRejectedValue(error);
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the union dataset request");
+        });
+    });
+
 });

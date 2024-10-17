@@ -18,4 +18,5 @@ export enum WorkflowName {
     "build_dataset_download" = "build_dataset_download",
     "build_osw_osm_dataset_download" = "build_osw_osm_dataset_download",
     "osw_dataset_incline_tag" = "osw_dataset_incline_tag",
+    "osw_union_dataset" = "osw_union_dataset"
 }

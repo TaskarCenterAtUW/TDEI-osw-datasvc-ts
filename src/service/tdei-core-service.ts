@@ -478,10 +478,10 @@ class TdeiCoreService implements ITdeiCoreService {
         const result = await dbClient.query(query);
 
         if (result.rowCount == 0)
-            throw new HttpException(404, `Record with id: ${id} not found`);
+            throw new HttpException(404, `Dataset with id: ${id} not found`);
 
         if (result.rows[0].status == "Deleted")
-            throw new HttpException(400, `Requested record with id: ${id} is invalid / deleted`);
+            throw new HttpException(400, `Requested dataset with id: ${id} is invalid / deleted`);
 
         const record = result.rows[0];
         const osw = DatasetEntity.from(record);

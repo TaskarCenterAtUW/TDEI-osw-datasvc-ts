@@ -17,7 +17,7 @@ import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
-import { SpatialJoinRequest } from "../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -146,8 +146,40 @@ class OSWController implements IController {
         this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, this.createIXNQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
         this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, authenticate, this.createInclineRequest);
+        this.router.post(`${this.path}/union`, authenticate, this.processDatasetUnionRequest);
     }
 
+
+    /**
+    * Processes the union request 
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    processDatasetUnionRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            if (!request.body) {
+                return next(new InputException('request body is empty', response));
+            }
+
+            const requestService = UnionRequest.from(request.body);
+            await requestService.validateRequestInput();
+            Utility.checkForSqlInjection(request.body);
+            const job_id = await oswService.processUnionRequest(request.body.user_id, requestService);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+
+        } catch (error) {
+            console.error("Error while processing the union dataset request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the union dataset request");
+            next(new HttpException(500, "Error while processing the union dataset request"));
+        }
+    }
 
     /**
      * Calculates the quality metric for a given osw entity tags.

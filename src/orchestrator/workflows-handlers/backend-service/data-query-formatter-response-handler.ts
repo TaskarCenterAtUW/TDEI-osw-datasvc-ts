@@ -37,7 +37,7 @@ export class DataQueryFormatterResponseHandler extends WorkflowHandlerBase {
 
                 //If job type is dataset-queries then update the dataset entity with latest 
                 //formatted url for Data manupulation queries
-                if (job.job_type == JobType["Dataset-Queries"]) {
+                if (job.job_type == JobType["Dataset-Road-Tag"]) {
                     //Tag road dataset service request
                     if (job.request_input.service == "dataset_tag_road") {
                         await dbClient.query(DatasetEntity.getUpdateLatestOsmUrlQuery(job.request_input.parameters.target_dataset_id, download_osm_url));

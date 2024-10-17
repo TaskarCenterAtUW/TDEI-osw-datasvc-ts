@@ -1995,7 +1995,7 @@
                 "user_id": "<%=user_id%>",
                 "file_url": "<%=file_url%>",
                 "algorithm": "<%=algorithm%>",
-                "sub_regions_file":"<%=sub_regions_file%>"
+                "sub_regions_file": "<%=sub_regions_file%>"
             },
             "tasks": [
                 {
@@ -2076,8 +2076,8 @@
                 "dataset_url": "<%=dataset_url%>",
                 "metadata_url": "<%=metadata_url%>",
                 "changeset_url": "<%=changeset_url%>",
-                "tdei_dataset_id":"<%=tdei_dataset_id%>",
-                "tdei_project_group_id":"<%=tdei_project_group_id%>"
+                "tdei_dataset_id": "<%=tdei_dataset_id%>",
+                "tdei_project_group_id": "<%=tdei_project_group_id%>"
             },
             "tasks": [
                 {
@@ -2286,6 +2286,95 @@
                     "name": "job_failure_db",
                     "task_reference_name": "job_failure_db",
                     "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "FAILED"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
+        },
+        {
+            "name": "osw_union_dataset",
+            "description": "Performs union join on the osw dataset",
+            "workflow_input": {
+                "service": "<%=service %>",
+                "user_id": "<%=user_id%>",
+                "parameters": "<%= JSON.stringify(parameters) %>",
+                "job_id": "<%=job_id%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_union",
+                    "task_reference_name": "osw_union",
+                    "description": "Performing the union join on the osw datasets",
+                    "type": "Event",
+                    "topic": "backend-request",
+                    "input_params": {
+                        "service": "<%=workflow_input.service%>",
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "parameters": "<%= JSON.stringify(workflow_input.parameters) %>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "file_upload_path": "<%=data.file_upload_path%>"
+                    }
+                },
+                {
+                    "name": "osw_compression",
+                    "task_reference_name": "osw_compression",
+                    "description": "Compressing the osw output file",
+                    "type": "Event",
+                    "topic": "dataset-zip-request",
+                    "input_params": {
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_union.output.file_upload_path)]) %>",
+                        "output_path": "<%=decodeURIComponent(tasks.osw_union.output.file_upload_path)%>.osw.zip"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "output_path": "<%=data.output_path%>"
+                    }
+                },
+                {
+                    "name": "osm_union_join_job_db",
+                    "task_reference_name": "osm_union_join_job_db",
+                    "description": "Job success. Updating the job details",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "download_url": "<%=decodeURIComponent(tasks.osw_compression.output.output_path)%>",
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Job failed. Updating the job details",
                     "type": "Exception",
                     "input_params": {
                         "table": "content.job",
