@@ -2250,7 +2250,7 @@
                     "topic": "extract-load-request",
                     "input_params": {
                         "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>",
-                        "file_upload_path": "<%=tasks.osw_compression_incline_tag.output.output_path%>",
+                        "file_upload_path": "<%=decodeURIComponent(tasks.osw_dataset_incline_tag.output.file_upload_path)%>",
                         "data_type": "osw"
                     },
                     "output_params": {
