@@ -244,6 +244,25 @@ class TdeiCoreService implements ITdeiCoreService {
         return true;
     }
 
+    /*
+       Validates the dataset dates.
+       @param dataset - The dataset to validate.
+       @throws {InputException}
+       */
+    validateDatasetDates(dataset: DatasetEntity): Boolean {
+        if (!dataset.valid_from || !dataset.valid_to)
+            throw new InputException(`Valid from and valid to dates are required for publishing the dataset.`);
+        if (!TdeiDate.isValid(dataset.valid_from))
+            throw new InputException(`Invalid valid_from date.`);
+        if (!TdeiDate.isValid(dataset.valid_to))
+            throw new InputException(`Invalid valid_to date.`);
+        if (TdeiDate.UTC(dataset.valid_from) > TdeiDate.UTC(dataset.valid_to))
+            throw new InputException(`Invalid valid_from date. valid_from should be less than or equal to valid_to.`);
+        if (TdeiDate.UTC(dataset.valid_to) < TdeiDate.UTC(dataset.valid_from))
+            throw new InputException(`Invalid valid_to date. valid_to should be greater than or equal to valid_from.`);
+
+        return true;
+    }
 
     /**
      * Retrieves datasets based on the provided user ID and query parameters.

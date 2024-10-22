@@ -105,7 +105,10 @@ export class DatasetSummary extends AbstractDomainEntity {
     county: string = "";
     @Prop()
     @IsOptional()
-    key_limitations_of_the_dataset: string = "";
+    key_limitations: string = "";
+    @Prop()
+    @IsOptional()
+    release_notes: string = "";
     @Prop()
     @IsOptional()
     challenges: string = "";
@@ -246,7 +249,8 @@ export class MetadataModel extends AbstractDomainEntity {
                 city: metadata.city,
                 region: metadata.region,
                 county: metadata.county,
-                key_limitations_of_the_dataset: metadata.key_limitations_of_the_dataset,
+                key_limitations: metadata.key_limitations,
+                release_notes: metadata.release_notes,
                 challenges: metadata.challenges
             },
             maintenance: {

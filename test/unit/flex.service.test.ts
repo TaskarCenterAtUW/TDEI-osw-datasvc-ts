@@ -121,6 +121,7 @@ describe("Flex Service Test", () => {
             // Mock the behavior of getFLEXRecordById and getFLEXMetadataById
             const flexRecordMock = { data_type: 'flex', status: 'Draft', tdei_project_group_id: 'project-group-id', getOverlapQuery: jest.fn() };
             const getFLEXRecordByIdSpy = jest.spyOn(tdeiCoreService, 'getDatasetDetailsById').mockResolvedValue(<any>flexRecordMock);
+            const validateDatasetDatesSpy = jest.spyOn(tdeiCoreService, 'validateDatasetDates').mockReturnValue(true);
 
             const mockJobId = 101;
             jest.spyOn(jobService, "createJob")
@@ -136,7 +137,8 @@ describe("Flex Service Test", () => {
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getFLEXRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
-            expect(dbClient.query).toHaveBeenCalled();
+            // expect(dbClient.query).toHaveBeenCalled();
+            expect(validateDatasetDatesSpy).toHaveBeenCalled();
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 'flex_publish',

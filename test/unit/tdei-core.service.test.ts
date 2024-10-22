@@ -12,6 +12,7 @@ import { IDatasetCloneRequest } from "../../src/model/request-interfaces";
 import fetchMock from "jest-fetch-mock";
 import { MetadataModel } from "../../src/model/metadata.model";
 import { TDEIDataType } from "../../src/model/jobs-get-query-params";
+import { TdeiDate } from "../../src/utility/tdei-date";
 
 // group test using describe
 describe("TDEI core Service Test", () => {
@@ -541,5 +542,65 @@ describe("TDEI core Service Test", () => {
             await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw, 'tdei_dataset_id')).resolves.toBeTruthy();
         });
     });
+
+    describe('validateDatasetDates', () => {
+        it('should throw an error if valid_from or valid_to is missing', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = undefined as any;
+            dataset.valid_to = undefined as any;
+
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow('Valid from and valid to dates are required for publishing the dataset.');
+        });
+
+        it('should throw an error if valid_from date is invalid', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = 'invalid-date' as any;
+            dataset.valid_to = '2023-12-31' as any;
+
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValueOnce(false);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow('Invalid valid_from date.');
+        });
+
+        it('should throw an error if valid_to date is invalid', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = '2023-12-31' as any;
+            dataset.valid_to = 'invalid-date' as any;
+
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValueOnce(true).mockReturnValueOnce(false);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow('Invalid valid_to date.');
+        });
+
+        it('should throw an error if valid_from is greater than valid_to', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = '2023-12-31' as any;
+            dataset.valid_to = '2023-01-01' as any;
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);
+            jest.spyOn(TdeiDate, 'UTC').mockImplementation(date => (new Date(date!)).toISOString());
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow('Invalid valid_from date. valid_from should be less than or equal to valid_to.');
+        });
+
+        it('should throw an error if valid_to is less than valid_from', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = '2023-01-01' as any;
+            dataset.valid_to = '2022-12-31' as any;
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);
+            jest.spyOn(TdeiDate, 'UTC').mockImplementation(date => (new Date(date!)).toISOString());
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+        });
+
+        it('should not throw an error for valid dates', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = '2023-01-01' as any;
+            dataset.valid_to = '2023-12-31' as any;
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);
+            jest.spyOn(TdeiDate, 'UTC').mockImplementation(date => (new Date(date!)).toISOString());
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).not.toThrow();
+        });
+    });
+
 });
 
