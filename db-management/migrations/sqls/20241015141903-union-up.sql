@@ -1,14 +1,19 @@
 
-CREATE
-OR REPLACE FUNCTION CONTENT.tdei_union_dataset(
-  src_one_tdei_dataset_id CHARACTER VARYING,
-  src_two_tdei_dataset_id CHARACTER VARYING
-)
-RETURNS TABLE(edges json, nodes json, zones json, extensions_points json, extensions_lines json, extensions_polygons json) 
-LANGUAGE 'plpgsql' COST 100 VOLATILE PARALLEL UNSAFE AS $BODY$
+
+CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
+	SRC_ONE_TDEI_DATASET_ID character varying,
+	SRC_TWO_TDEI_DATASET_ID character varying)
+    RETURNS TABLE(edges json, nodes json, zones json, extensions_points json, extensions_lines json, extensions_polygons json) 
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $BODY$
 DECLARE
     zone_exists BOOLEAN;
     temp_row RECORD;
+    row_count BIGINT;
 BEGIN
     ------------------------------ Nodes -------------------------------------
 	-- Create temporary table to store node map
@@ -20,7 +25,7 @@ BEGIN
         FROM content.node as U, content.node R
         WHERE U.tdei_dataset_id = SRC_ONE_TDEI_DATASET_ID
           AND R.tdei_dataset_id = SRC_TWO_TDEI_DATASET_ID
-          AND ST_DISTANCE(ST_Transform(U.node_loc, 3857), ST_Transform(R.node_loc, 3857)) <= 0.5
+          AND ST_DISTANCE(ST_Transform(U.node_loc, 3857), ST_Transform(R.node_loc, 3857)) <= 0.5 
     ),
     witness_nodes AS (
         -- assign every element to a specific element in group
@@ -64,17 +69,18 @@ BEGIN
         feature::jsonb
     FROM sequence_nodes;
 
-  CREATE TEMP TABLE feature_nodes AS
-   SELECT json_build_object(
+  CREATE TEMP TABLE feature_nodes ON COMMIT DROP AS
+  SELECT 
+  json_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(loc)::json,
              'properties', 
             ( jsonb_build_object( '_id', id_sequence::text ) 
                 || ((feature->'properties') - '_id') 
             )
-        ) AS feature
-    FROM temp_conflated_nodes;
-    
+        ) AS feature, 
+		id_sequence as id
+    FROM temp_conflated_nodes where feature is not null;
 ------------------------------ Edges -------------------------------------
 	-- The lines we want in the output
     CREATE TEMP TABLE temp_repaired_edges AS
@@ -139,8 +145,7 @@ BEGIN
         ORDER BY id  -- Optionally, you can add a secondary ordering criterion
     ) l ON w.wid = l.id;
 
-
-     CREATE TEMP TABLE feature_edges AS
+   CREATE TEMP TABLE feature_edges AS
    SELECT json_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(loc)::json,
@@ -148,7 +153,7 @@ BEGIN
             ( jsonb_build_object( '_id', id_sequence::text ) 
                 || ((feature->'properties') - '_id') 
             )
-        ) AS feature
+        ) AS feature, id_sequence as id
     FROM temp_conflated_edges;
     
 -- 	------------------------------ POLYGON -------------------------------------
@@ -157,9 +162,15 @@ BEGIN
     SELECT EXISTS (
         SELECT 1 
         FROM content.zone l
-        WHERE l.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID)
+        WHERE l.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID) limit 1
     ) INTO zone_exists;
-    
+
+	 CREATE TEMP TABLE feature_polygons(
+        feature json,
+        id bigint
+    );
+	    RAISE NOTICE 'The table zones has % rows.', zone_exists;
+
     IF zone_exists THEN
     	CREATE TEMP TABLE temp_repaired_polygon AS
     	  -- For each line, map any old points to its new point 
@@ -217,14 +228,14 @@ BEGIN
               SELECT bid FROM witness  -- those that are mapped to a witness
             ),
             finalpoly as 
-            ( SELECT p.*, ROW_NUMBER() OVER () AS id_sequence
+            ( SELECT p.* --, ROW_NUMBER() OVER () AS id_sequence
               FROM conflatedpoly c, unique_poly p
              WHERE c.id = p.id 
              )
              SELECT 
             w.id,  
             w.loc, 
-            l.feature::jsonb,
+            l.feature::jsonb as feature,
             ROW_NUMBER() OVER (ORDER BY w.id) AS id_sequence
             FROM finalpoly w
             LEFT JOIN (
@@ -233,40 +244,35 @@ BEGIN
                 ORDER BY id  
             ) l ON w.id = l.id;
     
-     CREATE TEMP TABLE feature_polygon AS
-   SELECT json_build_object(
-            'type', 'Feature',
-            'geometry', ST_AsGeoJSON(loc)::json,
-             'properties', 
-            ( jsonb_build_object( '_id', id_sequence::text ) 
-                || ((feature->'properties') - '_id') 
-            )
-        ) AS feature
-    FROM temp_conflated_polygons;
-    
+	     INSERT INTO feature_polygons( feature, id)
+	   		SELECT 
+			   json_build_object(
+	            'type', 'Feature',
+	            'geometry', ST_AsGeoJSON(loc)::json,
+	            'properties',
+	            ( 
+				jsonb_build_object( '_id', id_sequence::text ) 
+	    			--             || 
+					-- ((feature->'properties') - '_id') 
+	            ))
+			AS feature, 
+			id_sequence as id
+	    	FROM temp_conflated_polygons where feature is not null;
    END IF; 
-      ------------------------------ Export NODES -------------------------------------
-  
-     -- Iterate over intersected edges
-    FOR temp_row IN
-        SELECT feature
-        FROM feature_nodes
-    LOOP
-        edges := null;
-		nodes := temp_row.feature;
-        zones := null;
-		extensions_points := null;
-		extensions_lines := null;
-		extensions_polygons := null;
-        RETURN NEXT;
-    END LOOP;
+   
     
     -- 	------------------------------ Export EDGES -------------------------------------
+    SELECT COUNT(*) INTO row_count FROM feature_edges;
 
+    -- Print the row count
+    RAISE NOTICE 'The table edges has % rows.', row_count;
+    
  -- Iterate over intersected edges
     FOR temp_row IN
-        SELECT feature
+        SELECT feature::json
         FROM feature_edges
+		WHERE feature is not null
+		ORDER by id ASC
     LOOP
         edges := temp_row.feature;
 		nodes := null;
@@ -276,31 +282,60 @@ BEGIN
 		extensions_polygons := null;
         RETURN NEXT;
     END LOOP;
+
+	   ------------------------------ Export NODES -------------------------------------
+    SELECT COUNT(*) INTO row_count FROM feature_nodes;
+
+    -- Print the row count
+    RAISE NOTICE 'The table nodes has % rows.', row_count;
     
+     -- Iterate over intersected edges
+    FOR temp_row IN
+        SELECT feature::json
+        FROM feature_nodes
+		WHERE feature is not null
+		ORDER by id ASC
+    LOOP
+        edges := null;
+		nodes := temp_row.feature;
+        zones := null;
+		extensions_points := null;
+		extensions_lines := null;
+		extensions_polygons := null;
+        RETURN NEXT;
+    END LOOP;
     	------------------------------ Export Polygon -------------------------------------
           
-        IF zone_exists THEN
-            FOR temp_row IN
-                SELECT feature
-                FROM feature_polygons
-            LOOP
-            edges := null;
-    		nodes := null;
-            zones := temp_row.feature;
-    		extensions_points := null;
-    		extensions_lines := null;
-    		extensions_polygons := null;
-            RETURN NEXT;
-        END LOOP;
-      END IF; 
+    -- IF zone_exists THEN
+	SELECT COUNT(*) INTO row_count FROM feature_polygons;
 
+	-- Print the row count
+	RAISE NOTICE 'The table polygon has % rows.', row_count;
+
+	FOR temp_row IN
+		SELECT feature::json
+		FROM feature_polygons
+		WHERE feature is not null
+		ORDER by id ASC
+	LOOP
+		edges := null;
+		nodes := null;
+		zones := temp_row.feature;
+		extensions_points := null;
+		extensions_lines := null;
+		extensions_polygons := null;
+		RETURN NEXT;
+	END LOOP;
 
  -- Drop the temporary table
-    DROP TABLE IF EXISTS temp_intersected_edges;
+    DROP TABLE IF EXISTS temp_node_map;
+    DROP TABLE IF EXISTS temp_conflated_nodes;
+    DROP TABLE IF EXISTS feature_nodes;
+    DROP TABLE IF EXISTS temp_repaired_edges;
     DROP TABLE IF EXISTS temp_conflated_edges;
+    DROP TABLE IF EXISTS feature_edges;
+    DROP TABLE IF EXISTS temp_repaired_polygon;
     DROP TABLE IF EXISTS temp_conflated_polygons;
-    DROP TABLE IF EXISTS feature_edges;
-    DROP TABLE IF EXISTS feature_edges;
     DROP TABLE IF EXISTS feature_polygons;
      
 RETURN;
