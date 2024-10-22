@@ -71,7 +71,7 @@ BEGIN
 
   CREATE TEMP TABLE feature_nodes ON COMMIT DROP AS
   SELECT 
-  json_build_object(
+  jsonb_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(loc)::json,
              'properties', 
@@ -146,7 +146,7 @@ BEGIN
     ) l ON w.wid = l.id;
 
    CREATE TEMP TABLE feature_edges AS
-   SELECT json_build_object(
+   SELECT jsonb_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(loc)::json,
              'properties', 
@@ -246,14 +246,14 @@ BEGIN
     
 	     INSERT INTO feature_polygons( feature, id)
 	   		SELECT 
-			   json_build_object(
+			   jsonb_build_object(
 	            'type', 'Feature',
 	            'geometry', ST_AsGeoJSON(loc)::json,
 	            'properties',
 	            ( 
 				jsonb_build_object( '_id', id_sequence::text ) 
-	    			--             || 
-					-- ((feature->'properties') - '_id') 
+	    			            || 
+					((feature->'properties') - '_id') 
 	            ))
 			AS feature, 
 			id_sequence as id
