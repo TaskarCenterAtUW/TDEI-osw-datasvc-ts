@@ -545,8 +545,9 @@ describe("OSW Service Test", () => {
                 .mockResolvedValue(<any>{ rowCount: 0 });// Assume no overlap
 
             // Mock the behavior of getOSWRecordById and getOSWMetadataById
-            const oswRecordMock = { data_type: 'osw', status: 'Pre-Release', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url', getOverlapQuery: jest.fn() };
+            const oswRecordMock = { valid_from: '2023-12-01', valid_to: '2023-12-12', data_type: 'osw', status: 'Pre-Release', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url', getOverlapQuery: jest.fn() };
             const getOSWRecordByIdSpy = jest.spyOn(tdeiCoreService, 'getDatasetDetailsById').mockResolvedValue(<any>oswRecordMock);
+            const validateDatasetDatesSpy = jest.spyOn(tdeiCoreService, 'validateDatasetDates').mockReturnValue(true);
 
             const mockJobId = 101;
             jest.spyOn(jobService, "createJob")
@@ -562,7 +563,8 @@ describe("OSW Service Test", () => {
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getOSWRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
-            expect(dbClient.query).toHaveBeenCalled();
+            // expect(dbClient.query).toHaveBeenCalled();
+            expect(validateDatasetDatesSpy).toHaveBeenCalled();
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 WorkflowName.osw_publish,

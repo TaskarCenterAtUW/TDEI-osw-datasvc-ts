@@ -90,7 +90,9 @@ export class DatasetQueryParams {
     @IsOptional()
     county: string | undefined;
     @IsOptional()
-    key_limitations_of_the_dataset: string | undefined;
+    key_limitations: string | undefined;
+    @IsOptional()
+    release_notes: string | undefined;
     @IsOptional()
     challenges: string | undefined;
     @IsOptional() //Maintenance
@@ -234,7 +236,8 @@ export class DatasetQueryParams {
         addConditionIfValueExists('d.metadata_json->>\'city\' ILIKE ', this.city ? '%' + this.city + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'region\' ILIKE ', this.region ? '%' + this.region + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'county\' ILIKE ', this.county ? '%' + this.county + '%' : null);
-        addConditionIfValueExists('d.metadata_json->>\'key_limitations_of_the_dataset\' ILIKE ', this.key_limitations_of_the_dataset ? '%' + this.key_limitations_of_the_dataset + '%' : null);
+        addConditionIfValueExists('d.metadata_json->>\'key_limitations\' ILIKE ', this.key_limitations ? '%' + this.key_limitations + '%' : null);
+        addConditionIfValueExists('d.metadata_json->>\'release_notes\' ILIKE ', this.release_notes ? '%' + this.release_notes + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'challenges\' ILIKE ', this.challenges ? '%' + this.challenges + '%' : null);
         addConditionIfValueExists('(d.metadata_json->>\'official_maintainer\')::jsonb @> ', this.official_maintainer ? `[${Utility.stringArrayToDBString(this.official_maintainer)}]` : null);
         addConditionIfValueExists('d.metadata_json->>\'last_updated\' ILIKE ', this.last_updated ? '%' + this.last_updated + '%' : null);

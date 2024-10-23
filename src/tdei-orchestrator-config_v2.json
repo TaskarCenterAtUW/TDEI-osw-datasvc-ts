@@ -338,7 +338,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -360,7 +361,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -407,7 +409,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -429,7 +432,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -555,7 +559,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -577,7 +582,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -665,7 +671,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -687,7 +694,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -756,7 +764,8 @@
                         "data": {
                             "download_url": "<%= tasks.osw_formatting_on_demand_compression.output.output_path %>",
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -778,7 +787,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -858,7 +868,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1059,7 +1070,8 @@
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osw_compression_road_tag.output.output_path)%>",
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1081,7 +1093,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1183,7 +1196,8 @@
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osm_compression_bbox.output.output_path)%>",
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1205,7 +1219,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1289,7 +1304,8 @@
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osw_compression_bbox.output.output_path)%>",
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1311,7 +1327,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1378,7 +1395,8 @@
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osw_compression.output.output_path)%>",
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1400,7 +1418,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1506,7 +1525,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1528,7 +1548,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1598,7 +1619,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1620,7 +1642,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1667,7 +1690,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1689,7 +1713,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1793,7 +1818,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1815,7 +1841,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1885,7 +1912,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1907,7 +1935,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1954,7 +1983,8 @@
                         },
                         "data": {
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -1976,7 +2006,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -2056,7 +2087,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -2271,7 +2303,8 @@
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osw_compression_incline_tag.output.output_path)%>",
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -2293,7 +2326,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -2360,7 +2394,8 @@
                         "data": {
                             "download_url": "<%=decodeURIComponent(tasks.osw_compression.output.output_path)%>",
                             "status": "COMPLETED",
-                            "message": "Job Completed Successfully"
+                            "message": "Job Completed Successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
@@ -2382,7 +2417,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
