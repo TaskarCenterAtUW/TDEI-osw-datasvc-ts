@@ -902,8 +902,16 @@ class OswService implements IOswService {
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
             metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
-            metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
-            metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+
+            if (metadata.valid_from && metadata.valid_from.trim() != "")
+                metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
+            else
+                metadata.valid_from = null;
+
+            if (metadata.valid_to && metadata.valid_to.trim() != "")
+                metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+            else
+                metadata.valid_to = null;
             //Add metadata to the entity
             datasetEntity.metadata_json = metadata;
             await this.tdeiCoreServiceInstance.createDataset(datasetEntity);
