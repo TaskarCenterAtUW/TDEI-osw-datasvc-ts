@@ -142,8 +142,26 @@ class TdeiCoreService implements ITdeiCoreService {
         await this.validateMetadata(metadata, data_type, tdei_dataset_id);
         //Date handling
         metadata.dataset_detail.collection_date = TdeiDate.UTC(metadata.dataset_detail.collection_date);
-        metadata.dataset_detail.valid_from = TdeiDate.UTC(metadata.dataset_detail.valid_from);
-        metadata.dataset_detail.valid_to = TdeiDate.UTC(metadata.dataset_detail.valid_to);
+
+        //Valid from and valid to fields are mandatory when record in publish state
+        if (dataset_to_be_edited.status == RecordStatus["Publish"] &&
+            (!metadata.dataset_detail.valid_from || !metadata.dataset_detail.valid_to)) {
+            {
+                throw new InputException(`Valid from and valid to dates are required for publishing the dataset.`);
+            }
+        }
+
+        if (metadata.dataset_detail.valid_from && metadata.dataset_detail.valid_to?.trim() != "")
+            metadata.dataset_detail.valid_from = TdeiDate.UTC(metadata.dataset_detail.valid_from);
+        else
+            metadata.dataset_detail.valid_from = null;
+
+        if (metadata.dataset_detail.valid_to && metadata.dataset_detail.valid_to?.trim() != "")
+            metadata.dataset_detail.valid_to = TdeiDate.UTC(metadata.dataset_detail.valid_to);
+        else
+            metadata.dataset_detail.valid_to = null;
+
+
         //Update the metadata
         const query = {
             text: 'UPDATE content.dataset SET metadata_json = $1, updated_at = CURRENT_TIMESTAMP , updated_by = $2 WHERE tdei_dataset_id = $3',
@@ -244,6 +262,25 @@ class TdeiCoreService implements ITdeiCoreService {
         return true;
     }
 
+    /*
+       Validates the dataset dates.
+       @param dataset - The dataset to validate.
+       @throws {InputException}
+       */
+    validateDatasetDates(dataset: DatasetEntity): Boolean {
+        if (!dataset.valid_from || !dataset.valid_to)
+            throw new InputException(`Valid from and valid to dates are required for publishing the dataset.`);
+        if (!TdeiDate.isValid(dataset.valid_from))
+            throw new InputException(`Invalid valid_from date.`);
+        if (!TdeiDate.isValid(dataset.valid_to))
+            throw new InputException(`Invalid valid_to date.`);
+        if (TdeiDate.UTC(dataset.valid_from) > TdeiDate.UTC(dataset.valid_to))
+            throw new InputException(`Invalid valid_from date. valid_from should be less than or equal to valid_to.`);
+        if (TdeiDate.UTC(dataset.valid_to) < TdeiDate.UTC(dataset.valid_from))
+            throw new InputException(`Invalid valid_to date. valid_to should be greater than or equal to valid_from.`);
+
+        return true;
+    }
 
     /**
      * Retrieves datasets based on the provided user ID and query parameters.
@@ -478,10 +515,10 @@ class TdeiCoreService implements ITdeiCoreService {
         const result = await dbClient.query(query);
 
         if (result.rowCount == 0)
-            throw new HttpException(404, `Record with id: ${id} not found`);
+            throw new HttpException(404, `Dataset with id: ${id} not found`);
 
         if (result.rows[0].status == "Deleted")
-            throw new HttpException(400, `Requested record with id: ${id} is invalid / deleted`);
+            throw new HttpException(400, `Requested dataset with id: ${id} is invalid / deleted`);
 
         const record = result.rows[0];
         const osw = DatasetEntity.from(record);

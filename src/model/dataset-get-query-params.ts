@@ -11,6 +11,15 @@ export enum RecordStatus {
     "Draft" = "Draft",
     "All" = "All"
 }
+
+export enum SortField {
+    status = 'd.status',
+    valid_from = 'd.valid_from',
+    valid_to = 'd.valid_to',
+    uploaded_timestamp = 'd.uploaded_timestamp',
+    project_group_name = 'pg.name',
+}
+
 export class DatasetQueryParams {
     @IsOptional()
     data_type: TDEIDataType | undefined;
@@ -81,7 +90,9 @@ export class DatasetQueryParams {
     @IsOptional()
     county: string | undefined;
     @IsOptional()
-    key_limitations_of_the_dataset: string | undefined;
+    key_limitations: string | undefined;
+    @IsOptional()
+    release_notes: string | undefined;
     @IsOptional()
     challenges: string | undefined;
     @IsOptional() //Maintenance
@@ -132,7 +143,10 @@ export class DatasetQueryParams {
     excluded_data: string | undefined;
     @IsOptional()
     excluded_data_reason: string | undefined;
-
+    @IsOptional()
+    sort_field: string = "uploaded_timestamp";
+    @IsOptional()
+    sort_order: SqlORder = SqlORder.DESC;
 
 
     isAdmin = false;
@@ -143,6 +157,12 @@ export class DatasetQueryParams {
 
     getQuery(user_id: string): PgQueryObject {
         //Validate inputs
+        if (!Object.keys(SortField).includes(this.sort_field))
+            throw new InputException("Invalid sort field provided." + this.sort_field);
+        if (!Object.keys(SqlORder).map(key => key.toLowerCase()).includes(this.sort_order.toLowerCase())) {
+            throw new InputException("Invalid sort order provided: " + this.sort_order);
+        }
+
         if (this.valid_from && !TdeiDate.isValid(this.valid_from))
             throw new InputException("Invalid date provided." + this.valid_from)
         if (this.valid_to && !TdeiDate.isValid(this.valid_to))
@@ -216,7 +236,8 @@ export class DatasetQueryParams {
         addConditionIfValueExists('d.metadata_json->>\'city\' ILIKE ', this.city ? '%' + this.city + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'region\' ILIKE ', this.region ? '%' + this.region + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'county\' ILIKE ', this.county ? '%' + this.county + '%' : null);
-        addConditionIfValueExists('d.metadata_json->>\'key_limitations_of_the_dataset\' ILIKE ', this.key_limitations_of_the_dataset ? '%' + this.key_limitations_of_the_dataset + '%' : null);
+        addConditionIfValueExists('d.metadata_json->>\'key_limitations\' ILIKE ', this.key_limitations ? '%' + this.key_limitations + '%' : null);
+        addConditionIfValueExists('d.metadata_json->>\'release_notes\' ILIKE ', this.release_notes ? '%' + this.release_notes + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'challenges\' ILIKE ', this.challenges ? '%' + this.challenges + '%' : null);
         addConditionIfValueExists('(d.metadata_json->>\'official_maintainer\')::jsonb @> ', this.official_maintainer ? `[${Utility.stringArrayToDBString(this.official_maintainer)}]` : null);
         addConditionIfValueExists('d.metadata_json->>\'last_updated\' ILIKE ', this.last_updated ? '%' + this.last_updated + '%' : null);
@@ -244,10 +265,10 @@ export class DatasetQueryParams {
         addConditionIfValueExists('d.metadata_json->>\'excluded_data_reason\' ILIKE ', this.excluded_data_reason ? '%' + this.excluded_data_reason + '%' : null);
 
         //Sort field
-        const sortField = 'uploaded_timestamp';
-        const sortOrder = SqlORder.DESC;
+        // const sortField = 'uploaded_timestamp';
+        // const sortOrder = SqlORder.DESC;
         //Build the query
-        const queryObject = buildQuery(selectColumns, mainTableName, conditions, joins, sortField, sortOrder, this.page_size, this.page_no);
+        const queryObject = buildQuery(selectColumns, mainTableName, conditions, joins, this.sort_field, this.sort_order, this.page_size, this.page_no);
 
         function addConditionIfValueExists(clouse: string, value: any) {
             if (value) {

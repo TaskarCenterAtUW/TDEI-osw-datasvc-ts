@@ -21,7 +21,7 @@ import { RecordStatus } from "../model/dataset-get-query-params";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
-import { SpatialJoinRequest } from "../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 import { TagQualityMetricResponse, TagQualityMetricRequest } from "../model/tag-quality-metric";
 import oswSchema from "../assets/opensidewalks_0.2.schema.json";
 import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
@@ -31,6 +31,54 @@ import AdmZip from "adm-zip";
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
 
+    /**
+    * Processes a union join request.
+    * 
+    * @param user_id - The ID of the user making the request.
+    * @param requestService - The union join request.
+    * @returns The job_id of the union join request.
+    */
+    async processUnionRequest(user_id: string, requestService: UnionRequest): Promise<string> {
+        try {
+            const sourceDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.tdei_dataset_id_one);
+            const targetDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.tdei_dataset_id_two);
+
+            if (sourceDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${requestService.tdei_dataset_id_one} is not a osw dataset.`);
+            if (targetDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${requestService.tdei_dataset_id_two} is not a osw dataset.`);
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Union"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id_one: requestService.tdei_dataset_id_one,
+                    tdei_dataset_id_two: requestService.tdei_dataset_id_two
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            let workflow_start = WorkflowName.osw_union_dataset;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                service: "union_dataset",
+                parameters: requestService,
+                user_id: user_id
+            }
+            //Trigger the workflow
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
+            return job_id.toString();
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     /*
         REFERENCE SCRIPT
             WITH sidewalk_attributes AS (
@@ -209,7 +257,7 @@ class OswService implements IOswService {
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Queries"],
+                job_type: JobType["Dataset-Spatial-Join"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
@@ -260,7 +308,7 @@ class OswService implements IOswService {
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Queries"],
+                job_type: JobType["Dataset-Road-Tag"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
@@ -498,11 +546,14 @@ class OswService implements IOswService {
                 throw new InputException(`${tdei_dataset_id} is not in Pre-Release state.`);
 
             // Check if there is a record with the same date
-            const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.osw, dataset.tdei_project_group_id, dataset.tdei_service_id));
-            if (queryResult.rowCount && queryResult.rowCount > 0) {
-                const recordId = queryResult.rows[0]["tdei_dataset_id"];
-                throw new OverlapException(recordId);
-            }
+            // const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.osw, dataset.tdei_project_group_id, dataset.tdei_service_id));
+            // if (queryResult.rowCount && queryResult.rowCount > 0) {
+            //     const recordId = queryResult.rows[0]["tdei_dataset_id"];
+            //     throw new OverlapException(recordId);
+            // }
+
+            //Validate the metadata dates
+            tdeiCoreService.validateDatasetDates(dataset);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -647,7 +698,7 @@ class OswService implements IOswService {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.tdei_dataset_id);
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Queries"],
+                job_type: JobType["Dataset-BBox"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
@@ -851,8 +902,16 @@ class OswService implements IOswService {
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
             metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
-            metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
-            metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+
+            if (metadata.valid_from && metadata.valid_from.trim() != "")
+                metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
+            else
+                metadata.valid_from = null;
+
+            if (metadata.valid_to && metadata.valid_to.trim() != "")
+                metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+            else
+                metadata.valid_to = null;
             //Add metadata to the entity
             datasetEntity.metadata_json = metadata;
             await this.tdeiCoreServiceInstance.createDataset(datasetEntity);

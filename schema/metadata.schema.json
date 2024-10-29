@@ -377,7 +377,17 @@
                         }
                     ]
                 },
-                "key_limitations_of_the_dataset": {
+                "key_limitations": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "release_notes": {
                     "anyOf": [
                         {
                             "type": "string"

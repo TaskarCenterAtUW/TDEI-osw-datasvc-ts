@@ -45,11 +45,13 @@ class FlexService implements IFlexService {
                 throw new InputException(`${tdei_dataset_id} already publised.`);
 
             // Check if there is a record with the same date
-            const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.flex, dataset.tdei_project_group_id, dataset.tdei_service_id));
-            if (queryResult.rowCount && queryResult.rowCount > 0) {
-                const recordId = queryResult.rows[0]["tdei_dataset_id"];
-                throw new OverlapException(recordId);
-            }
+            // const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.flex, dataset.tdei_project_group_id, dataset.tdei_service_id));
+            // if (queryResult.rowCount && queryResult.rowCount > 0) {
+            //     const recordId = queryResult.rows[0]["tdei_dataset_id"];
+            //     throw new OverlapException(recordId);
+            // }
+            //Validate the metadata dates
+            tdeiCoreService.validateDatasetDates(dataset);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.flex,
@@ -244,8 +246,17 @@ class FlexService implements IFlexService {
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
             metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
-            metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
-            metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+
+            if (metadata.valid_from && metadata.valid_from.trim() != "")
+                metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
+            else
+                metadata.valid_from = null;
+
+            if (metadata.valid_to && metadata.valid_to.trim() != "")
+                metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+            else
+                metadata.valid_to = null;
+
             //Add metadata to the entity
             datasetEntity.metadata_json = metadata;
             await this.tdeiCoreServiceInstance.createDataset(datasetEntity);
