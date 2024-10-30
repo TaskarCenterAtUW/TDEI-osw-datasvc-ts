@@ -21,6 +21,7 @@ import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
 import AdmZip from "adm-zip";
+import HttpException from "../exceptions/http/http-base-exception";
 
 class FlexService implements IFlexService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -38,7 +39,7 @@ class FlexService implements IFlexService {
         try {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
 
-            if (!dataset.data_type && dataset.data_type !== TDEIDataType.flex)
+            if (dataset.data_type && dataset.data_type !== TDEIDataType.flex)
                 throw new InputException(`${tdei_dataset_id} is not a flex dataset.`);
 
             if (dataset.status === 'Publish')
@@ -182,7 +183,7 @@ class FlexService implements IFlexService {
 
                 const result = await dbClient.query(query);
                 if (result.rowCount == 0) {
-                    throw new InputException("Derived dataset id not found");
+                    throw new HttpException(404, "Derived dataset id not found");
                 }
             }
 

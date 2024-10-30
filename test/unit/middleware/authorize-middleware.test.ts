@@ -25,6 +25,7 @@ describe('Authorize Middleware', () => {
 
         const mockedOSW: any = { tdei_project_group_id: 'someProjectGroupId' };
 
+        jest.spyOn(tdeiCoreService, "checkProjectGroupExistsById").mockResolvedValueOnce(mockedOSW);
         jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(mockedOSW);
         mockCoreAuth(true);
 
@@ -41,6 +42,7 @@ describe('Authorize Middleware', () => {
         req.params.tdei_project_group_id = 'someProjectGroupId';
 
         const mockedOSW: any = { tdei_project_group_id: 'someProjectGroupId' };
+        jest.spyOn(tdeiCoreService, "checkProjectGroupExistsById").mockResolvedValueOnce(mockedOSW);
         jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce(mockedOSW);
 
         mockCoreAuth(true);
@@ -58,7 +60,8 @@ describe('Authorize Middleware', () => {
         req.params.tdei_project_group_id = 'someProjectGroupId';
 
         mockCoreAuth(false);
-
+        const mockedOSW: any = { tdei_project_group_id: 'someProjectGroupId' };
+        jest.spyOn(tdeiCoreService, "checkProjectGroupExistsById").mockResolvedValueOnce(mockedOSW);
         await authorize(['approvedRole1', 'approvedRole2'])(req, res, next);
 
         expect(next).toHaveBeenCalledWith(new ForbiddenAccess());
