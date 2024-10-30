@@ -233,21 +233,21 @@ class TdeiCoreService implements ITdeiCoreService {
             additionalMsg = additionalMsg != "" ? `\n Additional properties found are not allowed : \n ${additionalMsg} ` : "";
             typeMsg = typeMsg != "" ? `\n Type mismatch found : \n ${typeMsg}  mismatched` : "";
             console.error("Metadata json validation error : ", additionalMsg, requiredMsg, typeMsg);
-            throw new InputException((`${requiredMsg} \n ${additionalMsg} \n ${typeMsg}`) as string);
+            throw new InputException((`Metadata error : ${requiredMsg} \n ${additionalMsg} \n ${typeMsg}`) as string);
         }
 
         switch (data_type) {
             case "osw":
                 if (!["v0.2"].includes(metadata.dataset_detail.schema_version))
-                    throw new InputException("Schema version is not supported. Please use v0.2 schema version.");
+                    throw new InputException("Metadata->dataset_detail : Schema version is not supported. Please use v0.2 schema version.");
                 break;
             case "pathways":
                 if (!["v1.0"].includes(metadata.dataset_detail.schema_version))
-                    throw new InputException("Schema version is not supported. Please use v1.0 schema version.");
+                    throw new InputException("Metadata->dataset_detail : Schema version is not supported. Please use v1.0 schema version.");
                 break;
             case "flex":
                 if (!["v2.0"].includes(metadata.dataset_detail.schema_version))
-                    throw new InputException("Schema version is not supported. Please use v2.0 schema version.");
+                    throw new InputException("Metadata->dataset_detail : Schema version is not supported. Please use v2.0 schema version.");
                 break;
             default:
                 throw new InputException("Invalid data type");
@@ -527,6 +527,23 @@ class TdeiCoreService implements ITdeiCoreService {
     }
 
     /**
+     * Checks if a project group exists by its ID.
+     * @param id - The ID of the project group.
+     * @returns A promise that resolves to a boolean indicating whether the project group was found.
+     * @throws HttpException with status 404 if the project group is not found.
+     */
+    async checkProjectGroupExistsById(id: string): Promise<Boolean> {
+        const query = {
+            text: `Select count(*) from public.project_group WHERE project_group_id = $1`,
+            values: [id],
+        }
+        const result = await dbClient.query(query);
+        if (result.rowCount == 0)
+            throw new HttpException(404, `Project Group with id: ${id} not found`);
+        return true;
+    }
+
+    /**
      * Deletes a draft dataset with the specified ID from the content.dataset table.
      * 
      * @param tdei_dataset_id - The ID of the draft dataset to delete.
@@ -569,9 +586,7 @@ class TdeiCoreService implements ITdeiCoreService {
             if (!service) {
                 throw new ServiceNotFoundException(datasetCloneRequestObject.tdei_service_id);
             } else if (service!.service_type != dataset_to_be_clone.data_type) {
-                throw new InputException(`Service type ${service!.service_type
-                    } is not same as the dataset type ${dataset_to_be_clone.data_type
-                    }`);
+                throw new InputException(`Operation not permitted : Trying to clone dataset type ${dataset_to_be_clone.data_type} to a service of type : ${service!.service_type}`);
             }
             //Validate service owner project group is same as the request project group
             else if (service!.owner_project_group != datasetCloneRequestObject.tdei_project_group_id) {

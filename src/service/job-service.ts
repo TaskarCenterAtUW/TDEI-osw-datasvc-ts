@@ -21,6 +21,32 @@ class JobService implements IJobService {
      */
     async getJobs(user_id: string, params: JobsQueryParams): Promise<JobDTO[]> {
 
+        if (params.job_id && params.job_id.trim() != '') {
+            const queryConfig = <QueryConfig>{
+                text: "select * from content.job where job_id = $1",
+                values: [params.job_id]
+            }
+            const result = await dbClient.query(queryConfig);
+            if (result.rowCount == 0) {
+                throw new HttpException(404, `Job with ${params.job_id} doesn't exist in the system`);
+            }
+        }
+
+        if (!params.tdei_project_group_id || params.tdei_project_group_id === null || params.tdei_project_group_id.trim() === '') {
+            params.tdei_project_group_id = undefined;
+        }
+
+        if (params.tdei_project_group_id && params.tdei_project_group_id.trim() != '') {
+            const queryConfig = <QueryConfig>{
+                text: "select * from public.project_group where project_group_id = $1",
+                values: [params.tdei_project_group_id]
+            }
+            const result = await dbClient.query(queryConfig);
+            if (result.rowCount == 0) {
+                throw new HttpException(404, `Project group with ${params.tdei_project_group_id} doesn't exist in the system`);
+            }
+        }
+
         const queryObject = params.getQuery(user_id);
 
         const queryConfig = <QueryConfig>{
@@ -35,20 +61,20 @@ class JobService implements IJobService {
             job.download_url = job.download_url ? `/job/download/${job.job_id}` : ''; // do not share internal upload URL
             job.progress = {
                 total_stages: x['total_workflow_tasks'],
-                current_stage:  x['current_task_description'],
+                current_stage: x['current_task_description'],
                 completed_stages: x['tasks_track_number'],
                 current_state: x['current_task_status'],
                 current_stage_percent_done: 0,
                 last_updated_at: x['last_updated_at']
             }
-            if(job.status === 'FAILED') {
+            if (job.status === 'FAILED') {
                 job.message = x['current_task_error'];
             }
             job.current_stage = x['current_task_description'];
             job.updated_at = x['last_updated_at'];
             list.push(job);
         });
-      
+
         return Promise.resolve(list);
     }
 
@@ -64,7 +90,7 @@ class JobService implements IJobService {
         const result = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
 
         if (result.rowCount == 0)
-            throw new InputException("Job not found");
+            throw new HttpException(404, "Job not found");
 
         if (result.rows[0].download_url == null || result.rows[0].download_url == '')
             throw new HttpException(404, "Download not available for this job.");

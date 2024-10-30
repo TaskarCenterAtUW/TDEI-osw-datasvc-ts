@@ -283,8 +283,8 @@ describe("OSW Controller Test", () => {
             // Arrange
             const req = getMockReq({ query: {} });
             const { res, next } = getMockRes();
-            const inputException = new InputException("request body is empty", res);
-            jest.spyOn(oswService, "processBackendRequest").mockRejectedValueOnce(inputException);
+            const inputException = new InputException("required input is empty", res);
+            jest.spyOn(oswService, "processBboxRequest").mockRejectedValueOnce(inputException);
 
             // Act
             await oswController.processDatasetBboxRequest(req, res, next);
@@ -298,7 +298,7 @@ describe("OSW Controller Test", () => {
             const req = getMockReq({
                 query: {
                     tdei_dataset_id: "mock-tdei_dataset_id",
-                    bbox: "mock-bbox"
+                    bbox: ['0', '0', '0', '0']
                 },
                 body: {
                     user_id: "mock-user-id"
@@ -306,7 +306,7 @@ describe("OSW Controller Test", () => {
             });
             const { res, next } = getMockRes();
             const job_id = "mock-job-id";
-            jest.spyOn(oswService, "processBackendRequest").mockResolvedValueOnce(job_id);
+            jest.spyOn(oswService, "processBboxRequest").mockResolvedValueOnce(job_id);
 
             // Act
             await oswController.processDatasetBboxRequest(req, res, next);
@@ -322,7 +322,7 @@ describe("OSW Controller Test", () => {
             const req = getMockReq({
                 query: {
                     tdei_dataset_id: "mock-tdei_dataset_id",
-                    bbox: "mock-bbox"
+                    bbox: ['0', '0', '0', '0']
                 },
                 body: {
                     user_id: "mock-user-id"
@@ -330,7 +330,7 @@ describe("OSW Controller Test", () => {
             });
             const { res, next } = getMockRes();
             const error = new Error("Internal Server Error");
-            jest.spyOn(oswService, "processBackendRequest").mockRejectedValueOnce(error);
+            jest.spyOn(oswService, "processBboxRequest").mockRejectedValueOnce(error);
 
             // Act
             await oswController.processDatasetBboxRequest(req, res, next);
@@ -689,8 +689,8 @@ describe("OSW Controller Test", () => {
             mockRequest = getMockReq({
                 body: {
                     user_id: 'mock-user-id',
-                    source: 'osw',
-                    target: 'osm',
+                    source_format: 'osw',
+                    target_format: 'osm',
                 },
                 file: {
                     originalname: 'mock-file.txt',

@@ -17,46 +17,48 @@ import { Utility } from '../utility/utility';
  */
 export const authorize = (approvedRoles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
-        console.log("authorize middleware");
-        let apiKey = req.headers['x-api-key'];
-        //Reject authorization for API key users
-        if (apiKey && apiKey !== '') {
-            return next(new UnAuthenticated());
-        }
+        try {
+            console.log("authorize middleware");
+            let apiKey = req.headers['x-api-key'];
+            //Reject authorization for API key users
+            if (apiKey && apiKey !== '') {
+                return next(new ForbiddenAccess());
+            }
 
-        if (!req.body.user_id)
-            return next(new UnAuthenticated());
+            if (!req.body.user_id)
+                return next(new UnAuthenticated());
 
-        if (req.params["tdei_project_group_id"]) {
-            req.body.tdei_project_group_id = req.params["tdei_project_group_id"];
-        }
-        else if (req.params["tdei_dataset_id"]) {
-            //Fetch tdei_project_group_id from tdei_dataset_id
-            try {
+            if (req.params["tdei_project_group_id"]) {
+                req.body.tdei_project_group_id = req.params["tdei_project_group_id"];
+                await tdeiCoreService.checkProjectGroupExistsById(req.params["tdei_project_group_id"])
+            }
+            else if (req.params["tdei_dataset_id"]) {
+                //Fetch tdei_project_group_id from tdei_dataset_id
                 let osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
                 req.body.tdei_project_group_id = osw.tdei_project_group_id;
-            } catch (error) {
-                if (error instanceof HttpException) {
-                    return next(error);
-                }
-                return next(new HttpException(500, "Error processing the request"));
             }
-        }
-        else {
-            console.error("authorize:tdei_project_group_id cannot be extracted");
-            return next(new Error("authorize:tdei_project_group_id cannot be extracted"));
-        }
+            else {
+                //Case when tdei_project_group_id is not provided/ cannot retrived from dataset_id and reason we cannot authorize the request
+                console.error("authorize:tdei_project_group_id cannot be extracted");
+                return next(new Error("authorize:tdei_project_group_id cannot be extracted"));
+            }
 
-        //If no roles skip the check
-        if (!approvedRoles.length)
-            return next();
+            //If no roles skip the check
+            if (!approvedRoles.length)
+                return next();
 
-        var authorized = await Utility.authorizeRoles(req.body.user_id, req.body.tdei_project_group_id, approvedRoles);
-        if (authorized) {
-            next();
-        }
-        else {
-            next(new ForbiddenAccess());
+            var authorized = await Utility.authorizeRoles(req.body.user_id, req.body.tdei_project_group_id, approvedRoles);
+            if (authorized) {
+                next();
+            }
+            else {
+                next(new ForbiddenAccess());
+            }
+        } catch (error) {
+            if (error instanceof HttpException) {
+                return next(error);
+            }
+            return next(new HttpException(500, "Error processing the request"));
         }
     }
 }

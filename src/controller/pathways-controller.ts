@@ -1,7 +1,6 @@
 import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
-import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, FileTypeException } from "../exceptions/http/http-exceptions";
 import { Versions } from "../model/versions-dto";
@@ -12,9 +11,7 @@ import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
-import archiver from 'archiver';
 import pathwaysService from "../service/pathways-service";
-import { Readable } from "stream";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
