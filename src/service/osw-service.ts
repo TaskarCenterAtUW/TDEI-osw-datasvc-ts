@@ -301,7 +301,8 @@ class OswService implements IOswService {
     */
     async processDatasetTagRoadRequest(backendRequest: TagRoadServiceRequest): Promise<string> {
         try {
-
+            // check if source dataset exisits
+            await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.source_dataset_id);
             //Only if backendRequest.parameters.target_dataset_id id in pre-release status
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.target_dataset_id);
             if (dataset.status !== RecordStatus["Pre-Release"])
