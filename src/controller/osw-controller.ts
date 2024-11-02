@@ -259,7 +259,7 @@ class OSWController implements IController {
             let apiKey = request.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
-                return next(new UnAuthenticated());
+                return next(new ForbiddenAccess());
             }
 
             //Authorize
@@ -634,7 +634,7 @@ class OSWController implements IController {
             let apiKey = request.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
-                return next(new UnAuthenticated());
+                return next(new ForbiddenAccess());
             }
 
             //Authorize

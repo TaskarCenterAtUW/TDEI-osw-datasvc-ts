@@ -22,6 +22,8 @@ class JobService implements IJobService {
     async getJobs(user_id: string, params: JobsQueryParams): Promise<JobDTO[]> {
 
         if (params.job_id && params.job_id.trim() != '') {
+            if (Number.isNaN(Number(params.job_id)))
+                throw new InputException("Invalid job id");
             const queryConfig = <QueryConfig>{
                 text: "select * from content.job where job_id = $1",
                 values: [params.job_id]
@@ -86,6 +88,9 @@ class JobService implements IJobService {
      * @throws Error if the storage is not configured.
      */
     async getJobFileEntity(job_id: string): Promise<FileEntity> {
+
+        if (Number.isNaN(Number(job_id)))
+            throw new InputException("Invalid job id");
 
         const result = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
 
