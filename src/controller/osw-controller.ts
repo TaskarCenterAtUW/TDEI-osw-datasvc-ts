@@ -424,7 +424,7 @@ class OSWController implements IController {
                     requestService.bbox = requestService.bbox.split(',').map(Number);
                 }
 
-                if (!Array.isArray(requestService.bbox) && requestService.bbox.length !== 4) {
+                if (!Array.isArray(requestService.bbox) || requestService.bbox.length !== 4) {
                     throw new InputException('bbox should be an array of 4 elements', response);
                 }
             }

@@ -44,7 +44,7 @@ describe('JobService', () => {
     describe('getJobFileEntity', () => {
         it('should return the FileEntity associated with the given job ID', async () => {
             // Arrange
-            const job_id = 'mock-job-id';
+            const job_id = '101';
             const mockResult = <any>{
                 rowCount: 1,
                 rows: [
