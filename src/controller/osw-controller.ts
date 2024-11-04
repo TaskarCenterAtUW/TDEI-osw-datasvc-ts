@@ -259,7 +259,7 @@ class OSWController implements IController {
             let apiKey = request.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
-                return next(new UnAuthenticated());
+                return next(new ForbiddenAccess());
             }
 
             //Authorize
@@ -321,6 +321,10 @@ class OSWController implements IController {
         try {
             let format = request.query.format as string ?? 'osw';
             let file_version = request.query.file_version as string ?? 'latest';
+
+            if (!["osw", "osm"].includes(format)) {
+                throw new InputException("Invalid file format value");
+            }
 
             if (!["latest", "original"].includes(file_version)) {
                 throw new InputException("Invalid file_version value");
@@ -415,9 +419,15 @@ class OSWController implements IController {
                 return next(new InputException('required input is empty', response));
             }
 
-            if (!Array.isArray(requestService.bbox)
-                || requestService.bbox.length !== 4)
-                throw new InputException('bbox should be an array of 4 elements', response);
+            if (!Array.isArray(requestService.bbox)) {
+                if (typeof requestService.bbox === 'string') {
+                    requestService.bbox = requestService.bbox.split(',').map(Number);
+                }
+
+                if (!Array.isArray(requestService.bbox) || requestService.bbox.length !== 4) {
+                    throw new InputException('bbox should be an array of 4 elements', response);
+                }
+            }
 
             let backendRequest: BboxServiceRequest = {
                 user_id: request.body.user_id,
@@ -551,7 +561,7 @@ class OSWController implements IController {
             let source = request.body['source_format']; //TODO: Validate the input enums 
             let target = request.body['target_format'];
 
-            if (!["osw", "osm"].includes(target) && !["osw", "osm"].includes(source)) {
+            if (!["osw", "osm"].includes(target) || !["osw", "osm"].includes(source)) {
                 throw new InputException("Invalid source/target value");
             }
 
@@ -624,7 +634,7 @@ class OSWController implements IController {
             let apiKey = request.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
-                return next(new UnAuthenticated());
+                return next(new ForbiddenAccess());
             }
 
             //Authorize

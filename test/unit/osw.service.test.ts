@@ -853,7 +853,7 @@ describe("OSW Service Test", () => {
             const dataset = {
                 status: RecordStatus["Publish"],
             } as any;
-            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
 
             // Act & Assert
             await expect(oswService.processDatasetTagRoadRequest(backendRequest)).rejects.toThrow(
@@ -900,7 +900,7 @@ describe("OSW Service Test", () => {
                 },
                 publishedDate: "2024-04-02T10:04:58.734Z"
             });
-            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
             jest.spyOn(oswService.jobServiceInstance, "createJob").mockResolvedValueOnce(job_id);
             mockAppContext();
 
