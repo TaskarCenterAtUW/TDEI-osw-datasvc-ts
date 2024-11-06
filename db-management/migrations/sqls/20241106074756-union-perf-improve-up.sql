@@ -25,6 +25,17 @@ ADD COLUMN node_loc_3857 geometry(Point, 3857)
 	
 CREATE INDEX idx_node_loc_gist ON content.node USING GIST (node_loc_3857);
 
+ALTER TABLE content.zone
+ADD COLUMN zone_loc_3857 geometry(Polygon, 3857) 
+    GENERATED ALWAYS AS (
+        ST_Transform(
+            ST_GeomFromGeoJSON(feature ->> 'geometry'),
+            3857
+        )
+    ) STORED;
+	
+CREATE INDEX idx_zone_loc_gist ON content.zone USING GIST (zone_loc_3857);
+
 CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
 	src_one_tdei_dataset_id character varying,
 	src_two_tdei_dataset_id character varying)
