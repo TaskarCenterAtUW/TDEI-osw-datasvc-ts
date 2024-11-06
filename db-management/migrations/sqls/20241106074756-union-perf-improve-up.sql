@@ -36,7 +36,7 @@ ADD COLUMN zone_loc_3857 geometry(Polygon, 3857)
 	
 CREATE INDEX idx_zone_loc_gist ON content.zone USING GIST (zone_loc_3857);
 
-CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
+CREATE OR REPLACE FUNCTION content.tdei_union_dataset_test(
 	src_one_tdei_dataset_id character varying,
 	src_two_tdei_dataset_id character varying)
     RETURNS TABLE(edges json, nodes json, zones json, extensions_points json, extensions_lines json, extensions_polygons json) 
@@ -53,37 +53,40 @@ DECLARE
 BEGIN
     ------------------------------ Nodes -------------------------------------
 	-- RAISE NOTICE 'Node processing started at  % .', clock_timestamp();
-
-	-- Create temporary table to store node map
-    CREATE TEMP TABLE temp_node_map AS
-    WITH
-    joined_nodes AS (
-        -- self join on points to create equivalence classes
-        SELECT U.id as uid, U.node_loc, R.id as rid, R.node_loc
-		FROM content.node AS U
-		JOIN content.node AS R   
-		ON U.tdei_dataset_id = SRC_ONE_TDEI_DATASET_ID
-		   AND R.tdei_dataset_id = SRC_TWO_TDEI_DATASET_ID
-		AND ST_Envelope(U.node_loc_3857) && ST_Envelope(R.node_loc_3857)   
-		AND ST_DWithin(U.node_loc_3857, R.node_loc_3857, 0.5)
-    ),
-    witness_nodes AS (
-        -- assign every element to a specific element in group
-        SELECT min(rid) as wid, uid
-        FROM joined_nodes
-        GROUP BY uid
-    ),
-    node_map AS (
-        SELECT w.wid as newid, newpt.node_loc as newloc, newpt.feature as newfeature, w.uid as oldid, oldpt.node_loc as oldloc, oldpt.feature as oldfeature
-        FROM witness_nodes w
-        JOIN content.node newpt ON newpt.id = w.wid
-        JOIN content.node oldpt ON oldpt.id = w.uid
-        WHERE newpt.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID)
-          AND oldpt.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID)
-    )
-    SELECT * FROM node_map; 
+	CREATE TEMP TABLE joined_nodes ON COMMIT DROP AS
+	SELECT U.id as uid, U.node_loc as unode_loc, R.id as rid, R.node_loc as rnode_loc
+	FROM content.node AS U
+	JOIN content.node AS R   
+	ON U.tdei_dataset_id = SRC_ONE_TDEI_DATASET_ID
+	   AND R.tdei_dataset_id = SRC_TWO_TDEI_DATASET_ID
+	   AND ST_Envelope(U.node_loc_3857) && ST_Envelope(R.node_loc_3857)   
+	   AND ST_DWithin(U.node_loc_3857, R.node_loc_3857, 0.5);
+	
+	
+	CREATE TEMP TABLE witness_nodes ON COMMIT DROP AS
+	SELECT min(rid) as wid, uid
+	FROM joined_nodes
+	GROUP BY uid;
+	
+	CREATE TEMP TABLE temp_node_map ON COMMIT DROP AS
+	SELECT 
+		w.wid as newid, 
+		newpt.node_loc as newloc, 
+		newpt.feature as newfeature, 
+		w.uid as oldid, 
+		oldpt.node_loc as oldloc, 
+		oldpt.feature as oldfeature
+	FROM witness_nodes w
+	JOIN content.node newpt ON newpt.id = w.wid
+	JOIN content.node oldpt ON oldpt.id = w.uid
+	WHERE newpt.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID)
+	  AND oldpt.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID);
+	
+	-- Adding GIST indexes on `newloc` and `oldloc` in `temp_node_map`
+	CREATE INDEX ON temp_node_map USING GIST (newloc);
+	CREATE INDEX ON temp_node_map USING GIST (oldloc);
     
-    CREATE TEMP TABLE temp_conflated_nodes AS
+    CREATE TEMP TABLE temp_conflated_nodes ON COMMIT DROP AS
     WITH numbered_nodes AS (
         SELECT DISTINCT ON (newid, newloc) 
             newid AS id, 
