@@ -1,5 +1,5 @@
 ALTER TABLE content.edge
-ADD COLUMN edge_loc_3857 geometry(LineString, 3857) 
+ADD COLUMN IF NOT EXISTS edge_loc_3857 geometry(LineString, 3857) 
     GENERATED ALWAYS AS (
         ST_Transform(
             ST_GeomFromGeoJSON(feature ->> 'geometry'),
@@ -7,10 +7,10 @@ ADD COLUMN edge_loc_3857 geometry(LineString, 3857)
         )
     ) STORED;
 	
-CREATE INDEX idx_edge_loc_gist ON content.edge USING GIST (edge_loc_3857);
+CREATE INDEX IF NOT EXISTS idx_edge_loc_gist ON content.edge USING GIST (edge_loc_3857);
 
- ALTER TABLE content.node
-ADD COLUMN node_loc_3857 geometry(Point, 3857) 
+ALTER TABLE content.node
+ADD COLUMN IF NOT EXISTS node_loc_3857 geometry(Point, 3857) 
     GENERATED ALWAYS AS (
         CASE 
             WHEN (ST_X(ST_SetSRID(ST_GeomFromGeoJSON(feature ->> 'geometry'), 4326)) BETWEEN -180 AND 180)
@@ -23,10 +23,10 @@ ADD COLUMN node_loc_3857 geometry(Point, 3857)
         END
     ) STORED;
 	
-CREATE INDEX idx_node_loc_gist ON content.node USING GIST (node_loc_3857);
+CREATE INDEX IF NOT EXISTS idx_node_loc_gist ON content.node USING GIST (node_loc_3857);
 
 ALTER TABLE content.zone
-ADD COLUMN zone_loc_3857 geometry(Polygon, 3857) 
+ADD COLUMN IF NOT EXISTS zone_loc_3857 geometry(Polygon, 3857) 
     GENERATED ALWAYS AS (
         ST_Transform(
             ST_GeomFromGeoJSON(feature ->> 'geometry'),
@@ -34,7 +34,7 @@ ADD COLUMN zone_loc_3857 geometry(Polygon, 3857)
         )
     ) STORED;
 	
-CREATE INDEX idx_zone_loc_gist ON content.zone USING GIST (zone_loc_3857);
+CREATE INDEX IF NOT EXISTS idx_zone_loc_gist ON content.zone USING GIST (zone_loc_3857);
 
 CREATE OR REPLACE FUNCTION content.tdei_union_dataset_test(
 	src_one_tdei_dataset_id character varying,
