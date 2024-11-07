@@ -19,7 +19,7 @@ import { RecordStatus } from "../../src/model/dataset-get-query-params";
 import { CreateJobDTO } from "../../src/model/job-dto";
 import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
 import { WorkflowName } from "../../src/constants/app-constants";
-import { SpatialJoinRequest } from "../../src/model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest } from "../../src/model/request-interfaces";
 
 // group test using describe
 describe("OSW Service Test", () => {
@@ -233,7 +233,7 @@ describe("OSW Service Test", () => {
             const job_id = 303;
             const createJobDTO = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Queries"],
+                job_type: JobType["Dataset-Spatial-Join"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: requestService,
@@ -545,8 +545,9 @@ describe("OSW Service Test", () => {
                 .mockResolvedValue(<any>{ rowCount: 0 });// Assume no overlap
 
             // Mock the behavior of getOSWRecordById and getOSWMetadataById
-            const oswRecordMock = { data_type: 'osw', status: 'Pre-Release', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url', getOverlapQuery: jest.fn() };
+            const oswRecordMock = { valid_from: '2023-12-01', valid_to: '2023-12-12', data_type: 'osw', status: 'Pre-Release', tdei_project_group_id: 'project-group-id', download_osw_url: 'download-url', getOverlapQuery: jest.fn() };
             const getOSWRecordByIdSpy = jest.spyOn(tdeiCoreService, 'getDatasetDetailsById').mockResolvedValue(<any>oswRecordMock);
+            const validateDatasetDatesSpy = jest.spyOn(tdeiCoreService, 'validateDatasetDates').mockReturnValue(true);
 
             const mockJobId = 101;
             jest.spyOn(jobService, "createJob")
@@ -562,7 +563,8 @@ describe("OSW Service Test", () => {
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
             expect(getOSWRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
-            expect(dbClient.query).toHaveBeenCalled();
+            // expect(dbClient.query).toHaveBeenCalled();
+            expect(validateDatasetDatesSpy).toHaveBeenCalled();
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 WorkflowName.osw_publish,
@@ -849,7 +851,7 @@ describe("OSW Service Test", () => {
             } as any;
             const job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Queries"],
+                job_type: JobType["Dataset-Road-Tag"],
                 status: JobStatus["IN-PROGRESS"],
                 message: "Job started",
                 request_input: {
@@ -886,6 +888,97 @@ describe("OSW Service Test", () => {
                 "osw_dataset_road_tag",
                 expect.any(Object),
                 backendRequest.user_id
+            );
+        });
+    });
+
+    describe("processUnionRequest", () => {
+        test("When tdei_dataset_id_one dataset is not a osw dataset, Expect to throw InputException", async () => {
+            mockAppContext();
+            // Arrange
+            const user_id = "mock-user-id";
+            const requestService = UnionRequest.from({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id"
+            });
+            let job_id = 303;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({
+                data_type: TDEIDataType.flex
+            } as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValue(job_id);
+
+            // Act & Assert
+            await expect(oswService.processUnionRequest(user_id, requestService)).rejects.toThrow(InputException);
+        });
+
+        test("When tdei_dataset_id_two dataset is not a osw dataset, Expect to throw InputException", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = UnionRequest.from({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id"
+            });
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce({
+                data_type: TDEIDataType.osw
+            } as any).mockResolvedValueOnce({
+                data_type: TDEIDataType.pathways
+            } as any);
+
+            // Act & Assert
+            await expect(oswService.processUnionRequest(user_id, requestService)).rejects.toThrow(InputException);
+        });
+
+        test("When all conditions are met, Expect to create job, start workflow, and return job_id", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = UnionRequest.from({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id"
+            });
+
+            const sourceDataset = {
+                data_type: TDEIDataType.osw
+            };
+            const targetDataset = {
+                data_type: TDEIDataType.osw
+            };
+
+            const job_id = 303;
+            const createJobDTO = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Union"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: requestService,
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
+                .mockResolvedValueOnce(sourceDataset as any)
+                .mockResolvedValueOnce(targetDataset as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValueOnce(job_id);
+            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
+
+            // Act
+            const result = await oswService.processUnionRequest(user_id, requestService);
+
+            // Assert
+            expect(result).toBe(job_id.toString());
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(createJobDTO);
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                job_id.toString(),
+                WorkflowName.osw_union_dataset,
+                {
+                    job_id: job_id.toString(),
+                    service: "union_dataset",
+                    parameters: requestService,
+                    user_id: user_id
+                },
+                user_id
             );
         });
     });

@@ -77,7 +77,8 @@ describe('Metadata JSON Validator', () => {
                           "city": "seattle",
                           "region": "north",
                           "county": "usa",
-                          "key_limitations_of_the_dataset": "inaccurate",
+                          "key_limitations": "inaccurate",
+                          "release_notes": "First release",
                           "challenges": null
                       },
                       "maintenance": {

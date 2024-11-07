@@ -12,12 +12,12 @@ import { IUploadRequest } from "../service/interface/upload-request-interface";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
-import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
+import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } from "../model/backend-request-interface";
 import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
-import { SpatialJoinRequest } from "../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -64,6 +64,7 @@ const upload = multer({
         }
         else if (file.fieldname === 'dataset') {
             allowedFileTypes = ['.zip'];
+            req.body["dataset_file_size"] = file.size;
         }
         else if (file.fieldname === 'changeset') {
             allowedFileTypes = ['.zip', '.osc'];
@@ -104,6 +105,20 @@ const confidenceUpload = multer({
     }
 });
 
+// Accepted file formats for quality metric calculation
+const qualityUpload = multer({
+    dest: 'quality/',
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const allowedFileTypes = ['.geojson'];
+        const ext = path.extname(file.originalname);
+        if (!allowedFileTypes.includes(ext)) {
+            cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
+
 class OSWController implements IController {
     public path = '/api/v1/osw';
     public router = express.Router();
@@ -128,10 +143,43 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
         this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
         // Route for quality metric request
-        this.router.post(`${this.path}/quality-metric/:tdei_dataset_id`, authenticate, this.createQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, this.createIXNQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
+        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, authenticate, this.createInclineRequest);
+        this.router.post(`${this.path}/union`, authenticate, this.processDatasetUnionRequest);
     }
 
+
+    /**
+    * Processes the union request 
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    processDatasetUnionRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            if (!request.body) {
+                return next(new InputException('request body is empty', response));
+            }
+
+            const requestService = UnionRequest.from(request.body);
+            await requestService.validateRequestInput();
+            Utility.checkForSqlInjection(request.body);
+            const job_id = await oswService.processUnionRequest(request.body.user_id, requestService);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+
+        } catch (error) {
+            console.error("Error while processing the union dataset request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the union dataset request");
+            next(new HttpException(500, "Error while processing the union dataset request"));
+        }
+    }
 
     /**
      * Calculates the quality metric for a given osw entity tags.
@@ -525,18 +573,20 @@ class OSWController implements IController {
         }
     }
 
-    createQualityOnDemandRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+    createIXNQualityOnDemandRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let algorithms = request.body.algorithms;
-            let persist = request.body.persist;
+            const subRegionFile = request.file;
+            // Algorithm is ixn
+            let algorithms = 'ixn';
+            // let persist = request.body.persist;
             if (tdei_dataset_id == undefined) {
                 throw new InputException("Missing tdei_dataset_id input")
             }
-            if (tdei_dataset_id == undefined || algorithms == undefined || persist == undefined) {
-                throw new InputException("Please add tdei_dataset_id, algorithms, persist in payload")
-            }
-            let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, persist, request.body.user_id);
+            // if (tdei_dataset_id == undefined || algorithms == undefined) {
+            //     throw new InputException("Please add tdei_dataset_id, algorithm in payload")
+            // }
+            let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, subRegionFile, request.body.user_id);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -548,6 +598,56 @@ class OSWController implements IController {
             }
             response.status(500).send("Error while processing the quality metric");
             next(new HttpException(500, "Error while processing the quality metric"));
+        }
+    }
+
+
+    /**
+     * Request to calculate the inclination for the given dataset
+     * @param request 
+     * @param response 
+     * @param next 
+     * @returns 
+     */
+    createInclineRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            if (tdei_dataset_id == undefined) {
+                throw new InputException("Missing tdei_dataset_id input")
+            }
+
+            let apiKey = request.headers['x-api-key'];
+            //Reject authorization for API key users
+            if (apiKey && apiKey !== '') {
+                return next(new UnAuthenticated());
+            }
+
+            //Authorize
+            let osw = await tdeiCoreService.getDatasetDetailsById(tdei_dataset_id);
+            var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
+            if (!authorized) {
+                return next(new ForbiddenAccess());
+            }
+
+            let backendRequest: InclinationServiceRequest = {
+                user_id: request.body.user_id,
+                service: "add_inclination",
+                parameters: {
+                    dataset_id: tdei_dataset_id
+                }
+            }
+
+            let job_id = await oswService.calculateInclination(backendRequest);
+            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing the incline dataset request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the incline dataset request");
+            next(new HttpException(500, "Error while processing the incline dataset request"));
         }
     }
 }

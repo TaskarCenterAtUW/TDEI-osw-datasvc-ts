@@ -755,8 +755,7 @@ describe("OSW Controller Test", () => {
                 body: {
                     user_id: 'mock-user-id',
 
-                    algorithms: ['mock-algorithm'],
-                    persist: true,
+                    algorithm: 'mock-algorithm',
                 },
                 params: {
                     tdei_dataset_id: 'mock-tdei_dataset_id'
@@ -778,7 +777,7 @@ describe("OSW Controller Test", () => {
             // Mock the calculateQualityMetric function to return mock job_id
             jest.spyOn(oswService, "calculateQualityMetric").mockResolvedValueOnce(mockJobId);
 
-            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+            await oswController.createIXNQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
 
             // expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', '/api/v1/job?job_id=mock-job-id');
             expect(mockResponse.status).toHaveBeenCalledWith(202);
@@ -790,7 +789,7 @@ describe("OSW Controller Test", () => {
             // Simulate missing tdei_dataset_id input
             mockRequest.params.tdei_dataset_id = undefined;
 
-            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+            await oswController.createIXNQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
             expect(mockResponse.send).toHaveBeenCalledWith('Missing tdei_dataset_id input');
@@ -802,11 +801,71 @@ describe("OSW Controller Test", () => {
             const mockError = new Error('Error while processing the quality metric');
             jest.spyOn(oswService, "calculateQualityMetric").mockRejectedValueOnce(mockError);
 
-            await oswController.createQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
+            await oswController.createIXNQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the quality metric');
             expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+    });
+
+    describe("processUnionQueryRequest", () => {
+        test("When request body is empty, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When request body is valid, Expect to process the request and return 202 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
+                }
+            });
+            let job_id = "mock-job-id";
+            const { res, next } = getMockRes();
+
+            jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce(job_id);
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
+        });
+
+        test("When an error occurs, Expect to call next with HttpException and return 500 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new Error("Some error message");
+
+            // Mock the oswService.processUnionQueryRequest method to throw an error
+            jest.spyOn(oswService, "processUnionRequest").mockRejectedValue(error);
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the union dataset request");
         });
     });
 

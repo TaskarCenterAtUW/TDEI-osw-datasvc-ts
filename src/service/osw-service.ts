@@ -10,7 +10,7 @@ import { Readable } from "stream";
 import storageService from "./storage-service";
 import appContext from "../app-context";
 import { IOswService } from "./interface/osw-service-interface";
-import { BboxServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
+import { BboxServiceRequest, InclinationServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import jobService from "./job-service";
 import { IJobService } from "./interface/job-service-interface";
 import { CreateJobDTO } from "../model/job-dto";
@@ -21,7 +21,7 @@ import { RecordStatus } from "../model/dataset-get-query-params";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
-import { SpatialJoinRequest } from "../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 import { TagQualityMetricResponse, TagQualityMetricRequest } from "../model/tag-quality-metric";
 import oswSchema from "../assets/opensidewalks_0.2.schema.json";
 import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
@@ -31,6 +31,54 @@ import AdmZip from "adm-zip";
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
 
+    /**
+    * Processes a union join request.
+    * 
+    * @param user_id - The ID of the user making the request.
+    * @param requestService - The union join request.
+    * @returns The job_id of the union join request.
+    */
+    async processUnionRequest(user_id: string, requestService: UnionRequest): Promise<string> {
+        try {
+            const sourceDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.tdei_dataset_id_one);
+            const targetDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.tdei_dataset_id_two);
+
+            if (sourceDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${requestService.tdei_dataset_id_one} is not a osw dataset.`);
+            if (targetDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${requestService.tdei_dataset_id_two} is not a osw dataset.`);
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Union"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id_one: requestService.tdei_dataset_id_one,
+                    tdei_dataset_id_two: requestService.tdei_dataset_id_two
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            let workflow_start = WorkflowName.osw_union_dataset;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                service: "union_dataset",
+                parameters: requestService,
+                user_id: user_id
+            }
+            //Trigger the workflow
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
+            return job_id.toString();
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     /*
         REFERENCE SCRIPT
             WITH sidewalk_attributes AS (
@@ -209,7 +257,7 @@ class OswService implements IOswService {
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Queries"],
+                job_type: JobType["Dataset-Spatial-Join"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
@@ -260,7 +308,7 @@ class OswService implements IOswService {
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Queries"],
+                job_type: JobType["Dataset-Road-Tag"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
@@ -498,11 +546,14 @@ class OswService implements IOswService {
                 throw new InputException(`${tdei_dataset_id} is not in Pre-Release state.`);
 
             // Check if there is a record with the same date
-            const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.osw, dataset.tdei_project_group_id, dataset.tdei_service_id));
-            if (queryResult.rowCount && queryResult.rowCount > 0) {
-                const recordId = queryResult.rows[0]["tdei_dataset_id"];
-                throw new OverlapException(recordId);
-            }
+            // const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.osw, dataset.tdei_project_group_id, dataset.tdei_service_id));
+            // if (queryResult.rowCount && queryResult.rowCount > 0) {
+            //     const recordId = queryResult.rows[0]["tdei_dataset_id"];
+            //     throw new OverlapException(recordId);
+            // }
+
+            //Validate the metadata dates
+            tdeiCoreService.validateDatasetDates(dataset);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -647,7 +698,7 @@ class OswService implements IOswService {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.tdei_dataset_id);
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
-                job_type: JobType["Dataset-Queries"],
+                job_type: JobType["Dataset-BBox"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
                 request_input: {
@@ -846,11 +897,21 @@ class OswService implements IOswService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
+            datasetEntity.upload_file_size_bytes = uploadRequestObject.datasetFile[0].size;
+
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
             metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
-            metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
-            metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+
+            if (metadata.valid_from && metadata.valid_from.trim() != "")
+                metadata.valid_from = TdeiDate.UTC(metadata.valid_from);
+            else
+                metadata.valid_from = null;
+
+            if (metadata.valid_to && metadata.valid_to.trim() != "")
+                metadata.valid_to = TdeiDate.UTC(metadata.valid_to);
+            else
+                metadata.valid_to = null;
             //Add metadata to the entity
             datasetEntity.metadata_json = metadata;
             await this.tdeiCoreServiceInstance.createDataset(datasetEntity);
@@ -992,14 +1053,27 @@ class OswService implements IOswService {
 
     }
 
-    async calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id: string): Promise<string> {
+    async calculateQualityMetric(tdei_dataset_id: string, algorithm: string, sub_regions_file: any, user_id: string): Promise<string> {
         try {
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
             if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
             // Check the input algorithm types
-            if (algorithms.length == 0) {
+            if (algorithm.length == 0) {
                 throw new InputException("No quality metric algorithms provided");
+            }
+            const acceptedAlgorithms = ['fixed', 'ixn'] // Need to move it somewhere.
+            if (!acceptedAlgorithms.includes(algorithm)) {
+                throw new InputException("Invalid quality metric algorithm provided");
+            }
+
+            let sub_regions_upload_url = undefined;
+            if (sub_regions_file) {
+                // Get the upload path
+                const uid = storageService.generateRandomUUID();
+                const folderPath = storageService.getQualityMetricJobPath(uid);
+                const uploadPath = path.join(folderPath, sub_regions_file!.originalname)
+                sub_regions_upload_url = await storageService.uploadFile(uploadPath, 'application/json', Readable.from(sub_regions_file.buffer));
             }
             // Create job for this
             let job = CreateJobDTO.from({
@@ -1008,8 +1082,8 @@ class OswService implements IOswService {
                 status: JobStatus["IN-PROGRESS"],
                 request_input: {
                     tdei_dataset_id: tdei_dataset_id,
-                    algorithms: algorithms,
-                    persist: persist
+                    algorithm: algorithm,
+                    sub_regions_file: sub_regions_upload_url ? sub_regions_file!.originalname : ""
                 },
                 tdei_project_group_id: '',
                 user_id: user_id
@@ -1022,8 +1096,8 @@ class OswService implements IOswService {
                 job_id: job_id.toString(),
                 user_id: user_id,
                 file_url: dataset.latest_dataset_url,
-                algorithms: algorithms,
-                persist: persist
+                algorithm: algorithm,
+                sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : ""
             };
 
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -1033,6 +1107,54 @@ class OswService implements IOswService {
         } catch (error) {
             console.log('Error calculating quality metric ', error);
             return Promise.reject(error);
+        }
+    }
+
+    /**
+    * Processes a inclination request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
+    * @param backendRequest The backend request to process.
+    * @returns A Promise that resolves to a string representing the job ID.
+    * @throws Throws an error if an error occurs during processing.
+    */
+    async calculateInclination(backendRequest: InclinationServiceRequest): Promise<string> {
+        try {
+
+            //Only if backendRequest.parameters.target_dataset_id id in pre-release status
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.dataset_id);
+            if (dataset.status !== RecordStatus["Pre-Release"])
+                throw new InputException(`Dataset ${backendRequest.parameters.dataset_id} is not in Pre-Release state. Dataset incline tagging request allowed in Pre-Release state only.`);
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Incline-Tag"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    user_id: backendRequest.user_id,
+                    dataset_id: backendRequest.parameters.dataset_id
+                },
+                tdei_project_group_id: '',
+                user_id: backendRequest.user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            let workflow_start = WorkflowName.osw_dataset_incline_tag;
+            let workflow_input = {
+                job_id: job_id.toString(),
+                user_id: backendRequest.user_id,
+                dataset_url: dataset.latest_dataset_url,
+                metadata_url: dataset.metadata_url,
+                changeset_url: dataset.changeset_url,
+                tdei_project_group_id: dataset.tdei_project_group_id,
+                tdei_dataset_id: dataset.tdei_dataset_id
+            };
+            //Trigger the workflow
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, backendRequest.user_id);
+
+            return Promise.resolve(job_id.toString());
+        } catch (error) {
+            throw error;
         }
     }
 }

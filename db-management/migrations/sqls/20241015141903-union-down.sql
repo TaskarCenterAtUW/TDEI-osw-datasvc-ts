@@ -1,0 +1,1 @@
+DROP FUNCTION CONTENT.tdei_union_dataset(character varying, character varying);

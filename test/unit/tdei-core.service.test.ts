@@ -9,6 +9,10 @@ import { DatasetDTO } from "../../src/model/dataset-dto";
 import { ServiceEntity } from "../../src/database/entity/service-entity";
 import { DatasetQueryParams, RecordStatus } from "../../src/model/dataset-get-query-params";
 import { IDatasetCloneRequest } from "../../src/model/request-interfaces";
+import fetchMock from "jest-fetch-mock";
+import { MetadataModel } from "../../src/model/metadata.model";
+import { TDEIDataType } from "../../src/model/jobs-get-query-params";
+import { TdeiDate } from "../../src/utility/tdei-date";
 
 // group test using describe
 describe("TDEI core Service Test", () => {
@@ -400,5 +404,203 @@ describe("TDEI core Service Test", () => {
             expect(dbspy).toHaveBeenCalledWith(expect.any(Object));
         });
     });
+
+    describe("recover-password", () => {
+        test("should send password recovery email", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 200,
+                text: () => Promise.resolve('true'),
+            }));
+            // Act
+            const result = await tdeiCoreService.recoverPassword(email);
+
+            // Assert
+            expect(result).toBe(true);
+        });
+
+        test("should throw an error if email not found", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 404,
+                text: () => Promise.resolve('User not found'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.recoverPassword(email)).rejects.toThrow(
+                "User not found"
+            );
+
+        });
+
+        test("should throw an error if password recovery email fails", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 500,
+                text: () => Promise.resolve('Internal server error'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.recoverPassword(email)).rejects.toThrow(
+                "Internal server error"
+            );
+
+        });
+    });
+
+    describe("verify email", () => {
+        test("should send email verification link", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 200,
+                text: () => Promise.resolve('true'),
+            }));
+            // Act
+            const result = await tdeiCoreService.verifyEmail(email);
+
+            // Assert
+            expect(result).toBe(true);
+        });
+
+        test("should throw an error if email not found", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 404,
+                text: () => Promise.resolve('User not found'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.verifyEmail(email)).rejects.toThrow(
+                "User not found"
+            );
+
+        });
+
+        test("should throw an error if email verification link sending fails", async () => {
+            // Arrange
+            const email = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 500,
+                text: () => Promise.resolve('Internal server error'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.verifyEmail(email)).rejects.toThrow(
+                "Internal server error"
+            );
+
+        });
+    });
+
+    describe('validateMetadata', () => {
+        it('should throw an InputException if the metadata is invalid', async () => {
+            // Arrange
+            const metadata = new MetadataModel();
+            metadata.dataset_detail.schema_version = "v0.1"; // Invalid schema version
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw)).rejects.toThrow(InputException);
+        });
+
+        it('should throw an InputException if the data type is not supported', async () => {
+            // Arrange
+            const metadata = new MetadataModel();
+            metadata.dataset_detail.schema_version = "v0.2"; // Valid schema version
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, "invalid-data-type" as any)).rejects.toThrow(InputException);
+        });
+
+        it('Support polygon dataset area, should return valid metadata', async () => {
+            // Arrange
+            let metadata = MetadataModel.from({});
+            metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSample()));
+            jest.spyOn(tdeiCoreService, "checkMetaNameAndVersionUnique").mockResolvedValue(false);
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw, 'tdei_dataset_id')).resolves.toBeTruthy();
+        });
+
+        it('Support multi polygon dataset area, should return valid metadata', async () => {
+            // Arrange
+            let metadata = MetadataModel.from({});
+            metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSampleMultiPolygon()));
+            jest.spyOn(tdeiCoreService, "checkMetaNameAndVersionUnique").mockResolvedValue(false);
+
+            // Act & Assert
+            await expect(tdeiCoreService.validateMetadata(metadata, TDEIDataType.osw, 'tdei_dataset_id')).resolves.toBeTruthy();
+        });
+    });
+
+    describe('validateDatasetDates', () => {
+        it('should throw an error if valid_from or valid_to is missing', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = undefined as any;
+            dataset.valid_to = undefined as any;
+
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow('Valid from and valid to dates are required for publishing the dataset.');
+        });
+
+        it('should throw an error if valid_from date is invalid', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = 'invalid-date' as any;
+            dataset.valid_to = '2023-12-31' as any;
+
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValueOnce(false);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow('Invalid valid_from date.');
+        });
+
+        it('should throw an error if valid_to date is invalid', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = '2023-12-31' as any;
+            dataset.valid_to = 'invalid-date' as any;
+
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValueOnce(true).mockReturnValueOnce(false);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow('Invalid valid_to date.');
+        });
+
+        it('should throw an error if valid_from is greater than valid_to', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = '2023-12-31' as any;
+            dataset.valid_to = '2023-01-01' as any;
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);
+            jest.spyOn(TdeiDate, 'UTC').mockImplementation(date => (new Date(date!)).toISOString());
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow('Invalid valid_from date. valid_from should be less than or equal to valid_to.');
+        });
+
+        it('should throw an error if valid_to is less than valid_from', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = '2023-01-01' as any;
+            dataset.valid_to = '2022-12-31' as any;
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);
+            jest.spyOn(TdeiDate, 'UTC').mockImplementation(date => (new Date(date!)).toISOString());
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).toThrow(InputException);
+        });
+
+        it('should not throw an error for valid dates', () => {
+            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            dataset.valid_from = '2023-01-01' as any;
+            dataset.valid_to = '2023-12-31' as any;
+            jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);
+            jest.spyOn(TdeiDate, 'UTC').mockImplementation(date => (new Date(date!)).toISOString());
+            expect(() => tdeiCoreService.validateDatasetDates(dataset)).not.toThrow();
+        });
+    });
+
 });
 

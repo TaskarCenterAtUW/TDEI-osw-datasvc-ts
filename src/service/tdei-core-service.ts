@@ -26,11 +26,105 @@ import { WorkflowName } from "../constants/app-constants";
 import { CreateJobDTO } from "../model/job-dto";
 import jobService from "./job-service";
 import appContext from "../app-context";
+import { environment } from "../environment/environment";
+import fetch from "node-fetch";
 
 const ajv = new Ajv({ allErrors: true });
 const metadataValidator = ajv.compile(metaschema);
 class TdeiCoreService implements ITdeiCoreService {
     constructor() { }
+
+    /*
+     Send the email to the user with the password recovery link
+     *@param email - The email of the user
+     */
+    async verifyEmail(email: string): Promise<Boolean> {
+        try {
+            let requestBody = {
+                "username": email,
+                "email_actions": [
+                    "VERIFY_EMAIL"
+                ]
+            }
+            const result = await fetch(environment.triggerEmailUrl as string, {
+                method: 'post',
+                body: JSON.stringify(requestBody),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            let data;
+            try {
+                data = await result.text();
+                try {
+                    data = JSON.parse(data);
+                } catch (e) {
+                    // data is not JSON, so leave it as text
+                }
+            } catch (e) {
+                console.error('Failed to parse result', e);
+            }
+
+            if (result.status != undefined && result.status != 200)
+                throw new HttpException(result.status, data);
+
+            return Boolean(data);
+        } catch (error: any) {
+            console.error(error);
+            if (error instanceof HttpException) {
+                if (error.status == 404)
+                    throw new InputException("User not found");
+                throw error;
+            }
+
+            throw new Error("Error while sending the email verification link");
+        }
+    }
+
+    /*
+     Send the email to the user with the password recovery link
+     *@param email - The email of the user
+     */
+    async recoverPassword(email: string): Promise<Boolean> {
+        try {
+            let requestBody = {
+                "username": email,
+                "email_actions": [
+                    "UPDATE_PASSWORD"
+                ]
+            }
+            const result = await fetch(environment.triggerEmailUrl as string, {
+                method: 'post',
+                body: JSON.stringify(requestBody),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            let data;
+            try {
+                data = await result.text();
+                try {
+                    data = JSON.parse(data);
+                } catch (e) {
+                    // data is not JSON, so leave it as text
+                }
+            } catch (e) {
+                console.error('Failed to parse result', e);
+            }
+
+            if (result.status != undefined && result.status != 200)
+                throw new HttpException(result.status, data);
+
+            return Boolean(data);
+        } catch (error: any) {
+            console.error(error);
+            if (error instanceof HttpException) {
+                if (error.status == 404)
+                    throw new InputException("User not found");
+                throw error;
+            }
+
+            throw new Error("Error while sending the password recovery email");
+        }
+    }
 
     /**
      * Edits the metadata of a TDEI dataset.
@@ -48,8 +142,26 @@ class TdeiCoreService implements ITdeiCoreService {
         await this.validateMetadata(metadata, data_type, tdei_dataset_id);
         //Date handling
         metadata.dataset_detail.collection_date = TdeiDate.UTC(metadata.dataset_detail.collection_date);
-        metadata.dataset_detail.valid_from = TdeiDate.UTC(metadata.dataset_detail.valid_from);
-        metadata.dataset_detail.valid_to = TdeiDate.UTC(metadata.dataset_detail.valid_to);
+
+        //Valid from and valid to fields are mandatory when record in publish state
+        if (dataset_to_be_edited.status == RecordStatus["Publish"] &&
+            (!metadata.dataset_detail.valid_from || !metadata.dataset_detail.valid_to)) {
+            {
+                throw new InputException(`Valid from and valid to dates are required for publishing the dataset.`);
+            }
+        }
+
+        if (metadata.dataset_detail.valid_from && metadata.dataset_detail.valid_to?.trim() != "")
+            metadata.dataset_detail.valid_from = TdeiDate.UTC(metadata.dataset_detail.valid_from);
+        else
+            metadata.dataset_detail.valid_from = null;
+
+        if (metadata.dataset_detail.valid_to && metadata.dataset_detail.valid_to?.trim() != "")
+            metadata.dataset_detail.valid_to = TdeiDate.UTC(metadata.dataset_detail.valid_to);
+        else
+            metadata.dataset_detail.valid_to = null;
+
+
         //Update the metadata
         const query = {
             text: 'UPDATE content.dataset SET metadata_json = $1, updated_at = CURRENT_TIMESTAMP , updated_by = $2 WHERE tdei_dataset_id = $3',
@@ -150,6 +262,25 @@ class TdeiCoreService implements ITdeiCoreService {
         return true;
     }
 
+    /*
+       Validates the dataset dates.
+       @param dataset - The dataset to validate.
+       @throws {InputException}
+       */
+    validateDatasetDates(dataset: DatasetEntity): Boolean {
+        if (!dataset.valid_from || !dataset.valid_to)
+            throw new InputException(`Valid from and valid to dates are required for publishing the dataset.`);
+        if (!TdeiDate.isValid(dataset.valid_from))
+            throw new InputException(`Invalid valid_from date.`);
+        if (!TdeiDate.isValid(dataset.valid_to))
+            throw new InputException(`Invalid valid_to date.`);
+        if (TdeiDate.UTC(dataset.valid_from) > TdeiDate.UTC(dataset.valid_to))
+            throw new InputException(`Invalid valid_from date. valid_from should be less than or equal to valid_to.`);
+        if (TdeiDate.UTC(dataset.valid_to) < TdeiDate.UTC(dataset.valid_from))
+            throw new InputException(`Invalid valid_to date. valid_to should be greater than or equal to valid_from.`);
+
+        return true;
+    }
 
     /**
      * Retrieves datasets based on the provided user ID and query parameters.
@@ -384,10 +515,10 @@ class TdeiCoreService implements ITdeiCoreService {
         const result = await dbClient.query(query);
 
         if (result.rowCount == 0)
-            throw new HttpException(404, `Record with id: ${id} not found`);
+            throw new HttpException(404, `Dataset with id: ${id} not found`);
 
         if (result.rows[0].status == "Deleted")
-            throw new HttpException(400, `Requested record with id: ${id} is invalid / deleted`);
+            throw new HttpException(400, `Requested dataset with id: ${id} is invalid / deleted`);
 
         const record = result.rows[0];
         const osw = DatasetEntity.from(record);
@@ -675,6 +806,38 @@ class TdeiCoreService implements ITdeiCoreService {
             if (result.rows.length == 0) {
                 throw new InputException("User does not have permission to clone the dataset");
             }
+        }
+    }
+
+    /**
+     * Fetches the system metrics
+     */
+    async getSystemMetrics(): Promise<any> {
+        try {
+            const query = {
+                text: 'SELECT * FROM content.tdei_fetch_system_metrics()',
+            };
+            var result = await dbClient.query(query);
+            return result.rows[0].tdei_fetch_system_metrics;
+        } catch (error: any) {
+            console.error(error);
+            throw new Error("Error fetching the system metrics");
+        }
+    }
+
+    /**
+    * Fetches the data metrics
+    */
+    async getDataMetrics(): Promise<any> {
+        try {
+            const query = {
+                text: 'SELECT * FROM content.tdei_fetch_data_metrics()',
+            };
+            var result = await dbClient.query(query);
+            return result.rows[0].tdei_fetch_data_metrics;
+        } catch (error: any) {
+            console.error(error);
+            throw new Error("Error fetching the data metrics");
         }
     }
 }

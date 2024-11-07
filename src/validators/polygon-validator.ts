@@ -27,8 +27,8 @@ export class isPolygon implements ValidatorConstraintInterface {
             this.message = ["Please specify polygon geometry feature."];
             return false;
         }
-        else if (featureCollection.features[0].geometry.type != "Polygon") {
-            this.message = ["Please specify polygon geometry feature."];
+        else if (featureCollection.features[0].geometry.type != "MultiPolygon" && featureCollection.features[0].geometry.type != "Polygon") {
+            this.message = ["Please specify feature geometry."];
             return false;
         }
 

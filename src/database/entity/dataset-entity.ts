@@ -82,6 +82,9 @@ export class DatasetEntity extends BaseDto {
     @Prop()
     @IsOptional()
     dataset_osm_download_url!: string;
+    @Prop()
+    @IsOptional()
+    upload_file_size_bytes!: number;
 
     constructor(init?: Partial<DatasetEntity>) {
         super();
@@ -109,8 +112,9 @@ export class DatasetEntity extends BaseDto {
                 metadata_url,
                 updated_by,
                 latest_dataset_url,
-                metadata_json)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`.replace(/\n/g, ""),
+                metadata_json,
+                upload_file_size_bytes)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`.replace(/\n/g, ""),
             values: [this.tdei_dataset_id, this.tdei_service_id, this.tdei_project_group_id, this.data_type,
             this.dataset_url
                 , this.uploaded_by,
@@ -121,7 +125,8 @@ export class DatasetEntity extends BaseDto {
             this.metadata_url,
             this.updated_by,
             this.dataset_url,
-            this.metadata_json]
+            this.metadata_json,
+            this.upload_file_size_bytes ?? null]
         }
         return queryObject;
     }
@@ -227,21 +232,21 @@ export class DatasetEntity extends BaseDto {
     *  Same ord_id and service_id with the following condition
     *  input_valid_from >= record_valid_from && input_valid_to 
     */
-    getOverlapQuery(data_type: string, tdei_project_group_id: string, tdei_service_id: string): QueryConfig {
-        const fromDate = TdeiDate.UTC(this.valid_from);
-        const toDate = this.valid_to ? TdeiDate.UTC(this.valid_to) : TdeiDate.UTC();
+    // getOverlapQuery(data_type: string, tdei_project_group_id: string, tdei_service_id: string): QueryConfig {
+    //     const fromDate = TdeiDate.UTC(this.valid_from);
+    //     const toDate = this.valid_to ? TdeiDate.UTC(this.valid_to) : TdeiDate.UTC();
 
-        const queryObject = {
-            text: `SELECT ov.tdei_dataset_id from content.dataset ov
-            WHERE 
-            ov.status = 'Publish'
-            AND ov.data_type = $1
-            AND ov.tdei_project_group_id = $2 
-            AND ov.tdei_service_id = $3 
-            AND (ov.valid_from,ov.valid_to) OVERLAPS ($4 , $5)`,
-            values: [data_type, tdei_project_group_id, tdei_service_id, fromDate, toDate]
-        };
-        return queryObject;
-    }
+    //     const queryObject = {
+    //         text: `SELECT ov.tdei_dataset_id from content.dataset ov
+    //         WHERE 
+    //         ov.status = 'Publish'
+    //         AND ov.data_type = $1
+    //         AND ov.tdei_project_group_id = $2 
+    //         AND ov.tdei_service_id = $3 
+    //         AND (ov.valid_from,ov.valid_to) OVERLAPS ($4 , $5)`,
+    //         values: [data_type, tdei_project_group_id, tdei_service_id, fromDate, toDate]
+    //     };
+    //     return queryObject;
+    // }
 
 }

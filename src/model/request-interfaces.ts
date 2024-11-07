@@ -59,3 +59,24 @@ export class SpatialJoinRequest extends AbstractDomainEntity {
         return true;
     }
 }
+
+
+export class UnionRequest extends AbstractDomainEntity {
+
+    @Prop()
+    @IsNotEmpty()
+    tdei_dataset_id_one!: string;
+    @Prop()
+    @IsNotEmpty()
+    tdei_dataset_id_two!: string;
+
+    async validateRequestInput() {
+        let errors = await validate(this);
+        if (errors.length > 0) {
+            console.log('Input validation failed');
+            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            throw new InputException(`Required fields are missing or invalid: ${message}`);
+        }
+        return true;
+    }
+}

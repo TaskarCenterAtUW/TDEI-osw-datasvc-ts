@@ -1,11 +1,20 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { IUploadRequest } from "./upload-request-interface";
-import { BboxServiceRequest, TagRoadServiceRequest } from "../../model/backend-request-interface";
+import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } from "../../model/backend-request-interface";
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
-import { SpatialJoinRequest } from "../../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest } from "../../model/request-interfaces";
 
 export interface IOswService {
+
+    /**
+     * Processes a union join request.
+     * 
+     * @param user_id - The ID of the user making the request.
+     * @param requestService - The union join request.
+     * @returns The job_id of the union join request.
+     */
+    processUnionRequest(user_id: string, requestService: UnionRequest): Promise<string>;
 
     /**
      * Processes a dataset tagging request.
@@ -83,12 +92,12 @@ export interface IOswService {
      * Calculates the quality metric for a given TDEI dataset.
      * 
      * @param tdei_dataset_id - The ID of the TDEI dataset.
-     * @param algorithms - The algorithms to use for calculating the quality metric.
-     * @param persist - The persist flag.
+     * @param algorithm - The algorithm to use for calculating the quality metric.
+     * @param sub_regions_file - (Optional) The sub-regions file to be used for calculating the quality metric.
      * @returns A Promise that resolves to the ID of the created job.
      * @throws If there is an error calculating the quality metric.
      */
-    calculateQualityMetric(tdei_dataset_id: string, algorithms: string[], persist: any, user_id: string): Promise<string>;
+    calculateQualityMetric(tdei_dataset_id: string, algorithm: string, sub_regions_file: any, user_id: string): Promise<string>;
 
     /**
      * Retrieves the OswStream by its ID.
@@ -142,4 +151,14 @@ export interface IOswService {
      * @throws Throws an error if an error occurs during processing.
      */
     processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
+
+
+    /**
+     * Calculates inclination for a given TDEI dataset.
+     * 
+     * @param backendRequest The backend request to process.
+     * @returns A Promise that resolves to a string representing the job ID.
+     * @throws Throws an error if an error occurs during processing.
+     */
+    calculateInclination(backendRequest: InclinationServiceRequest): Promise<string>;
 }
