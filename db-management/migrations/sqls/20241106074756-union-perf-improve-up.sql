@@ -76,7 +76,7 @@ BEGIN
 	JOIN content.node AS R   
 	ON U.tdei_dataset_id = SRC_ONE_TDEI_DATASET_ID
 	   AND R.tdei_dataset_id = SRC_TWO_TDEI_DATASET_ID
-	   AND ST_DWithin(ST_Transform(U.node_loc_3857, 3857), ST_Transform(R.node_loc_3857, 3857), 0.5);
+	   AND ST_DWithin(U.node_loc_3857, R.node_loc_3857, 0.5);
 	
 	
 	CREATE TEMP TABLE witness_nodes ON COMMIT DROP AS
