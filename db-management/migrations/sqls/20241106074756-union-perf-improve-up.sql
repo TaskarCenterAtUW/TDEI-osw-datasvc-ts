@@ -1,40 +1,56 @@
--- ALTER TABLE content.edge
--- ADD COLUMN IF NOT EXISTS edge_loc_3857 geometry(LineString, 3857) 
---     GENERATED ALWAYS AS (
---         ST_Transform(
---             ST_GeomFromGeoJSON(feature ->> 'geometry'),
---             3857
---         )
---     ) STORED;
-	
--- CREATE INDEX IF NOT EXISTS idx_edge_loc_gist ON content.edge USING GIST (edge_loc_3857);
+--Area_union column is redundant. This was introduced to keep for future calculations.
+ALTER TABLE content.osw_stats DROP COLUMN IF EXISTS area_union;
 
--- ALTER TABLE content.node
--- ADD COLUMN IF NOT EXISTS node_loc_3857 geometry(Point, 3857) 
---     GENERATED ALWAYS AS (
---         CASE 
---             WHEN (ST_X(ST_SetSRID(ST_GeomFromGeoJSON(feature ->> 'geometry'), 4326)) BETWEEN -180 AND 180)
---              AND (ST_Y(ST_SetSRID(ST_GeomFromGeoJSON(feature ->> 'geometry'), 4326)) BETWEEN -90 AND 90)
---             THEN  ST_Transform(
---             ST_GeomFromGeoJSON(feature ->> 'geometry'),
---             3857
---         )
---         ELSE NULL
---         END
---     ) STORED;
-	
--- CREATE INDEX IF NOT EXISTS idx_node_loc_gist ON content.node USING GIST (node_loc_3857);
+-- Renaming the existing indexes to have proper names
+ALTER INDEX IF EXISTS content.idx_edge_location RENAME TO idx_edge_loc_4326_gist;
+ALTER INDEX IF EXISTS content.idx_nodes_location RENAME TO idx_node_loc_4326_gist;
+ALTER INDEX IF EXISTS content.idx_zone_location RENAME TO idx_zone_loc_4326_gist;
 
--- ALTER TABLE content.zone
--- ADD COLUMN IF NOT EXISTS zone_loc_3857 geometry(Polygon, 3857) 
---     GENERATED ALWAYS AS (
---         ST_Transform(
---             ST_GeomFromGeoJSON(feature ->> 'geometry'),
---             3857
---         )
---     ) STORED;
+-- Adding new indexes to improve the performance queries
+CREATE INDEX IF NOT EXISTS idx_tdei_edge_dataset_id  ON content.edge  (tdei_dataset_id);
+CREATE INDEX IF NOT EXISTS idx_tdei_node_dataset_id  ON content.node  (tdei_dataset_id);
+CREATE INDEX IF NOT EXISTS idx_tdei_zone_dataset_id  ON content.zone  (tdei_dataset_id);
+
+-- Adding new columns to store the geometry in 3857 SRID
+ALTER TABLE content.edge
+ADD COLUMN IF NOT EXISTS edge_loc_3857 geometry(LineString, 3857) 
+    GENERATED ALWAYS AS (
+        ST_Transform(
+            ST_GeomFromGeoJSON(feature ->> 'geometry'),
+            3857
+        )
+    ) STORED;
 	
--- CREATE INDEX IF NOT EXISTS idx_zone_loc_gist ON content.zone USING GIST (zone_loc_3857);
+CREATE INDEX IF NOT EXISTS idx_edge_loc_3857_gist ON content.edge USING GIST (edge_loc_3857);
+
+-- Adding new columns to store the geometry in 3857 SRID
+ALTER TABLE content.node
+ADD COLUMN IF NOT EXISTS node_loc_3857 geometry(Point, 3857) 
+    GENERATED ALWAYS AS (
+        CASE 
+            WHEN (ST_X(ST_SetSRID(ST_GeomFromGeoJSON(feature ->> 'geometry'), 4326)) BETWEEN -180 AND 180)
+             AND (ST_Y(ST_SetSRID(ST_GeomFromGeoJSON(feature ->> 'geometry'), 4326)) BETWEEN -90 AND 90)
+            THEN  ST_Transform(
+            ST_GeomFromGeoJSON(feature ->> 'geometry'),
+            3857
+        )
+        ELSE NULL
+        END
+    ) STORED;
+	
+CREATE INDEX IF NOT EXISTS idx_node_loc_3857_gist ON content.node USING GIST (node_loc_3857);
+
+-- Adding new columns to store the geometry in 3857 SRID
+ALTER TABLE content.zone
+ADD COLUMN IF NOT EXISTS zone_loc_3857 geometry(Polygon, 3857) 
+    GENERATED ALWAYS AS (
+        ST_Transform(
+            ST_GeomFromGeoJSON(feature ->> 'geometry'),
+            3857
+        )
+    ) STORED;
+	
+CREATE INDEX IF NOT EXISTS idx_zone_loc_3857_gist ON content.zone USING GIST (zone_loc_3857);
 
 CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
 	src_one_tdei_dataset_id character varying,
@@ -59,7 +75,7 @@ BEGIN
 	JOIN content.node AS R   
 	ON U.tdei_dataset_id = SRC_ONE_TDEI_DATASET_ID
 	   AND R.tdei_dataset_id = SRC_TWO_TDEI_DATASET_ID
-	   AND ST_DWithin(ST_Transform(U.node_loc, 3857), ST_Transform(R.node_loc, 3857), 0.5);
+	   AND ST_DWithin(ST_Transform(U.node_loc_3857, 3857), ST_Transform(R.node_loc_3857, 3857), 0.5);
 	
 	
 	CREATE TEMP TABLE witness_nodes ON COMMIT DROP AS
@@ -431,5 +447,84 @@ BEGIN
 	DROP TABLE IF EXISTS edge_loc_start_end;
      
 RETURN;
+END;
+$BODY$;
+
+
+
+--Replacing the 4326 location with 3857 coputed column to avoid the transformation in the query
+CREATE OR REPLACE FUNCTION content.tdei_update_osw_stats(
+	p_tdei_dataset_id character varying)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE
+    batch_size INT := 5000;
+    total_batches INT;
+    final_area REAL := 0;
+	final_union geometry;
+    union_set geometry;
+    batch_number INT := 0;
+BEGIN
+    final_union := null;
+    
+	total_batches := GREATEST(CEIL((SELECT COUNT(*) FROM content.node WHERE tdei_dataset_id = p_tdei_dataset_id) / batch_size), 1); 
+	
+	WITH
+	osw_dataset_edges_cte AS (
+            SELECT 
+            count(*) as num_edges,
+            SUM(CASE WHEN footway = 'sidewalk' THEN 1 ELSE 0 END) AS num_sidewalks,
+            SUM(CASE WHEN footway = 'sidewalk' THEN length ELSE 0 END) AS length_of_sidewalks_mtr,
+            SUM(CASE WHEN footway = 'crossing' THEN 1 ELSE 0 END) AS num_crossings
+            FROM content.edge WHERE tdei_dataset_id = p_tdei_dataset_id
+        ),
+         osw_dataset_nodes_cte AS (
+            SELECT COUNT(*) as num_nodes,
+            SUM(CASE WHEN barrier = 'kerb' THEN 1 ELSE 0 END) AS num_kerbs
+            FROM content.node WHERE tdei_dataset_id = p_tdei_dataset_id
+        )
+	    INSERT INTO content.osw_stats (tdei_dataset_id, num_crossings, length_of_sidewalks_mtr, num_edges, num_nodes, num_kerbs)
+		SELECT p_tdei_dataset_id, num_crossings, length_of_sidewalks_mtr, num_edges, num_nodes, num_kerbs
+		FROM osw_dataset_edges_cte, osw_dataset_nodes_cte
+		ON CONFLICT (tdei_dataset_id)
+		DO UPDATE
+		SET num_crossings = EXCLUDED.num_crossings,
+			length_of_sidewalks_mtr = EXCLUDED.length_of_sidewalks_mtr,
+			num_edges = EXCLUDED.num_edges,
+			num_nodes = EXCLUDED.num_nodes,
+			num_kerbs = EXCLUDED.num_kerbs;
+	
+    WHILE batch_number < total_batches LOOP
+        SELECT ST_Union(ST_Buffer(edge_loc_3857, 8))
+        INTO union_set
+        FROM (
+            SELECT edge_loc_3857
+            FROM content.edge
+            WHERE tdei_dataset_id = p_tdei_dataset_id 
+			AND ST_IsValid(edge_loc) AND ST_Envelope(edge_loc) && ST_MakeEnvelope(-180, -90, 180, 90, 4326)
+            ORDER BY id
+            LIMIT batch_size OFFSET batch_number * batch_size
+        ) AS batch_edges;
+
+        IF union_set IS NOT NULL THEN
+            IF final_union IS NULL THEN
+                final_union := union_set;
+            ELSE
+				final_union := ST_Union(final_union, union_set);                 
+			END IF;
+        END IF;
+
+        batch_number := batch_number + 1;
+    END LOOP;
+
+    UPDATE content.osw_stats
+    SET 
+	area_km2 = ST_Area(final_union)/1000000 -- km2
+    WHERE tdei_dataset_id = p_tdei_dataset_id;
+
+--     RAISE NOTICE 'OSW stats updated successfully for dataset id: %', p_tdei_dataset_id;
 END;
 $BODY$;
