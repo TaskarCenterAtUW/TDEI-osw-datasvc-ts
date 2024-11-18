@@ -52,6 +52,7 @@ ADD COLUMN IF NOT EXISTS zone_loc_3857 geometry(Polygon, 3857)
 	
 CREATE INDEX IF NOT EXISTS idx_zone_loc_3857_gist ON content.zone USING GIST (zone_loc_3857);
 
+--Replacing the 4326 location with 3857 computed column to avoid the transformation in the query
 CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
 	src_one_tdei_dataset_id character varying,
 	src_two_tdei_dataset_id character varying)
@@ -452,7 +453,7 @@ $BODY$;
 
 
 
---Replacing the 4326 location with 3857 coputed column to avoid the transformation in the query
+--Replacing the 4326 location with 3857 computed column to avoid the transformation in the query
 CREATE OR REPLACE FUNCTION content.tdei_update_osw_stats(
 	p_tdei_dataset_id character varying)
     RETURNS void
