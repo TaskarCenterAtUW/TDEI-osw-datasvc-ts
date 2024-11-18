@@ -138,7 +138,6 @@ class OSWController implements IController {
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
         this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), authenticate, this.calculateConfidence); // Confidence calculation
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        // this.router.post(`${this.path}/dataset-flatten/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processFlatteningRequest);
         this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
         this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
         this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
@@ -260,7 +259,7 @@ class OSWController implements IController {
             let apiKey = request.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
-                return next(new UnAuthenticated());
+                return next(new ForbiddenAccess());
             }
 
             //Authorize
@@ -322,6 +321,10 @@ class OSWController implements IController {
         try {
             let format = request.query.format as string ?? 'osw';
             let file_version = request.query.file_version as string ?? 'latest';
+
+            if (!["osw", "osm"].includes(format)) {
+                throw new InputException("Invalid file format value");
+            }
 
             if (!["latest", "original"].includes(file_version)) {
                 throw new InputException("Invalid file_version value");
@@ -411,9 +414,21 @@ class OSWController implements IController {
         try {
 
             const requestService = JSON.parse(JSON.stringify(request.query));
-            if (!requestService && !requestService.tdei_dataset_id && !requestService.bbox) {
+            if (!requestService || !requestService.tdei_dataset_id || !requestService.bbox) {
+                //return which input is missing
                 return next(new InputException('required input is empty', response));
             }
+
+            if (!Array.isArray(requestService.bbox)) {
+                if (typeof requestService.bbox === 'string') {
+                    requestService.bbox = requestService.bbox.split(',').map(Number);
+                }
+
+                if (!Array.isArray(requestService.bbox) || requestService.bbox.length !== 4) {
+                    throw new InputException('bbox should be an array of 4 elements', response);
+                }
+            }
+
             let backendRequest: BboxServiceRequest = {
                 user_id: request.body.user_id,
                 service: "bbox_intersect",
@@ -423,7 +438,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.processBackendRequest(backendRequest, requestService.file_type);
+            let job_id = await oswService.processBboxRequest(backendRequest, requestService.file_type);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
@@ -543,10 +558,10 @@ class OSWController implements IController {
             if (uploadedFile == undefined) {
                 throw new InputException("Missing upload file input");
             }
-            let source = request.body['source']; //TODO: Validate the input enums 
-            let target = request.body['target'];
+            let source = request.body['source_format']; //TODO: Validate the input enums 
+            let target = request.body['target_format'];
 
-            if (!["osw", "osm"].includes(target) && !["osw", "osm"].includes(source)) {
+            if (!["osw", "osm"].includes(target) || !["osw", "osm"].includes(source)) {
                 throw new InputException("Invalid source/target value");
             }
 
@@ -619,7 +634,7 @@ class OSWController implements IController {
             let apiKey = request.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
-                return next(new UnAuthenticated());
+                return next(new ForbiddenAccess());
             }
 
             //Authorize

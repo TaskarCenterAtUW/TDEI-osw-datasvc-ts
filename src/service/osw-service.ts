@@ -127,7 +127,8 @@ class OswService implements IOswService {
       * @throws If there is an error processing the tagging request.
       */
     async calculateTagQualityMetric(tdei_dataset_id: string, tagFile: any, user_id: string): Promise<any> {
-
+        //Check dataset exists
+        await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
         const tagFileBuffer = JSON.parse(tagFile!.buffer);
 
         Utility.checkForSqlInjection(tagFileBuffer);
@@ -300,7 +301,8 @@ class OswService implements IOswService {
     */
     async processDatasetTagRoadRequest(backendRequest: TagRoadServiceRequest): Promise<string> {
         try {
-
+            // check if source dataset exisits
+            await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.source_dataset_id);
             //Only if backendRequest.parameters.target_dataset_id id in pre-release status
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.target_dataset_id);
             if (dataset.status !== RecordStatus["Pre-Release"])
@@ -536,7 +538,7 @@ class OswService implements IOswService {
         try {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
 
-            if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+            if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
 
             if (dataset.status === RecordStatus.Publish)
@@ -609,93 +611,18 @@ class OswService implements IOswService {
     }
 
     /**
-     * Processes a dataset flattening request.
-     * 
-     * @param user_id - The ID of the user making the request.
-     * @param tdei_dataset_id - The ID of the TDEI dataset.
-     * @param override - A boolean indicating whether to override existing records.
-     * @returns A Promise that resolves to a string representing the job ID.
-     * @throws {InputException} If the request is prohibited while the record is in the Publish state or if the dataset is already flattened without the override flag.
-     */
-    // async processDatasetFlatteningRequest(user_id: string, tdei_dataset_id: string, override: boolean): Promise<string> {
-    //     try {
-    //         let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
-
-    //         if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
-    //             throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
-
-    //         if (dataset.status === 'Publish')
-    //             throw new InputException(`Request is prohibited while the record is in the Publish state.`);
-
-    //         if (!override) {
-    //             const checkRecordsQueryObject = {
-    //                 text: `SELECT id  
-    //                 from content.edge 
-    //                 WHERE 
-    //                 tdei_dataset_id = $1 LIMIT 1`.replace(/\n/g, ""),
-    //                 values: [tdei_dataset_id]
-    //             };
-
-    //             // Check if there is a record with the same date
-    //             const queryResult = await dbClient.query(checkRecordsQueryObject);
-    //             if (queryResult.rowCount && queryResult.rowCount > 0) {
-    //                 throw new InputException(`${tdei_dataset_id} already flattened. If you want to override, please use the override flag.`);
-    //             }
-    //         }
-    //         else {
-    //             //Delete the existing records
-    //             const deleteRecordsQueryObject = {
-    //                 text: `SELECT delete_dataset_records_by_id($1)`.replace(/\n/g, ""),
-    //                 values: [tdei_dataset_id]
-    //             };
-    //             await dbClient.query(deleteRecordsQueryObject);
-    //         }
-
-    //         let job = CreateJobDTO.from({
-    //             data_type: TDEIDataType.osw,
-    //             job_type: JobType["Dataset-Flatten"],
-    //             status: JobStatus["IN-PROGRESS"],
-    //             message: 'Job started',
-    //             request_input: {
-    //                 tdei_dataset_id: tdei_dataset_id
-    //             },
-    //             tdei_project_group_id: dataset.tdei_project_group_id,
-    //             user_id: user_id,
-    //         });
-
-    //         const job_id = await this.jobServiceInstance.createJob(job);
-
-    //         //Compose the meessage
-    //         let workflow_identifier = "ON_DEMAND_DATASET_FLATTENING_REQUEST_WORKFLOW";
-    //         let queueMessage = QueueMessage.from({
-    //             messageId: job_id.toString(),
-    //             messageType: workflow_identifier,
-    //             data: {
-    //                 data_type: "osw",
-    //                 file_upload_path: dataset.dataset_url,
-    //                 tdei_dataset_id: tdei_dataset_id
-    //             }
-    //         });
-
-    //         //Trigger the workflow
-    //         await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
-
-    //         return Promise.resolve(job_id.toString());
-    //     } catch (error) {
-    //         return Promise.reject(error);
-    //     }
-    // }
-
-    /**
      * Processes a backend request and returns a Promise that resolves to a string representing the job ID.
      * @param backendRequest The backend request to process.
      * @param file_type Output file type.
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
-    async processBackendRequest(backendRequest: BboxServiceRequest, file_type: string): Promise<string> {
+    async processBboxRequest(backendRequest: BboxServiceRequest, file_type: string): Promise<string> {
         try {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.tdei_dataset_id);
+            if (dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${backendRequest.parameters.tdei_dataset_id} is not a osw dataset.`);
+
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-BBox"],
@@ -836,7 +763,7 @@ class OswService implements IOswService {
 
                 const result = await dbClient.query(query);
                 if (result.rowCount == 0) {
-                    throw new InputException("Derived dataset id not found");
+                    throw new HttpException(404, "Derived dataset id not found");
                 }
             }
 
@@ -1056,7 +983,7 @@ class OswService implements IOswService {
     async calculateQualityMetric(tdei_dataset_id: string, algorithm: string, sub_regions_file: any, user_id: string): Promise<string> {
         try {
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
-            if (!dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+            if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
             // Check the input algorithm types
             if (algorithm.length == 0) {
