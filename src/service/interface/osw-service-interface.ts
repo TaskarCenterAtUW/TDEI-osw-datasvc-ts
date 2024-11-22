@@ -54,7 +54,7 @@ export interface IOswService {
      * @returns A Promise that resolves to a string representing the job ID.
      * @throws Throws an error if an error occurs during processing.
      */
-    processBackendRequest(backendRequest: BboxServiceRequest, file_type: string): Promise<string>;
+    processBboxRequest(backendRequest: BboxServiceRequest, file_type: string): Promise<string>;
     /**
     * Processes a dataset flattening request.
     * 

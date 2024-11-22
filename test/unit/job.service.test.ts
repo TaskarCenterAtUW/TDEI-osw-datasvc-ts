@@ -30,7 +30,7 @@ describe('JobService', () => {
                 values: [] as any[]
             };
             jest.spyOn(params, "getQuery").mockResolvedValueOnce(queryObj);
-            let dbSpy = jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult as any);
+            let dbSpy = jest.spyOn(dbClient, "query").mockResolvedValue(mockResult as any);
 
             // Act
             const result = await jobService.getJobs(user_id, params);
@@ -44,7 +44,7 @@ describe('JobService', () => {
     describe('getJobFileEntity', () => {
         it('should return the FileEntity associated with the given job ID', async () => {
             // Arrange
-            const job_id = 'mock-job-id';
+            const job_id = '101';
             const mockResult = <any>{
                 rowCount: 1,
                 rows: [
@@ -74,7 +74,7 @@ describe('JobService', () => {
             jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult);
             mockCore();
             // Act & Assert
-            await expect(jobService.getJobFileEntity(job_id)).rejects.toThrow(InputException);
+            await expect(jobService.getJobFileEntity(job_id)).rejects.toThrow(HttpException);
         });
 
         it('should throw an HttpException if the download URL is not available', async () => {

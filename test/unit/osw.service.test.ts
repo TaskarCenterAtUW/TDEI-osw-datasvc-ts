@@ -62,6 +62,14 @@ describe("OSW Service Test", () => {
                 },
             ];
 
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'pathways',
+                    dataset_url: 'dataset_url',
+                    metadata_url: 'metadata_url',
+                    changeset_url: 'changeset_url',
+                }));
+
             jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ rows: expectedMetrics });
 
@@ -93,7 +101,13 @@ describe("OSW Service Test", () => {
                 ]),
             };
             const user_id = "mock-user-id";
-
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'pathways',
+                    dataset_url: 'dataset_url',
+                    metadata_url: 'metadata_url',
+                    changeset_url: 'changeset_url',
+                }));
             let dbSpy = jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ rows: [] });
 
@@ -120,7 +134,13 @@ describe("OSW Service Test", () => {
                 ]),
             };
             const user_id = "mock-user-id";
-
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'pathways',
+                    dataset_url: 'dataset_url',
+                    metadata_url: 'metadata_url',
+                    changeset_url: 'changeset_url',
+                }));
             let dbSpy = jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ rows: [] });
 
@@ -138,6 +158,13 @@ describe("OSW Service Test", () => {
                 buffer: JSON.stringify([]),
             };
             const user_id = "mock-user-id";
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'pathways',
+                    dataset_url: 'dataset_url',
+                    metadata_url: 'metadata_url',
+                    changeset_url: 'changeset_url',
+                }));
             let dbSpy = jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ rows: [] });
             // Act & Assert
@@ -755,7 +782,7 @@ describe("OSW Service Test", () => {
     //     });
     // });
 
-    describe("processBackendRequest", () => {
+    describe("processBboxRequest", () => {
         test("Should create a backend job and trigger the workflow", async () => {
             // Arrange
             const backendRequest: BboxServiceRequest = {
@@ -779,7 +806,7 @@ describe("OSW Service Test", () => {
 
             mockAppContext();
             // Act
-            const result = await oswService.processBackendRequest(backendRequest, "osm");
+            const result = await oswService.processBboxRequest(backendRequest, "osm");
 
             // Assert
             expect(dbClient.query).toHaveBeenCalledTimes(1);
@@ -808,7 +835,7 @@ describe("OSW Service Test", () => {
             jest.spyOn(dbClient, "query").mockRejectedValueOnce(mockError);
 
             // Act & Assert
-            await expect(oswService.processBackendRequest(backendRequest, "osm")).rejects.toThrow(mockError);
+            await expect(oswService.processBboxRequest(backendRequest, "osm")).rejects.toThrow(mockError);
         });
     });
 
@@ -826,7 +853,7 @@ describe("OSW Service Test", () => {
             const dataset = {
                 status: RecordStatus["Publish"],
             } as any;
-            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
 
             // Act & Assert
             await expect(oswService.processDatasetTagRoadRequest(backendRequest)).rejects.toThrow(
@@ -873,7 +900,7 @@ describe("OSW Service Test", () => {
                 },
                 publishedDate: "2024-04-02T10:04:58.734Z"
             });
-            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce(dataset);
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
             jest.spyOn(oswService.jobServiceInstance, "createJob").mockResolvedValueOnce(job_id);
             mockAppContext();
 
