@@ -15,7 +15,7 @@ on:
       - '**'
     # Remove the line above to run when pushing to master
   pull_request:
-    branches: [ main, dev, stage ]
+    branches: [ master, dev, stage ]
 
 ###############
 # Set the Job #
@@ -77,7 +77,7 @@ jobs:
           else
             branch_name=$GITHUB_REF_NAME
           fi
-          if [[ $branch_name == "main" ]]; then
+          if [[ $branch_name == "master" ]]; then
             echo "output_folder=prod" >> $GITHUB_ENV
           elif [[ $branch_name == "stage" ]]; then
             echo "output_folder=stage" >> $GITHUB_ENV
