@@ -109,6 +109,6 @@ jobs:
           source_folder: 'test_results'
           destination_folder: '${{ env.output_folder }}'
           connection_string: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
-          container_name: 'extract-load-service'
+          container_name: 'osw-datasvc-ts-service'
           clean_destination_folder: false
           delete_if_exists: false
