@@ -169,3 +169,5 @@ tsconfig.nx-tmp
 /node_modules
 package-lock.json
 test-report.html
+test_results
+.idea/
