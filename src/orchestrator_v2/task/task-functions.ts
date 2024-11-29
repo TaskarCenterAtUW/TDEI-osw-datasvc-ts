@@ -7,7 +7,7 @@ export class OrchestratorFunctions {
     constructor() { }
 
 
-    public static async bbox_response_validation(input: any): Promise<any> {
+    public static async backed_service_response_validation(input: any): Promise<any> {
         try {
             if (input.success && input.file_upload_path.length == 0) {
                 //Terminate the workflow as no further processing is required
@@ -34,13 +34,13 @@ export class OrchestratorFunctions {
             else {
                 return Promise.resolve({
                     success: true,
-                    message: "Bbox response validated successfully"
+                    message: `${input.service} response validated successfully`
                 });
             }
         } catch (error) {
             return Promise.resolve({
                 success: false,
-                message: "Error while validating the bbox response"
+                message: `Error while validating the ${input.service} response`
             });
         }
     }
