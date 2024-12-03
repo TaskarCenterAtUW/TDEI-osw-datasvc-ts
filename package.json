@@ -11,7 +11,7 @@
     "test:coverage": "jest --coverage",
     "build": "rimraf ./build && tsc",
     "migrate": "npx db-migrate up",
-    "start": "npm run migrate && npm run build  && npm run copy:assets && node build/src/server.js",
+    "start": "npm run build  && npm run copy:assets && node build/src/server.js",
     "start-prod": "npm run migrate && node build/src/server.js",
     "start:dev": "nodemon",
     "copy:assets": "cp -r 'src/assets/' 'build/src/assets/'",
