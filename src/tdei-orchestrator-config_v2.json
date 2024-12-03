@@ -1278,22 +1278,6 @@
                     "function": "backed_service_response_validation"
                 },
                 {
-                    "name": "osw_compression_bbox",
-                    "task_reference_name": "osw_compression_bbox",
-                    "description": "Compressing the osw file",
-                    "type": "Event",
-                    "topic": "dataset-zip-request",
-                    "input_params": {
-                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)]) %>",
-                        "output_path": "<%=decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)%>.osw.zip"
-                    },
-                    "output_params": {
-                        "success": "<%=data.success%>",
-                        "message": "<%=data.message%>",
-                        "output_path": "<%=data.output_path%>"
-                    }
-                },
-                {
                     "name": "osm_bbox_job_db",
                     "task_reference_name": "osm_bbox_job_db",
                     "description": "Updating the job details",
@@ -1304,7 +1288,7 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "download_url": "<%=decodeURIComponent(tasks.osw_compression_bbox.output.output_path)%>",
+                            "download_url": "<%=decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path))%>",
                             "status": "COMPLETED",
                             "message": "Job Completed Successfully",
                             "updated_at": "CURRENT_TIMESTAMP"

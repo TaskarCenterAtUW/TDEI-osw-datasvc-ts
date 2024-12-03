@@ -75,10 +75,11 @@ BEGIN
 	FROM replaced_nodes l
 	LEFT OUTER JOIN content.node existing_node 
 	    ON l.loc && existing_node.node_loc AND ST_Equals(l.loc, existing_node.node_loc)
-	WHERE existing_node.id is not null
+	WHERE existing_node.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID) and existing_node.id is not null 
 	order by existing_node.node_id;
 	
 	CREATE INDEX ON new_export_nodes(id);
+	CREATE UNIQUE INDEX ON new_export_nodes(id);
 	------[END] Rebuild Nodes
 	
 	CREATE TEMP TABLE reconstruct_edge ON COMMIT DROP AS
@@ -196,6 +197,22 @@ BEGIN
 		CREATE INDEX idx_replaced_polygon_loc ON replaced_polygon USING GIST(loc);
 		CREATE INDEX idx_replaced_polygon_pid ON replaced_polygon(pid);
 
+		--Rebuild nodes
+		INSERT INTO new_export_nodes (id, loc, feature)
+		SELECT DISTINCT ON (existing_node.node_id) 
+		    existing_node.id AS id, 
+		    existing_node.node_loc AS loc, 
+		    existing_node.feature
+		FROM replaced_polygon l
+		LEFT OUTER JOIN content.node existing_node 
+		    ON l.loc && existing_node.node_loc AND ST_Equals(l.loc, existing_node.node_loc)
+		WHERE existing_node.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID)
+		  AND existing_node.id IS NOT NULL
+		ORDER BY existing_node.node_id
+		ON CONFLICT (id) DO NOTHING; 
+
+		--Rebuid nodes
+
 		CREATE TEMP TABLE makerings ON COMMIT DROP AS
 		SELECT l.pid AS id, l.ring, ST_MakeLine(l.loc ORDER BY ord DESC) AS ringloc
 		FROM replaced_polygon l
@@ -240,18 +257,18 @@ BEGIN
 		CREATE INDEX idx_joined_aid ON joined(aid);
 		CREATE INDEX idx_joined_bid ON joined(bid);
 
-		CREATE TEMP TABLE witness ON COMMIT DROP AS
+		CREATE TEMP TABLE witness_poly ON COMMIT DROP AS
 		SELECT MIN(aid) AS aid, bid
 		FROM joined
 		GROUP BY bid;
 		
-		CREATE INDEX idx_witness_aid ON witness(aid);
-		CREATE INDEX idx_witness_bid ON witness(bid);
+		CREATE INDEX idx_witness_aid ON witness_poly(aid);
+		CREATE INDEX idx_witness_bid ON witness_poly(bid);
 
 		CREATE TEMP TABLE conflatedpoly ON COMMIT DROP AS
 		SELECT id AS id FROM temp_repaired_polygon  -- all polys
 		EXCEPT
-		SELECT bid FROM witness; -- those that are mapped to a witness
+		SELECT bid FROM witness_poly; -- those that are mapped to a witness
 		
 		CREATE INDEX idx_conflatedpoly_id ON conflatedpoly(id);
 
