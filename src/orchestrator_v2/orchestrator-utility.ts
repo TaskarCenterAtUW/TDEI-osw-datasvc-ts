@@ -62,7 +62,7 @@ export class OrchestratorUtility {
             return finalObject;
         } catch (error) {
             console.error("Error while mapping props", error);
-            return null;
+            return new Error("Error while processing workflow");
         }
     }
 }

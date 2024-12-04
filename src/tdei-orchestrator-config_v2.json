@@ -1288,7 +1288,7 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "download_url": "<%=decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path))%>",
+                            "download_url": "<%=decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)%>",
                             "status": "COMPLETED",
                             "message": "Job Completed Successfully",
                             "updated_at": "CURRENT_TIMESTAMP"
