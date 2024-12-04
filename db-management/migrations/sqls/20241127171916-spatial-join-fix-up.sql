@@ -14,7 +14,7 @@ DECLARE
 BEGIN
 
     -- Execute the dynamic query to create a temporary table
-    EXECUTE 'CREATE TEMP TABLE temp_dataset_join_result AS ' || dynamic_query;
+    EXECUTE 'CREATE TEMP TABLE temp_dataset_join_result ON COMMIT DROP AS ' || dynamic_query;
 
 IF destination_element = 'edge' THEN
     -- Iterate over intersected edges
@@ -35,14 +35,14 @@ IF destination_element = 'edge' THEN
     FOR temp_row IN
         SELECT n.feature
         FROM content.node n
-        JOIN (
-           SELECT DISTINCT node_id 
-            FROM (
-            SELECT orig_node_id AS node_id FROM temp_dataset_join_result
-            UNION ALL
-            SELECT dest_node_id AS node_id FROM temp_dataset_join_result
-        ) subquery
-        ) e ON n.node_id = e.node_id
+        -- JOIN (
+        --    SELECT DISTINCT node_id 
+        --     FROM (
+        --     SELECT orig_node_id AS node_id FROM temp_dataset_join_result
+        --     UNION ALL
+        --     SELECT dest_node_id AS node_id FROM temp_dataset_join_result
+        -- ) subquery
+        -- ) e ON n.node_id = e.node_id
 		WHERE n.tdei_dataset_id = destination_dataset_id
 		ORDER BY n.node_id ASC
     LOOP
@@ -59,9 +59,8 @@ IF destination_element = 'edge' THEN
 	FOR temp_row IN
      	SELECT z.feature
 		FROM content.zone z
-        INNER JOIN temp_dataset_join_result ON ST_Intersects(z.zone_loc, temp_dataset_join_result.edge_loc)
 	    WHERE z.tdei_dataset_id = destination_dataset_id
-		ORDER by zone_id ASC
+		ORDER by z.zone_id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -93,7 +92,7 @@ IF destination_element = 'edge' THEN
         SELECT n.feature
         FROM content.extension_line n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by line_id ASC
+		ORDER by n.line_id ASC
     LOOP
          edges := null;
 		nodes := null;
@@ -109,7 +108,7 @@ IF destination_element = 'edge' THEN
         SELECT n.feature
         FROM content.extension_polygon n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by polygon_id ASC
+		ORDER by n.polygon_id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -123,16 +122,18 @@ END IF;
 	
 IF destination_element = 'node' THEN
 
-    CREATE TEMP TABLE temp_intersected_edges AS
-    SELECT DISTINCT ON (e.orig_node_id, e.dest_node_id) e.feature, e.edge_loc
-    FROM content.edge e
-    INNER JOIN temp_dataset_join_result node ON e.orig_node_id = node.node_id OR e.dest_node_id = node.node_id
-	WHERE e.tdei_dataset_id = destination_dataset_id
-	ORDER BY e.orig_node_id, e.dest_node_id, e.edge_id ASC;
+ --    CREATE TEMP TABLE temp_intersected_edges ON COMMIT DROP AS
+ --    SELECT DISTINCT ON (e.orig_node_id, e.dest_node_id, e.edge_id) e.feature, e.edge_loc
+ --    FROM content.edge e
+ --    INNER JOIN temp_dataset_join_result node ON e.orig_node_id = node.node_id OR e.dest_node_id = node.node_id
+	-- WHERE e.tdei_dataset_id = destination_dataset_id
+	-- ORDER BY e.orig_node_id, e.dest_node_id, e.edge_id ASC;
     -- Iterate over intersected edges
     FOR temp_row IN
         SELECT feature
-        FROM temp_intersected_edges e
+        FROM content.edge e
+		WHERE e.tdei_dataset_id = destination_dataset_id
+		ORDER by e.zone_id ASC
     LOOP
         edges := temp_row.feature::jsonb;
 		nodes := null;
@@ -145,7 +146,7 @@ IF destination_element = 'node' THEN
 
     -- Iterate over intersected nodes
     FOR temp_row IN
-        SELECT n.feature
+        SELECT DISTINCT ON(n.node_id) n.feature
         FROM temp_dataset_join_result n
 		ORDER BY n.node_id ASC
     LOOP
@@ -162,9 +163,9 @@ IF destination_element = 'node' THEN
 	FOR temp_row IN
      	SELECT z.feature
 		FROM content.zone z
-        INNER JOIN temp_dataset_join_result ON ST_Intersects(z.zone_loc, temp_dataset_join_result.node_loc)
+        -- INNER JOIN temp_dataset_join_result ON ST_Intersects(z.zone_loc, temp_dataset_join_result.node_loc)
 	    WHERE z.tdei_dataset_id = destination_dataset_id
-		ORDER by zone_id ASC
+		ORDER by z.zone_id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -229,7 +230,7 @@ IF destination_element = 'zone' THEN
     FOR temp_row IN
         SELECT e.feature
         FROM content.edge e
-        INNER JOIN temp_dataset_join_result z ON ST_Intersects(z.zone_loc, e.edge_loc)
+        -- INNER JOIN temp_dataset_join_result z ON ST_Intersects(z.zone_loc, e.edge_loc)
         WHERE e.tdei_dataset_id = destination_dataset_id
 		ORDER BY e.edge_id ASC
     LOOP
@@ -246,10 +247,10 @@ IF destination_element = 'zone' THEN
     FOR temp_row IN
     	SELECT n.feature
         FROM content.node n
-        JOIN (
- 			SELECT DISTINCT unnest(node_ids) AS node_ids
-    		FROM temp_dataset_join_result
-	) e ON n.node_id = e.node_ids
+ --        JOIN (
+ -- 			SELECT DISTINCT unnest(node_ids) AS node_ids
+ --    		FROM temp_dataset_join_result
+	-- ) e ON n.node_id = e.node_ids
 		WHERE n.tdei_dataset_id = destination_dataset_id
 		ORDER BY n.node_id ASC
     LOOP
@@ -264,7 +265,7 @@ IF destination_element = 'zone' THEN
 
        -- Pull all the zone intersecting the bbox
 	FOR temp_row IN
-     	SELECT z.feature
+     	SELECT DISTINCT ON(z.zone_id) z.feature
 		FROM temp_dataset_join_result z
 		ORDER by z.zone_id ASC
     LOOP
@@ -331,4 +332,4 @@ END IF;
 
     RETURN;
 END;
-$BODY$;
+$BODY$; 
