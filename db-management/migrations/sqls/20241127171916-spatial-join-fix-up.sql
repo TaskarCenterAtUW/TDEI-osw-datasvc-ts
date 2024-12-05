@@ -44,7 +44,7 @@ IF destination_element = 'edge' THEN
         -- ) subquery
         -- ) e ON n.node_id = e.node_id
 		WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER BY n.node_id ASC
+		ORDER BY n.id ASC
     LOOP
         edges := null;
 		nodes := temp_row.feature::jsonb;
@@ -60,7 +60,7 @@ IF destination_element = 'edge' THEN
      	SELECT z.feature
 		FROM content.zone z
 	    WHERE z.tdei_dataset_id = destination_dataset_id
-		ORDER by z.zone_id ASC
+		ORDER by z.id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -76,7 +76,7 @@ IF destination_element = 'edge' THEN
         SELECT n.feature
         FROM content.extension_point n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by n.point_id ASC
+		ORDER by n.id ASC
     LOOP
          edges := null;
 		nodes := null;
@@ -92,7 +92,7 @@ IF destination_element = 'edge' THEN
         SELECT n.feature
         FROM content.extension_line n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by n.line_id ASC
+		ORDER by n.id ASC
     LOOP
          edges := null;
 		nodes := null;
@@ -108,7 +108,7 @@ IF destination_element = 'edge' THEN
         SELECT n.feature
         FROM content.extension_polygon n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by n.polygon_id ASC
+		ORDER by n.id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -133,7 +133,7 @@ IF destination_element = 'node' THEN
         SELECT feature
         FROM content.edge e
 		WHERE e.tdei_dataset_id = destination_dataset_id
-		ORDER by e.zone_id ASC
+		ORDER by e.id ASC
     LOOP
         edges := temp_row.feature::jsonb;
 		nodes := null;
@@ -165,7 +165,7 @@ IF destination_element = 'node' THEN
 		FROM content.zone z
         -- INNER JOIN temp_dataset_join_result ON ST_Intersects(z.zone_loc, temp_dataset_join_result.node_loc)
 	    WHERE z.tdei_dataset_id = destination_dataset_id
-		ORDER by z.zone_id ASC
+		ORDER by z.id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -181,7 +181,7 @@ IF destination_element = 'node' THEN
         SELECT n.feature
         FROM content.extension_point n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by n.point_id ASC
+		ORDER by n.id ASC
     LOOP
          edges := null;
 		nodes := null;
@@ -197,7 +197,7 @@ IF destination_element = 'node' THEN
         SELECT n.feature
         FROM content.extension_line n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by line_id ASC
+		ORDER by n.id ASC
     LOOP
          edges := null;
 		nodes := null;
@@ -213,7 +213,7 @@ IF destination_element = 'node' THEN
         SELECT n.feature
         FROM content.extension_polygon n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by polygon_id ASC
+		ORDER by n.id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -232,7 +232,7 @@ IF destination_element = 'zone' THEN
         FROM content.edge e
         -- INNER JOIN temp_dataset_join_result z ON ST_Intersects(z.zone_loc, e.edge_loc)
         WHERE e.tdei_dataset_id = destination_dataset_id
-		ORDER BY e.edge_id ASC
+		ORDER BY e.id ASC
     LOOP
         edges := temp_row.feature::jsonb;
 		nodes := null;
@@ -252,7 +252,7 @@ IF destination_element = 'zone' THEN
  --    		FROM temp_dataset_join_result
 	-- ) e ON n.node_id = e.node_ids
 		WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER BY n.node_id ASC
+		ORDER BY n.id ASC
     LOOP
         edges := null;
 		nodes := temp_row.feature::jsonb;
@@ -283,7 +283,7 @@ IF destination_element = 'zone' THEN
         SELECT n.feature
         FROM content.extension_point n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by n.point_id ASC
+		ORDER by n.id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -299,7 +299,7 @@ IF destination_element = 'zone' THEN
         SELECT n.feature
         FROM content.extension_line n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by line_id ASC
+		ORDER by n.id ASC
     LOOP
          edges := null;
 		nodes := null;
@@ -315,7 +315,7 @@ IF destination_element = 'zone' THEN
         SELECT n.feature
         FROM content.extension_polygon n
         WHERE n.tdei_dataset_id = destination_dataset_id
-		ORDER by polygon_id ASC
+		ORDER by n.id ASC
     LOOP
         edges := null;
 		nodes := null;
@@ -332,4 +332,4 @@ END IF;
 
     RETURN;
 END;
-$BODY$; 
+$BODY$;
