@@ -69,17 +69,45 @@ BEGIN
 	CREATE INDEX ON replaced_nodes(edgeid);
 	CREATE INDEX ON replaced_nodes USING GIST(loc);
 
-	--- Rebuild Nodes 
+	--- Rebuild Nodes SRC_ONE_TDEI_DATASET_ID & SRC_TWO_TDEI_DATASET_ID
 	CREATE TEMP TABLE new_export_nodes ON COMMIT DROP AS
-	SELECT DISTINCT ON (existing_node.node_id) existing_node.id as id, existing_node.node_loc as loc, existing_node.feature
+	SELECT DISTINCT ON (existing_node.id) existing_node.id as id, existing_node.node_loc as loc, 
+	jsonb_build_object(
+			'type', 'Feature',
+			'geometry', ST_AsGeoJSON(existing_node.node_loc,15)::json,
+			 'properties', 
+			( jsonb_build_object( '_id', existing_node.id::text ) 
+				|| ((existing_node.feature::jsonb->'properties') - '_id') 
+			)
+		) AS feature
 	FROM replaced_nodes l
 	LEFT OUTER JOIN content.node existing_node 
 	    ON l.loc && existing_node.node_loc AND ST_Equals(l.loc, existing_node.node_loc)
-	WHERE existing_node.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID) and existing_node.id is not null 
-	order by existing_node.node_id;
+		and existing_node.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID) 
+	WHERE existing_node.id is not null 
+	order by existing_node.id;
 	
 	CREATE INDEX ON new_export_nodes(id);
 	CREATE UNIQUE INDEX ON new_export_nodes(id);
+
+	INSERT INTO new_export_nodes (id, loc, feature)
+	SELECT DISTINCT ON (existing_node.id) existing_node.id as id, existing_node.node_loc as loc, 
+	jsonb_build_object(
+			'type', 'Feature',
+			'geometry', ST_AsGeoJSON(existing_node.node_loc,15)::json,
+			 'properties', 
+			( jsonb_build_object( '_id', existing_node.id::text ) 
+				|| ((existing_node.feature::jsonb->'properties') - '_id') 
+			)
+		) AS feature
+	FROM replaced_nodes l
+	LEFT OUTER JOIN content.node existing_node 
+	    ON l.loc && existing_node.node_loc AND ST_Equals(l.loc, existing_node.node_loc)
+		AND existing_node.tdei_dataset_id IN (SRC_TWO_TDEI_DATASET_ID)
+	WHERE existing_node.id is not null 
+	order by existing_node.id
+	ON CONFLICT (id) DO NOTHING; 
+
 	------[END] Rebuild Nodes
 	
 	CREATE TEMP TABLE reconstruct_edge ON COMMIT DROP AS
@@ -130,6 +158,7 @@ BEGIN
 
 	-- CREATE INDEX ON conflated_edges(wid);
 	-- CREATE INDEX ON conflated_edges USING GIST(conflated_loc);
+
  
 	CREATE TEMP TABLE temp_conflated_edges ON COMMIT DROP AS
 	SELECT 
@@ -144,20 +173,55 @@ BEGIN
 		FROM temp_repaired_edges
 		ORDER BY id  -- Optionally, you can add a secondary ordering criterion
 	) l ON w.wid = l.id;
+
+	-- Rebuild node ids
+	CREATE TEMP TABLE edges_node_info_temp ON COMMIT DROP AS
+    (
+		
+		SELECT 
+		l.id as edgeid, 
+		existing_node.id as new_node_id,
+		'orig' AS node_type
+		from temp_conflated_edges l
+		left join content.node existing_node ON existing_node.node_loc && ST_StartPoint(l.loc) AND ST_Equals(existing_node.node_loc, ST_StartPoint(l.loc)) 
+		AND existing_node.tdei_dataset_id in (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID)
+	
+	    UNION ALL 
+
+		SELECT 
+		l.id as edgeid, 
+		existing_node.id as new_node_id,
+		'dest' AS node_type
+		from temp_conflated_edges l
+		left join content.node existing_node ON existing_node.node_loc && ST_EndPoint(l.loc) AND ST_Equals(existing_node.node_loc, ST_EndPoint(l.loc)) 
+		AND existing_node.tdei_dataset_id in (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID)
+	);
+
+	CREATE TEMP TABLE edges_node_info_result ON COMMIT DROP AS
+	SELECT 
+	    edgeid,
+	    MAX(CASE WHEN node_type = 'orig' THEN new_node_id END) AS new_orig_id,
+	    MAX(CASE WHEN node_type = 'dest' THEN new_node_id END) AS new_dest_id
+	FROM edges_node_info_temp
+	GROUP BY edgeid;
+	-- Rebuild node ids
 	
 	CREATE TEMP TABLE feature_edges ON COMMIT DROP AS
 	SELECT Distinct ON (id)
 	id as edge_id,
 	jsonb_build_object(
 			'type', 'Feature',
-			'geometry', ST_AsGeoJSON(loc)::json,
+			'geometry', ST_AsGeoJSON(loc,15)::json,
 			 'properties', 
-			( jsonb_build_object( '_id', id_sequence::text ) 
-				|| ((feature->'properties') - '_id') 
+			( jsonb_build_object( '_id', id_sequence::text ) || jsonb_build_object( '_u_id', new_orig_id::text ) || jsonb_build_object( '_v_id', new_dest_id::text ) 
+				|| ((feature::jsonb->'properties') - '_id'  - '_v_id' - '_u_id')
 			)
 		) AS feature, id_sequence as seq_id
-	FROM temp_conflated_edges
+	FROM temp_conflated_edges e
+	LEFT JOIN edges_node_info_result en on e.id = en.edgeid
 	Order by id;
+
+	
 	
 		-- RAISE NOTICE 'Edge processing completed at  % .', clock_timestamp();
 
@@ -199,18 +263,44 @@ BEGIN
 
 		--Rebuild nodes
 		INSERT INTO new_export_nodes (id, loc, feature)
-		SELECT DISTINCT ON (existing_node.node_id) 
+		SELECT DISTINCT ON (existing_node.id) 
 		    existing_node.id AS id, 
 		    existing_node.node_loc AS loc, 
-		    existing_node.feature
+			jsonb_build_object(
+			'type', 'Feature',
+			'geometry', ST_AsGeoJSON(existing_node.node_loc,15)::json,
+			 'properties', 
+			( jsonb_build_object( '_id', existing_node.id::text ) 
+				|| ((existing_node.feature::jsonb->'properties') - '_id') 
+			)
+		) AS feature
 		FROM replaced_polygon l
 		LEFT OUTER JOIN content.node existing_node 
 		    ON l.loc && existing_node.node_loc AND ST_Equals(l.loc, existing_node.node_loc)
-		WHERE existing_node.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID, SRC_TWO_TDEI_DATASET_ID)
-		  AND existing_node.id IS NOT NULL
-		ORDER BY existing_node.node_id
+		 AND existing_node.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID)
+		WHERE existing_node.id IS NOT NULL
+		ORDER BY existing_node.id
 		ON CONFLICT (id) DO NOTHING; 
 
+		INSERT INTO new_export_nodes (id, loc, feature)
+		SELECT DISTINCT ON (existing_node.id) 
+		    existing_node.id AS id, 
+		    existing_node.node_loc AS loc, 
+			jsonb_build_object(
+			'type', 'Feature',
+			'geometry', ST_AsGeoJSON(existing_node.node_loc,15)::json,
+			 'properties', 
+			( jsonb_build_object( '_id', existing_node.id::text ) 
+				|| ((existing_node.feature::jsonb->'properties') - '_id') 
+			)
+		) AS feature
+		FROM replaced_polygon l
+		LEFT OUTER JOIN content.node existing_node 
+		    ON l.loc && existing_node.node_loc AND ST_Equals(l.loc, existing_node.node_loc)
+		AND existing_node.tdei_dataset_id IN (SRC_TWO_TDEI_DATASET_ID)
+		WHERE existing_node.id IS NOT NULL
+		ORDER BY existing_node.id
+		ON CONFLICT (id) DO NOTHING; 
 		--Rebuid nodes
 
 		CREATE TEMP TABLE makerings ON COMMIT DROP AS
@@ -279,6 +369,7 @@ BEGIN
 		
 		CREATE INDEX idx_finalpoly_id ON finalpoly(id);
 		CREATE INDEX idx_finalpoly_loc ON finalpoly USING GIST(loc);
+		
     	CREATE TEMP TABLE temp_conflated_polygons ON COMMIT DROP AS
              SELECT 
             w.id,  
@@ -291,21 +382,67 @@ BEGIN
                 FROM temp_repaired_polygon
                 ORDER BY id  
             ) l ON w.id = l.id;
-    
+
+
+		-- Rebuild node ids; Replace node ids with new nodeids set
+		CREATE TEMP TABLE polygon_node_info_temp ON COMMIT DROP AS
+	    (
+			SELECT 
+		    cp.id,
+		    cp.loc,
+		    jsonb_build_object(  -- Rebuild the entire feature
+		        'type', 'Feature',  -- Define type as 'Feature'
+		        'geometry', ST_AsGeoJSON(cp.loc,15)::jsonb,  -- Rebuild the geometry with node location
+		        'properties', jsonb_set(  -- Update the properties object
+		            (cp.feature->'properties') - '_w_id' - '_id',  -- Remove _w_id and _id from the existing properties
+		            '{_w_id}',  -- Path to the _w_id field in the properties
+		            (  -- Replace _w_id with a new array of node ids
+		                SELECT jsonb_agg(n.id::text)  -- Aggregate the new node ids
+		                FROM jsonb_array_elements_text(cp.feature::jsonb->'properties'->'_w_id') AS w_id
+		                LEFT JOIN content.node n
+		                    ON w_id::TEXT = n.node_id::TEXT
+		                    AND n.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID)
+		            )
+		        ) || jsonb_build_object('_id', cp.id_sequence::text)  -- Add the new _id field
+			    ) AS feature
+			FROM temp_conflated_polygons cp
+			INNER JOIN content.zone z 
+			    ON cp.id = z.id 
+			WHERE 
+			    z.tdei_dataset_id IN (SRC_ONE_TDEI_DATASET_ID)
+		
+		    UNION ALL
+		
+		    SELECT 
+		    cp.id,
+		    cp.loc,
+		    jsonb_build_object(  -- Rebuild the entire feature
+		        'type', 'Feature',  -- Define type as 'Feature'
+		        'geometry', ST_AsGeoJSON(cp.loc,15)::jsonb,  -- Rebuild the geometry with node location
+		        'properties', jsonb_set(  -- Update the properties object
+		            (cp.feature->'properties') - '_w_id' - '_id',  -- Remove _w_id and _id from the existing properties
+		            '{_w_id}',  -- Path to the _w_id field in the properties
+		            (  -- Replace _w_id with a new array of node ids
+		                SELECT jsonb_agg(n.id::text)  -- Aggregate the new node ids
+		                FROM jsonb_array_elements_text(cp.feature::jsonb->'properties'->'_w_id') AS w_id
+		                LEFT JOIN content.node n
+		                    ON w_id::TEXT = n.node_id::TEXT
+		                    AND n.tdei_dataset_id IN (SRC_TWO_TDEI_DATASET_ID)
+		            )
+		        ) || jsonb_build_object('_id', cp.id_sequence::text)  -- Add the new _id field
+			    ) AS feature
+			FROM temp_conflated_polygons cp
+			INNER JOIN content.zone z 
+			    ON cp.id = z.id 
+			WHERE 
+			    z.tdei_dataset_id IN (SRC_TWO_TDEI_DATASET_ID)
+		);
+	
+		-- Rebuild node ids
+
+
 	     INSERT INTO feature_polygons( feature, id)
-	   		SELECT 
-			   jsonb_build_object(
-	            'type', 'Feature',
-	            'geometry', ST_AsGeoJSON(loc)::json,
-	            'properties',
-	            ( 
-				jsonb_build_object( '_id', id_sequence::text ) 
-	    			            || 
-					((feature->'properties') - '_id') 
-	            ))
-			AS feature, 
-			id_sequence as id
-	    	FROM temp_conflated_polygons where feature is not null;
+	   	 SELECT feature,id from polygon_node_info_temp;
    END IF; 
    
     	-- RAISE NOTICE 'Polygon processing completed at  % .', clock_timestamp();
@@ -333,19 +470,19 @@ BEGIN
     END LOOP;
 
 	   ------------------------------ Export NODES -------------------------------------
-	  CREATE TEMP TABLE feature_nodes ON COMMIT DROP AS
-	SELECT Distinct ON (id)
-	id,
-	jsonb_build_object(
-			'type', 'Feature',
-			'geometry', ST_AsGeoJSON(loc)::json,
-			 'properties', 
-			(feature->'properties')
-		) AS feature
-	FROM new_export_nodes
-	Order by id;
+	--   CREATE TEMP TABLE feature_nodes ON COMMIT DROP AS
+	-- SELECT Distinct ON (id)
+	-- id,
+	-- jsonb_build_object(
+	-- 		'type', 'Feature',
+	-- 		'geometry', ST_AsGeoJSON(loc)::json,
+	-- 		 'properties', 
+	-- 		(feature->'properties')
+	-- 	) AS feature
+	-- FROM new_export_nodes
+	-- Order by id;
 	
-    SELECT COUNT(*) INTO row_count FROM feature_nodes;
+    SELECT COUNT(*) INTO row_count FROM new_export_nodes;
 
     -- Print the row count
     RAISE NOTICE 'The table nodes has % rows.', row_count;
