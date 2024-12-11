@@ -394,7 +394,7 @@ BEGIN
 		        'type', 'Feature',  -- Define type as 'Feature'
 		        'geometry', ST_AsGeoJSON(cp.loc,15)::jsonb,  -- Rebuild the geometry with node location
 		        'properties', jsonb_set(  -- Update the properties object
-		            (cp.feature->'properties') - '_w_id' - '_id',  -- Remove _w_id and _id from the existing properties
+		            (cp.feature::jsonb->'properties') - '_w_id' - '_id',  -- Remove _w_id and _id from the existing properties
 		            '{_w_id}',  -- Path to the _w_id field in the properties
 		            (  -- Replace _w_id with a new array of node ids
 		                SELECT jsonb_agg(n.id::text)  -- Aggregate the new node ids
@@ -420,7 +420,7 @@ BEGIN
 		        'type', 'Feature',  -- Define type as 'Feature'
 		        'geometry', ST_AsGeoJSON(cp.loc,15)::jsonb,  -- Rebuild the geometry with node location
 		        'properties', jsonb_set(  -- Update the properties object
-		            (cp.feature->'properties') - '_w_id' - '_id',  -- Remove _w_id and _id from the existing properties
+		            (cp.feature::jsonb->'properties') - '_w_id' - '_id',  -- Remove _w_id and _id from the existing properties
 		            '{_w_id}',  -- Path to the _w_id field in the properties
 		            (  -- Replace _w_id with a new array of node ids
 		                SELECT jsonb_agg(n.id::text)  -- Aggregate the new node ids
