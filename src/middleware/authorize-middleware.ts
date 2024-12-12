@@ -7,6 +7,7 @@ import { ForbiddenAccess, UnAuthenticated } from '../exceptions/http/http-except
 import HttpException from '../exceptions/http/http-base-exception';
 import tdeiCoreService from '../service/tdei-core-service';
 import { Utility } from '../utility/utility';
+import { th } from 'date-fns/locale';
 
 /**
  * Authorizes the request with provided allowed roles and tdei_project_group_id
@@ -19,6 +20,11 @@ export const authorize = (approvedRoles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
             console.log("authorize middleware");
+            // Get the authorization key
+            const bearerHeader = req.headers.authorization;
+            if (bearerHeader === '' || bearerHeader === undefined)
+                return next(new ForbiddenAccess());
+
             let apiKey = req.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {

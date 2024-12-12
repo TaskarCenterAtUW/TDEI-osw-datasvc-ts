@@ -225,15 +225,16 @@ class TdeiCoreService implements ITdeiCoreService {
         //Validate metadata
         const valid = metadataValidator(metadata);
         if (!valid) {
-            let requiredMsg = metadataValidator.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.instancePath} : ${error.params.missingProperty}`).join(`, \n`);
+            let requiredPropertyMsg = metadataValidator.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.instancePath.replace(/^\//, '').replace('/', ' -> ')} : ${error.params.missingProperty}`).join(`, \n`);
+            let requiredEnumMsg = metadataValidator.errors?.filter(z => z.keyword == "enum").map((error: ErrorObject) => `${error.instancePath.replace(/^\//, '').replace('/', ' -> ')} : Allowed values ${error.params.allowedValues}`).join(`, \n`);
+            let invalidTypeMsg = metadataValidator.errors?.filter(z => z.keyword == "type" && z.params.type != 'null').map((error: ErrorObject) => `${error.instancePath.replace(/^\//, '').replace('/', ' -> ')} : Must be of type ${error.params.type}`).join(`, \n`);
             let additionalMsg = metadataValidator.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(`, \n`);
-            let typeMsg = metadataValidator.errors?.filter(z => z.keyword == "type").map((error: ErrorObject) => `${error.instancePath} ${error.message}`).join(`, \n`);
-            requiredMsg = requiredMsg != "" ? `Missing required properties : \n ${requiredMsg} ` : "";
-            //get type mismatch error
-            additionalMsg = additionalMsg != "" ? `\n Additional properties found are not allowed : \n ${additionalMsg} ` : "";
-            typeMsg = typeMsg != "" ? `\n Type mismatch found : \n ${typeMsg}  mismatched` : "";
-            console.error("Metadata json validation error : ", additionalMsg, requiredMsg, typeMsg);
-            throw new InputException((`Metadata error : ${requiredMsg} \n ${additionalMsg} \n ${typeMsg}`) as string);
+            requiredPropertyMsg = requiredPropertyMsg != "" ? `\nMissing required properties : \n ${requiredPropertyMsg} ` : "";
+            requiredEnumMsg = requiredEnumMsg != "" ? `\nInvalid property value : \n ${requiredEnumMsg} ` : "";
+            invalidTypeMsg = invalidTypeMsg != "" ? `\nInvalid property type : \n ${invalidTypeMsg} ` : "";
+            additionalMsg = additionalMsg != "" ? `\nAdditional properties found : \n ${additionalMsg} not allowed` : "";
+            console.error("Metadata json validation error : \n", additionalMsg, requiredPropertyMsg, requiredEnumMsg, invalidTypeMsg);
+            new InputException(("\n" + requiredPropertyMsg + "\n" + requiredEnumMsg + "\n" + invalidTypeMsg + "\n" + additionalMsg) as string);
         }
 
         switch (data_type) {

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION content.dataset_tag_road_test(
+CREATE OR REPLACE FUNCTION content.dataset_tag_road(
 	target_dataset_id character varying,
 	source_dataset_id character varying)
     RETURNS void
