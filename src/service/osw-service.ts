@@ -1055,10 +1055,14 @@ class OswService implements IOswService {
     async calculateInclination(backendRequest: InclinationServiceRequest): Promise<string> {
         try {
 
-            //Only if backendRequest.parameters.target_dataset_id id in pre-release status
+            // Only if backendRequest.parameters.target_dataset_id id in pre-release status
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.dataset_id);
             if (dataset.status !== RecordStatus["Pre-Release"])
                 throw new InputException(`Dataset ${backendRequest.parameters.dataset_id} is not in Pre-Release state. Dataset incline tagging request allowed in Pre-Release state only.`);
+
+            if (dataset.data_type &&  dataset.data_type !== TDEIDataType.osw) {
+                throw new InputException(`Dataset ${backendRequest.parameters.dataset_id} is not an osw dataset.`)
+            }
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,

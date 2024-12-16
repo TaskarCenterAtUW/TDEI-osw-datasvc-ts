@@ -1066,5 +1066,99 @@ describe("OSW Service Test", () => {
             );
         });
     });
+
+    describe("OSW Service - calculateInclination", () => {
+        test("When dataset is not in Pre-Release state, Expect to throw InputException", async () => {
+            // Arrange
+            const backendRequest = {
+                parameters: {
+                    dataset_id: "mock-dataset-id"
+                },
+                service: "mock-service",
+                user_id: "mock-user-id",
+            };
+            const dataset = {
+                status: RecordStatus["Publish"],
+            } as any;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
+
+            // Act & Assert
+            await expect(oswService.calculateInclination(backendRequest)).rejects.toThrow(
+                new InputException(
+                    `Dataset ${backendRequest.parameters.dataset_id} is not in Pre-Release state. Dataset incline tagging request allowed in Pre-Release state only.`
+                )
+            );
+        });
+
+        test("When dataset is non-OSW, Expect to throw InputException", async () => {
+            // Arrange
+            const backendRequest = {
+                parameters: {
+                    dataset_id: "mock-dataset-id"
+                },
+                service: "mock-service",
+                user_id: "mock-user-id",
+            };
+            const dataset = {
+                status: RecordStatus["Pre-Release"],
+                data_type: TDEIDataType['pathways']
+            } as any;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
+
+            // Act & Assert
+            await expect(oswService.calculateInclination(backendRequest)).rejects.toThrow(
+                new InputException(
+                    `Dataset ${backendRequest.parameters.dataset_id} is not an osw dataset.`
+                )
+            );
+        });
+
+        test("When dataset is in Pre-Release state, Expect to create job and trigger workflow", async () => {
+            // Arrange
+            const backendRequest = {
+                parameters: {
+                    dataset_id: "mock-dataset-id"
+                },
+                service: "mock-service",
+                user_id: "mock-user-id",
+            };
+            const dataset = {
+                status: RecordStatus["Pre-Release"],
+            } as any;
+        
+            // Correctly construct the job object
+            const job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Incline-Tag"],
+                status: JobStatus["IN-PROGRESS"],
+                message: "Job started",
+                request_input: {
+                    dataset_id: backendRequest.parameters.dataset_id, // Flattened structure as expected
+                    user_id: backendRequest.user_id,
+                },
+                tdei_project_group_id: "",
+                user_id: backendRequest.user_id, // Ensure user_id is included at the top level
+            });
+        
+            const job_id = 111;
+        
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
+            jest.spyOn(oswService.jobServiceInstance, "createJob").mockResolvedValueOnce(job_id);
+            mockAppContext();
+        
+            // Act
+            const result = await oswService.calculateInclination(backendRequest);
+        
+            // Assert
+            expect(result).toBe(job_id.toString());
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(job); // Check correct job object
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                job_id.toString(),
+                "osw_dataset_incline_tag",
+                expect.any(Object), // Ensure the correct object is passed to the workflow
+                backendRequest.user_id
+            );
+        });
+    });
 });
 
