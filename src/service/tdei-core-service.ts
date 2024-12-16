@@ -691,7 +691,7 @@ class TdeiCoreService implements ITdeiCoreService {
     async triggerCloneWorkflow(cloneContext: CloneContext, dataset_to_be_clone: DatasetEntity, new_tdei_dataset_id: string, user_id: string, datasetCloneRequestObject: IDatasetCloneRequest) {
         //Create job
         let job = CreateJobDTO.from({
-            data_type: TDEIDataType.osw,
+            data_type: dataset_to_be_clone.data_type as TDEIDataType,
             job_type: JobType["Clone-Dataset"],
             status: JobStatus["IN-PROGRESS"],
             message: 'Job started',

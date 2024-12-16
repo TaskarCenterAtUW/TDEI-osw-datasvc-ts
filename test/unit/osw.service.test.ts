@@ -64,7 +64,7 @@ describe("OSW Service Test", () => {
 
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
                 .mockResolvedValue(Promise.resolve(<any>{
-                    data_type: 'pathways',
+                    data_type: 'osw',
                     dataset_url: 'dataset_url',
                     metadata_url: 'metadata_url',
                     changeset_url: 'changeset_url',
@@ -103,7 +103,7 @@ describe("OSW Service Test", () => {
             const user_id = "mock-user-id";
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
                 .mockResolvedValue(Promise.resolve(<any>{
-                    data_type: 'pathways',
+                    data_type: 'osw',
                     dataset_url: 'dataset_url',
                     metadata_url: 'metadata_url',
                     changeset_url: 'changeset_url',
@@ -136,7 +136,7 @@ describe("OSW Service Test", () => {
             const user_id = "mock-user-id";
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
                 .mockResolvedValue(Promise.resolve(<any>{
-                    data_type: 'pathways',
+                    data_type: 'osw',
                     dataset_url: 'dataset_url',
                     metadata_url: 'metadata_url',
                     changeset_url: 'changeset_url',
@@ -160,7 +160,7 @@ describe("OSW Service Test", () => {
             const user_id = "mock-user-id";
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
                 .mockResolvedValue(Promise.resolve(<any>{
-                    data_type: 'pathways',
+                    data_type: 'osw',
                     dataset_url: 'dataset_url',
                     metadata_url: 'metadata_url',
                     changeset_url: 'changeset_url',
@@ -174,6 +174,37 @@ describe("OSW Service Test", () => {
             expect(dbSpy).not.toHaveBeenCalled();
         });
 
+        test("When called with pathways dataset id, Expect to throw an InputException", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const tagFile = {
+                buffer: JSON.stringify([
+                    {
+                        entity_type: "Sidewalk",
+                        tags: ["surface_Invalid", "width"],
+                    },
+                    {
+                        entity_type: "Footway",
+                        tags: ["surface_Invalid", "width"],
+                    },
+                ]),
+            };
+            const user_id = "mock-user-id";
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'pathways',
+                    dataset_url: 'dataset_url',
+                    metadata_url: 'metadata_url',
+                    changeset_url: 'changeset_url',
+                }));
+            let dbSpy = jest.spyOn(dbClient, "query")
+                .mockResolvedValue(<any>{ rows: [] });
+            // Act & Assert
+            await expect(
+                oswService.calculateTagQualityMetric(tdei_dataset_id, tagFile, user_id)
+            ).rejects.toThrow(InputException);
+            expect(dbSpy).not.toHaveBeenCalled();
+        });
     });
 
     describe("processSpatialQueryRequest", () => {
@@ -852,13 +883,38 @@ describe("OSW Service Test", () => {
             };
             const dataset = {
                 status: RecordStatus["Publish"],
+                data_type: TDEIDataType.osw,
             } as any;
             jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
 
             // Act & Assert
             await expect(oswService.processDatasetTagRoadRequest(backendRequest)).rejects.toThrow(
                 new InputException(
-                    `Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`
+                    `Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state. Dataset road tagging request allowed in Pre-Release state only.`
+                )
+            );
+        });
+
+        test("When requested with pathways dataset , Expect to throw InputException", async () => {
+            // Arrange
+            const backendRequest = {
+                parameters: {
+                    source_dataset_id: "mock-source-dataset-id",
+                    target_dataset_id: "mock-source-dataset-id",
+                },
+                service: "mock-service",
+                user_id: "mock-user-id",
+            };
+            const dataset = {
+                status: RecordStatus["Pre-Release"],
+                data_type: TDEIDataType.pathways,
+            } as any;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
+
+            // Act & Assert
+            await expect(oswService.processDatasetTagRoadRequest(backendRequest)).rejects.toThrow(
+                new InputException(
+                    `Dataset ${backendRequest.parameters.source_dataset_id} is not an osw dataset.`
                 )
             );
         });
@@ -875,6 +931,7 @@ describe("OSW Service Test", () => {
             };
             const dataset = {
                 status: RecordStatus["Pre-Release"],
+                data_type: TDEIDataType.osw,
             } as any;
             const job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
