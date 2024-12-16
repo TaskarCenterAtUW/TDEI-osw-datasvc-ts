@@ -869,4 +869,116 @@ describe("OSW Controller Test", () => {
         });
     });
 
+
+    describe("OSW Controller - createInclineRequest", () => {
+
+        test("When request body is empty, Expect to return HTTP status 400", async () => {
+            // Arrange
+            const req = getMockReq({ query: {} });
+            const { res, next } = getMockRes();
+            const inputException = new InputException("Missing tdei_dataset_id input", res);
+            jest.spyOn(oswService, "calculateInclination").mockRejectedValueOnce(inputException);
+
+            // Act
+            await oswController.createInclineRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(inputException);
+        });
+
+        test("When required input is empty, Expect to return HTTP status 400", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    tdei_dataset_id: undefined
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const inputException = new InputException("Missing tdei_dataset_id input", res);
+            jest.spyOn(oswService, "calculateInclination").mockRejectedValueOnce(inputException);
+
+            // Act
+            await oswController.createInclineRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(inputException);
+        });
+
+        test("When user is not authorized, Expect to return HTTP status 403", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(false);
+            const unauthenticatedException = new ForbiddenAccess();
+            jest.spyOn(oswService, "calculateInclination").mockRejectedValueOnce(unauthenticatedException);
+
+            // Act
+            await oswController.createInclineRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(unauthenticatedException);
+        });
+
+        test("When user is not authorized wrong api key, Expect to return HTTP status 403", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                },
+                headers: {
+                    'x-api-key': 'Wrong key'
+                }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(false);
+            const unauthenticatedException = new ForbiddenAccess();
+            jest.spyOn(oswService, "calculateInclination").mockRejectedValueOnce(unauthenticatedException);
+
+            // Act
+            await oswController.createInclineRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(unauthenticatedException);
+        });
+
+        test("When request is valid, Expect to return HTTP status 202 with job_id", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_dataset_id: "mock-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const job_id = "mock-job-id";
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValueOnce({ tdei_project_group_id: "mock-project-group-id" } as any);
+            jest.spyOn(Utility, "authorizeRoles").mockResolvedValueOnce(true);
+            jest.spyOn(oswService, "calculateInclination").mockResolvedValueOnce(job_id);
+
+            // Act
+            await oswController.createInclineRequest(req, res, next);
+
+            // Assert
+            expect(res.setHeader).toHaveBeenCalledWith("Location", `/api/v1/job?job_id=${job_id}`);
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+        });
+    })
 });
