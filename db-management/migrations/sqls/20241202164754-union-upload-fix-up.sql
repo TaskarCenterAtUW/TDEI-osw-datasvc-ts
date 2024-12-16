@@ -180,6 +180,7 @@ BEGIN
 		
 		SELECT 
 		l.id as edgeid, 
+		l.loc as loc,
 		existing_node.id as new_node_id,
 		'orig' AS node_type
 		from temp_conflated_edges l
@@ -190,6 +191,7 @@ BEGIN
 
 		SELECT 
 		l.id as edgeid, 
+		l.loc as loc,
 		existing_node.id as new_node_id,
 		'dest' AS node_type
 		from temp_conflated_edges l
@@ -200,26 +202,71 @@ BEGIN
 	CREATE TEMP TABLE edges_node_info_result ON COMMIT DROP AS
 	SELECT 
 	    edgeid,
+		MAX(loc) as loc,
 	    MAX(CASE WHEN node_type = 'orig' THEN new_node_id END) AS new_orig_id,
 	    MAX(CASE WHEN node_type = 'dest' THEN new_node_id END) AS new_dest_id
 	FROM edges_node_info_temp
 	GROUP BY edgeid;
+
+	INSERT INTO new_export_nodes (id, loc, feature)
+	SELECT 
+	    CASE 
+	        WHEN l.new_orig_id IS NULL THEN CAST (l.edgeid::text || '1' AS BIGINT)
+	        WHEN l.new_dest_id IS NULL THEN CAST (l.edgeid::text || '2' AS BIGINT)
+	    END AS id,
+		CASE 
+	        WHEN l.new_orig_id IS NULL THEN ST_StartPoint(l.loc)
+	        WHEN l.new_dest_id IS NULL THEN ST_EndPoint(l.loc)
+	    END AS loc,
+	    jsonb_build_object(
+	        'type', 'Feature',
+	        'geometry', ST_AsGeoJSON(CASE 
+	        WHEN l.new_orig_id IS NULL THEN ST_StartPoint(l.loc)
+	        WHEN l.new_dest_id IS NULL THEN ST_EndPoint(l.loc)
+	    END, 15)::json,
+	        'properties', jsonb_build_object('_id', CASE 
+	        WHEN l.new_orig_id IS NULL THEN (l.edgeid::text || '1')
+	        WHEN l.new_dest_id IS NULL THEN (l.edgeid::text || '2')
+	    END )
+	    ) AS feature
+	FROM edges_node_info_result l
+	WHERE l.new_orig_id IS NULL OR l.new_dest_id IS NULL;
+		
 	-- Rebuild node ids
 	
+	-- CREATE TEMP TABLE feature_edges ON COMMIT DROP AS
+	-- SELECT Distinct ON (id)
+	-- id as edge_id,
+	-- jsonb_build_object(
+	-- 		'type', 'Feature',
+	-- 		'geometry', ST_AsGeoJSON(loc,15)::json,
+	-- 		 'properties', 
+	-- 		( jsonb_build_object( '_id', id_sequence::text ) || jsonb_build_object( '_u_id', new_orig_id::text ) || jsonb_build_object( '_v_id', new_dest_id::text ) 
+	-- 			|| ((feature::jsonb->'properties') - '_id'  - '_v_id' - '_u_id')
+	-- 		)
+	-- 	) AS feature, id_sequence as seq_id
+	-- FROM temp_conflated_edges e
+	-- LEFT JOIN edges_node_info_result en on e.id = en.edgeid
+	-- Order by id;
+
 	CREATE TEMP TABLE feature_edges ON COMMIT DROP AS
-	SELECT Distinct ON (id)
-	id as edge_id,
-	jsonb_build_object(
-			'type', 'Feature',
-			'geometry', ST_AsGeoJSON(loc,15)::json,
-			 'properties', 
-			( jsonb_build_object( '_id', id_sequence::text ) || jsonb_build_object( '_u_id', new_orig_id::text ) || jsonb_build_object( '_v_id', new_dest_id::text ) 
-				|| ((feature::jsonb->'properties') - '_id'  - '_v_id' - '_u_id')
-			)
-		) AS feature, id_sequence as seq_id
+	SELECT DISTINCT ON (id)
+	    id AS edge_id,
+	    jsonb_build_object(
+	        'type', 'Feature',
+	        'geometry', ST_AsGeoJSON(e.loc, 15)::json,
+	        'properties', 
+	        jsonb_build_object(
+	            '_id', id_sequence::text,
+	            '_u_id', COALESCE(new_orig_id::text, edgeid || '1'),
+	            '_v_id', COALESCE(new_dest_id::text, edgeid || '2')
+	        ) || 
+	        ((feature::jsonb->'properties') - '_id' - '_v_id' - '_u_id')
+	    ) AS feature,
+	    id_sequence AS seq_id
 	FROM temp_conflated_edges e
-	LEFT JOIN edges_node_info_result en on e.id = en.edgeid
-	Order by id;
+	LEFT JOIN edges_node_info_result en ON e.id = en.edgeid
+	ORDER BY id;
 
 	
 	
@@ -383,7 +430,6 @@ BEGIN
                 ORDER BY id  
             ) l ON w.id = l.id;
 
-
 		-- Rebuild node ids; Replace node ids with new nodeids set
 		CREATE TEMP TABLE polygon_node_info_temp ON COMMIT DROP AS
 	    (
@@ -439,7 +485,6 @@ BEGIN
 		);
 	
 		-- Rebuild node ids
-
 
 	     INSERT INTO feature_polygons( feature, id)
 	   	 SELECT feature,id from polygon_node_info_temp;
