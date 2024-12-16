@@ -128,7 +128,11 @@ class OswService implements IOswService {
       */
     async calculateTagQualityMetric(tdei_dataset_id: string, tagFile: any, user_id: string): Promise<any> {
         //Check dataset exists
-        await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+        const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+
+        if (dataset.data_type !== TDEIDataType.osw)
+            throw new InputException(`${tdei_dataset_id} is not an osw dataset.`);
+
         const tagFileBuffer = JSON.parse(tagFile!.buffer);
 
         Utility.checkForSqlInjection(tagFileBuffer);
@@ -302,11 +306,16 @@ class OswService implements IOswService {
     async processDatasetTagRoadRequest(backendRequest: TagRoadServiceRequest): Promise<string> {
         try {
             // check if source dataset exisits
-            await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.source_dataset_id);
+            const sourceDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.source_dataset_id);
             //Only if backendRequest.parameters.target_dataset_id id in pre-release status
-            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.target_dataset_id);
-            if (dataset.status !== RecordStatus["Pre-Release"])
-                throw new InputException(`Dataset ${backendRequest.parameters.target_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`);
+            const targetDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.target_dataset_id);
+            if (targetDataset.status !== RecordStatus["Pre-Release"])
+                throw new InputException(`Dataset ${backendRequest.parameters.target_dataset_id} is not in Pre-Release state. Dataset road tagging request allowed in Pre-Release state only.`);
+
+            if (sourceDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${backendRequest.parameters.source_dataset_id} is not an osw dataset.`);
+            if (targetDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${backendRequest.parameters.target_dataset_id} is not an osw dataset.`);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -344,10 +353,10 @@ class OswService implements IOswService {
                 user_id: backendRequest.user_id,
                 parameters: backendRequest.parameters,
                 tdei_dataset_id: backendRequest.parameters.target_dataset_id,
-                metadata_url: dataset.metadata_url,
-                dataset_url: dataset.latest_dataset_url,
-                changeset_url: dataset.changeset_url,
-                tdei_project_group_id: dataset.tdei_project_group_id
+                metadata_url: targetDataset.metadata_url,
+                dataset_url: targetDataset.latest_dataset_url,
+                changeset_url: targetDataset.changeset_url,
+                tdei_project_group_id: targetDataset.tdei_project_group_id
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, backendRequest.user_id);
