@@ -313,9 +313,9 @@ class OswService implements IOswService {
                 throw new InputException(`Dataset ${backendRequest.parameters.target_dataset_id} is not in Pre-Release state. Dataset road tagging request allowed in Pre-Release state only.`);
 
             if (sourceDataset.data_type !== TDEIDataType.osw)
-                throw new InputException(`${backendRequest.parameters.source_dataset_id} is not an osw dataset.`);
+                throw new InputException(`Dataset ${backendRequest.parameters.source_dataset_id} is not an osw dataset.`);
             if (targetDataset.data_type !== TDEIDataType.osw)
-                throw new InputException(`${backendRequest.parameters.target_dataset_id} is not an osw dataset.`);
+                throw new InputException(`Dataset ${backendRequest.parameters.target_dataset_id} is not an osw dataset.`);
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,

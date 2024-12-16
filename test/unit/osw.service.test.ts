@@ -890,7 +890,7 @@ describe("OSW Service Test", () => {
             // Act & Assert
             await expect(oswService.processDatasetTagRoadRequest(backendRequest)).rejects.toThrow(
                 new InputException(
-                    `Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`
+                    `Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state. Dataset road tagging request allowed in Pre-Release state only.`
                 )
             );
         });
@@ -906,7 +906,7 @@ describe("OSW Service Test", () => {
                 user_id: "mock-user-id",
             };
             const dataset = {
-                status: RecordStatus["Publish"],
+                status: RecordStatus["Pre-Release"],
                 data_type: TDEIDataType.pathways,
             } as any;
             jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
@@ -914,7 +914,7 @@ describe("OSW Service Test", () => {
             // Act & Assert
             await expect(oswService.processDatasetTagRoadRequest(backendRequest)).rejects.toThrow(
                 new InputException(
-                    `Dataset ${backendRequest.parameters.source_dataset_id} is not in Pre-Release state.Dataset road tagging request allowed in Pre-Release state only.`
+                    `Dataset ${backendRequest.parameters.source_dataset_id} is not an osw dataset.`
                 )
             );
         });
