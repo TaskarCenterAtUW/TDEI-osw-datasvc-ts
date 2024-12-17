@@ -1139,6 +1139,7 @@
                     "description": "Validating the bbox response",
                     "type": "Utility",
                     "input_params": {
+                        "service": "bbox",
                         "job_id": "<%=workflow_input.job_id%>",
                         "success": "<%=tasks.osm_dataset_bbox.output.success%>",
                         "message": "<%=tasks.osm_dataset_bbox.output.message%>",
@@ -1148,7 +1149,7 @@
                         "success": "<%=success%>",
                         "message": "<%=message%>"
                     },
-                    "function": "bbox_response_validation"
+                    "function": "backed_service_response_validation"
                 },
                 {
                     "name": "osm_dataset_bbox_osm_formatting",
@@ -1264,6 +1265,7 @@
                     "description": "Validating the bbox response",
                     "type": "Utility",
                     "input_params": {
+                        "service": "bbox",
                         "job_id": "<%=workflow_input.job_id%>",
                         "success": "<%=tasks.osw_dataset_bbox.output.success%>",
                         "message": "<%=tasks.osw_dataset_bbox.output.message%>",
@@ -1273,23 +1275,7 @@
                         "success": "<%=success%>",
                         "message": "<%=message%>"
                     },
-                    "function": "bbox_response_validation"
-                },
-                {
-                    "name": "osw_compression_bbox",
-                    "task_reference_name": "osw_compression_bbox",
-                    "description": "Compressing the osw file",
-                    "type": "Event",
-                    "topic": "dataset-zip-request",
-                    "input_params": {
-                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)]) %>",
-                        "output_path": "<%=decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)%>.osw.zip"
-                    },
-                    "output_params": {
-                        "success": "<%=data.success%>",
-                        "message": "<%=data.message%>",
-                        "output_path": "<%=data.output_path%>"
-                    }
+                    "function": "backed_service_response_validation"
                 },
                 {
                     "name": "osm_bbox_job_db",
@@ -1302,7 +1288,7 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "download_url": "<%=decodeURIComponent(tasks.osw_compression_bbox.output.output_path)%>",
+                            "download_url": "<%=decodeURIComponent(tasks.osw_dataset_bbox.output.file_upload_path)%>",
                             "status": "COMPLETED",
                             "message": "Job Completed Successfully",
                             "updated_at": "CURRENT_TIMESTAMP"
@@ -1367,20 +1353,22 @@
                     }
                 },
                 {
-                    "name": "osw_compression",
-                    "task_reference_name": "osw_compression",
-                    "description": "Compressing the osw file",
-                    "type": "Event",
-                    "topic": "dataset-zip-request",
+                    "name": "osw_spatial_join_response_validation",
+                    "task_reference_name": "osw_spatial_join_response_validation",
+                    "description": "Validating the spatial_join response",
+                    "type": "Utility",
                     "input_params": {
-                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_spatial_join.output.file_upload_path)]) %>",
-                        "output_path": "<%=decodeURIComponent(tasks.osw_spatial_join.output.file_upload_path)%>.osw.zip"
+                        "service": "spatial_join",
+                        "job_id": "<%=workflow_input.job_id%>",
+                        "success": "<%=tasks.osw_spatial_join.output.success%>",
+                        "message": "<%=tasks.osw_spatial_join.output.message%>",
+                        "file_upload_path": "<%=tasks.osw_spatial_join.output.file_upload_path%>"
                     },
                     "output_params": {
-                        "success": "<%=data.success%>",
-                        "message": "<%=data.message%>",
-                        "output_path": "<%=data.output_path%>"
-                    }
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "backed_service_response_validation"
                 },
                 {
                     "name": "osm_spatial_join_job_db",
@@ -1393,7 +1381,7 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "download_url": "<%=decodeURIComponent(tasks.osw_compression.output.output_path)%>",
+                            "download_url": "<%=decodeURIComponent(tasks.osw_spatial_join.output.file_upload_path)%>",
                             "status": "COMPLETED",
                             "message": "Job Completed Successfully",
                             "updated_at": "CURRENT_TIMESTAMP"
@@ -2366,20 +2354,22 @@
                     }
                 },
                 {
-                    "name": "osw_compression",
-                    "task_reference_name": "osw_compression",
-                    "description": "Compressing the osw output file",
-                    "type": "Event",
-                    "topic": "dataset-zip-request",
+                    "name": "osw_union_response_validation",
+                    "task_reference_name": "osw_union_response_validation",
+                    "description": "Validating the union response",
+                    "type": "Utility",
                     "input_params": {
-                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_union.output.file_upload_path)]) %>",
-                        "output_path": "<%=decodeURIComponent(tasks.osw_union.output.file_upload_path)%>.osw.zip"
+                        "service": "union",
+                        "job_id": "<%=workflow_input.job_id%>",
+                        "success": "<%=tasks.osw_union.output.success%>",
+                        "message": "<%=tasks.osw_union.output.message%>",
+                        "file_upload_path": "<%=tasks.osw_union.output.file_upload_path%>"
                     },
                     "output_params": {
-                        "success": "<%=data.success%>",
-                        "message": "<%=data.message%>",
-                        "output_path": "<%=data.output_path%>"
-                    }
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "backed_service_response_validation"
                 },
                 {
                     "name": "osm_union_join_job_db",
@@ -2392,7 +2382,7 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "download_url": "<%=decodeURIComponent(tasks.osw_compression.output.output_path)%>",
+                            "download_url": "<%=decodeURIComponent(tasks.osw_union.output.file_upload_path)%>",
                             "status": "COMPLETED",
                             "message": "Job Completed Successfully",
                             "updated_at": "CURRENT_TIMESTAMP"

@@ -110,9 +110,6 @@
                     "anyOf": [
                         {
                             "type": "string"
-                        },
-                        {
-                            "type": "null"
                         }
                     ]
                 },
@@ -120,9 +117,6 @@
                     "anyOf": [
                         {
                             "type": "string"
-                        },
-                        {
-                            "type": "null"
                         }
                     ]
                 },
@@ -172,9 +166,6 @@
                                 "TDEITools",
                                 "InHouse"
                             ]
-                        },
-                        {
-                            "type": "null"
                         }
                     ]
                 },
