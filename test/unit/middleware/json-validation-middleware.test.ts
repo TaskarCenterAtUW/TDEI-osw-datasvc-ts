@@ -25,7 +25,7 @@ describe('Metadata JSON Validator', () => {
                       "dataset_detail": {
                           "name": "test-flex",
                           "description": "test2",
-                          "version": "v1.0",
+                          "version": 2,
                           "custom_metadata": null,
                           "collected_by": "mahesh",
                           "collection_date": "2023-01-01T00:00:00",
@@ -125,6 +125,7 @@ describe('Metadata JSON Validator', () => {
     await metajsonValidator(req, res, next);
     expect(next).toHaveBeenCalledWith();
   });
+
 
   it('should throw InputException if metadata file is missing', async () => {
     // let localObj = { ...reqData };

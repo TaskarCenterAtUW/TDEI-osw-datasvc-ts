@@ -234,7 +234,7 @@ class TdeiCoreService implements ITdeiCoreService {
             invalidTypeMsg = invalidTypeMsg != "" ? `\nInvalid property type : \n ${invalidTypeMsg} ` : "";
             additionalMsg = additionalMsg != "" ? `\nAdditional properties found : \n ${additionalMsg} not allowed` : "";
             console.error("Metadata json validation error : \n", additionalMsg, requiredPropertyMsg, requiredEnumMsg, invalidTypeMsg);
-            new InputException(("\n" + requiredPropertyMsg + "\n" + requiredEnumMsg + "\n" + invalidTypeMsg + "\n" + additionalMsg) as string);
+            throw new InputException(("\n" + requiredPropertyMsg + "\n" + requiredEnumMsg + "\n" + invalidTypeMsg + "\n" + additionalMsg) as string);
         }
 
         switch (data_type) {
@@ -255,10 +255,16 @@ class TdeiCoreService implements ITdeiCoreService {
         }
 
         //Check for unique name and version combination
-        if (tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version, tdei_dataset_id))
-            throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
-        if (!tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version))
-            throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
+        //Check for edit metadata flow
+        if (tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version, tdei_dataset_id)) {
+            let latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
+            throw new InputException(`Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata. Latest version for name "${metadata.dataset_detail.name}" is ${latest_version}`);
+        }
+        //upload flow
+        if (!tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version)) {
+            let latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
+            throw new InputException(`Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata. Latest version for name "${metadata.dataset_detail.name}" is ${latest_version}`);
+        }
 
         return true;
     }
@@ -373,7 +379,7 @@ class TdeiCoreService implements ITdeiCoreService {
      * @param tdei_dataset_id - The ID of the TDEI dataset. (Optional) Used for Edit Metadata.
      * @returns A promise that resolves to a boolean indicating whether the name and version are unique.
      */
-    async checkMetaNameAndVersionUnique(name: string, version: string, tdei_dataset_id?: string): Promise<Boolean> {
+    async checkMetaNameAndVersionUnique(name: string, version: number, tdei_dataset_id?: string): Promise<Boolean> {
         try {
             let queryText: string;
             let values: (string | number)[];
@@ -399,6 +405,30 @@ class TdeiCoreService implements ITdeiCoreService {
         } catch (error) {
             console.error("Error checking the name and version", error);
             return Promise.resolve(true);
+        }
+    }
+
+    /**
+     * Retrieves the dataset details by ID.
+     * @param tdei_dataset_id - The ID of the dataset.
+     * @returns A promise that resolves to the dataset details.
+     */
+    async getLatestDatasetVersion(name: string, version: number): Promise<number> {
+        try {
+            const queryObject = {
+                text: `SELECT MAX(version) AS latest_version FROM content.dataset WHERE name = $1 AND FLOOR(version::real) = FLOOR($2)`,
+                values: [name, version],
+            };
+
+            let result = await dbClient.query(queryObject);
+
+            if (result.rowCount == 0)
+                return version;
+
+            return result.rows[0].latest_version;
+        } catch (error) {
+            console.error("Error getting the latest dataset version", error);
+            return version;
         }
     }
 

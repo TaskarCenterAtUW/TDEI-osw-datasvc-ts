@@ -309,7 +309,7 @@ describe("TDEI core Service Test", () => {
 
         it('should resolve with true if record with the same name and version exists', async () => {
             const mockName = 'existingName';
-            const mockVersion = 'existingVersion';
+            const mockVersion = 1.1;
             const mockQueryResult = <QueryResult<any>>{ rowCount: 1 };
             jest.spyOn(dbClient, "query")
                 .mockResolvedValue(mockQueryResult);
@@ -320,7 +320,7 @@ describe("TDEI core Service Test", () => {
 
         it('should resolve with false if no record with the same name and version exists', async () => {
             const mockName = 'nonExistingName';
-            const mockVersion = 'nonExistingVersion';
+            const mockVersion = 1;
             const mockQueryResult = <QueryResult<any>>{ rowCount: 0 };
             jest.spyOn(dbClient, "query")
                 .mockResolvedValue(mockQueryResult);
@@ -332,7 +332,7 @@ describe("TDEI core Service Test", () => {
 
         it('should resolve with true if an error occurs during the query', async () => {
             const mockName = 'existingName';
-            const mockVersion = 'existingVersion';
+            const mockVersion = 2.3;
             const originalError = new Error('Some unexpected error');
             jest.spyOn(dbClient, "query").mockRejectedValueOnce(originalError);
 
@@ -506,7 +506,8 @@ describe("TDEI core Service Test", () => {
     describe('validateMetadata', () => {
         it('should throw an InputException if the metadata is invalid', async () => {
             // Arrange
-            const metadata = new MetadataModel();
+            let metadata = new MetadataModel();
+            metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSample()));
             metadata.dataset_detail.schema_version = "v0.1"; // Invalid schema version
 
             // Act & Assert
@@ -515,7 +516,8 @@ describe("TDEI core Service Test", () => {
 
         it('should throw an InputException if the data type is not supported', async () => {
             // Arrange
-            const metadata = new MetadataModel();
+            let metadata = new MetadataModel();
+            metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSample()));
             metadata.dataset_detail.schema_version = "v0.2"; // Valid schema version
 
             // Act & Assert

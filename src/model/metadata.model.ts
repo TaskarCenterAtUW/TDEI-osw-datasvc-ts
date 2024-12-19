@@ -40,7 +40,7 @@ export class DatasetDetail extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    version: string = "";
+    version: number = 0.0;
 
     @Prop()
     @IsOptional()

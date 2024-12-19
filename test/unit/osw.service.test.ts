@@ -38,6 +38,10 @@ describe("OSW Service Test", () => {
                         entity_type: "Footway",
                         tags: ["surface", "width"],
                     },
+                    {
+                        entity_type: "PrimaryStreet",
+                        tags: ["ext:maxspeed"],
+                    }
                 ]),
             };
             const user_id = "mock-user-id";
@@ -651,7 +655,7 @@ describe("OSW Service Test", () => {
                     buffer: Buffer.from(`{"dataset_detail": {
                         "name": "test-flex",
                         "description": "test2",
-                        "version": "v1.0",
+                        "version": 1.0,
                         "custom_metadata": null,
                         "collected_by": "mahesh",
                         "collection_date": "2023-01-01T00:00:00",
@@ -1125,7 +1129,7 @@ describe("OSW Service Test", () => {
             const dataset = {
                 status: RecordStatus["Pre-Release"],
             } as any;
-        
+
             // Correctly construct the job object
             const job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -1139,16 +1143,16 @@ describe("OSW Service Test", () => {
                 tdei_project_group_id: "",
                 user_id: backendRequest.user_id, // Ensure user_id is included at the top level
             });
-        
+
             const job_id = 111;
-        
+
             jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset);
             jest.spyOn(oswService.jobServiceInstance, "createJob").mockResolvedValueOnce(job_id);
             mockAppContext();
-        
+
             // Act
             const result = await oswService.calculateInclination(backendRequest);
-        
+
             // Assert
             expect(result).toBe(job_id.toString());
             expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(job); // Check correct job object

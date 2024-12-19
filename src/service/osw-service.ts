@@ -155,7 +155,7 @@ class OswService implements IOswService {
             let entitySchema = definitions[`${tagItem.entity_type}Fields`].properties;
 
             for (let tag of tagItem.tags) {
-                if (!entitySchema[tag])
+                if (!tag.startsWith('ext:') && !entitySchema[tag])
                     throw new InputException(`Tag ${tag} not found in the schema for ${tagItem.entity_type}`);
             }
         }
@@ -166,7 +166,12 @@ class OswService implements IOswService {
 
             tagItem.tags.forEach((key: any) => {
                 let key_str = key.replace(":", "_");
-                cte += ` (CASE WHEN "${key}" is not null THEN 1 ELSE 0 END) AS has_${key_str},`;
+                if (key.startsWith('ext:')) {
+                    cte += ` (CASE WHEN feature::JSONB->'properties' ? '${key}' is not null THEN 1 ELSE 0 END) AS has_${key_str},`;
+                }
+                else {
+                    cte += ` (CASE WHEN "${key}" is not null THEN 1 ELSE 0 END) AS has_${key_str},`;
+                }
             });
 
             cte = cte.slice(0, -1);
@@ -1060,7 +1065,7 @@ class OswService implements IOswService {
             if (dataset.status !== RecordStatus["Pre-Release"])
                 throw new InputException(`Dataset ${backendRequest.parameters.dataset_id} is not in Pre-Release state. Dataset incline tagging request allowed in Pre-Release state only.`);
 
-            if (dataset.data_type &&  dataset.data_type !== TDEIDataType.osw) {
+            if (dataset.data_type && dataset.data_type !== TDEIDataType.osw) {
                 throw new InputException(`Dataset ${backendRequest.parameters.dataset_id} is not an osw dataset.`)
             }
 
