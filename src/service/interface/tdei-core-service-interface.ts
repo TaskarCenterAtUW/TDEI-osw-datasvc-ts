@@ -101,7 +101,7 @@ export interface ITdeiCoreService {
    * @param version - The version of the metadata.
    * @returns A promise that resolves to a boolean indicating whether the name and version are unique.
    */
-  checkMetaNameAndVersionUnique(name: string, version: number): Promise<Boolean>;
+  checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean>;
 
   /**
   * Validates the metadata object.

@@ -258,15 +258,32 @@ class TdeiCoreService implements ITdeiCoreService {
         //Check for edit metadata flow
         if (tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version, tdei_dataset_id)) {
             let latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
-            throw new InputException(`Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata. Latest version for name "${metadata.dataset_detail.name}" is ${latest_version}`);
+            let latest_version_series = this.getVersionSeries(latest_version);
+            throw new InputException(`Record already exists for Name and Version specified in metadata. Reminder: dataset name and version must be globally unique to the TDEI system. Suggest updating the name or version and request again. Latest version for name "${metadata.dataset_detail.name}" ${latest_version_series != '' ? 'in ' + latest_version_series + ' series' : ''} is ${latest_version}.`);
         }
         //upload flow
         if (!tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version)) {
             let latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
-            throw new InputException(`Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata. Latest version for name "${metadata.dataset_detail.name}" is ${latest_version}`);
+            let latest_version_series = this.getVersionSeries(latest_version);
+            throw new InputException(`Record already exists for Name and Version specified in metadata. Reminder: dataset name and version must be globally unique to the TDEI system. Suggest updating the name or version and request again. Latest version for name "${metadata.dataset_detail.name}" ${latest_version_series != '' ? 'in ' + latest_version_series + ' series' : ''} is ${latest_version}.`);
         }
 
         return true;
+    }
+
+    /**
+     * Gets the version string series for the provided latest version.
+     * @param latest_version 
+     * @returns 
+     */
+    private getVersionSeries(latest_version: string): string {
+        const versionParts = latest_version.split('.');
+
+        if (versionParts.length === 1) {
+            return '';
+        }
+
+        return `${versionParts[0]}.x`;
     }
 
     /*
@@ -379,7 +396,7 @@ class TdeiCoreService implements ITdeiCoreService {
      * @param tdei_dataset_id - The ID of the TDEI dataset. (Optional) Used for Edit Metadata.
      * @returns A promise that resolves to a boolean indicating whether the name and version are unique.
      */
-    async checkMetaNameAndVersionUnique(name: string, version: number, tdei_dataset_id?: string): Promise<Boolean> {
+    async checkMetaNameAndVersionUnique(name: string, version: string, tdei_dataset_id?: string): Promise<Boolean> {
         try {
             let queryText: string;
             let values: (string | number)[];
@@ -413,7 +430,7 @@ class TdeiCoreService implements ITdeiCoreService {
      * @param tdei_dataset_id - The ID of the dataset.
      * @returns A promise that resolves to the dataset details.
      */
-    async getLatestDatasetVersion(name: string, version: number): Promise<number> {
+    async getLatestDatasetVersion(name: string, version: string): Promise<string> {
         try {
             const queryObject = {
                 text: `SELECT MAX(version) AS latest_version FROM content.dataset WHERE name = $1 AND FLOOR(version::real) = FLOOR($2)`,

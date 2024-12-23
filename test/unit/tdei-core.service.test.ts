@@ -309,7 +309,7 @@ describe("TDEI core Service Test", () => {
 
         it('should resolve with true if record with the same name and version exists', async () => {
             const mockName = 'existingName';
-            const mockVersion = 1.1;
+            const mockVersion = "1.1";
             const mockQueryResult = <QueryResult<any>>{ rowCount: 1 };
             jest.spyOn(dbClient, "query")
                 .mockResolvedValue(mockQueryResult);
@@ -320,7 +320,7 @@ describe("TDEI core Service Test", () => {
 
         it('should resolve with false if no record with the same name and version exists', async () => {
             const mockName = 'nonExistingName';
-            const mockVersion = 1;
+            const mockVersion = "1";
             const mockQueryResult = <QueryResult<any>>{ rowCount: 0 };
             jest.spyOn(dbClient, "query")
                 .mockResolvedValue(mockQueryResult);
@@ -332,7 +332,7 @@ describe("TDEI core Service Test", () => {
 
         it('should resolve with true if an error occurs during the query', async () => {
             const mockName = 'existingName';
-            const mockVersion = 2.3;
+            const mockVersion = "2.3";
             const originalError = new Error('Some unexpected error');
             jest.spyOn(dbClient, "query").mockRejectedValueOnce(originalError);
 
