@@ -1526,6 +1526,20 @@
             ],
             "exception_task": [
                 {
+                    "name": "flex_upload_failure",
+                    "task_reference_name": "flex_upload_failure",
+                    "description": "Deleting the draft dataset on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "delete_draft_dataset"
+                },
+                {
                     "name": "job_failure_db",
                     "task_reference_name": "job_failure_db",
                     "description": "Updating the job details on failure",
@@ -1818,6 +1832,20 @@
                 }
             ],
             "exception_task": [
+                {
+                    "name": "pathways_upload_failure",
+                    "task_reference_name": "pathways_upload_failure",
+                    "description": "Deleting the draft dataset on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "delete_draft_dataset"
+                },
                 {
                     "name": "job_failure_db",
                     "task_reference_name": "job_failure_db",
