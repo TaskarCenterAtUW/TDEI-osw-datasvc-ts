@@ -29,7 +29,7 @@ export class TdeiObjectFaker {
             "dataset_detail": {
                 "name": "test-flex",
                 "description": "test2",
-                "version": 1.0,
+                "version": "1.0",
                 "custom_metadata": null,
                 "collected_by": "mahesh",
                 "collection_date": "2023-01-01T00:00:00",
@@ -134,7 +134,7 @@ export class TdeiObjectFaker {
                 },
                 "name": "Spokane",
                 "description": "OSW v0.2 compliant dataset for Spokane",
-                "version": 1.2,
+                "version": "1.2",
                 "collected_by": "GS and UW",
                 "collection_date": "2024-09-26T12:17:26.694014",
                 "collection_method": "others",
