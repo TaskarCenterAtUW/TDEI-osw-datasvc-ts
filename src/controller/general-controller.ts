@@ -13,6 +13,7 @@ import multer, { memoryStorage } from "multer";
 import path from "path";
 import { IDatasetCloneRequest } from "../model/request-interfaces";
 import { listRequestValidation } from "../middleware/list-request-validation-middleware";
+import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
@@ -41,7 +42,7 @@ class GeneralController implements IController {
         this.router.get(`${this.path}/jobs`, authenticate, listRequestValidation, this.getJobs);
         this.router.get(`${this.path}/datasets`, authenticate, listRequestValidation, this.getDatasetList);
         this.router.get(`${this.path}/job/download/:job_id`, authenticate, this.getJobDownloadFile); // Download the formatted file
-        this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), authenticate,
+        this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), metajsonValidator("edit_metadata"), authenticate,
             async (req, res, next) => {
                 try {
                     let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
