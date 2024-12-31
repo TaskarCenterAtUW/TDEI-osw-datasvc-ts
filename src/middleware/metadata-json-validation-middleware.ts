@@ -28,7 +28,7 @@ export const metajsonValidator = ((operation: string) => {
             }
 
             if (!metadataFile) {
-                throw new InputException("metadata file input missing");
+                return next(new InputException("metadata file input missing"));
             }
 
             const valid = validate(metadata);
