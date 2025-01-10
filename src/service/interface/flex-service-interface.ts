@@ -23,7 +23,7 @@ export interface IFlexService {
      * @throws HttpException if the FlexStream is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    getFlexDownloadUrl(id: string): Promise<string>;
+    getFlexDownloadUrl(id: string, user_id: string): Promise<string>;
 
     /**
     * Processes the upload request and performs various validations and operations.

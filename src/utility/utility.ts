@@ -6,6 +6,7 @@ import { Core } from "nodets-ms-core";
 import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission_request";
 import _ from "lodash";
 import { InputException } from "../exceptions/http/http-exceptions";
+import AdmZip from "adm-zip";
 
 export class Utility {
 
@@ -108,7 +109,11 @@ export class Utility {
             console.error(error);
             throw new HttpException(400, "Failed to generate secret token");
         }
-        return secret;
+      return secret;
+    }
+
+    static calculateTotalSize(files: Express.Multer.File[]): number {
+        return files.reduce((total, file) => total + file.size, 0);
     }
 }
 

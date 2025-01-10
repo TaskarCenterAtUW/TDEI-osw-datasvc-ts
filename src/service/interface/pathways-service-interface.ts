@@ -23,7 +23,7 @@ export interface IPathwaysService {
      * @throws HttpException if the Pathways is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    getPathwaysDownloadUrl(id: string): Promise<string>;
+    getPathwaysDownloadUrl(id: string, user_id: string): Promise<string>;
 
     /**
     * Processes the upload request and performs various validations and operations.
