@@ -23,7 +23,6 @@ export class TaskExceptionHandler extends workflowBase_v2 {
             });
 
             let inputParams = task.input_params;
-            console.log(workflow_context);
             let messageInput: any = OrchestratorUtility.map_props(inputParams, workflow_context);
             if (messageInput == null) {
                 const message = `Unresolved input parameter for task : ${task.name}`;
