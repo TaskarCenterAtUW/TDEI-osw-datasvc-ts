@@ -92,7 +92,13 @@
                     ]
                 },
                 "version": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Version of the dataset, should be in the format of x or x.y where x,y are integers",
+                    "examples": [
+                        "0.1",
+                        "1.2",
+                        "2.3"
+                    ]
                 },
                 "custom_metadata": {
                     "anyOf": [
@@ -110,9 +116,6 @@
                     "anyOf": [
                         {
                             "type": "string"
-                        },
-                        {
-                            "type": "null"
                         }
                     ]
                 },
@@ -120,9 +123,6 @@
                     "anyOf": [
                         {
                             "type": "string"
-                        },
-                        {
-                            "type": "null"
                         }
                     ]
                 },
@@ -172,9 +172,6 @@
                                 "TDEITools",
                                 "InHouse"
                             ]
-                        },
-                        {
-                            "type": "null"
                         }
                     ]
                 },

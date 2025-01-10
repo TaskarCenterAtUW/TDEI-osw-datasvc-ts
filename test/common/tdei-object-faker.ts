@@ -29,7 +29,7 @@ export class TdeiObjectFaker {
             "dataset_detail": {
                 "name": "test-flex",
                 "description": "test2",
-                "version": "v1.0",
+                "version": "1.0",
                 "custom_metadata": null,
                 "collected_by": "mahesh",
                 "collection_date": "2023-01-01T00:00:00",

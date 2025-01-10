@@ -223,18 +223,7 @@ class TdeiCoreService implements ITdeiCoreService {
      */
     async validateMetadata(metadata: MetadataModel, data_type: TDEIDataType, tdei_dataset_id?: string): Promise<boolean> {
         //Validate metadata
-        const valid = metadataValidator(metadata);
-        if (!valid) {
-            let requiredMsg = metadataValidator.errors?.filter(z => z.keyword == "required").map((error: ErrorObject) => `${error.instancePath} : ${error.params.missingProperty}`).join(`, \n`);
-            let additionalMsg = metadataValidator.errors?.filter(z => z.keyword == "additionalProperties").map((error: ErrorObject) => `${error.params.additionalProperty}`).join(`, \n`);
-            let typeMsg = metadataValidator.errors?.filter(z => z.keyword == "type").map((error: ErrorObject) => `${error.instancePath} ${error.message}`).join(`, \n`);
-            requiredMsg = requiredMsg != "" ? `Missing required properties : \n ${requiredMsg} ` : "";
-            //get type mismatch error
-            additionalMsg = additionalMsg != "" ? `\n Additional properties found are not allowed : \n ${additionalMsg} ` : "";
-            typeMsg = typeMsg != "" ? `\n Type mismatch found : \n ${typeMsg}  mismatched` : "";
-            console.error("Metadata json validation error : ", additionalMsg, requiredMsg, typeMsg);
-            throw new InputException((`Metadata error : ${requiredMsg} \n ${additionalMsg} \n ${typeMsg}`) as string);
-        }
+       
 
         switch (data_type) {
             case "osw":
@@ -254,12 +243,35 @@ class TdeiCoreService implements ITdeiCoreService {
         }
 
         //Check for unique name and version combination
-        if (tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version, tdei_dataset_id))
-            throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
-        if (!tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version))
-            throw new InputException("Record already exists for Name and Version specified in metadata. Suggest to please update the name or version and request for upload with updated metadata")
+        //Check for edit metadata flow
+        if (tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version, tdei_dataset_id)) {
+            let latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
+            let latest_version_series = this.getVersionSeries(latest_version);
+            throw new InputException(`Record already exists for Name and Version specified in metadata. Reminder: dataset name and version must be globally unique to the TDEI system. Suggest updating the name or version and request again. Latest version for name "${metadata.dataset_detail.name}" ${latest_version_series != '' ? 'in ' + latest_version_series + ' series' : ''} is ${latest_version}.`);
+        }
+        //upload flow
+        if (!tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version)) {
+            let latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
+            let latest_version_series = this.getVersionSeries(latest_version);
+            throw new InputException(`Record already exists for Name and Version specified in metadata. Reminder: dataset name and version must be globally unique to the TDEI system. Suggest updating the name or version and request again. Latest version for name "${metadata.dataset_detail.name}" ${latest_version_series != '' ? 'in ' + latest_version_series + ' series' : ''} is ${latest_version}.`);
+        }
 
         return true;
+    }
+
+    /**
+     * Gets the version string series for the provided latest version.
+     * @param latest_version 
+     * @returns 
+     */
+    private getVersionSeries(latest_version: string): string {
+        const versionParts = latest_version.split('.');
+
+        if (versionParts.length === 1) {
+            return '';
+        }
+
+        return `${versionParts[0]}.x`;
     }
 
     /*
@@ -398,6 +410,30 @@ class TdeiCoreService implements ITdeiCoreService {
         } catch (error) {
             console.error("Error checking the name and version", error);
             return Promise.resolve(true);
+        }
+    }
+
+    /**
+     * Retrieves the dataset details by ID.
+     * @param tdei_dataset_id - The ID of the dataset.
+     * @returns A promise that resolves to the dataset details.
+     */
+    async getLatestDatasetVersion(name: string, version: string): Promise<string> {
+        try {
+            const queryObject = {
+                text: `SELECT MAX(version) AS latest_version FROM content.dataset WHERE name = $1 AND FLOOR(version::real) = FLOOR($2)`,
+                values: [name, version],
+            };
+
+            let result = await dbClient.query(queryObject);
+
+            if (result.rowCount == 0)
+                return version;
+
+            return result.rows[0].latest_version;
+        } catch (error) {
+            console.error("Error getting the latest dataset version", error);
+            return version;
         }
     }
 
@@ -690,7 +726,7 @@ class TdeiCoreService implements ITdeiCoreService {
     async triggerCloneWorkflow(cloneContext: CloneContext, dataset_to_be_clone: DatasetEntity, new_tdei_dataset_id: string, user_id: string, datasetCloneRequestObject: IDatasetCloneRequest) {
         //Create job
         let job = CreateJobDTO.from({
-            data_type: TDEIDataType.osw,
+            data_type: dataset_to_be_clone.data_type as TDEIDataType,
             job_type: JobType["Clone-Dataset"],
             status: JobStatus["IN-PROGRESS"],
             message: 'Job started',
