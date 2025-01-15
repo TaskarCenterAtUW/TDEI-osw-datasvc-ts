@@ -95,7 +95,7 @@ class FlexController implements IController {
     getFlexById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            const sasUrl = await flexService.getFlexDownloadUrl(request.params.id);
+            const sasUrl = await flexService.getFlexDownloadUrl(request.params.id, request.body.user_id);
             response.redirect(sasUrl);
 
         } catch (error: any) {

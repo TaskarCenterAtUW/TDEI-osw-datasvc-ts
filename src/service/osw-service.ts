@@ -2,6 +2,7 @@ import { Core } from "nodets-ms-core";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import dbClient from "../database/data-source";
 import { DatasetEntity } from "../database/entity/dataset-entity";
+import { DownloadStatsEntity } from "../database/entity/download-stats";
 import HttpException from "../exceptions/http/http-base-exception";
 import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { IUploadRequest } from "./interface/upload-request-interface";
@@ -13,7 +14,9 @@ import { IOswService } from "./interface/osw-service-interface";
 import { BboxServiceRequest, InclinationServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import jobService from "./job-service";
 import { IJobService } from "./interface/job-service-interface";
+import { IDownloadStats } from "./interface/download-stats-interface";
 import { CreateJobDTO } from "../model/job-dto";
+import { DownloadStatsDTO } from "../model/download-stats-dto";
 import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params";
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
@@ -838,7 +841,9 @@ class OswService implements IOswService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
-            datasetEntity.upload_file_size_bytes = uploadRequestObject.datasetFile[0].size;
+
+            // Calculate total size of files inside the uploaded ZIP
+            datasetEntity.upload_file_size_bytes = Utility.calculateTotalSize(uploadRequestObject.datasetFile);
 
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
@@ -960,7 +965,7 @@ class OswService implements IOswService {
         return fileEntities;
     }
 
-    async getDownloadableOSWUrl(id: string, format: string = "osw", file_version: string = "latest"): Promise<string> {
+    async getDownloadableOSWUrl(id: string, user_id: string, format: string = "osw", file_version: string = "latest"): Promise<string> {
 
         let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(id);
         if (file_version != "latest") {
@@ -989,6 +994,16 @@ class OswService implements IOswService {
         let container = relative_path.split('/')[1];
         let file_path_in_container = relative_path.split('/').slice(2).join('/');
         let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 12); // 12 hours expiry
+
+        const downloadStatsEntity = new DownloadStatsEntity();
+        downloadStatsEntity.blob_url = dataset_db_url;
+        downloadStatsEntity.file_size = dataset.upload_file_size_bytes;
+        downloadStatsEntity.tdei_dataset_id = dataset.tdei_dataset_id;
+        downloadStatsEntity.data_type = TDEIDataType.osw;
+        downloadStatsEntity.requested_datetime = new Date().toISOString();
+        downloadStatsEntity.user_id = user_id;
+        await this.tdeiCoreServiceInstance.createDownloadStats(downloadStatsEntity);
+
         return sasUrl;
 
 

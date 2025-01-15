@@ -112,12 +112,13 @@ export interface IOswService {
     /**
      * Retrieves the downloadable URL for an OSW Dataset.
      * @param id - The ID of the OSW Dataset.
+     * @param user_id - The ID of the user.
      * @param format - The format of the OSW Dataset (default is "osw").
      * @returns A promise that resolves to the downloadable URL.
      * @throws HttpException if the OSW Dataset is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    getDownloadableOSWUrl(id: string, format: string, file_version: string): Promise<string>;
+    getDownloadableOSWUrl(id: string, user_id: string, format: string, file_version: string): Promise<string>;
 
     /**
     * Processes the upload request and performs various validations and operations.

@@ -24,10 +24,12 @@ import path from "path";
 import { Readable } from "stream";
 import { WorkflowName } from "../constants/app-constants";
 import { CreateJobDTO } from "../model/job-dto";
+import { DownloadStatsDTO } from "../model/download-stats-dto";
 import jobService from "./job-service";
 import appContext from "../app-context";
 import { environment } from "../environment/environment";
 import fetch from "node-fetch";
+import { DownloadStatsEntity } from "../database/entity/download-stats";
 
 const ajv = new Ajv({ allErrors: true });
 const metadataValidator = ajv.compile(metaschema);
@@ -890,6 +892,18 @@ class TdeiCoreService implements ITdeiCoreService {
             console.error(error);
             throw new Error("Error fetching the data metrics");
         }
+    }
+
+    /**
+     * Creates a dataset.
+     * 
+     * @param downloadStatsObj - The download stats object to be created.
+     * @returns A promise that resolves to the created download stats DTO.
+     * @throws {Error} If an error occurs while saving the download stats.
+     */
+    async createDownloadStats(downloadStatsObj: DownloadStatsEntity): Promise<DownloadStatsDTO> {
+        const result = await dbClient.query(DownloadStatsEntity.getCreateDownloadStatsQuery(downloadStatsObj));
+        return DownloadStatsDTO.from(result.rows[0]);
     }
 }
 
