@@ -113,18 +113,18 @@ export class Utility {
     }
 
     static calculateTotalSize(files: Express.Multer.File[]): number {
-      return files.reduce((total, file) => {
-        const zip = new AdmZip(file.buffer); // Assuming the file is provided as a buffer
-        const zipEntries = zip.getEntries();
+        return files.reduce((total, file) => {
+          const zip = new AdmZip(file.buffer);
+          const zipEntries = zip.getEntries();
 
-        let fileSize = 0;
-        zipEntries.forEach((entry) => {
-            if (!entry.isDirectory) {
-                fileSize += entry.header.size;
-            }
-        });
+          let fileSize = 0;
+          zipEntries.forEach((entry) => {
+              if (!entry.isDirectory) {
+                  fileSize += entry.header.size;
+              }
+          });
 
-        return total + fileSize;
+          return total + fileSize;
       }, 0);
     }
 }
