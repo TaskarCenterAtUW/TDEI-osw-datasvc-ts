@@ -33,6 +33,9 @@ export class TaskExceptionHandler extends workflowBase_v2 {
             }
             // Workaround for abandonned flows
             if(workflow_context.status === WorkflowStatus.ABANDONED) {
+                if (messageInput['data'] == null) {
+                    messageInput['data'] = {};
+                }
                 messageInput['data']['status'] = WorkflowStatus.ABANDONED;
                 messageInput['data']['message'] = workflow_context.current_task_error;
             }
