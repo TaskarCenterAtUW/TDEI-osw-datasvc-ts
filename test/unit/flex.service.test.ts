@@ -12,6 +12,7 @@ import tdeiCoreService from "../../src/service/tdei-core-service";
 import jobService from "../../src/service/job-service";
 import flexService from "../../src/service/flex-service";
 import { ServiceEntity } from "../../src/database/entity/service-entity";
+import { Utility } from "../../src/utility/utility";
 
 // group test using describe
 describe("Flex Service Test", () => {
@@ -237,7 +238,7 @@ describe("Flex Service Test", () => {
             const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateMetadata').mockResolvedValue(true);
             const uploadSpy = jest.spyOn(storageService, 'uploadFile').mockResolvedValue("file-path");
             jest.spyOn(storageService, "generateRandomUUID").mockReturnValueOnce('mocked-uuid');
-
+            Utility.calculateTotalSize  = jest.fn().mockReturnValue(1000);
             // Mock the behavior of checkMetaNameAndVersionUnique
             // jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(false);
 
