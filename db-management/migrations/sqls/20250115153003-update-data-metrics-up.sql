@@ -69,7 +69,8 @@ BEGIN
         )
     ) INTO result
     FROM osw_dataset_edges_cte odec
-    CROSS JOIN datset_metric_cte dmc;
+    CROSS JOIN datset_metric_cte dmc
+    CROSS JOIN download_stats_cte dsc;
 
     RETURN result;
 END;
