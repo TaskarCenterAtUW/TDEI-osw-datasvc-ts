@@ -7,6 +7,8 @@ import { ConfidenceJobResponse } from "../../model/job-request-response/osw-conf
 import { TDEIDataType } from "../../model/jobs-get-query-params";
 import { MetadataModel } from "../../model/metadata.model";
 import { IDatasetCloneRequest } from "../../model/request-interfaces";
+import { DownloadStatsEntity } from "../../database/entity/download-stats";
+import { DownloadStatsDTO } from "../../model/download-stats-dto";
 
 export interface ITdeiCoreService {
   /*
@@ -136,4 +138,12 @@ export interface ITdeiCoreService {
    * @throws HttpException with status 400 if the request record is invalid or deleted.
    */
   getDatasetDetailsById(id: string): Promise<DatasetEntity>;
+
+  /**
+   * Creates a download stats record.
+   * @param downloadStatsObj - The download stats object to be created.
+   * @returns A promise that resolves to the created download stats DTO.
+   * @throws {Error} If an error occurs while saving the download stats.
+   */
+  createDownloadStats(downloadStatsObj: DownloadStatsEntity): Promise<DownloadStatsDTO>;
 }

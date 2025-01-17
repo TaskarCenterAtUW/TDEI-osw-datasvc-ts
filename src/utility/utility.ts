@@ -6,6 +6,7 @@ import { Core } from "nodets-ms-core";
 import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission_request";
 import _ from "lodash";
 import { InputException } from "../exceptions/http/http-exceptions";
+import AdmZip from "adm-zip";
 
 export class Utility {
 
@@ -108,7 +109,25 @@ export class Utility {
             console.error(error);
             throw new HttpException(400, "Failed to generate secret token");
         }
-        return secret;
+      return secret;
+    }
+
+    static calculateTotalSize(files: Express.Multer.File[]): number {
+        // Calculate the total size of the files inside the uploaded ZIP
+        return files.reduce((total, file) => {
+            const zip = new AdmZip(file.buffer);
+            // Get the entries of the zip file
+            const zipEntries = zip.getEntries();
+            let fileSize = 0;
+            zipEntries.forEach((entry) => {
+                // Check if the entry is a file and not a directory
+                if (!entry.isDirectory) {
+                    // Add the size of the file to the total size
+                    fileSize += entry.header.size;
+                }
+            });
+            return total + fileSize;
+        }, 0);
     }
 }
 

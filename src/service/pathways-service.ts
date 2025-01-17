@@ -18,8 +18,10 @@ import { IPathwaysService } from "./interface/pathways-service-interface";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
+import { Utility } from "../utility/utility";
 import AdmZip from "adm-zip";
 import HttpException from "../exceptions/http/http-base-exception";
+import { DownloadStatsEntity } from "../database/entity/download-stats";
 
 class PathwaysService implements IPathwaysService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -239,7 +241,9 @@ class PathwaysService implements IPathwaysService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
-            datasetEntity.upload_file_size_bytes = uploadRequestObject.datasetFile[0].size;
+
+            // Calculate total size of files inside the uploaded ZIP
+            datasetEntity.upload_file_size_bytes = Utility.calculateTotalSize(uploadRequestObject.datasetFile)
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
             metadata.collection_date = TdeiDate.UTC(metadata.collection_date);
@@ -338,7 +342,7 @@ class PathwaysService implements IPathwaysService {
         return fileEntities;
     }
 
-    async getPathwaysDownloadUrl(tdei_dataset_id: string): Promise<string> {
+    async getPathwaysDownloadUrl(tdei_dataset_id: string, user_id: string): Promise<string> {
         let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
         if (dataset.data_type && dataset.data_type !== TDEIDataType.pathways)
             throw new InputException(`${tdei_dataset_id} is not a pathways dataset.`);
@@ -355,6 +359,16 @@ class PathwaysService implements IPathwaysService {
         // let file_path = relative_path.split('/').
         let file_path_in_container = relative_path.split('/').slice(2).join('/');
         let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 12); // 12 hours expiry
+
+        const downloadStatsEntity = new DownloadStatsEntity();
+        downloadStatsEntity.blob_url = download_url;
+        downloadStatsEntity.file_size = dataset.upload_file_size_bytes || 0;
+        downloadStatsEntity.tdei_dataset_id = dataset.tdei_dataset_id;
+        downloadStatsEntity.data_type = TDEIDataType.pathways;
+        downloadStatsEntity.requested_datetime = new Date().toISOString();
+        downloadStatsEntity.user_id = user_id;
+        await this.tdeiCoreServiceInstance.createDownloadStats(downloadStatsEntity);
+
         return sasUrl;
     }
 }

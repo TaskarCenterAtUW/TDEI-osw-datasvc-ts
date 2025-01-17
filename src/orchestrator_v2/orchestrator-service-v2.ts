@@ -20,6 +20,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     private topicCollection = new Map<string, Topic>();
     private orchestratorConfigContext: OrchestratorWorkflowConfig = new OrchestratorWorkflowConfig({});
     private workflowEvent = new EventEmitter();
+    private default_request_handler_subscription = "request-handler"; // Default subscription for all request handlers
 
     constructor(orchestratorConfig: any, workflows: any) {
         console.log("Initializing TDEI Orchestrator service v2");
@@ -83,6 +84,8 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
         }
         else {
             this.subscribe();
+            // Also subscribe for DLQ
+            this.subscribeToDLQ();
         }
     }
 
@@ -125,6 +128,35 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
                     onReceive: this.handleMessage,
                     onError: this.handleFailedMessages
                 });
+        });
+    }
+
+    private subscribeToDLQ() {
+        console.log("Subscribing TDEI orchestrator v2 DLQ subscriptions");
+        const all_request_topics : string[] = []
+        // Get all the topics in the workflows
+        this.orchestratorConfigContext.workflows.forEach(workflow => {
+            workflow.tasks.forEach(task => {
+                if (task.type === "Event") {
+                  const topic_name = task.topic;
+                  if (topic_name) {
+                    all_request_topics.push(topic_name);
+                  }
+                }
+            });
+            
+        });
+        // Make only unique topics
+        const unique_request_topics = [...new Set(all_request_topics)];
+        // Subscribe the the deadletterqueue for all the topics
+        unique_request_topics.forEach(topic_name => {
+        var topic = this.getTopicInstance(topic_name); // Not sure whether it should be used
+        const default_dlq_subscription = this.default_request_handler_subscription + "/$deadletterqueue"; // This is important. If we remove the suffix, the orchestrator will not work
+        topic.subscribe(default_dlq_subscription,
+            {
+                onReceive: this.handleDLQMessage,
+                onError: this.handleFailedMessages
+            });
         });
     }
 
@@ -193,8 +225,16 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
                 WorkflowContext.updateCurrentTask(workflow_context, workflow_context.tasks[task.name]);
             }
             else {
-                WorkflowContext.failed(workflow_context, messageOutput.message);
-                Task.fail(workflow_context.tasks[task.name], messageOutput.message);
+                // abandoned use case to be written here.
+                if (messageOutput.abandoned != null && messageOutput.abandoned) {
+                    // abandoned message received
+                    WorkflowContext.abandon(workflow_context, messageOutput.message);
+                    Task.abandon(workflow_context.tasks[task.name], messageOutput.message);
+                }
+                else {
+                    WorkflowContext.failed(workflow_context, messageOutput.message);
+                    Task.fail(workflow_context.tasks[task.name], messageOutput.message);
+                }
                 WorkflowContext.updateCurrentTask(workflow_context, workflow_context.tasks[task.name]);
             }
             //Save the workflow context
@@ -348,6 +388,43 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
                     let taskConfig = workflowConfig.tasks.find(x => x.task_reference_name.toLowerCase() == task_name.toLowerCase());
                     if (taskConfig) {
                         let wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
+                        await this.handleEventResponse(workflowConfig, taskConfig, wokflow_details!.workflow_context, message);
+                    }
+                    else {
+                        console.error("Task not found", message.messageType);
+                    }
+                }
+            }
+
+        } catch (error) {
+            console.error("Orchestrator : Error invoking handlers", error);
+        }
+        return Promise.resolve();
+    }
+
+    /**
+     * Handles the dead letter queue messages. The task and workflow are abandonned 
+     * @param message Message in the dead letter queue
+     * @returns 
+     */
+    private handleDLQMessage = async (message: QueueMessage) => {
+        try {
+            console.log("Received DLQ message", message.messageType);
+            let messageType = message.messageType.split("|");
+            if (messageType.length == 2) {
+                let workflow_name = messageType[0];
+                let task_name = messageType[1];
+                let workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
+                if (workflowConfig) {
+                   
+                    let taskConfig = workflowConfig.tasks.find(x => x.task_reference_name.toLowerCase() == task_name.toLowerCase());
+                    if (taskConfig) {
+                        // Prepare response for the abandoned task
+                        let wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
+                         message.data['success']  = false;
+                         message.data['message'] = `Abandoned during ${taskConfig.description} task`;
+                         message.data['abandoned'] = true;
+                        // Generate the abandoned response and send to handleEventResponse
                         await this.handleEventResponse(workflowConfig, taskConfig, wokflow_details!.workflow_context, message);
                     }
                     else {

@@ -242,7 +242,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
-                            "status": "FAILED"
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
                     "output_params": {
