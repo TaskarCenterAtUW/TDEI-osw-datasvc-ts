@@ -390,7 +390,7 @@ class FlexService implements IFlexService {
 
         const downloadStatsEntity = new DownloadStatsEntity();
         downloadStatsEntity.blob_url = download_url;
-        downloadStatsEntity.file_size = dataset.upload_file_size_bytes;
+        downloadStatsEntity.file_size = dataset.upload_file_size_bytes || 0;
         downloadStatsEntity.tdei_dataset_id = dataset.tdei_dataset_id;
         downloadStatsEntity.data_type = TDEIDataType.flex;
         downloadStatsEntity.requested_datetime = new Date().toISOString();
