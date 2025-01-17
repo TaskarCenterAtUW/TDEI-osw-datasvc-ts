@@ -997,7 +997,7 @@ class OswService implements IOswService {
 
         const downloadStatsEntity = new DownloadStatsEntity();
         downloadStatsEntity.blob_url = dataset_db_url;
-        downloadStatsEntity.file_size = dataset.upload_file_size_bytes;
+        downloadStatsEntity.file_size = dataset.upload_file_size_bytes || 0;
         downloadStatsEntity.tdei_dataset_id = dataset.tdei_dataset_id;
         downloadStatsEntity.data_type = TDEIDataType.osw;
         downloadStatsEntity.requested_datetime = new Date().toISOString();

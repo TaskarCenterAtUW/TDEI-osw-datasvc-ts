@@ -820,6 +820,7 @@ class TdeiCoreService implements ITdeiCoreService {
             changeset_url: cloneContext.dest_changeset_upload_entity ? decodeURIComponent(cloneContext.dest_changeset_upload_entity!.remoteUrl) : undefined,
             osm_url: cloneContext.dest_osm_upload_entity ? decodeURIComponent(cloneContext.dest_osm_upload_entity!.remoteUrl) : undefined,
             latest_osm_url: cloneContext.dest_osm_upload_entity ? decodeURIComponent(cloneContext.dest_osm_upload_entity!.remoteUrl) : undefined,
+            upload_file_size_bytes: dataset_to_be_clone.upload_file_size_bytes,
         });
         // //Update the cloned dataset with new urls
         await dbClient.query(DatasetEntity.getUpdateQuery(condition, updateFields));
