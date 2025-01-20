@@ -7,6 +7,8 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import { UnAuthenticated } from '../exceptions/http/http-exceptions';
 import { environment } from '../environment/environment';
 import fetch from 'node-fetch';
+import dbClient from "../database/data-source";
+import { APIUsageUtility } from '../utility/utility';
 /**
  * Validates the token and sends the user_id in the req.body
  * the user id is available as `req.user_id`
@@ -38,6 +40,8 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
                     let result: any = await response.json();
                     req.body.user_id = result.id;
                     req.body.isAdmin = false;
+                    await APIUsageUtility.saveAPIUsageSummary(req);
+                    await APIUsageUtility.saveAPIUsageDetails(req);
                     next();
                 }
                 else {
@@ -64,6 +68,8 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
         }
         req.body.user_id = jwtOutput?.sub;
         req.body.isAdmin = jwtOutput?.realm_access?.roles.includes('tdei-admin');
+        await APIUsageUtility.saveAPIUsageSummary(req);
+        await APIUsageUtility.saveAPIUsageDetails(req);
         next();
     }
 }

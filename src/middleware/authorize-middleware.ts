@@ -8,6 +8,7 @@ import HttpException from '../exceptions/http/http-base-exception';
 import tdeiCoreService from '../service/tdei-core-service';
 import { Utility } from '../utility/utility';
 import { th } from 'date-fns/locale';
+import { APIUsageUtility } from '../utility/utility';
 
 /**
  * Authorizes the request with provided allowed roles and tdei_project_group_id
@@ -50,11 +51,16 @@ export const authorize = (approvedRoles: string[]) => {
             }
 
             //If no roles skip the check
-            if (!approvedRoles.length)
-                return next();
+            if (!approvedRoles.length) {
+                await APIUsageUtility.saveAPIUsageSummary(req);
+                await APIUsageUtility.saveAPIUsageDetails(req);
+               return next();
+              }
 
             var authorized = await Utility.authorizeRoles(req.body.user_id, req.body.tdei_project_group_id, approvedRoles);
-            if (authorized) {
+            if (authorized) {               
+                await APIUsageUtility.saveAPIUsageSummary(req);
+                await APIUsageUtility.saveAPIUsageDetails(req);
                 next();
             }
             else {
