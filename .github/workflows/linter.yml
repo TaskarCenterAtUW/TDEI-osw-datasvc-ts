@@ -96,11 +96,11 @@ jobs:
 
       - name: Run unit test cases
         run: |
-          timestamp=$(date '+%Y-%m-%d_%H-%M-%S')
           mkdir -p test_results
+          timestamp=$(date '+%Y-%m-%d_%H-%M-%S')
           log_file="test_results/${timestamp}_report.log"
-          echo -e "\nTest Cases Report Report\n" >> $log_file
-          npm run test >> $log_file 2>&1
+          echo "\nTest Cases Report\n" | tee -a $log_file
+          npm run test 2>&1 | tee -a $log_file
 
 
       - name: Upload report to Azure
