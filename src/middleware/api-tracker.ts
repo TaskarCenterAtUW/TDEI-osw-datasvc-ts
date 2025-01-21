@@ -3,7 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { APIUsageUtility } from '../utility/utility';
+import { APITrackerService } from '../service/api-tracker-service';
 
 
 /**
@@ -17,8 +17,8 @@ import { APIUsageUtility } from '../utility/utility';
 export const apiTracker = async (req: Request, res: Response, next: NextFunction) => {
     try {
         console.log('inside api tracker')
-        await APIUsageUtility.saveAPIUsageSummary(req);
-        await APIUsageUtility.saveAPIUsageDetails(req);
+        await APITrackerService.saveAPIUsageSummary(req);
+        await APITrackerService.saveAPIUsageDetails(req);
     } catch (error) {
         console.error(error);
     } finally {

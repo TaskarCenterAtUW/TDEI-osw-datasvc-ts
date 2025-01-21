@@ -72,7 +72,7 @@ class FlexController implements IController {
             { name: "changeset", maxCount: 1 }
         ]), metajsonValidator('dataset_upload'), authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), apiTracker, this.processUploadRequest);
         this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), apiTracker, this.processPublishRequest);
-        this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
+        this.router.get(`${this.path}/versions/info`, authenticate, apiTracker, this.getVersions);
         this.router.get(`${this.path}/zip/:datasetId`, this.triggerZipRequest); //TODO: To remove later
     }
 
