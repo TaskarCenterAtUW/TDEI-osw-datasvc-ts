@@ -24,32 +24,9 @@ CREATE TABLE IF NOT EXISTS content.api_usage_details
 
 -- Indexes for efficient querying
 -- Check and create index idx_api_usage_summary_date if not exists
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_indexes
-        WHERE schemaname = 'content'
-          AND tablename = 'api_usage_summary'
-          AND indexname = 'idx_api_usage_summary_date'
-    ) THEN
-        CREATE INDEX idx_api_usage_summary_date ON content.api_usage_summary (date);
-    END IF;
-END $$;
-
+CREATE INDEX IF NOT EXISTS idx_api_usage_summary_date ON content.api_usage_summary (date);
 -- Check and create index idx_api_usage_details_endpoint_date if not exists
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_indexes
-        WHERE schemaname = 'content'
-          AND tablename = 'api_usage_details'
-          AND indexname = 'idx_api_usage_details_endpoint_date'
-    ) THEN
-        CREATE INDEX idx_api_usage_details_endpoint_date ON content.api_usage_details (endpoint, timestamp);
-    END IF;
-END $$;
+CREATE INDEX IF NOT EXISTS idx_api_usage_details_endpoint_date ON content.api_usage_details (endpoint, timestamp);
 
 CREATE OR REPLACE FUNCTION content.tdei_fetch_system_metrics()
 RETURNS JSON AS $$
