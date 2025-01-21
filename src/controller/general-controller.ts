@@ -294,7 +294,7 @@ class GeneralController implements IController {
     * @returns 
     */
     getJobs = async (request: Request, response: express.Response, next: NextFunction) => {
-        console.log('----------started')
+        
         try {
             const params: JobsQueryParams = new JobsQueryParams(JSON.parse(JSON.stringify(request.query)));
             params.isAdmin = request.body.isAdmin;
