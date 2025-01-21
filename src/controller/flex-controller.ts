@@ -12,6 +12,7 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import flexService from "../service/flex-service";
+import { apiTracker } from "../middleware/api-tracker";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -63,14 +64,14 @@ class FlexController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, authenticate, this.getFlexById);
-        this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
+        this.router.get(`${this.path}/:id`, authenticate, apiTracker, this.getFlexById);
+        this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, apiTracker, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
             { name: "changeset", maxCount: 1 }
-        ]), metajsonValidator('dataset_upload'), authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processUploadRequest);
-        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processPublishRequest);
+        ]), metajsonValidator('dataset_upload'), authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), apiTracker, this.processUploadRequest);
+        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), apiTracker, this.processPublishRequest);
         this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
         this.router.get(`${this.path}/zip/:datasetId`, this.triggerZipRequest); //TODO: To remove later
     }

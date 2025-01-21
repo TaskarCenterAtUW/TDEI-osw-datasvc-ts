@@ -18,6 +18,7 @@ import { Utility } from "../utility/utility";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
 import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
+import { apiTracker } from "../middleware/api-tracker";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -127,25 +128,25 @@ class OSWController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, authenticate, this.getOswById);
-        this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
+        this.router.get(`${this.path}/:id`, authenticate, apiTracker, this.getOswById);
+        this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, apiTracker, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
             { name: "changeset", maxCount: 1 }
-        ]), metajsonValidator('dataset_upload'), authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
-        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
-        this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), authenticate, this.calculateConfidence); // Confidence calculation
-        this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
-        this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
-        this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
+        ]), metajsonValidator('dataset_upload'), authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), apiTracker, this.processUploadRequest);
+        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), apiTracker, this.processPublishRequest);
+        this.router.get(`${this.path}/versions/info`, authenticate, apiTracker, this.getVersions);
+        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), authenticate, apiTracker, this.calculateConfidence); // Confidence calculation
+        this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, apiTracker, this.createFormatRequest); // Format request
+        this.router.post(`${this.path}/dataset-bbox`, authenticate, apiTracker, this.processDatasetBboxRequest);
+        this.router.post(`${this.path}/dataset-tag-road`, authenticate, apiTracker, this.processDatasetTagRoadRequest);
+        this.router.post(`${this.path}/spatial-join`, authenticate, apiTracker, this.processSpatialQueryRequest);
         // Route for quality metric request
-        this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, this.createIXNQualityOnDemandRequest);
-        this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
-        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, authenticate, this.createInclineRequest);
-        this.router.post(`${this.path}/union`, authenticate, this.processDatasetUnionRequest);
+        this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, apiTracker, this.createIXNQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, apiTracker, this.tagQualityMetric);
+        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, authenticate, apiTracker, this.createInclineRequest);
+        this.router.post(`${this.path}/union`, authenticate, apiTracker, this.processDatasetUnionRequest);
     }
 
 

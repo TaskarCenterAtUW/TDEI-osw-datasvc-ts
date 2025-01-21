@@ -44,7 +44,7 @@ export class APIUsageDetailsEntity extends BaseDto {
     @Prop()
     client_ip!: string;
     @Prop()
-    user_id!: string;
+    user_id?: string;
     @Prop()
     request_params?: object; // Optional, to store the request payload
 

@@ -166,24 +166,32 @@ export class FileEntityStream extends Readable {
 
 export class APIUsageUtility {
     public static async saveAPIUsageSummary(req: Request): Promise<void> {
-        const matchedRoute = req.route?.path || req.originalUrl;
-        await dbClient.query(APIUsageSummaryEntity.getUpsertApiUsageSummaryQuery(matchedRoute));
+        try {
+            const matchedRoute = req.route?.path || req.originalUrl;
+            await dbClient.query(APIUsageSummaryEntity.getUpsertApiUsageSummaryQuery(matchedRoute));
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     public static async saveAPIUsageDetails(req: Request): Promise<void> {
-        const matchedRoute = req.route?.path || req.originalUrl;
-        const request_params = {
-          ...req.body,
-          ...req.params,
-          ...req.query
+        try {
+            const matchedRoute = req.route?.path || req.originalUrl;
+            const request_params = {
+              ...req.body,
+              ...req.params,
+              ...req.query
+            }
+            const details = new APIUsageDetailsEntity({
+                endpoint: matchedRoute,
+                method: req.method,
+                client_ip: req.ip,
+                user_id: req.body.user_id,
+                request_params: request_params || null
+            })
+            await dbClient.query(APIUsageDetailsEntity.getCreateAPIUsageDetailsQuery(details));
+        } catch (error) {
+            console.error(error);
         }
-        const details = new APIUsageDetailsEntity({
-            endpoint: matchedRoute,
-            method: req.method,
-            client_ip: req.ip,
-            user_id: req.body.user_id,
-            request_params: request_params || null
-        })
-        await dbClient.query(APIUsageDetailsEntity.getCreateAPIUsageDetailsQuery(details));
     }
 }
