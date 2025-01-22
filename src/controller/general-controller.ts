@@ -14,6 +14,7 @@ import path from "path";
 import { IDatasetCloneRequest } from "../model/request-interfaces";
 import { listRequestValidation } from "../middleware/list-request-validation-middleware";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
+import { apiTracker } from "../middleware/api-tracker";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
@@ -38,10 +39,10 @@ class GeneralController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.delete(`${this.path}/dataset/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
-        this.router.get(`${this.path}/jobs`, authenticate, listRequestValidation, this.getJobs);
-        this.router.get(`${this.path}/datasets`, authenticate, listRequestValidation, this.getDatasetList);
-        this.router.get(`${this.path}/job/download/:job_id`, authenticate, this.getJobDownloadFile); // Download the formatted file
+        this.router.delete(`${this.path}/dataset/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc"]), apiTracker, this.invalidateRecordRequest);
+        this.router.get(`${this.path}/jobs`, authenticate, listRequestValidation, apiTracker, this.getJobs);
+        this.router.get(`${this.path}/datasets`, authenticate, listRequestValidation, apiTracker, this.getDatasetList);
+        this.router.get(`${this.path}/job/download/:job_id`, authenticate, apiTracker, this.getJobDownloadFile); // Download the formatted file
         this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), metajsonValidator("edit_metadata"), authenticate,
             async (req, res, next) => {
                 try {
@@ -57,7 +58,7 @@ class GeneralController implements IController {
                 } catch (error) {
                     next(error);
                 }
-            }, this.editMetadata); // edit Metadata request
+            }, apiTracker, this.editMetadata); // edit Metadata request
         this.router.post(`${this.path}/dataset/clone/:tdei_dataset_id/:tdei_project_group_id/:tdei_service_id`, metadataUpload.single('file'), authenticate, async (req, res, next) => {
             try {
                 let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
@@ -72,7 +73,7 @@ class GeneralController implements IController {
             } catch (error) {
                 next(error);
             }
-        }, this.cloneDataset); // clone Dataset request
+        }, apiTracker, this.cloneDataset); // clone Dataset request
         this.router.get(`${this.path}/system-metrics`, authenticate, this.getSystemMetrics);
         this.router.get(`${this.path}/data-metrics`, authenticate, this.getDataMetrics);
         this.router.post(`${this.path}/recover-password`, this.recoverPassword);
@@ -293,7 +294,7 @@ class GeneralController implements IController {
     * @returns 
     */
     getJobs = async (request: Request, response: express.Response, next: NextFunction) => {
-
+        
         try {
             const params: JobsQueryParams = new JobsQueryParams(JSON.parse(JSON.stringify(request.query)));
             params.isAdmin = request.body.isAdmin;
