@@ -39,11 +39,11 @@ class GeneralController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.delete(`${this.path}/dataset/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc"]), apiTracker, this.invalidateRecordRequest);
-        this.router.get(`${this.path}/jobs`, authenticate, listRequestValidation, apiTracker, this.getJobs);
-        this.router.get(`${this.path}/datasets`, authenticate, listRequestValidation, apiTracker, this.getDatasetList);
-        this.router.get(`${this.path}/job/download/:job_id`, authenticate, apiTracker, this.getJobDownloadFile); // Download the formatted file
-        this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), metajsonValidator("edit_metadata"), authenticate,
+        this.router.delete(`${this.path}/dataset/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
+        this.router.get(`${this.path}/jobs`, apiTracker, authenticate, listRequestValidation, this.getJobs);
+        this.router.get(`${this.path}/datasets`, apiTracker, authenticate, listRequestValidation, this.getDatasetList);
+        this.router.get(`${this.path}/job/download/:job_id`, apiTracker, authenticate, this.getJobDownloadFile); // Download the formatted file
+        this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), metajsonValidator("edit_metadata"), apiTracker, authenticate,
             async (req, res, next) => {
                 try {
                     let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
@@ -58,8 +58,8 @@ class GeneralController implements IController {
                 } catch (error) {
                     next(error);
                 }
-            }, apiTracker, this.editMetadata); // edit Metadata request
-        this.router.post(`${this.path}/dataset/clone/:tdei_dataset_id/:tdei_project_group_id/:tdei_service_id`, metadataUpload.single('file'), authenticate, async (req, res, next) => {
+            }, this.editMetadata); // edit Metadata request
+        this.router.post(`${this.path}/dataset/clone/:tdei_dataset_id/:tdei_project_group_id/:tdei_service_id`, metadataUpload.single('file'), apiTracker, authenticate, async (req, res, next) => {
             try {
                 let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
                 req.params["tdei_data_type"] = datasetRecord.data_type;
@@ -73,11 +73,11 @@ class GeneralController implements IController {
             } catch (error) {
                 next(error);
             }
-        }, apiTracker, this.cloneDataset); // clone Dataset request
-        this.router.get(`${this.path}/system-metrics`, authenticate, this.getSystemMetrics);
-        this.router.get(`${this.path}/data-metrics`, authenticate, this.getDataMetrics);
-        this.router.post(`${this.path}/recover-password`, this.recoverPassword);
-        this.router.post(`${this.path}/verify-email`, this.verifyEmail);
+        }, this.cloneDataset); // clone Dataset request
+        this.router.get(`${this.path}/system-metrics`, apiTracker, authenticate, this.getSystemMetrics);
+        this.router.get(`${this.path}/data-metrics`, apiTracker, authenticate, this.getDataMetrics);
+        this.router.post(`${this.path}/recover-password`, apiTracker, this.recoverPassword);
+        this.router.post(`${this.path}/verify-email`, apiTracker, this.verifyEmail);
     }
 
     /**

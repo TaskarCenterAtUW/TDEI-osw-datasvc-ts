@@ -12,7 +12,7 @@ export class APITrackerService {
         }
     }
 
-    public static async saveAPIUsageDetails(req: Request): Promise<void> {
+    public static async saveAPIUsageDetails(req: Request, { responseStatus, responseTime, userId }: { responseStatus: number; responseTime: number, userId?: string }): Promise<void> {
         try {
             const matchedRoute = req.route?.path || req.originalUrl;
             const request_params = {
@@ -20,12 +20,16 @@ export class APITrackerService {
               ...req.params,
               ...req.query
             }
+            // Extract the real client IP
+            const clientIp = req.headers['x-forwarded-for'] ? (req.headers['x-forwarded-for'] as string).split(',')[0].trim() : req.ip;
             const details = new APIUsageDetailsEntity({
                 endpoint: matchedRoute,
                 method: req.method,
-                client_ip: req.ip,
-                user_id: req.body.user_id || null,
-                request_params: request_params || null
+                client_ip: clientIp,
+                user_id: userId,
+                request_params: request_params || null,
+                response_status: responseStatus,
+                response_time: responseTime
             })
             await dbClient.query(APIUsageDetailsEntity.getCreateAPIUsageDetailsQuery(details));
         } catch (error) {

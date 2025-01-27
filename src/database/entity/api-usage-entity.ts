@@ -47,6 +47,10 @@ export class APIUsageDetailsEntity extends BaseDto {
     user_id?: string;
     @Prop()
     request_params?: object; // Optional, to store the request payload
+    @Prop()
+    response_status?: number
+    @Prop()
+    response_time?: number
 
     constructor(init?: Partial<APIUsageDetailsEntity>) {
         super();
@@ -69,9 +73,10 @@ export class APIUsageDetailsEntity extends BaseDto {
                     client_ip,
                     user_id,
                     request_params,
-                    timestamp
+                    response_status,
+                    response_time
                 )
-                VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *;
             `,
             values: [
@@ -79,7 +84,9 @@ export class APIUsageDetailsEntity extends BaseDto {
                 details.method,
                 details.client_ip,
                 details.user_id,
-                details.request_params ? JSON.stringify(details.request_params) : null
+                details.request_params ? JSON.stringify(details.request_params) : null,
+                details.response_status,
+                details.response_time
             ],
         };
         return query;
