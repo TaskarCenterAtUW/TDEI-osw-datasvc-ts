@@ -128,25 +128,25 @@ class OSWController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, authenticate, apiTracker, this.getOswById);
-        this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, apiTracker, this.processValidationOnlyRequest);
+        this.router.get(`${this.path}/:id`, apiTracker, authenticate, this.getOswById);
+        this.router.post(`${this.path}/validate`, validate.single('dataset'), apiTracker, authenticate, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
             { name: "changeset", maxCount: 1 }
-        ]), metajsonValidator('dataset_upload'), authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), apiTracker, this.processUploadRequest);
-        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), apiTracker, this.processPublishRequest);
-        this.router.get(`${this.path}/versions/info`, authenticate, apiTracker, this.getVersions);
-        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), authenticate, apiTracker, this.calculateConfidence); // Confidence calculation
-        this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, apiTracker, this.createFormatRequest); // Format request
-        this.router.post(`${this.path}/dataset-bbox`, authenticate, apiTracker, this.processDatasetBboxRequest);
-        this.router.post(`${this.path}/dataset-tag-road`, authenticate, apiTracker, this.processDatasetTagRoadRequest);
-        this.router.post(`${this.path}/spatial-join`, authenticate, apiTracker, this.processSpatialQueryRequest);
+        ]), metajsonValidator('dataset_upload'), apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
+        this.router.post(`${this.path}/publish/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
+        this.router.get(`${this.path}/versions/info`, apiTracker, authenticate, this.getVersions);
+        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), apiTracker, authenticate, this.calculateConfidence); // Confidence calculation
+        this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), apiTracker, authenticate, this.createFormatRequest); // Format request
+        this.router.post(`${this.path}/dataset-bbox`, apiTracker,  authenticate, this.processDatasetBboxRequest);
+        this.router.post(`${this.path}/dataset-tag-road`, apiTracker, authenticate, this.processDatasetTagRoadRequest);
+        this.router.post(`${this.path}/spatial-join`, apiTracker, authenticate, this.processSpatialQueryRequest);
         // Route for quality metric request
-        this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, apiTracker, this.createIXNQualityOnDemandRequest);
-        this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, apiTracker, this.tagQualityMetric);
-        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, authenticate, apiTracker, this.createInclineRequest);
-        this.router.post(`${this.path}/union`, authenticate, apiTracker, this.processDatasetUnionRequest);
+        this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), apiTracker, authenticate, this.createIXNQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), apiTracker, authenticate, this.tagQualityMetric);
+        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, apiTracker, authenticate, this.createInclineRequest);
+        this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
     }
 
 
