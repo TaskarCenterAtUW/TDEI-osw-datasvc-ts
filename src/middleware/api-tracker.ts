@@ -8,7 +8,7 @@ import { APITrackerService } from '../service/api-tracker-service';
 
 /**
  * Middleware to track the API usage.
- * It can be useed after the authenticate middleware to capture the user_id and request params.
+ * It can be used after the authenticate middleware to capture the user_id and request params.
  * @param req - Request
  * @param res - Response
  * @param next - NextFunction
@@ -29,7 +29,6 @@ export const apiTracker = async (req: Request, res: Response, next: NextFunction
         } catch (error) {
             console.error('Error in API Tracker Middleware:', error);
         }
-        
     });
     next();
 }
