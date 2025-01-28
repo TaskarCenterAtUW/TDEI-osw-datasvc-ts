@@ -543,9 +543,11 @@ $BODY$;
 
 
 
+
 CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
 	src_one_tdei_dataset_id character varying,
-	src_two_tdei_dataset_id character varying)
+	src_two_tdei_dataset_id character varying,
+	proximity real default 0.5)
     RETURNS TABLE(file_name text, cursor_ref refcursor) 
     LANGUAGE 'plpgsql'
     COST 100
@@ -568,7 +570,7 @@ BEGIN
 	JOIN content.node AS R   
 	ON U.tdei_dataset_id = SRC_ONE_TDEI_DATASET_ID
 	   AND R.tdei_dataset_id = SRC_TWO_TDEI_DATASET_ID
-	   AND ST_DWithin(U.node_loc_3857, R.node_loc_3857, 0.5);
+	   AND ST_DWithin(U.node_loc_3857, R.node_loc_3857, proximity);
 	
 	
 	CREATE TEMP TABLE witness_nodes ON COMMIT DROP AS
@@ -1126,6 +1128,8 @@ BEGIN
     cursor_ref := result_cursor;
     RETURN NEXT;
 
+ -- Drop the temporary table
+    -- DROP TABLE IF EXISTS feature_polygons;
 RETURN;
 END;
 $BODY$;
