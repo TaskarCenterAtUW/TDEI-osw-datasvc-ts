@@ -5,6 +5,7 @@ import HttpException from "../../src/exceptions/http/http-base-exception";
 import { ForbiddenAccess, InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
+import { ONE_GB_IN_BYTES } from "../../src/constants/app-constants";
 
 // group test using describe
 describe("OSW Controller Test", () => {
@@ -453,6 +454,7 @@ describe("OSW Controller Test", () => {
         it('should process the upload request and return tdei_dataset_id', async () => {
             const { res, next } = getMockRes();
             const mockTdeiRecordId = 'mock-tdei_dataset_id';
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(101);
 
             // Mock the processUploadRequest function to return a mock tdei_dataset_id
             jest.spyOn(oswService, "processUploadRequest").mockResolvedValueOnce(mockTdeiRecordId);
@@ -481,6 +483,7 @@ describe("OSW Controller Test", () => {
             const { res, next } = getMockRes();
             // Simulate missing metadata file
             mockRequest.files.metadata = undefined;
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(101);
 
             await oswController.processUploadRequest(mockRequest, mockResponse, mockNext);
 
@@ -500,6 +503,18 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the upload request');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        it('should handle file size restriction error', async () => {
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+
+            await oswController.processUploadRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -582,6 +597,7 @@ describe("OSW Controller Test", () => {
 
         it('should process the validation request and return job_id', async () => {
             const mockJobId = 'mock-job-id';
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(101);
 
             // Mock the processValidationOnlyRequest function to return a mock job_id
             jest.spyOn(oswService, "processValidationOnlyRequest").mockResolvedValueOnce(mockJobId);
@@ -614,6 +630,18 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the validation request');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        it('should handle file size restriction error', async () => {
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+
+            await oswController.processValidationOnlyRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -709,6 +737,7 @@ describe("OSW Controller Test", () => {
 
         it('should create format request and return job_id', async () => {
             const mockJobId = 'mock-job-id';
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(101);
 
             // Mock the processFormatRequest function to return mock job_id
             jest.spyOn(oswService, "processFormatRequest").mockResolvedValueOnce(mockJobId);
@@ -742,6 +771,18 @@ describe("OSW Controller Test", () => {
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the format request');
             expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+
+        it('should handle file size restriction error', async () => {
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+
+            await oswController.createFormatRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
 

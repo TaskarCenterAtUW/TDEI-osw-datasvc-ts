@@ -20,3 +20,5 @@ export enum WorkflowName {
     "osw_dataset_incline_tag" = "osw_dataset_incline_tag",
     "osw_union_dataset" = "osw_union_dataset"
 }
+
+export const ONE_GB_IN_BYTES = 1073741824;

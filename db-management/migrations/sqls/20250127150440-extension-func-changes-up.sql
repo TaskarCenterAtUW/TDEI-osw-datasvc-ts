@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS content.bbox_intersect(character varying, numeric, numeric, numeric, numeric);
+DROP FUNCTION IF EXISTS content.tdei_dataset_spatial_join(text, text, text);
+DROP FUNCTION IF EXISTS content.tdei_union_dataset(character varying, character varying);
+DROP FUNCTION IF EXISTS content.extract_dataset(character varying);
 
 CREATE OR REPLACE FUNCTION content.tdei_dataset_spatial_join(
 	destination_dataset_id text,

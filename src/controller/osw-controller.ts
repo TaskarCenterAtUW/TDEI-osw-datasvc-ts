@@ -19,6 +19,7 @@ import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
 import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 import { apiTracker } from "../middleware/api-tracker";
+import { ONE_GB_IN_BYTES } from "../constants/app-constants";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -366,7 +367,7 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > 1073741824) {
+            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
                 throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
             }
 
@@ -490,7 +491,7 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize(uploadRequest.datasetFile);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > 1073741824) {
+            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
                 throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
             }
 
@@ -577,7 +578,7 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > 1073741824) {
+            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
                 throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
             }
 
