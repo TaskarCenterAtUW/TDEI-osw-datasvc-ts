@@ -139,7 +139,7 @@ class OSWController implements IController {
         this.router.get(`${this.path}/versions/info`, apiTracker, authenticate, this.getVersions);
         this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), apiTracker, authenticate, this.calculateConfidence); // Confidence calculation
         this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), apiTracker, authenticate, this.createFormatRequest); // Format request
-        this.router.post(`${this.path}/dataset-bbox`, apiTracker,  authenticate, this.processDatasetBboxRequest);
+        this.router.post(`${this.path}/dataset-bbox`, apiTracker, authenticate, this.processDatasetBboxRequest);
         this.router.post(`${this.path}/dataset-tag-road`, apiTracker, authenticate, this.processDatasetTagRoadRequest);
         this.router.post(`${this.path}/spatial-join`, apiTracker, authenticate, this.processSpatialQueryRequest);
         // Route for quality metric request
@@ -355,6 +355,7 @@ class OSWController implements IController {
     processValidationOnlyRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received validation request');
+
             // let datasetFile = (request.files as any)['dataset'];
             const datasetFile = request.file;
             if (!datasetFile) {
@@ -362,6 +363,13 @@ class OSWController implements IController {
                 response.status(400).send("dataset file input missing");
                 next(new InputException("dataset file input missing"));
             }
+
+            const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
+            //if file size greater than 1GB then throw error
+            if (file_size_in_bytes > 1073741824) {
+                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            }
+
 
             let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
@@ -479,6 +487,13 @@ class OSWController implements IController {
                 response.status(400).send("dataset file input upload missing");
                 return next(new InputException("dataset file input upload missing"));
             }
+
+            const file_size_in_bytes = Utility.calculateTotalSize(uploadRequest.datasetFile);
+            //if file size greater than 1GB then throw error
+            if (file_size_in_bytes > 1073741824) {
+                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            }
+
             if (!uploadRequest.metadataFile) {
                 console.error("metadata file input upload missing");
                 response.status(400).send("metadata file input upload missing");
@@ -559,6 +574,13 @@ class OSWController implements IController {
             if (uploadedFile == undefined) {
                 throw new InputException("Missing upload file input");
             }
+
+            const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
+            //if file size greater than 1GB then throw error
+            if (file_size_in_bytes > 1073741824) {
+                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            }
+
             let source = request.body['source_format']; //TODO: Validate the input enums 
             let target = request.body['target_format'];
 
