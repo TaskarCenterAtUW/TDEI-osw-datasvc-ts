@@ -20,8 +20,10 @@ import { IFlexService } from "./interface/flex-service-interface";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
+import { Utility } from "../utility/utility";
 import AdmZip from "adm-zip";
 import HttpException from "../exceptions/http/http-base-exception";
+import { DownloadStatsEntity } from "../database/entity/download-stats";
 
 class FlexService implements IFlexService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -242,7 +244,8 @@ class FlexService implements IFlexService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
-            datasetEntity.upload_file_size_bytes = uploadRequestObject.datasetFile[0].size;
+            
+            datasetEntity.upload_file_size_bytes = Utility.calculateTotalSize(uploadRequestObject.datasetFile);
 
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
@@ -367,7 +370,7 @@ class FlexService implements IFlexService {
         return ''
     }
 
-    async getFlexDownloadUrl(tdei_dataset_id: string): Promise<string> {
+    async getFlexDownloadUrl(tdei_dataset_id: string, user_id: string): Promise<string> {
         let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
         if (dataset.data_type && dataset.data_type !== TDEIDataType.flex)
             throw new InputException(`${tdei_dataset_id} is not a flex dataset.`);
@@ -384,6 +387,16 @@ class FlexService implements IFlexService {
         // let file_path = relative_path.split('/').
         let file_path_in_container = relative_path.split('/').slice(2).join('/');
         let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 12); // 12 hours expiry
+
+        const downloadStatsEntity = new DownloadStatsEntity();
+        downloadStatsEntity.blob_url = download_url;
+        downloadStatsEntity.file_size = dataset.upload_file_size_bytes || 0;
+        downloadStatsEntity.tdei_dataset_id = dataset.tdei_dataset_id;
+        downloadStatsEntity.data_type = TDEIDataType.flex;
+        downloadStatsEntity.requested_datetime = new Date().toISOString();
+        downloadStatsEntity.user_id = user_id;
+        await this.tdeiCoreServiceInstance.createDownloadStats(downloadStatsEntity);
+
         return sasUrl;
     }
 }

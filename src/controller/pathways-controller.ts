@@ -94,7 +94,7 @@ class PathwaysController implements IController {
     getPathwaysById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            const sasUrl = await pathwaysService.getPathwaysDownloadUrl(request.params.id);
+            const sasUrl = await pathwaysService.getPathwaysDownloadUrl(request.params.id, request.body.user_id);
             response.redirect(sasUrl);
 
         } catch (error: any) {

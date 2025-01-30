@@ -20,6 +20,7 @@ import { CreateJobDTO } from "../../src/model/job-dto";
 import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
 import { WorkflowName } from "../../src/constants/app-constants";
 import { SpatialJoinRequest, UnionRequest } from "../../src/model/request-interfaces";
+import { Utility } from "../../src/utility/utility";
 
 // group test using describe
 describe("OSW Service Test", () => {
@@ -725,6 +726,7 @@ describe("OSW Service Test", () => {
             const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateMetadata').mockResolvedValue(true);
             const uploadSpy = jest.spyOn(storageService, 'uploadFile').mockResolvedValue("file-path");
             jest.spyOn(storageService, "generateRandomUUID").mockReturnValueOnce('mocked-uuid');
+            Utility.calculateTotalSize  = jest.fn().mockReturnValue(1000);
 
             // Mock the behavior of checkMetaNameAndVersionUnique
             // jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(false);

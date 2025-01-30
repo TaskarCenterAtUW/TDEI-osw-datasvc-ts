@@ -329,7 +329,7 @@ class OSWController implements IController {
             if (!["latest", "original"].includes(file_version)) {
                 throw new InputException("Invalid file_version value");
             }
-            const redirectUrl = await oswService.getDownloadableOSWUrl(request.params.id, format, file_version);
+            const redirectUrl = await oswService.getDownloadableOSWUrl(request.params.id, request.body.user_id, format, file_version);
             response.redirect(redirectUrl);
 
         } catch (error: any) {

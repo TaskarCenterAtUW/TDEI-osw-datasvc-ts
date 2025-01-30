@@ -46,9 +46,13 @@ export class OrchestratorUtility {
         try {
             // Render the template with the input data
             const resultObject = this.renderTemplate(inputParams, workflow_context);
-
             // Parse JSON strings within the result object
             const finalObject = this.parseJSONStrings(resultObject);
+
+            // Tweak done for abandonned flows
+            if (workflow_context?.data?.abandoned) {
+                finalObject.abandoned = workflow_context.data.abandoned;
+            }
 
             // const templateString = JSON.stringify(inputParams);
             // // Create the template function

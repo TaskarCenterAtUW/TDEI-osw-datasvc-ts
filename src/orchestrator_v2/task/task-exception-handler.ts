@@ -2,7 +2,7 @@ import EventEmitter from "events";
 import _ from "lodash";
 import { OrchestratorFunctions } from "./task-functions";
 import { WorkflowConfig, TaskConfig } from "../workflow/workflow-config-model";
-import { WorkflowContext, Task } from "../workflow/workflow-context.model";
+import { WorkflowContext, Task, WorkflowStatus } from "../workflow/workflow-context.model";
 import { IOrchestratorService_v2 } from "../orchestrator-service-v2";
 import { OrchestratorUtility } from "../orchestrator-utility";
 import { workflowBase_v2 } from "../workflow/workflow-base";
@@ -23,7 +23,6 @@ export class TaskExceptionHandler extends workflowBase_v2 {
             });
 
             let inputParams = task.input_params;
-
             let messageInput: any = OrchestratorUtility.map_props(inputParams, workflow_context);
             if (messageInput == null) {
                 const message = `Unresolved input parameter for task : ${task.name}`;
@@ -32,7 +31,14 @@ export class TaskExceptionHandler extends workflowBase_v2 {
                 await this.saveWorkflowContext(workflow_context);
                 return;
             }
-
+            // Workaround for abandonned flows
+            if(workflow_context.status === WorkflowStatus.ABANDONED) {
+                if (messageInput['data'] == null) {
+                    messageInput['data'] = {};
+                }
+                messageInput['data']['status'] = WorkflowStatus.ABANDONED;
+                messageInput['data']['message'] = workflow_context.current_task_error;
+            }
             Task.start(workflow_context.exception_task[task.name], messageInput);
 
             //Save the workflow context

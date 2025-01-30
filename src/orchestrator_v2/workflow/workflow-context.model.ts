@@ -6,7 +6,8 @@ export enum WorkflowStatus {
     RUNNING = 'RUNNING',
     TERMINATED = 'TERMINATED',
     COMPLETED = 'COMPLETED',
-    FAILED = 'FAILED'
+    FAILED = 'FAILED',
+    ABANDONED = 'ABANDONED'
 }
 
 
@@ -42,6 +43,12 @@ export class Task extends BaseDto {
 
     public static fail(task: Task, error: string): void {
         task.status = WorkflowStatus.FAILED;
+        task.error = error;
+        task.end_time = TdeiDate.UTC();
+    }
+
+    public static abandon(task: Task, error:string): void {
+        task.status = WorkflowStatus.ABANDONED;
         task.error = error;
         task.end_time = TdeiDate.UTC();
     }
@@ -112,10 +119,20 @@ export class WorkflowContext extends BaseDto {
         context.last_updated_at = TdeiDate.UTC();
     }
 
+    public static abandon(context: WorkflowContext, error: string): void {
+        context.status = WorkflowStatus.ABANDONED;
+        context.end_time = TdeiDate.UTC();
+        context.current_task_error = error;
+        context.current_task_status = WorkflowStatus.ABANDONED;
+        context.last_updated_at = TdeiDate.UTC();
+    }
+
     public terminate(context: WorkflowContext, reason: string): void {
         context.status = WorkflowStatus.TERMINATED;
         context.terminated_reason = reason;
         context.terminated_at = TdeiDate.UTC();
         context.last_updated_at = TdeiDate.UTC();
     }
+
+    
 }

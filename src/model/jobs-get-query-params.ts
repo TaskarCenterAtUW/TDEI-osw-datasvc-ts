@@ -18,7 +18,8 @@ export enum TDEIDataType {
 export enum JobStatus {
     "COMPLETED" = "COMPLETED",
     "FAILED" = "FAILED",
-    "IN-PROGRESS" = "IN-PROGRESS"
+    "IN-PROGRESS" = "IN-PROGRESS",
+    "ABANDONED" = "ABANDONED"
 }
 
 export enum JobType {
