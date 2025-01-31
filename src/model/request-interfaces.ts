@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, ValidationError, validate } from "class-validator";
+import { IsIn, IsNotEmpty, IsNumber, ValidationError, validate } from "class-validator";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 import { InputException } from "../exceptions/http/http-exceptions";
@@ -37,7 +37,7 @@ export class SpatialJoinRequest extends AbstractDomainEntity {
     source_dataset_id!: string;
     @Prop()
     @IsNotEmpty()
-    @IsIn(['edge', 'node', 'zone', 'point', 'node', 'line', 'polygon'])
+    @IsIn(['edge', 'node', 'zone', 'point', 'node', 'line', 'polygon', 'extension'])
     source_dimension!: string;
     @Prop()
     @IsNotEmpty()
@@ -69,6 +69,9 @@ export class UnionRequest extends AbstractDomainEntity {
     @Prop()
     @IsNotEmpty()
     tdei_dataset_id_two!: string;
+    @Prop()
+    @IsNumber()
+    proximity: number = 0.5;
 
     async validateRequestInput() {
         let errors = await validate(this);

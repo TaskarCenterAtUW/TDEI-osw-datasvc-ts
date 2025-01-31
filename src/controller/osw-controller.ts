@@ -18,6 +18,8 @@ import { Utility } from "../utility/utility";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
 import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
+import { apiTracker } from "../middleware/api-tracker";
+import { ONE_GB_IN_BYTES } from "../constants/app-constants";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -127,25 +129,25 @@ class OSWController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, authenticate, this.getOswById);
-        this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
+        this.router.get(`${this.path}/:id`, apiTracker, authenticate, this.getOswById);
+        this.router.post(`${this.path}/validate`, validate.single('dataset'), apiTracker, authenticate, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
             { name: "changeset", maxCount: 1 }
-        ]), metajsonValidator('dataset_upload'), authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
-        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
-        this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), authenticate, this.calculateConfidence); // Confidence calculation
-        this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), authenticate, this.createFormatRequest); // Format request
-        this.router.post(`${this.path}/dataset-bbox`, authenticate, this.processDatasetBboxRequest);
-        this.router.post(`${this.path}/dataset-tag-road`, authenticate, this.processDatasetTagRoadRequest);
-        this.router.post(`${this.path}/spatial-join`, authenticate, this.processSpatialQueryRequest);
+        ]), metajsonValidator('dataset_upload'), apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processUploadRequest);
+        this.router.post(`${this.path}/publish/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.processPublishRequest);
+        this.router.get(`${this.path}/versions/info`, apiTracker, authenticate, this.getVersions);
+        this.router.post(`${this.path}/confidence/:tdei_dataset_id`, confidenceUpload.single('file'), apiTracker, authenticate, this.calculateConfidence); // Confidence calculation
+        this.router.post(`${this.path}/convert`, uploadForFormat.single('file'), apiTracker, authenticate, this.createFormatRequest); // Format request
+        this.router.post(`${this.path}/dataset-bbox`, apiTracker, authenticate, this.processDatasetBboxRequest);
+        this.router.post(`${this.path}/dataset-tag-road`, apiTracker, authenticate, this.processDatasetTagRoadRequest);
+        this.router.post(`${this.path}/spatial-join`, apiTracker, authenticate, this.processSpatialQueryRequest);
         // Route for quality metric request
-        this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), authenticate, this.createIXNQualityOnDemandRequest);
-        this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), authenticate, this.tagQualityMetric);
-        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, authenticate, this.createInclineRequest);
-        this.router.post(`${this.path}/union`, authenticate, this.processDatasetUnionRequest);
+        this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), apiTracker, authenticate, this.createIXNQualityOnDemandRequest);
+        this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), apiTracker, authenticate, this.tagQualityMetric);
+        this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, apiTracker, authenticate, this.createInclineRequest);
+        this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
     }
 
 
@@ -354,6 +356,7 @@ class OSWController implements IController {
     processValidationOnlyRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received validation request');
+
             // let datasetFile = (request.files as any)['dataset'];
             const datasetFile = request.file;
             if (!datasetFile) {
@@ -361,6 +364,13 @@ class OSWController implements IController {
                 response.status(400).send("dataset file input missing");
                 next(new InputException("dataset file input missing"));
             }
+
+            const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
+            //if file size greater than 1GB then throw error
+            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
+                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            }
+
 
             let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
             response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
@@ -478,6 +488,13 @@ class OSWController implements IController {
                 response.status(400).send("dataset file input upload missing");
                 return next(new InputException("dataset file input upload missing"));
             }
+
+            const file_size_in_bytes = Utility.calculateTotalSize(uploadRequest.datasetFile);
+            //if file size greater than 1GB then throw error
+            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
+                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            }
+
             if (!uploadRequest.metadataFile) {
                 console.error("metadata file input upload missing");
                 response.status(400).send("metadata file input upload missing");
@@ -558,6 +575,13 @@ class OSWController implements IController {
             if (uploadedFile == undefined) {
                 throw new InputException("Missing upload file input");
             }
+
+            const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
+            //if file size greater than 1GB then throw error
+            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
+                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            }
+
             let source = request.body['source_format']; //TODO: Validate the input enums 
             let target = request.body['target_format'];
 

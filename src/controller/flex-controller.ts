@@ -12,6 +12,9 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
 import flexService from "../service/flex-service";
+import { apiTracker } from "../middleware/api-tracker";
+import { Utility } from "../utility/utility";
+import { ONE_GB_IN_BYTES } from "../constants/app-constants";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -63,16 +66,16 @@ class FlexController implements IController {
     }
 
     public intializeRoutes() {
-        this.router.get(`${this.path}/:id`, authenticate, this.getFlexById);
-        this.router.post(`${this.path}/validate`, validate.single('dataset'), authenticate, this.processValidationOnlyRequest);
+        this.router.get(`${this.path}/:id`, apiTracker, authenticate, this.getFlexById);
+        this.router.post(`${this.path}/validate`, validate.single('dataset'), apiTracker, authenticate, this.processValidationOnlyRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
             { name: "changeset", maxCount: 1 }
-        ]), metajsonValidator('dataset_upload'), authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processUploadRequest);
-        this.router.post(`${this.path}/publish/:tdei_dataset_id`, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processPublishRequest);
-        this.router.get(`${this.path}/versions/info`, authenticate, this.getVersions);
-        this.router.get(`${this.path}/zip/:datasetId`, this.triggerZipRequest); //TODO: To remove later
+        ]), metajsonValidator('dataset_upload'), apiTracker, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processUploadRequest);
+        this.router.post(`${this.path}/publish/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "flex_data_generator"]), this.processPublishRequest);
+        this.router.get(`${this.path}/versions/info`, apiTracker, authenticate, this.getVersions);
+        this.router.get(`${this.path}/zip/:datasetId`, apiTracker, this.triggerZipRequest); //TODO: To remove later
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
@@ -126,6 +129,12 @@ class FlexController implements IController {
                 console.error("dataset file input missing");
                 response.status(400).send("dataset file input missing");
                 next(new InputException("dataset file input missing"));
+            }
+
+            const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
+            //if file size greater than 1GB then throw error
+            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
+                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
             }
 
             let job_id = await flexService.processValidationOnlyRequest(request.body.user_id, datasetFile);
@@ -194,6 +203,12 @@ class FlexController implements IController {
                 response.status(400).send("dataset file input upload missing");
                 return next(new InputException("dataset file input upload missing"));
             }
+            const file_size_in_bytes = Utility.calculateTotalSize(uploadRequest.datasetFile);
+            //if file size greater than 1GB then throw error
+            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
+                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            }
+
             if (!uploadRequest.metadataFile) {
                 console.error("metadata file input upload missing");
                 response.status(400).send("metadata file input upload missing");
