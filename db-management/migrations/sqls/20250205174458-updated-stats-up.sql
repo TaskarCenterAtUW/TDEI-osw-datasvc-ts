@@ -35,24 +35,22 @@ BEGIN
             -- First, get the API usage rows for the three endpoints.
             -- Then, for each row, use a subquery to fetch the summed file_size from download_stats
             SELECT
-                SUM(CASE WHEN endpoint = '/api/v1/osw/:id' THEN 1 ELSE 0 END) AS osw_totalDownloadDatasets,
-                SUM(CASE WHEN endpoint = '/api/v1/osw/:id' THEN COALESCE(download_size, 0) ELSE 0 END) AS osw_totalDownloadSizeByt,
-                SUM(CASE WHEN endpoint = '/api/v1/gtfs-flex/:id' THEN 1 ELSE 0 END) AS flex_totalDownloadDatasets,
-                SUM(CASE WHEN endpoint = '/api/v1/gtfs-flex/:id' THEN COALESCE(download_size, 0) ELSE 0 END) AS flex_totalDownloadSizeByt,
-                SUM(CASE WHEN endpoint = '/api/v1/gtfs-pathways/:id' THEN 1 ELSE 0 END) AS pathways_totalDownloadDatasets,
-                SUM(CASE WHEN endpoint = '/api/v1/gtfs-pathways/:id' THEN COALESCE(download_size, 0) ELSE 0 END) AS pathways_totalDownloadSizeByt
-            FROM (
+              SUM(CASE WHEN aud.endpoint = '/api/v1/osw/:id' THEN 1 ELSE 0 END) AS osw_totalDownloadDatasets,
+              SUM(CASE WHEN aud.endpoint = '/api/v1/osw/:id' THEN COALESCE(ds.total_file_size, 0) ELSE 0 END) AS osw_totalDownloadSizeByt,
+              SUM(CASE WHEN aud.endpoint = '/api/v1/gtfs-flex/:id' THEN 1 ELSE 0 END) AS flex_totalDownloadDatasets,
+              SUM(CASE WHEN aud.endpoint = '/api/v1/gtfs-flex/:id' THEN COALESCE(ds.total_file_size, 0) ELSE 0 END) AS flex_totalDownloadSizeByt,
+              SUM(CASE WHEN aud.endpoint = '/api/v1/gtfs-pathways/:id' THEN 1 ELSE 0 END) AS pathways_totalDownloadDatasets,
+              SUM(CASE WHEN aud.endpoint = '/api/v1/gtfs-pathways/:id' THEN COALESCE(ds.total_file_size, 0) ELSE 0 END) AS pathways_totalDownloadSizeByt
+            FROM content.api_usage_details aud
+              INNER JOIN (
                 SELECT
-                    aud.endpoint,
-                    -- For each API usage row, sum the file_size from download_stats where the IDs match.
-                    (
-                      SELECT SUM(ds.file_size)
-                      FROM content.download_stats ds
-                      WHERE ds.tdei_dataset_id = aud.request_params->>'id'
-                    ) AS download_size
-                FROM content.api_usage_details aud
-                WHERE aud.endpoint IN ('/api/v1/osw/:id', '/api/v1/gtfs-flex/:id', '/api/v1/gtfs-pathways/:id')
-            ) sub
+                  tdei_dataset_id,
+                  SUM(file_size) AS total_file_size
+                FROM content.download_stats
+                GROUP BY tdei_dataset_id
+              ) ds
+              ON ds.tdei_dataset_id = aud.request_params->>'id'
+            WHERE aud.endpoint IN ('/api/v1/osw/:id', '/api/v1/gtfs-flex/:id', '/api/v1/gtfs-pathways/:id')
         )
     SELECT json_build_object(
         'dataMetrics', json_build_object(
@@ -173,18 +171,16 @@ BEGIN
          -- Sum of file sizes based on the API usage details matching a download_stats row:
          downloads_file_size_cte AS (
             SELECT
-                SUM(
-                    COALESCE(
-                        (
-                          SELECT SUM(ds.file_size)
-                          FROM content.download_stats ds
-                          WHERE ds.tdei_dataset_id = aud.request_params->>'id'
-                        ), 0)
-                ) AS totalDownloadSizeBytes
+              SUM(agg.total_file_size) AS totalDownloadSizeBytes
             FROM content.api_usage_details aud
-            WHERE aud.endpoint IN ('/api/v1/osw/:id',
-                                   '/api/v1/gtfs-flex/:id',
-                                   '/api/v1/gtfs-pathways/:id')
+            INNER JOIN (
+              SELECT
+                tdei_dataset_id,
+                SUM(file_size) AS total_file_size
+              FROM content.download_stats
+              GROUP BY tdei_dataset_id
+            ) agg ON agg.tdei_dataset_id = aud.request_params->>'id'
+            WHERE aud.endpoint IN ('/api/v1/osw/:id', '/api/v1/gtfs-flex/:id', '/api/v1/gtfs-pathways/:id')
          ),
          -- API usage summary (unchanged):
          aggregated_counts AS (
