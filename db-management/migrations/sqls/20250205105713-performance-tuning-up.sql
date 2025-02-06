@@ -21,16 +21,16 @@ ADD COLUMN IF NOT EXISTS line_loc_3857 geometry(Geometry, 3857)
 	
 CREATE INDEX IF NOT EXISTS idx_line_loc_3857_gist ON content.extension_line USING GIST (line_loc_3857);
 
-ALTER TABLE content.extension_polygon
-ADD COLUMN IF NOT EXISTS polygon_loc_3857 geometry(Geometry, 3857) 
-    GENERATED ALWAYS AS (
-        ST_Transform(
-            ST_GeomFromGeoJSON(feature ->> 'geometry'),
-            3857
-        )
-    ) STORED;
+-- ALTER TABLE content.extension_polygon
+-- ADD COLUMN IF NOT EXISTS polygon_loc_3857 geometry(Geometry, 3857) 
+--     GENERATED ALWAYS AS (
+--         ST_Transform(
+--             ST_GeomFromGeoJSON(feature ->> 'geometry'),
+--             3857
+--         )
+--     ) STORED;
 	
-CREATE INDEX IF NOT EXISTS idx_polygon_loc_3857_gist ON content.extension_polygon USING GIST (polygon_loc_3857);
+-- CREATE INDEX IF NOT EXISTS idx_polygon_loc_3857_gist ON content.extension_polygon USING GIST (polygon_loc_3857);
 
 
 CREATE OR REPLACE FUNCTION content.tdei_clone_osw_dataset_elements(
