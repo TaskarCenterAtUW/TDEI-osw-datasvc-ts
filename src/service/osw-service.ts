@@ -58,7 +58,8 @@ class OswService implements IOswService {
                 message: 'Job started',
                 request_input: {
                     tdei_dataset_id_one: requestService.tdei_dataset_id_one,
-                    tdei_dataset_id_two: requestService.tdei_dataset_id_two
+                    tdei_dataset_id_two: requestService.tdei_dataset_id_two,
+                    proximity: requestService.proximity,
                 },
                 tdei_project_group_id: '',
                 user_id: user_id,

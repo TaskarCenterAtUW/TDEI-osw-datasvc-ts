@@ -1,11 +1,11 @@
 import { getMockReq, getMockRes } from "@jest-mock/express";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { InputException } from "../../src/exceptions/http/http-exceptions";
-import { getMockFileEntity, getMockSASUrl } from "../common/mock-utils";
-import { DatasetDTO } from "../../src/model/dataset-dto";
-import tdeiCoreService from "../../src/service/tdei-core-service";
+import { getMockSASUrl } from "../common/mock-utils";
 import pathwaysService from "../../src/service/pathways-service";
 import pathwaysController from "../../src/controller/pathways-controller";
+import { Utility } from "../../src/utility/utility";
+import { ONE_GB_IN_BYTES } from "../../src/constants/app-constants";
 
 // group test using describe
 describe("Pathways Controller Test", () => {
@@ -159,6 +159,7 @@ describe("Pathways Controller Test", () => {
         it('should process the upload request and return tdei_dataset_id', async () => {
             const { res, next } = getMockRes();
             const mockTdeiRecordId = 'mock-tdei_dataset_id';
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(101);
 
             // Mock the processUploadRequest function to return a mock tdei_dataset_id
             jest.spyOn(pathwaysService, "processUploadRequest").mockResolvedValueOnce(mockTdeiRecordId);
@@ -187,6 +188,7 @@ describe("Pathways Controller Test", () => {
             const { res, next } = getMockRes();
             // Simulate missing metadata file
             mockRequest.files.metadata = undefined;
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(101);
 
             await pathwaysController.processUploadRequest(mockRequest, mockResponse, mockNext);
 
@@ -206,6 +208,18 @@ describe("Pathways Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the upload request');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        it('should handle file size restriction error', async () => {
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+
+            await pathwaysController.processUploadRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -288,6 +302,7 @@ describe("Pathways Controller Test", () => {
 
         it('should process the validation request and return job_id', async () => {
             const mockJobId = 'mock-job-id';
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(101);
 
             // Mock the processValidationOnlyRequest function to return a mock job_id
             jest.spyOn(pathwaysService, "processValidationOnlyRequest").mockResolvedValueOnce(mockJobId);
@@ -320,6 +335,18 @@ describe("Pathways Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the validation request');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        it('should handle file size restriction error', async () => {
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+
+            await pathwaysController.processValidationOnlyRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
