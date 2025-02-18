@@ -4,6 +4,7 @@ import { QueueMessage } from "nodets-ms-core/lib/core/queue";
 import { GENERIC_WORKFLOW_IDENTIFIER, OrchestratorConfigContext, Workflow } from "../models/config-model";
 import { EventEmitter } from 'events';
 import workflowDatabaseService from "./workflow-database-service";
+import { environment } from "../../environment/environment";
 
 export interface IOrchestratorService {
     /**
@@ -103,7 +104,7 @@ export class OrchestratorService {
     private getTopicInstance(topicName: string) {
         let topic = this.topicCollection.get(topicName);
         if (!topic) {
-            topic = Core.getTopic(topicName);
+            topic = Core.getTopic(topicName, null, environment.eventBus.maxConcurrentMessages);
             this.topicCollection.set(topicName, topic);
         }
         return topic;
