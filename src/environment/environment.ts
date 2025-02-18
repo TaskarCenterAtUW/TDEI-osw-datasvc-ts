@@ -17,7 +17,8 @@ export const environment = {
         confidenceResponseTopic: process.env.CONF_RES_TOPIC,
         confidenceResponseSubscription: process.env.CONF_RES_SUB,
         formatterSubscription: process.env.FORMATTER_SUBSCRIPTION,
-        validationTopic: process.env.VALIDATION_TOPIC
+        validationTopic: process.env.VALIDATION_TOPIC,
+        maxConcurrentMessages: parseInt(process.env.MAX_CONCURRENT_MESSAGES ?? "2"),
     },
     database: {
         username: process.env.POSTGRES_USER,
