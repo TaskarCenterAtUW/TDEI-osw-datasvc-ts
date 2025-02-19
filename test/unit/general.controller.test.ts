@@ -489,4 +489,49 @@ describe("General Controller Test", () => {
             expect(next).toHaveBeenCalledWith(new Error(errorMessage));
         });
     });
+
+    describe("regenerateApiKey", () => {
+        test("When requested with token, Expect to return new api key", async () => {
+            // Arrange
+            const req = getMockReq({ headers: { authorization: "Bearer token" }, body: { username: "username" } });
+            const { res, next } = getMockRes();
+            const regenerateApiKeySpy = jest
+                .spyOn(tdeiCoreService, "regenerateApiKey")
+                .mockResolvedValueOnce("newapikey");
+
+            // Act
+            let resp = await generalController.regenerateApiKey(req, res, next);
+
+            // Assert
+            expect(regenerateApiKeySpy).toHaveBeenCalledTimes(1);
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith("newapikey");
+        });
+
+        test("When requested with API key, Expect to return HTTP status 403", async () => {
+            // Arrange
+            const req = getMockReq({ headers: { "x-api-key": "Bearer token" }, body: { username: "username" } });
+            const { res, next } = getMockRes();
+            const errorMessage = "User not authorized to perform this action.";
+
+            // Act
+            await generalController.regenerateApiKey(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(new Error(errorMessage));
+        });
+
+        test("When requested empty username, Expect to return HTTP status 400 username required", async () => {
+            // Arrange
+            const req = getMockReq({ headers: { authorization: "Bearer token" } });
+            const { res, next } = getMockRes();
+            const errorMessage = "Username is required";
+
+            // Act
+            await generalController.regenerateApiKey(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(new Error(errorMessage));
+        });
+    });
 });

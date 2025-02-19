@@ -604,5 +604,52 @@ describe("TDEI core Service Test", () => {
         });
     });
 
+    describe('regenerateApiKey', () => {
+        test("should successfuly request for new api key", async () => {
+            // Arrange
+            const username = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 200,
+                text: () => Promise.resolve("new_api_key"),
+            }));
+            // Act
+            const result = await tdeiCoreService.regenerateApiKey(username);
+
+            // Assert
+            expect(result).toBe("new_api_key");
+        });
+
+        test("should throw an error if email not found", async () => {
+            // Arrange
+            const username = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 404,
+                text: () => Promise.resolve('User not found'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.regenerateApiKey(username)).rejects.toThrow(
+                "User not found"
+            );
+
+        });
+
+        test("should throw an error if email verification link sending fails", async () => {
+            // Arrange
+            const username = "test@example.com";
+
+            fetchMock.mockResolvedValueOnce(Promise.resolve(<any>{
+                status: 500,
+                text: () => Promise.resolve('Internal server error'),
+            }));
+
+            // Act, Assert
+            await expect(tdeiCoreService.regenerateApiKey(username)).rejects.toThrow(Error);
+
+        });
+    });
+
 });
 
