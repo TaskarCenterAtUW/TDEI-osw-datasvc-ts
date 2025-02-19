@@ -76,6 +76,7 @@ class GeneralController implements IController {
         }, this.cloneDataset); // clone Dataset request
         this.router.get(`${this.path}/system-metrics`, apiTracker, authenticate, this.getSystemMetrics);
         this.router.get(`${this.path}/data-metrics`, apiTracker, authenticate, this.getDataMetrics);
+        this.router.get(`${this.path}/service-metrics/:tdei_project_group_id`, apiTracker, authenticate, this.getServiceMetrics);
         this.router.post(`${this.path}/recover-password`, apiTracker, this.recoverPassword);
         this.router.post(`${this.path}/verify-email`, apiTracker, this.verifyEmail);
         this.router.post(`${this.path}/regenerate-api-key`, apiTracker, authenticate, this.regenerateApiKey);
@@ -198,6 +199,29 @@ class GeneralController implements IController {
             }
             response.status(500).send(errorMessage);
             next(new HttpException(500, errorMessage));
+        }
+    }
+
+     /**
+     * Get the service metrics data by project group id
+     * @param request
+     * @param response
+     * @param next
+     */
+     public getServiceMetrics = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const projectGroupId = request.params['tdei_project_group_id']
+            var result = await tdeiCoreService.getServiceMetrics(projectGroupId);
+            return response.status(200).send(result);
+        } catch (error: any) {
+            let errorMessage = "Error fetching the service metrics";
+            console.error(errorMessage, error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send(error.message);
+            next(new HttpException(500, error.message));
         }
     }
 

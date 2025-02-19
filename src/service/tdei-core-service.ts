@@ -933,6 +933,27 @@ class TdeiCoreService implements ITdeiCoreService {
     }
 
     /**
+    * Fetches the service metrics by Project Group ID
+    */
+    async getServiceMetrics(projectGroupId: string): Promise<any> {
+        try {
+            const query = {
+                text: `SELECT * FROM content.get_services_summary_by_project_group('${projectGroupId}')`,
+            };
+            var result = await dbClient.query(query);
+            return result.rows[0].get_services_summary_by_project_group;
+        } catch (error: any) {
+            // Check if the message includes "does not exist"
+            if (error.message.includes("does not exist")) {
+                // Map to 404 Not Found
+                throw new HttpException(404, error.message);
+            }
+            // Otherwise treat as 500 Internal Server Error
+            throw new HttpException(500, error.message);
+        }
+    }
+
+    /**
      * Creates a dataset.
      * 
      * @param downloadStatsObj - The download stats object to be created.

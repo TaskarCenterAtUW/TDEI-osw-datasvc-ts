@@ -41,6 +41,12 @@ export interface ITdeiCoreService {
    * Fetches the system metrics
    */
   getSystemMetrics(): Promise<any>;
+
+  /**
+   * Fetches the system metrics by Project Group Id
+   */
+  getServiceMetrics(projectGroupId: string): Promise<any>;
+
   /**
    * Clones a dataset.
    * 
