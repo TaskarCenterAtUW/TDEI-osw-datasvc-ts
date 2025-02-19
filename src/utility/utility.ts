@@ -113,19 +113,21 @@ export class Utility {
     }
 
     static calculateTotalSize(files: Express.Multer.File[]): number {
-        // Calculate the total size of the files inside the uploaded ZIP
         return files.reduce((total, file) => {
-            const zip = new AdmZip(file.buffer);
-            // Get the entries of the zip file
-            const zipEntries = zip.getEntries();
-            let fileSize = 0;
-            zipEntries.forEach((entry) => {
-                // Check if the entry is a file and not a directory
-                if (!entry.isDirectory) {
-                    // Add the size of the file to the total size
-                    fileSize += entry.header.size;
-                }
-            });
+        let fileSize = 0;
+            try {
+                // Try interpreting this buffer as a ZIP
+                const zip = new AdmZip(file.buffer);
+                // Sum the sizes of all actual files (not directories) within the ZIP
+                zip.getEntries().forEach((entry) => {
+                    if (!entry.isDirectory) {
+                        fileSize += entry.header.size;
+                    }
+                });
+            } catch (err) {
+                // If any error occurs (not a valid ZIP, etc.), just treat it as a normal file
+                fileSize += file.size;
+            }
             return total + fileSize;
         }, 0);
     }
