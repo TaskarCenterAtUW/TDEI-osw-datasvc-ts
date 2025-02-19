@@ -2,7 +2,7 @@ import { NextFunction, Request } from "express";
 import express from "express";
 import { IController } from "./interface/IController";
 import HttpException from "../exceptions/http/http-base-exception";
-import { FileTypeException, InputException } from "../exceptions/http/http-exceptions";
+import { FileTypeException, ForbiddenAccess, InputException } from "../exceptions/http/http-exceptions";
 import { authenticate } from "../middleware/authenticate-middleware";
 import { JobsQueryParams, TDEIDataType, TDEIRole } from "../model/jobs-get-query-params";
 import jobService from "../service/job-service";
@@ -78,6 +78,32 @@ class GeneralController implements IController {
         this.router.get(`${this.path}/data-metrics`, apiTracker, authenticate, this.getDataMetrics);
         this.router.post(`${this.path}/recover-password`, apiTracker, this.recoverPassword);
         this.router.post(`${this.path}/verify-email`, apiTracker, this.verifyEmail);
+        this.router.post(`${this.path}/regenerate-api-key`, apiTracker, authenticate, this.regenerateApiKey);
+    }
+
+    public regenerateApiKey = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            //Allow access to only with access token request
+            const bearerHeader = request.headers.authorization;
+            if (bearerHeader === '' || bearerHeader === undefined)
+                throw new ForbiddenAccess();
+
+            if (request.body.username === undefined || request.body.username === "") {
+                console.error("Failed fetching username from the api token");
+                throw new InputException("Username is required");
+            }
+            const new_api_key = await tdeiCoreService.regenerateApiKey(request.body.username);
+            return response.status(200).send(new_api_key);
+        } catch (error) {
+            let message = "Error regenerating the API key";
+            console.error(message, error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send(message);
+            next(new HttpException(500, message));
+        }
     }
 
     /**
@@ -294,7 +320,7 @@ class GeneralController implements IController {
     * @returns 
     */
     getJobs = async (request: Request, response: express.Response, next: NextFunction) => {
-        
+
         try {
             const params: JobsQueryParams = new JobsQueryParams(JSON.parse(JSON.stringify(request.query)));
             params.isAdmin = request.body.isAdmin;

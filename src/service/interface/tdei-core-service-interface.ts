@@ -11,6 +11,18 @@ import { DownloadStatsEntity } from "../../database/entity/download-stats";
 import { DownloadStatsDTO } from "../../model/download-stats-dto";
 
 export interface ITdeiCoreService {
+
+  /**
+    * Regenerates the API key for a given username.
+    *
+    * @param {any} username - The username for which the API key needs to be regenerated.
+    * @returns {Promise<string>} - A promise that resolves to the new API key.
+    * @throws {HttpException} - Throws an HttpException if the HTTP request fails with a status other than 200.
+    * @throws {InputException} - Throws an InputException if the user is not found (status 404).
+    * @throws {Error} - Throws a generic error if there is an issue while regenerating the API key.
+    */
+  regenerateApiKey(username: string): Promise<string>;
+
   /*
  Send the email to the user with the email verification link
  *@param email - The email of the user
