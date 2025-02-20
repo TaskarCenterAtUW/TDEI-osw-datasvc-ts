@@ -7,6 +7,8 @@ import { PermissionRequest } from "nodets-ms-core/lib/core/auth/model/permission
 import _ from "lodash";
 import { InputException } from "../exceptions/http/http-exceptions";
 import AdmZip from "adm-zip";
+import path from "path";
+
 
 export class Utility {
 
@@ -113,19 +115,32 @@ export class Utility {
     }
 
     static calculateTotalSize(files: Express.Multer.File[]): number {
-        // Calculate the total size of the files inside the uploaded ZIP
         return files.reduce((total, file) => {
-            const zip = new AdmZip(file.buffer);
-            // Get the entries of the zip file
-            const zipEntries = zip.getEntries();
             let fileSize = 0;
-            zipEntries.forEach((entry) => {
-                // Check if the entry is a file and not a directory
-                if (!entry.isDirectory) {
-                    // Add the size of the file to the total size
-                    fileSize += entry.header.size;
+            // 1. Check extension or MIME type
+            const ext = path.extname(file.originalname).toLowerCase();
+
+            // Adjust the check below to suit your needs (e.g., look for other MIME types or handle edge cases).
+            const isZip = (ext === '.zip') || (file.mimetype === 'application/zip');
+
+            if (isZip) {
+                // 2. Parse it as a ZIP
+                try {
+                    const zip = new AdmZip(file.buffer);
+                    // Sum the sizes of all actual files (not directories) within the ZIP
+                    zip.getEntries().forEach((entry) => {
+                        if (!entry.isDirectory) {
+                            fileSize += entry.header.size;
+                        }
+                    });
+                } catch (err) {
+                    // If any error occurs (not a valid ZIP, etc.), just treat it as a normal file
+                    fileSize += file.size;
                 }
-            });
+            } else {
+                // 3. Treat it as a normal file
+                fileSize += file.size;
+            }
             return total + fileSize;
         }, 0);
     }
