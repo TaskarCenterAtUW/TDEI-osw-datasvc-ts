@@ -15,6 +15,7 @@ import { IDatasetCloneRequest } from "../model/request-interfaces";
 import { listRequestValidation } from "../middleware/list-request-validation-middleware";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { apiTracker } from "../middleware/api-tracker";
+import { validate as isUuid } from "uuid";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
@@ -211,11 +212,15 @@ class GeneralController implements IController {
      public getServiceMetrics = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             const projectGroupId = request.params['tdei_project_group_id']
+            // Validate UUID before making a DB call
+            if (!isUuid(projectGroupId)) {
+                throw new HttpException(400, "Invalid UUID format for project_group_id");
+            }
             var result = await tdeiCoreService.getServiceMetrics(projectGroupId);
             return response.status(200).send(result);
         } catch (error: any) {
             let errorMessage = "Error fetching the service metrics";
-            console.error(errorMessage, error);
+            // console.error(errorMessage, error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
                 return next(error);
