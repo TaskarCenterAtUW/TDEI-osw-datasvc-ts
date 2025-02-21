@@ -537,88 +537,124 @@ describe("General Controller Test", () => {
 
     describe("getServiceMetrics", () => {
         test("When requested, Expect to return service metrics", async () => {
-          // Arrange
-          const req = getMockReq({
-            params: {
-              tdei_project_group_id: "0163f397-4840-4e96-af78-99f64cb965ad",
-            },
-          });
-          const { res, next } = getMockRes();
-      
-          const serviceMetrics = { someMetric: 42 };
-          const getServiceMetricsSpy = jest
-            .spyOn(tdeiCoreService, "getServiceMetrics")
-            .mockResolvedValueOnce(serviceMetrics);
-      
-          // Act
-          await generalController.getServiceMetrics(req, res, next);
-      
-          // Assert
-          expect(getServiceMetricsSpy).toHaveBeenCalledTimes(1);
-          // Make sure the service is called with the correct param
-          expect(getServiceMetricsSpy).toHaveBeenCalledWith(
-            "0163f397-4840-4e96-af78-99f64cb965ad"
-          );
-          // The controller should respond with 200 and the metrics
-          expect(res.status).toHaveBeenCalledWith(200);
-          expect(res.send).toHaveBeenCalledWith(serviceMetrics);
-          // next() should not have been called since no error occurred
-          expect(next).not.toHaveBeenCalled();
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_project_group_id: "0163f397-4840-4e96-af78-99f64cb965ad",
+                },
+            });
+            const { res, next } = getMockRes();
+    
+            const serviceMetrics = { someMetric: 42 };
+            jest.spyOn(tdeiCoreService, "getServiceMetrics").mockResolvedValueOnce(serviceMetrics);
+    
+            // Act
+            await generalController.getServiceMetrics(req, res, next);
+    
+            // Assert
+            expect(tdeiCoreService.getServiceMetrics).toHaveBeenCalledTimes(1);
+            expect(tdeiCoreService.getServiceMetrics).toHaveBeenCalledWith("0163f397-4840-4e96-af78-99f64cb965ad");
+    
+            // The controller should respond with 200 and the metrics
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(serviceMetrics);
+            expect(next).not.toHaveBeenCalled(); // No error should occur
         });
-      
+    
+        test("When an invalid UUID is provided, Expect to return HTTP status 400", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_project_group_id: "invalid-uuid", // Not a valid UUID format
+                },
+            });
+            const { res, next } = getMockRes();
+    
+            // Act
+            await generalController.getServiceMetrics(req, res, next);
+    
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith("Invalid UUID format for project_group_id");
+    
+            // Ensure `tdeiCoreService.getServiceMetrics` is **never** called
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        test("When the project group is not found, Expect to return HTTP status 404", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_project_group_id: "0163f397-4840-4e96-af78-99f64cb965ad",
+                },
+            });
+            const { res, next } = getMockRes();
+    
+            // Simulate service throwing a 404 error
+            const notFoundError = new HttpException(404, "Project group not found");
+            jest.spyOn(tdeiCoreService, "getServiceMetrics").mockRejectedValueOnce(notFoundError);
+    
+            // Act
+            await generalController.getServiceMetrics(req, res, next);
+    
+            // Assert
+            expect(tdeiCoreService.getServiceMetrics).toHaveBeenCalledTimes(1);
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(res.send).toHaveBeenCalledWith("Project group not found");
+            expect(next).toHaveBeenCalledWith(notFoundError);
+        });
+    
+    
         test("When an error occurs, Expect to return HTTP status 500", async () => {
-          // Arrange
-          const req = getMockReq({
-            params: {
-              tdei_project_group_id: "invalid-uuid",
-            },
-          });
-          const { res, next } = getMockRes();
-      
-          const errorMessage = "Error fetching the service metrics";
-          const getServiceMetricsSpy = jest
-            .spyOn(tdeiCoreService, "getServiceMetrics")
-            .mockRejectedValueOnce(new Error(errorMessage));
-      
-          // Act
-          await generalController.getServiceMetrics(req, res, next);
-      
-          // Assert
-          expect(getServiceMetricsSpy).toHaveBeenCalledTimes(1);
-          // The controller should catch the error and respond with 500
-          expect(res.status).toHaveBeenCalledWith(500);
-          // The error message is sent in the response
-          expect(res.send).toHaveBeenCalledWith(errorMessage);
-          // Controller also calls next with a new HttpException(500, error.message)
-          expect(next).toHaveBeenCalledWith(expect.any(HttpException));
-          const httpExceptionArg = (next as jest.Mock).mock.calls[0][0];
-          expect(httpExceptionArg.status).toBe(500);
-          expect(httpExceptionArg.message).toBe(errorMessage);
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_project_group_id: "0163f397-4840-4e96-af78-99f64cb965ad",
+                },
+            });
+            const { res, next } = getMockRes();
+    
+            const errorMessage = "Internal server error";
+            
+            // Ensure the function is properly spied on
+            const getServiceMetricsSpy = jest
+                .spyOn(tdeiCoreService, "getServiceMetrics")
+                .mockRejectedValueOnce(new Error(errorMessage));
+    
+            // Act
+            await generalController.getServiceMetrics(req, res, next);
+    
+            // Assert
+            expect(getServiceMetricsSpy).toHaveBeenCalledTimes(1); // Ensure it was called
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith(errorMessage);
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+    
+            const httpExceptionArg = (next as jest.Mock).mock.calls[0][0];
+            expect(httpExceptionArg.status).toBe(500);
+            expect(httpExceptionArg.message).toBe(errorMessage);
         });
-      
+    
         test("When a HttpException is thrown, Expect to return corresponding status and message", async () => {
-          // Arrange
-          const req = getMockReq({
-            params: {
-              tdei_project_group_id: "0163f397-4840-4e96-af78-99f64cb965ad",
-            },
-          });
-          const { res, next } = getMockRes();
-      
-          // Suppose the service throws a HttpException(404, "Not found");
-          const httpError = new HttpException(404, "Not found");
-          const getServiceMetricsSpy = jest
-            .spyOn(tdeiCoreService, "getServiceMetrics")
-            .mockRejectedValueOnce(httpError);
-      
-          // Act
-          await generalController.getServiceMetrics(req, res, next);
-      
-          // Assert
-          expect(getServiceMetricsSpy).toHaveBeenCalledTimes(1);
-          expect(res.status).toHaveBeenCalledWith(404);
-          expect(res.send).toHaveBeenCalledWith("Not found");
-          expect(next).toHaveBeenCalledWith(httpError);
+            // Arrange
+            const req = getMockReq({
+                params: {
+                    tdei_project_group_id: "0163f397-4840-4e96-af78-99f64cb965ad",
+                },
+            });
+            const { res, next } = getMockRes();
+    
+            const httpError = new HttpException(404, "Not found");
+            jest.spyOn(tdeiCoreService, "getServiceMetrics").mockRejectedValueOnce(httpError);
+    
+            // Act
+            await generalController.getServiceMetrics(req, res, next);
+    
+            // Assert
+            expect(tdeiCoreService.getServiceMetrics).toHaveBeenCalledTimes(1);
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(res.send).toHaveBeenCalledWith("Not found");
+            expect(next).toHaveBeenCalledWith(httpError);
         });
-      });
+    });
 });
