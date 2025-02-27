@@ -63,6 +63,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
             return
         }
         req.body.user_id = jwtOutput?.sub;
+        req.body.username = jwtOutput?.preferred_username;
         req.body.isAdmin = jwtOutput?.realm_access?.roles.includes('tdei-admin');
         next();
     }

@@ -99,7 +99,7 @@ class StorageService {
      * @returns a promise of the file entity
      */
     async cloneFile(fileUrl: string, destinationContainerName: string, destinationFilePath: string): Promise<FileEntity | undefined> {
-        let clonedFileEntity = this.getStorageClient()?.cloneFile(decodeURIComponent(fileUrl), destinationContainerName, destinationFilePath);
+        let clonedFileEntity = this.getStorageClient()?.cloneFile(decodeURIComponent(fileUrl), destinationContainerName, decodeURI(destinationFilePath));
         return clonedFileEntity;
     }
 

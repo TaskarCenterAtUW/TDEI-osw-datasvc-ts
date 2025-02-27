@@ -17,7 +17,7 @@ export const environment = {
         confidenceResponseTopic: process.env.CONF_RES_TOPIC,
         confidenceResponseSubscription: process.env.CONF_RES_SUB,
         formatterSubscription: process.env.FORMATTER_SUBSCRIPTION,
-        validationTopic: process.env.VALIDATION_TOPIC
+        validationTopic: process.env.VALIDATION_TOPIC,
     },
     database: {
         username: process.env.POSTGRES_USER,
@@ -32,6 +32,7 @@ export const environment = {
     authValidateApiKeyUrl: process.env.AUTH_HOST + '/api/v1/validateApiKey',
     secretGenerateUrl: process.env.AUTH_HOST + '/api/v1/generateSecret',
     triggerEmailUrl: process.env.AUTH_HOST + '/api/v1/triggerEmail',
+    regenerateApiKeyUrl: process.env.AUTH_HOST + '/api/v1/regenerateAPIKey',
     gatewayUrl: process.env.GATEWAY_URL,
     serviceUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/service',
     userProjectGroupRolesUrl: process.env.USER_MANAGEMENT_HOST + '/api/v1/project-group-roles',
