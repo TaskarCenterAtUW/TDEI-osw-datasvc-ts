@@ -7,7 +7,6 @@ import _ from 'lodash';
 import { Task, WorkflowContext, WorkflowStatus } from "./workflow/workflow-context.model";
 import { WorkflowDetailsEntity } from "../database/entity/workflow-details-entity";
 import { OrchestratorUtility } from "./orchestrator-utility";
-import { environment } from "../environment/environment";
 
 export interface IOrchestratorService_v2 {
     startWorkflow(job_id: string, workflowName: string, workflow_input: any, user_id: string): Promise<void>;
@@ -67,7 +66,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     private getTopicInstance(topicName: string) {
         let topic = this.topicCollection.get(topicName);
         if (!topic) {
-            topic = Core.getTopic(topicName, null, environment.eventBus.maxConcurrentMessages);
+            topic = Core.getTopic(topicName);
             this.topicCollection.set(topicName, topic);
         }
         return topic;
