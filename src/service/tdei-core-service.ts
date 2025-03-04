@@ -34,7 +34,44 @@ import { DownloadStatsEntity } from "../database/entity/download-stats";
 const ajv = new Ajv({ allErrors: true });
 const metadataValidator = ajv.compile(metaschema);
 class TdeiCoreService implements ITdeiCoreService {
+
     constructor() { }
+
+
+    /**
+     * Regenerates the API key for a given username.
+     *
+     * @param {any} username - The username for which the API key needs to be regenerated.
+     * @returns {Promise<string>} - A promise that resolves to the new API key.
+     * @throws {HttpException} - Throws an HttpException if the HTTP request fails with a status other than 200.
+     * @throws {InputException} - Throws an InputException if the user is not found (status 404).
+     * @throws {Error} - Throws a generic error if there is an issue while regenerating the API key.
+     */
+    async regenerateApiKey(username: string): Promise<string> {
+        try {
+            const requestUrl = `${environment.regenerateApiKeyUrl}?username=${username}`;
+
+            const result = await fetch(requestUrl as string, {
+                method: 'post'
+            });
+
+            if (result.status != undefined && result.status != 200)
+                throw new HttpException(result.status, result.statusText);
+
+            let new_api_key = await result.text()
+
+            return new_api_key;
+        } catch (error: any) {
+            console.error(error);
+            if (error instanceof HttpException) {
+                if (error.status == 404)
+                    throw new InputException("User not found");
+                throw error;
+            }
+
+            throw new Error("Error while regenerating the API key");
+        }
+    }
 
     /*
      Send the email to the user with the password recovery link
@@ -225,7 +262,7 @@ class TdeiCoreService implements ITdeiCoreService {
      */
     async validateMetadata(metadata: MetadataModel, data_type: TDEIDataType, tdei_dataset_id?: string): Promise<boolean> {
         //Validate metadata
-       
+
 
         switch (data_type) {
             case "osw":
@@ -848,7 +885,7 @@ class TdeiCoreService implements ITdeiCoreService {
             let queryConfig: QueryConfig = {
                 text: `SELECT * from public.user_roles ur
                 INNER JOIN public.roles r on ur.role_id = r.role_id
-                WHERE user_id = $1 AND project_group_id = $2 AND r.name IN('tdei_admin', 'poc', $3)`.replace(/\n/g, ""),
+                WHERE user_id = $1 AND project_group_id = $2 AND r.name IN('tdei_admin', 'poc','member', $3)`.replace(/\n/g, ""),
                 values: [
                     datasetCloneRequestObject.user_id,
                     dataset_to_be_clone.tdei_project_group_id,
@@ -892,6 +929,27 @@ class TdeiCoreService implements ITdeiCoreService {
         } catch (error: any) {
             console.error(error);
             throw new Error("Error fetching the data metrics");
+        }
+    }
+
+    /**
+    * Fetches the service metrics by Project Group ID
+    */
+    async getServiceMetrics(projectGroupId: string): Promise<any> {
+        try {
+            const query = {
+                text: `SELECT * FROM content.get_services_summary_by_project_group('${projectGroupId}')`,
+            };
+            var result = await dbClient.query(query);
+            return result.rows[0].get_services_summary_by_project_group;
+        } catch (error: any) {
+            // Check if the message includes "does not exist"
+            if (error.message.includes("does not exist")) {
+                // Map to 404 Not Found
+                throw new HttpException(404, error.message);
+            }
+            // Otherwise treat as 500 Internal Server Error
+            throw new HttpException(500, error.message);
         }
     }
 

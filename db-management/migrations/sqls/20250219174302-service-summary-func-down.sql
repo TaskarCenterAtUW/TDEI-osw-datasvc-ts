@@ -1,0 +1,1 @@
+DROP FUNCTION content.get_services_summary_by_project_group(uuid)
