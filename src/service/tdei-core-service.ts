@@ -49,7 +49,7 @@ class TdeiCoreService implements ITdeiCoreService {
      */
     async regenerateApiKey(username: string): Promise<string> {
         try {
-            const requestUrl = `${environment.regenerateApiKeyUrl}?username=${username}`;
+            const requestUrl = `${environment.regenerateApiKeyUrl}?username=${encodeURIComponent(username)}`;
 
             const result = await fetch(requestUrl as string, {
                 method: 'post'
