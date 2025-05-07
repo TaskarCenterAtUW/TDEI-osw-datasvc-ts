@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsEnum, IsIn, IsNumber, IsOptional, IsString, ValidateIf } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEnum, IsIn, IsNumber, IsOptional, IsString, ValidateIf } from "class-validator";
 import { JoinCondition, PgQueryObject, SqlORder, WhereCondition, buildQuery } from "../database/dynamic-query-object";
 import { TdeiDate } from "../utility/tdei-date";
 import { TDEIDataType } from "./jobs-get-query-params";
@@ -34,10 +34,12 @@ export class DatasetQueryParams {
     @IsOptional()
     version: string | undefined;
     @IsOptional()
+    @IsIn(['manual', 'transform', 'generated', 'others'])
     collection_method: string | undefined;
     @IsOptional()
     collected_by: string | undefined;
     @IsOptional()
+    @IsIn(['3rdParty', 'TDEITools', 'InHouse'])
     data_source: string | undefined;
     @IsOptional()
     derived_from_dataset_id: string | undefined;
@@ -58,10 +60,8 @@ export class DatasetQueryParams {
     @IsOptional()
     confidence_level = 0;
     @IsOptional()
-    @IsNumber()
     page_no = 1;
     @IsOptional()
-    @IsNumber()
     page_size = 10;
     @IsOptional()
     @IsArray()

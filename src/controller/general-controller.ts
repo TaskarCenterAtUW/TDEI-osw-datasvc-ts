@@ -16,7 +16,7 @@ import { listRequestValidation } from "../middleware/list-request-validation-mid
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { apiTracker } from "../middleware/api-tracker";
 import { validate as isUuid } from "uuid";
-import validateQueryDto from "../middleware/query-params-validation-middleware";
+import validateQueryDto from "../middleware/dto-validation-middleware";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
