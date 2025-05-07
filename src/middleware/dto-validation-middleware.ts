@@ -1,22 +1,25 @@
 import { validate, ValidationError } from 'class-validator';
 import { RequestHandler } from 'express';
 import HttpException from '../exceptions/http/http-base-exception';
-import { BaseDto } from '../model/base-dto';
 
-function validationMiddleware<T extends BaseDto>(type: { new(args: T): T; }): RequestHandler {
-    return (req, res, next) => {
-        if (!req.body) next(new HttpException(400, "Request body not found"));
-
-        validate(new type(req.body))
-            .then((errors: ValidationError[]) => {
-                if (errors.length > 0) {
-                    const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
-                    next(new HttpException(400, message));
-                } else {
-                    next();
-                }
-            });
+function validateQueryDto(dtoClass: any): RequestHandler {
+    return async (req, res, next) => {
+        return validate(new dtoClass(req.query), {
+            whitelist: true,
+            forbidNonWhitelisted: true
+        }).then((errors: ValidationError[]) => {
+            if (errors.length > 0) {
+                const message = errors.map((error: ValidationError) => {
+                    if (error.constraints?.whitelistValidation) {
+                        return `Query param ${error.property} is not supported`;
+                    } else {
+                        return Object.values(error.constraints || {}).join('\n ');
+                    }
+                }).join('\n ');
+                throw new HttpException(400, message);
+            }
+        }).then(() => next()).catch(next);
     };
 }
 
-export default validationMiddleware;
+export default validateQueryDto;

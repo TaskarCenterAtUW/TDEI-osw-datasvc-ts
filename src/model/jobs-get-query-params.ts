@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional } from "class-validator";
+import { IsEnum, IsOptional, ValidateIf } from "class-validator";
 import { JoinCondition, PgQueryObject, SqlORder, WhereCondition, buildQuery } from "../database/dynamic-query-object";
 import { InputException } from "../exceptions/http/http-exceptions";
 
@@ -28,7 +28,7 @@ export enum JobType {
     "Dataset-Upload" = "Dataset-Upload",
     "Dataset-Publish" = "Dataset-Publish",
     "Dataset-Validate" = "Dataset-Validate",
-    "Dataset-Flatten" = "Dataset-Flatten",
+    // "Dataset-Flatten" = "Dataset-Flatten",
     // "Dataset-Queries" = "Dataset-Queries",
     "Quality-Metric" = "Quality-Metric",
     "Edit-Metadata" = "Edit-Metadata",
@@ -56,6 +56,8 @@ export class JobsQueryParams {
     page_size = 10;
     @IsOptional()
     show_group_jobs = false;
+
+    @ValidateIf(() => false) //Skips the validation for internal property
     isAdmin = false;
 
     constructor(init?: Partial<JobsQueryParams>) {
