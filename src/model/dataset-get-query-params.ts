@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEnum, IsIn, IsNumber, IsOptional, IsString, ValidateIf } from "class-validator";
 import { JoinCondition, PgQueryObject, SqlORder, WhereCondition, buildQuery } from "../database/dynamic-query-object";
 import { TdeiDate } from "../utility/tdei-date";
 import { TDEIDataType } from "./jobs-get-query-params";
@@ -22,19 +22,24 @@ export enum SortField {
 
 export class DatasetQueryParams {
     @IsOptional()
+    @IsEnum(TDEIDataType)
     data_type: TDEIDataType | undefined;
 
     @IsOptional()
-    status: RecordStatus = RecordStatus.All;
+    @IsIn([RecordStatus.Publish, RecordStatus["Pre-Release"], RecordStatus.All], {
+        message: 'status must be one of: Publish, Pre-Release, All',
+    }) status: RecordStatus = RecordStatus.All;
     @IsOptional()
     name: string | undefined;
     @IsOptional()
     version: string | undefined;
     @IsOptional()
+    @IsIn(['manual', 'transform', 'generated', 'others'])
     collection_method: string | undefined;
     @IsOptional()
     collected_by: string | undefined;
     @IsOptional()
+    @IsIn(['3rdParty', 'TDEITools', 'InHouse'])
     data_source: string | undefined;
     @IsOptional()
     derived_from_dataset_id: string | undefined;
@@ -62,7 +67,7 @@ export class DatasetQueryParams {
     @IsArray()
     @ArrayMinSize(4)
     @ArrayMaxSize(4)
-    bbox: Array<number> = [];
+    bbox: Array<number> | undefined;
     @IsOptional()
     description: string | undefined;
     @IsOptional()   //DataProvenance
@@ -149,6 +154,7 @@ export class DatasetQueryParams {
     sort_order: SqlORder = SqlORder.DESC;
 
 
+    @ValidateIf(() => false) //Skips the validation for internal property
     isAdmin = false;
 
     constructor(init?: Partial<DatasetQueryParams>) {
