@@ -22,3 +22,4 @@ export enum WorkflowName {
 }
 
 export const ONE_GB_IN_BYTES = 1073741824;
+export const TWO_GB_IN_BYTES = 2147483648;
