@@ -14,7 +14,7 @@ import { authenticate } from "../middleware/authenticate-middleware";
 import pathwaysService from "../service/pathways-service";
 import { apiTracker } from "../middleware/api-tracker";
 import { Utility } from "../utility/utility";
-import { ONE_GB_IN_BYTES } from "../constants/app-constants";
+import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../constants/app-constants";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -138,7 +138,7 @@ class PathwaysController implements IController {
             }
 
             let job_id = await pathwaysService.processValidationOnlyRequest(request.body.user_id, datasetFile);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -164,7 +164,7 @@ class PathwaysController implements IController {
             let tdei_dataset_id = request.params["tdei_dataset_id"];
             let job_id = await pathwaysService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -217,7 +217,7 @@ class PathwaysController implements IController {
             }
 
             let job_id = await pathwaysService.processUploadRequest(uploadRequest);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {

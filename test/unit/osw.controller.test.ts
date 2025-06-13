@@ -5,7 +5,7 @@ import HttpException from "../../src/exceptions/http/http-base-exception";
 import { ForbiddenAccess, InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
-import { ONE_GB_IN_BYTES } from "../../src/constants/app-constants";
+import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../../src/constants/app-constants";
 
 // group test using describe
 describe("OSW Controller Test", () => {
@@ -247,7 +247,7 @@ describe("OSW Controller Test", () => {
             await oswController.processDatasetTagRoadRequest(req, res, next);
 
             // Assert
-            expect(res.setHeader).toHaveBeenCalledWith("Location", `/api/v1/job?job_id=${job_id}`);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", `${JOBS_API_PATH}?job_id=${job_id}`);
             expect(res.status).toHaveBeenCalledWith(202);
             expect(res.send).toHaveBeenCalledWith(job_id);
         });
@@ -313,7 +313,7 @@ describe("OSW Controller Test", () => {
             await oswController.processDatasetBboxRequest(req, res, next);
 
             // Assert
-            expect(res.setHeader).toHaveBeenCalledWith("Location", `/api/v1/job?job_id=${job_id}`);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", `${JOBS_API_PATH}?job_id=${job_id}`);
             expect(res.status).toHaveBeenCalledWith(202);
             expect(res.send).toHaveBeenCalledWith(job_id);
         });
@@ -463,7 +463,7 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockTdeiRecordId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockTdeiRecordId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockTdeiRecordId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -553,7 +553,7 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockTdeiRecordId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockTdeiRecordId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockTdeiRecordId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -606,7 +606,7 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockJobId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockJobId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -680,7 +680,7 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockJobId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockJobId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -744,7 +744,7 @@ describe("OSW Controller Test", () => {
 
             await oswController.createFormatRequest(mockRequest, mockResponse, mockNext);
 
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', '/api/v1/job?job_id=mock-job-id');
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=mock-job-id`);
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
             expect(mockNext).not.toHaveBeenCalled();
@@ -820,7 +820,7 @@ describe("OSW Controller Test", () => {
 
             await oswController.createIXNQualityOnDemandRequest(mockRequest, mockResponse, mockNext);
 
-            // expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', '/api/v1/job?job_id=mock-job-id');
+            // expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', '${JOBS_API_PATH}?job_id=mock-job-id');
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
             expect(mockNext).not.toHaveBeenCalled();
@@ -1060,7 +1060,7 @@ describe("OSW Controller Test", () => {
             await oswController.createInclineRequest(req, res, next);
 
             // Assert
-            expect(res.setHeader).toHaveBeenCalledWith("Location", `/api/v1/job?job_id=${job_id}`);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", `${JOBS_API_PATH}?job_id=${job_id}`);
             expect(res.status).toHaveBeenCalledWith(202);
             expect(res.send).toHaveBeenCalledWith(job_id);
         });

@@ -17,6 +17,7 @@ import { metajsonValidator } from "../middleware/metadata-json-validation-middle
 import { apiTracker } from "../middleware/api-tracker";
 import { validate as isUuid } from "uuid";
 import validateQueryDto from "../middleware/dto-validation-middleware";
+import { JOBS_API_PATH } from "../constants/app-constants";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
@@ -251,7 +252,7 @@ class GeneralController implements IController {
             };
 
             let clone_result = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
-            response.setHeader('Location', `/api/v1/job?job_id=${clone_result.job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${clone_result.job_id}`);
             return response.status(200).send(clone_result.new_tdei_dataset_id);
 
         } catch (error) {
@@ -276,7 +277,7 @@ class GeneralController implements IController {
             const metafile = request.file;
 
             let job_id = await tdeiCoreService.editMetadata(request.params["tdei_dataset_id"], metafile, request.body.user_id, request.params["tdei_data_type"] as TDEIDataType);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(200).send();
         } catch (error) {
             console.error("Error editing the metadata request", error);
