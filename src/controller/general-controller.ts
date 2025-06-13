@@ -43,6 +43,7 @@ class GeneralController implements IController {
 
     public intializeRoutes() {
         this.router.delete(`${this.path}/dataset/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
+        //If there is any path change to /jobs, please update the JOBS_API_PATH constant in app-constants.ts
         this.router.get(`${this.path}/jobs`, apiTracker, authenticate, validateQueryDto(JobsQueryParams), listRequestValidation, this.getJobs);
         this.router.get(`${this.path}/datasets`, apiTracker, authenticate, validateQueryDto(DatasetQueryParams), listRequestValidation, this.getDatasetList);
         this.router.get(`${this.path}/job/download/:job_id`, apiTracker, authenticate, this.getJobDownloadFile); // Download the formatted file
