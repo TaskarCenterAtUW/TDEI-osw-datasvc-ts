@@ -5,7 +5,7 @@ import { getMockSASUrl } from "../common/mock-utils";
 import flexService from "../../src/service/flex-service";
 import flexController from "../../src/controller/flex-controller";
 import { Utility } from "../../src/utility/utility";
-import { ONE_GB_IN_BYTES } from "../../src/constants/app-constants";
+import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../../src/constants/app-constants";
 
 // group test using describe
 describe("Flex Controller Test", () => {
@@ -120,7 +120,7 @@ describe("Flex Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockTdeiRecordId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockTdeiRecordId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockTdeiRecordId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -210,7 +210,7 @@ describe("Flex Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockTdeiRecordId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockTdeiRecordId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockTdeiRecordId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
@@ -263,7 +263,7 @@ describe("Flex Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
-            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `/api/v1/job?job_id=${mockJobId}`);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockJobId}`);
             expect(mockNext).not.toHaveBeenCalled();
         });
 
