@@ -218,8 +218,7 @@ BEGIN
 		    s.element_sub_id,
 		    s.geom,
 		    w.cluster_id,
-		    w.cluster_geom,
-		    w.witness_element_id
+		    w.cluster_geom
 		FROM MaterializedPoints s
 		JOIN Canonical c ON s.id = c.id
 		JOIN Witness w ON c.cluster_id = w.cluster_id;
@@ -243,7 +242,7 @@ BEGIN
         ) AS feature
     FROM PointToWitness p
     JOIN content.node n 
-        ON p.witness_element_id = n.id 
+        ON p.element_id = n.id 
         AND p.element_sub_id = 0
         AND n.tdei_dataset_id = p.source
     WHERE p.element_sub_id = 0;
