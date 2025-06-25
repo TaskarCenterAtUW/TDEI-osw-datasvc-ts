@@ -1,5 +1,5 @@
 -- FUNCTION: content.tdei_union_dataset(character varying, character varying, real)
-
+-- original
 -- DROP FUNCTION IF EXISTS content.tdei_union_dataset(character varying, character varying, real);
 
 CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
@@ -41,7 +41,7 @@ BEGIN
 	-- element_sub_id is the id of an internal node that indicates order; used to reconstruct edges
 	-- 		element_sub_id is just 0 for all nodes and edges.
 	-- geom is the geometry of the node / internal node or edge
-    CREATE TEMP TABLE all_points ON COMMIT DROP AS
+    CREATE TEMP TABLE AllPoints ON COMMIT DROP AS
 	-- Find the nodes in the test datasets
     WITH nodes AS (
         SELECT 
@@ -72,13 +72,11 @@ BEGIN
 	-- From internal linestring nodes
     SELECT * FROM edge_points;
 
-    CREATE INDEX ON all_points USING GIST (geom);
+    CREATE INDEX ON AllPoints USING GIST (geom);
 
 	-- =========================================
 	--- Start of algorithm --
 	-- =========================================
-	
-	
 	
 	-- Inputs: 
 	-- AllPoints(source, element_id, element_sub_id, geom::Point)
@@ -98,6 +96,25 @@ BEGIN
 	-- UnionNodes(source, id, geom)
 	-- UnionEdges(source, id, geom)
 	
+	-- Invariants: 
+	-- UnionNodes contains no pair of points x,y such that dist(x.geom,y.geom) < tolerance 
+	--       x,y \in UnionNodes => dist(x.geom,y.geom) >= tolerance
+	-- UnionNodes contains no node geometry that did not appear in AllPoints (id will differ) 
+	--       x \in UnionNodes => x.geom \in {y.geom | y \in AllPoints}
+	-- For any pair of edges e,f in UnionEdges, the exists no pair of internal nodes e.x, f.y such that dist(e.x,e.y) < tolerance
+	--       e,f \in UnionEdges => ( x \in e, y \in f => dist(x.geom,y.geom) < tolerance )
+	-- For any edge e in UnionEdges, there exists no internal node e.x that does not appear in AllPoints
+	--       e \in UnionEdges => ( x \in e => x \in AllPoints)
+	-- Let x,y be tolerance-reachable if there exists a path P=(x,p1,p2,...,pn,y) such that 
+	--         pi, pj \in P, j=i+1 => dist(pi.geom,pj.geom) < tolerance
+	-- 		Then
+	-- 			Every node x in AllPoints is associated with a node witness(x) such that x is tolerance-reachable to witness(x).
+	-- 			x \in AllPoints <=> witness(x) \in UnionNode
+	-- 			If x is tolerance-reachable to y in AllPoints through (x, p1, p2, ..., pn, y), there is an 
+	-- 		    	edge (witness(x), c1, c2, ..., cm, witness(y)) where cj = witness(k) for some node k in AllPoints.
+	-- 				That is, every path consists of witnesses, but there may be fewer internal nodes in the output than the input
+	--
+	-- 
 	-- Notes / TODOs:
 	-- ** id in UnionNodes will NOT be the original id from the nodes table,
 	-- though geom will be one of the original nodes. So, you can join on geom 
@@ -111,88 +128,109 @@ BEGIN
 	
 	-- ** We select a witness from among the cluster -- the minimum id from the lowest source alphabetically.
 	-- Other options: favor one source in particular, compute the centroid of the cluster, pick a near-centroid choice, etc.
+	
+	
+    RAISE NOTICE 'Start algorithm at: %', clock_timestamp();
+	-- ====================================================================================
+	-- Step 1: Materialize all points with ids, so we can index the geometry column
+	-- ====================================================================================
 
-    CREATE TEMP TABLE point_to_witness ON COMMIT DROP AS
-    WITH RECURSIVE
-	-- Step 1: Prepare ids, if needed
-    seeded AS (
-        SELECT 
-            source, 
-            element_id, 
-            element_sub_id, 
-            geom,
-            ROW_NUMBER() OVER (ORDER BY element_id, element_sub_id) AS id
-        FROM all_points
-    ),
-	-- Step 2: Find all pairs within tolerance (set tolerance here)
-	-- Use ST_DWithin so it can use an index
-	-- Avoid symmetric pairs using a.id < b.id
-    pairwise AS (
-        SELECT a.id AS id1, b.id AS id2
-        FROM seeded a
-        JOIN seeded b ON a.id < b.id
-        WHERE ST_DWithin(a.geom, b.geom, proximity_degrees) -- nodes within this distance should be clustered
-    ),
+	CREATE TEMP TABLE MaterializedPoints ON COMMIT DROP AS
+	  SELECT source, element_id, element_sub_id, geom,
+	  		 -- construct new ids for each node (could use cantor pairing function here)
+	         row_number() OVER (ORDER BY element_id, element_sub_id) as id
+	  FROM AllPoints;
+	
+	-- CREATE spatial INDEX on materialized nodes -- must use for performance!
+	CREATE INDEX idx_node_geom ON MaterializedPoints USING GIST (geom);
+	
+	
+	
+	-- ====================================================================================
+	-- Step 2: Join to get pairs of nearby nodes.  Materialize.  Set tolerance here.
+	-- ====================================================================================
+	
+	CREATE TEMP TABLE Neighbors ON COMMIT DROP AS
+	  SELECT a.id AS id1, b.id AS id2
+	  FROM MaterializedPoints a
+	  JOIN MaterializedPoints b ON ST_DWithin(a.geom, b.geom, 0.00004)  -- Tolerance: nodes within this distance should be clustered
+	  AND a.id < b.id;
+	
+	
+	-- ====================================
 	-- Step 3: Recursive friend-of-friend closure: keep joining until 
-	-- the result does not change
-    clusters AS (
-        SELECT id1, id2 FROM pairwise
-        UNION
-        SELECT c.id1, p.id2
-        FROM clusters c
-        JOIN pairwise p ON c.id2 = p.id1 AND c.id1 < p.id2
-    ),
-	-- Step 4: Assign each point a single cluster representative -- remove hierarchical subclusters.
-	-- That is, each point is a part of multiple clusters; we only want the biggest.
-	-- For example, Clusters contains {(2,1), (3,1), (4,1), (3,2), (4,2), (4,3).}
-	-- We only want the biggest cluster with id 1: (2,1), (3,1), (4,1)
-	-- Also include singleton clusters that were not nearby any other points.
-    canonical AS (
-        SELECT id2 AS id, MIN(id1) AS cluster_id
-        FROM clusters
-        GROUP BY id2
-        UNION ALL
-		-- include singleton clusters (points that are not within tolerance of any other point)
-        SELECT id, id FROM seeded
-        WHERE id NOT IN (SELECT id2 FROM clusters)
-    ),
-	-- Step 5: Determine one witness point per cluster 
-	-- (chooses minimum source currently. Could do centroid, or any other conditions)
-    witness AS (
-        SELECT DISTINCT ON (c.cluster_id) 
-            c.cluster_id, 
-            s.geom AS cluster_geom,
-            s.source,
-            s.element_id AS witness_element_id
-        FROM canonical c
-        JOIN seeded s ON c.id = s.id
-        ORDER BY c.cluster_id, s.source, s.element_id
-    ),
-	-- Step 6: Map every point to its witness point
-	-- source, id, element_id, and element_sub_id are the original point
-	-- cluster_id, cluster_geom are the new cluster witness which replaces the original 
-	-- SELECT DISTINCT cluster_id, cluster_geom FROM PointToWitness
-	-- returns all points (including internal) in the entire unioned dataset.
-    point_to_witness AS (
-        SELECT 
-            s.source,
-            s.element_id,
-            s.element_sub_id,
-            s.geom,
-            w.cluster_id,
-            w.cluster_geom,
-            w.witness_element_id
-        FROM seeded s
-        JOIN canonical c ON s.id = c.id
-        JOIN witness w ON c.cluster_id = w.cluster_id
-    )
-    SELECT * FROM point_to_witness;
+	-- the result does not change. Materialize.
+	-- ====================================
+	
+	CREATE TEMP TABLE Clusters ON COMMIT DROP AS
+	WITH RECURSIVE
+	Clusters(id1, id2) AS (
+	  SELECT id1, id2 FROM Neighbors
+	  UNION
+	  SELECT c.id1, p.id2
+	  FROM Clusters c
+	  JOIN Neighbors p ON c.id2 = p.id1 AND c.id1 < p.id2
+	)
+	SELECT * FROM Clusters;
 
-    CREATE INDEX ON point_to_witness (element_id, element_sub_id);
-    CREATE INDEX ON point_to_witness USING GIST (cluster_geom);
+	-- ====================================
+	-- Step 4: Assign cluster representatives
+	-- ====================================
 
+		-- Assign each point a single cluster representative -- remove hierarchical subclusters.
+		-- That is, each point is a part of multiple clusters; we only want the biggest.
+		-- For example, Clusters contains {(2,1), (3,1), (4,1), (3,2), (4,2), (4,3).}
+		-- We only want the biggest cluster with id 1: (2,1), (3,1), (4,1)
+		-- Also include singleton clusters that were not nearby any other points.
+		 CREATE TEMP TABLE Canonical ON COMMIT DROP AS
+		SELECT id2 AS id, MIN(id1) AS cluster_id
+		FROM Clusters
+		GROUP BY id2
+		UNION ALL
+		SELECT id, id FROM MaterializedPoints
+		WHERE id NOT IN (SELECT id2 FROM Clusters);
+		
+		CREATE INDEX ON Canonical (id);
+
+		-- Step 5: Determine one witness point per cluster 
+		-- (chooses minimum source currently. Could do centroid, or any other conditions)
+		CREATE TEMP TABLE Witness ON COMMIT DROP AS
+		SELECT DISTINCT ON (c.cluster_id) 
+		    c.cluster_id, 
+		    s.geom AS cluster_geom,
+		    s.source,
+		    s.element_id AS witness_element_id
+		FROM Canonical c
+		JOIN MaterializedPoints s ON c.id = s.id
+		ORDER BY c.cluster_id, s.source;
+		
+		CREATE INDEX ON Witness (cluster_id);
+
+		-- Step 6: Map every point to its witness point
+		-- source, id, element_id, and element_sub_id are the original point
+		-- cluster_id, cluster_geom are the new cluster witness which replaces the original 
+		-- SELECT DISTINCT cluster_id, cluster_geom FROM PointToWitness
+		-- returns all points (including internal) in the entire unioned dataset.
+		CREATE TEMP TABLE PointToWitness ON COMMIT DROP AS
+		SELECT 
+		    s.source,
+		    s.element_id,
+		    s.element_sub_id,
+		    s.geom,
+		    w.cluster_id,
+		    w.cluster_geom,
+		    w.witness_element_id
+		FROM MaterializedPoints s
+		JOIN Canonical c ON s.id = c.id
+		JOIN Witness w ON c.cluster_id = w.cluster_id;
+		
+		CREATE INDEX ON PointToWitness (element_id, element_sub_id);
+		CREATE INDEX ON PointToWitness USING GIST (cluster_geom);
+
+	RAISE NOTICE 'Ending algorithm at: %', clock_timestamp();
     ------------------------------ Reconstruct Nodes -------------------------------------
-    CREATE TEMP TABLE new_export_nodes ON COMMIT DROP AS
+    RAISE NOTICE 'Start Reconstruct Nodes at: %', clock_timestamp();
+	CREATE TEMP TABLE new_export_nodes ON COMMIT DROP AS
     SELECT DISTINCT ON (n.id)
         n.id,
         p.cluster_geom AS loc,
@@ -203,7 +241,7 @@ BEGIN
             jsonb_build_object('_id', n.id::text) || 
             ((n.feature::jsonb->'properties') - '_id')
         ) AS feature
-    FROM point_to_witness p
+    FROM PointToWitness p
     JOIN content.node n 
         ON p.witness_element_id = n.id 
         AND p.element_sub_id = 0
@@ -212,31 +250,62 @@ BEGIN
 
     CREATE INDEX ON new_export_nodes (id);
     CREATE INDEX ON new_export_nodes USING GIST (loc);
-
+	RAISE NOTICE 'Ending Reconstruct Nodes at: %', clock_timestamp();
     ------------------------------ Reconstruct Edges -------------------------------------
-    CREATE TEMP TABLE reconstructed_edges ON COMMIT DROP AS
+    RAISE NOTICE 'Start Reconstruct Edges at: %', clock_timestamp();
+	CREATE TEMP TABLE reconstructed_edges ON COMMIT DROP AS
     WITH edge_points AS (
         SELECT 
             p.element_id,
             p.source,
-            ARRAY_AGG(p.cluster_geom ORDER BY p.element_sub_id) AS points
-        FROM point_to_witness p
-        WHERE p.element_sub_id > 0
+            ST_MakeLine(p.cluster_geom ORDER BY p.element_sub_id) AS loc
+        FROM PointToWitness p
+        -- WHERE p.element_sub_id > 0
         GROUP BY p.element_id, p.source
-    )
-    SELECT 
-        e.id,
-        ST_MakeLine(ep.points) AS loc,
-        e.feature
-    FROM edge_points ep
-    JOIN content.edge e 
-        ON e.id = ep.element_id 
-        AND e.tdei_dataset_id = ep.source
-    WHERE NOT ST_Equals(ST_StartPoint(ST_MakeLine(ep.points)), ST_EndPoint(ST_MakeLine(ep.points)))
-      AND NOT ST_Envelope(ST_MakeLine(ep.points)) = ST_PointN(ST_MakeLine(ep.points), 1);
+    ), 
+	Filtered_edges AS (
+	    SELECT 
+	        ep.element_id AS id,
+	        ep.source,
+	        ep.loc,
+	        e.feature
+	    FROM edge_points ep
+	    JOIN content.edge e 
+	        ON e.id = ep.element_id AND e.tdei_dataset_id = ep.source
+	    WHERE 
+	        ST_NPoints(loc) > 1 -- Ensures LineString is valid
+	        AND ST_Length(loc) > 0 -- Avoids collapsed geometries
+	)
+	SELECT * FROM filtered_edges;
 
     CREATE INDEX ON reconstructed_edges (id);
     CREATE INDEX ON reconstructed_edges USING GIST (loc);
+
+	-- Precompute edge endpoint node IDs
+  	-- Extract start and end points once
+	CREATE TEMP TABLE edge_vertices ON COMMIT DROP AS
+	SELECT 
+		id,
+		ST_SnapToGrid(ST_StartPoint(loc), 1e-8) AS start_loc,
+		ST_SnapToGrid(ST_EndPoint(loc), 1e-8) AS end_loc
+	FROM reconstructed_edges;
+	
+	CREATE INDEX ON edge_vertices (start_loc);
+	CREATE INDEX ON edge_vertices (end_loc);
+	
+	-- Join with nodes using indexed spatial equality
+	CREATE TEMP TABLE edge_endpoints ON COMMIT DROP AS
+	SELECT 
+		ev.id,
+		ns.id::text AS u_id,
+		ne.id::text AS v_id
+	FROM edge_vertices ev
+	LEFT JOIN new_export_nodes ns
+		ON ST_SnapToGrid(ns.loc, 1e-8) = ev.start_loc
+	LEFT JOIN new_export_nodes ne
+		ON ST_SnapToGrid(ne.loc, 1e-8) = ev.end_loc;
+
+    CREATE INDEX ON edge_endpoints (id);
 
     -- Rebuild edge node IDs
     CREATE TEMP TABLE feature_edges ON COMMIT DROP AS
@@ -248,28 +317,19 @@ BEGIN
             'properties',
             jsonb_build_object(
                 '_id', ROW_NUMBER() OVER (ORDER BY e.id)::text,
-                '_u_id', (
-                    SELECT n.id::text
-                    FROM new_export_nodes n
-                    WHERE n.loc && ST_StartPoint(e.loc)
-                    AND ST_SnapToGrid(n.loc, 0.00000001) = ST_SnapToGrid(ST_StartPoint(e.loc), 0.00000001)
-                    LIMIT 1
-                ),
-                '_v_id', (
-                    SELECT n.id::text
-                    FROM new_export_nodes n
-                    WHERE n.loc && ST_EndPoint(e.loc)
-                    AND ST_SnapToGrid(n.loc, 0.00000001) = ST_SnapToGrid(ST_EndPoint(e.loc), 0.00000001)
-                    LIMIT 1
-                )
+                '_u_id', ep.u_id,
+                '_v_id', ep.v_id
             ) || (COALESCE(e.feature::jsonb->'properties', '{}'::jsonb) - '_id' - '_u_id' - '_v_id')
         ) AS feature,
         ROW_NUMBER() OVER (ORDER BY e.id) AS seq_id
-    FROM reconstructed_edges e;
+    FROM reconstructed_edges e
+	JOIN edge_endpoints ep ON e.id = ep.id;
 
-    ------------------------------ Export Nodes -------------------------------------
-    SELECT COUNT(*) INTO row_count FROM new_export_nodes;
-    RAISE NOTICE 'The table nodes has % rows.', row_count;
+    RAISE NOTICE 'Ending Reconstruct Edges at: %', clock_timestamp();
+	------------------------------ Export Nodes -------------------------------------
+    RAISE NOTICE 'Starting Export Nodes at: %', clock_timestamp();
+	-- SELECT COUNT(*) INTO row_count FROM new_export_nodes;
+ --    RAISE NOTICE 'The table nodes has % rows.', row_count;
 
     SELECT jsonb_object_agg(key, TRUE)
     INTO node_mixed_type_keys
@@ -281,6 +341,7 @@ BEGIN
         HAVING COUNT(DISTINCT jsonb_typeof(value)) > 1
     ) sub;
 
+	IF node_mixed_type_keys IS NOT NULL THEN
     UPDATE new_export_nodes
     SET feature = jsonb_set(
         feature,
@@ -296,6 +357,7 @@ BEGIN
     WHERE EXISTS (
         SELECT 1 FROM jsonb_each(feature::jsonb->'properties') WHERE key LIKE 'ext:%'
     );
+	END IF;
 
     fname := 'node';
     result_cursor := 'node_cursor';
@@ -307,10 +369,11 @@ BEGIN
     file_name := fname;
     cursor_ref := result_cursor;
     RETURN NEXT;
-
+    RAISE NOTICE 'Ending Export Nodes at: %', clock_timestamp();
     ------------------------------ Export Edges -------------------------------------
-    SELECT COUNT(*) INTO row_count FROM feature_edges;
-    RAISE NOTICE 'The table edges has % rows.', row_count;
+    RAISE NOTICE 'Starting Export Edges at: %', clock_timestamp();
+	-- SELECT COUNT(*) INTO row_count FROM feature_edges;
+ --    RAISE NOTICE 'The table edges has % rows.', row_count;
 
     SELECT jsonb_object_agg(key, TRUE)
     INTO edge_mixed_type_keys
@@ -322,6 +385,7 @@ BEGIN
         HAVING COUNT(DISTINCT jsonb_typeof(value)) > 1
     ) sub;
 
+	IF edge_mixed_type_keys IS NOT NULL THEN
     UPDATE feature_edges
     SET feature = jsonb_set(
         feature,
@@ -337,6 +401,7 @@ BEGIN
     WHERE EXISTS (
         SELECT 1 FROM jsonb_each(feature::jsonb->'properties') WHERE key LIKE 'ext:%'
     );
+	END IF;
 
     fname := 'edge';
     result_cursor := 'edge_cursor';
@@ -348,6 +413,7 @@ BEGIN
     file_name := fname;
     cursor_ref := result_cursor;
     RETURN NEXT;
+    RAISE NOTICE 'Ending Export Edges at: %', clock_timestamp();
 
     RETURN;
 END;
