@@ -24,8 +24,49 @@ DECLARE
 BEGIN
     -- Convert proximity from meters to degrees for EPSG:4326 (1 degree ≈ 111,111 meters)
     proximity_degrees := proximity / 111111;
+
+	    ------------------------------ Prepare Input Points -------------------------------------
+	-- Find the nodes in the test datsets
+	CREATE TEMP TABLE testnodes ON COMMIT DROP AS (
+		select 
+			n.tdei_dataset_id as source, 
+			n.id as element_id, 
+			n.feature,
+			-- assign 0 as the sub_id
+			-- for nodes and edges, there is no sub_id (it's always 0)
+			-- for internal line string nodes, there is a sub_id (see below)
+			0 as element_sub_id, 
+			n.node_loc as geom 
+		from content.node n
+		where n.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
+	);
+	CREATE INDEX idx_testnodes_element_id ON testnodes (element_id);
+
+	-- Find the edges in the test datsets
+	CREATE TEMP TABLE testedges ON COMMIT DROP AS (
+		select 	
+			e.tdei_dataset_id as source, 
+			e.id as element_id, 
+			e.edge_loc as geom,
+			e.feature
+		from content.edge e
+		where e.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
+	);
+	CREATE INDEX idx_testedges_element_id ON testedges (element_id,source);
+
 	
-    ------------------------------ Prepare Input Points -------------------------------------
+	-- Find the *internal* nodes for the edges in the test datasets
+	CREATE TEMP TABLE testedgepoints ON COMMIT DROP AS (
+	  SELECT 
+			path.source, 
+			path.element_id,
+			-- sub id indicates the order or the internal nodes.  
+			-- Begins with 1 (not 0, which is important)
+			dp.path[1] AS element_sub_id,
+			dp.geom
+	  FROM testedges path, ST_DumpPoints(path.geom) dp
+	);
+
     -- =================================================
 	-- Assumed inputs: AllPoints and Paths
 	-- =================================================
@@ -42,35 +83,22 @@ BEGIN
 	-- 		element_sub_id is just 0 for all nodes and edges.
 	-- geom is the geometry of the node / internal node or edge
     CREATE TEMP TABLE AllPoints ON COMMIT DROP AS
-	-- Find the nodes in the test datasets
-    WITH nodes AS (
-        SELECT 
-            tdei_dataset_id AS source, 
-            id AS element_id, 
-			-- assign 0 as the sub_id
-			-- for nodes and edges, there is no sub_id (it's always 0)
-			-- for internal line string nodes, there is a sub_id (see below)
-            0 AS element_sub_id, 
-            node_loc AS geom
-        FROM content.node
-        WHERE tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
-    ),
-    edge_points AS (
-        SELECT 
-            e.tdei_dataset_id AS source, 
-            e.id AS element_id, 
-			-- sub id indicates the order or the internal nodes.  
-			-- Begins with 1 (not 0, which is important)
-            dp.path[1] AS element_sub_id, 
-            dp.geom
-        FROM content.edge e, ST_DumpPoints(e.edge_loc) dp
-        WHERE e.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
-    )
 	-- From nodes
-    SELECT * FROM nodes
-    UNION
+	SELECT 
+		source, 
+		element_id, 
+		element_sub_id, 
+		geom
+	FROM testnodes
+	UNION
 	-- From internal linestring nodes
-    SELECT * FROM edge_points;
+	SELECT 
+		source, 
+		element_id, 
+		element_sub_id, 
+		geom 
+	FROM testedgepoints;
+
 
     CREATE INDEX ON AllPoints USING GIST (geom);
 
@@ -142,9 +170,8 @@ BEGIN
 	  FROM AllPoints;
 	
 	-- CREATE spatial INDEX on materialized nodes -- must use for performance!
-	CREATE INDEX idx_node_geom ON MaterializedPoints USING GIST (geom);
-	
-	
+	CREATE INDEX idx_mat_geom ON MaterializedPoints USING GIST (geom);
+	CREATE INDEX idx_mat_id ON MaterializedPoints (id);
 	
 	-- ====================================================================================
 	-- Step 2: Join to get pairs of nearby nodes.  Materialize.  Set tolerance here.
@@ -156,7 +183,8 @@ BEGIN
 	  JOIN MaterializedPoints b ON ST_DWithin(a.geom, b.geom, 0.00004)  -- Tolerance: nodes within this distance should be clustered
 	  AND a.id < b.id;
 	
-	
+	CREATE INDEX idx_id1_id2 ON Neighbors (id1, id2);
+
 	-- ====================================
 	-- Step 3: Recursive friend-of-friend closure: keep joining until 
 	-- the result does not change. Materialize.
@@ -172,6 +200,7 @@ BEGIN
 	  JOIN Neighbors p ON c.id2 = p.id1 AND c.id1 < p.id2
 	)
 	SELECT * FROM Clusters;
+	CREATE INDEX idx_clusters_id2 ON Clusters (id1, id2);
 
 	-- ====================================
 	-- Step 4: Assign cluster representatives
@@ -182,13 +211,16 @@ BEGIN
 		-- For example, Clusters contains {(2,1), (3,1), (4,1), (3,2), (4,2), (4,3).}
 		-- We only want the biggest cluster with id 1: (2,1), (3,1), (4,1)
 		-- Also include singleton clusters that were not nearby any other points.
-		 CREATE TEMP TABLE Canonical ON COMMIT DROP AS
+		CREATE TEMP TABLE Canonical ON COMMIT DROP AS
 		SELECT id2 AS id, MIN(id1) AS cluster_id
 		FROM Clusters
 		GROUP BY id2
 		UNION ALL
-		SELECT id, id FROM MaterializedPoints
-		WHERE id NOT IN (SELECT id2 FROM Clusters);
+		SELECT id, id FROM (
+			SELECT id FROM MaterializedPoints
+			EXCEPT 
+			SELECT id2 FROM Clusters
+		) x;
 		
 		CREATE INDEX ON Canonical (id);
 
@@ -230,22 +262,19 @@ BEGIN
     ------------------------------ Reconstruct Nodes -------------------------------------
     RAISE NOTICE 'Start Reconstruct Nodes at: %', clock_timestamp();
 	CREATE TEMP TABLE new_export_nodes ON COMMIT DROP AS
-    SELECT DISTINCT ON (n.id)
-        n.id,
+    SELECT DISTINCT ON (n.element_id)
+        n.element_id as id,
         p.cluster_geom AS loc,
         jsonb_build_object(
             'type', 'Feature',
             'geometry', ST_AsGeoJSON(p.cluster_geom, 15)::json,
             'properties', 
-            jsonb_build_object('_id', n.id::text) || 
+            jsonb_build_object('_id', n.element_id::text) || 
             ((n.feature::jsonb->'properties') - '_id')
         ) AS feature
     FROM PointToWitness p
-    JOIN content.node n 
-        ON p.element_id = n.id 
-        AND p.element_sub_id = 0
-        AND n.tdei_dataset_id = p.source
-    WHERE p.element_sub_id = 0;
+    JOIN testnodes n 
+        ON p.element_id = n.element_id; 
 
     CREATE INDEX ON new_export_nodes (id);
     CREATE INDEX ON new_export_nodes USING GIST (loc);
@@ -262,15 +291,15 @@ BEGIN
         -- WHERE p.element_sub_id > 0
         GROUP BY p.element_id, p.source
     ), 
-	Filtered_edges AS (
+	filtered_edges AS (
 	    SELECT 
 	        ep.element_id AS id,
 	        ep.source,
 	        ep.loc,
 	        e.feature
 	    FROM edge_points ep
-	    JOIN content.edge e 
-	        ON e.id = ep.element_id AND e.tdei_dataset_id = ep.source
+	    JOIN testedges e 
+	        ON e.element_id = ep.element_id AND e.source = ep.source
 	    WHERE 
 	        ST_NPoints(loc) > 1 -- Ensures LineString is valid
 	        AND ST_Length(loc) > 0 -- Avoids collapsed geometries
