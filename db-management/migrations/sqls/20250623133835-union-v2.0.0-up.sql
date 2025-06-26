@@ -180,7 +180,7 @@ BEGIN
 	CREATE TEMP TABLE Neighbors ON COMMIT DROP AS
 	  SELECT a.id AS id1, b.id AS id2
 	  FROM MaterializedPoints a
-	  JOIN MaterializedPoints b ON ST_DWithin(a.geom, b.geom, 0.00004)  -- Tolerance: nodes within this distance should be clustered
+	  JOIN MaterializedPoints b ON ST_DWithin(a.geom, b.geom, proximity_degrees)  -- Tolerance: nodes within this distance should be clustered
 	  AND a.id < b.id;
 	
 	CREATE INDEX idx_id1_id2 ON Neighbors (id1, id2);
