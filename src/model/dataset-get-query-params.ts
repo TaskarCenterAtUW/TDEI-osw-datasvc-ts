@@ -139,7 +139,7 @@ export class DatasetQueryParams {
     @IsOptional()
     documentation_uri: string | undefined;
     @IsOptional()
-    validation_process_exists: string | undefined;
+    validation_process_exists: boolean | undefined;
     @IsOptional()
     validation_process_description: string | undefined;
     @IsOptional()
@@ -225,7 +225,7 @@ export class DatasetQueryParams {
         }
 
         //Metadata fields
-        addConditionIfValueExists('d.metadata_json->>\'description\' = ', this.description);
+        addConditionIfValueExists('d.metadata_json->>\'description\' ILIKE ', this.description ? '%' + this.description + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'data_source\' = ', this.data_source);
         addConditionIfValueExists('d.metadata_json->>\'collected_by\' = ', this.collected_by);
         addConditionIfValueExists('d.metadata_json->>\'collection_method\' = ', this.collection_method);
@@ -264,7 +264,7 @@ export class DatasetQueryParams {
         addConditionIfValueExists('d.metadata_json->>\'preprocessing_steps\' ILIKE ', this.preprocessing_steps ? '%' + this.preprocessing_steps + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'data_collection_preprocessing_documentation\' = ', this.data_collection_preprocessing_documentation);
         addConditionIfValueExists('d.metadata_json->>\'documentation_uri\' ILIKE ', this.documentation_uri ? '%' + this.documentation_uri + '%' : null);
-        addConditionIfValueExists('d.metadata_json->>\'validation_process_exists\' ILIKE ', this.validation_process_exists ? '%' + this.validation_process_exists + '%' : null);
+        addConditionIfValueExists('d.metadata_json->>\'validation_process_exists\' = ', this.validation_process_exists);
         addConditionIfValueExists('d.metadata_json->>\'validation_process_description\' ILIKE ', this.validation_process_description ? '%' + this.validation_process_description + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'validation_conducted_by\' ILIKE ', this.validation_conducted_by ? '%' + this.validation_conducted_by + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'excluded_data\' ILIKE ', this.excluded_data ? '%' + this.excluded_data + '%' : null);
