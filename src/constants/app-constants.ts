@@ -21,4 +21,6 @@ export enum WorkflowName {
     "osw_union_dataset" = "osw_union_dataset"
 }
 
+export const JOBS_API_PATH = "/api/v1/jobs";
+
 export const ONE_GB_IN_BYTES = 1073741824;
