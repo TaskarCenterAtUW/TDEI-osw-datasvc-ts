@@ -19,7 +19,7 @@ import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
 import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 import { apiTracker } from "../middleware/api-tracker";
-import { ONE_GB_IN_BYTES } from "../constants/app-constants";
+import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../constants/app-constants";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -168,7 +168,7 @@ class OSWController implements IController {
             await requestService.validateRequestInput();
             Utility.checkForSqlInjection(request.body);
             const job_id = await oswService.processUnionRequest(request.body.user_id, requestService);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -224,7 +224,7 @@ class OSWController implements IController {
             await requestService.validateRequestInput();
             Utility.checkForSqlInjection(request.body);
             const job_id = await oswService.processSpatialQueryRequest(request.body.user_id, requestService);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -281,7 +281,7 @@ class OSWController implements IController {
             }
 
             let job_id = await oswService.processDatasetTagRoadRequest(backendRequest);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
             console.error("Error while processing the dataset bbox request", error);
@@ -373,7 +373,7 @@ class OSWController implements IController {
 
 
             let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -399,7 +399,7 @@ class OSWController implements IController {
             let tdei_dataset_id = request.params["tdei_dataset_id"];
             let job_id = await oswService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -449,7 +449,7 @@ class OSWController implements IController {
             }
 
             let job_id = await oswService.processBboxRequest(backendRequest, requestService.file_type);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
             console.error("Error while processing the dataset bbox request", error);
@@ -502,7 +502,7 @@ class OSWController implements IController {
             }
 
             let job_id = await oswService.processUploadRequest(uploadRequest);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -548,7 +548,7 @@ class OSWController implements IController {
 
 
             let job_id = await oswService.calculateConfidence(tdei_dataset_id, subRegionFile, request.body.user_id);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -598,7 +598,7 @@ class OSWController implements IController {
             }
 
             let job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -626,7 +626,7 @@ class OSWController implements IController {
             //     throw new InputException("Please add tdei_dataset_id, algorithm in payload")
             // }
             let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, subRegionFile, request.body.user_id);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
@@ -677,7 +677,7 @@ class OSWController implements IController {
             }
 
             let job_id = await oswService.calculateInclination(backendRequest);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
             console.error("Error while processing the incline dataset request", error);

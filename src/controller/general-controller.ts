@@ -16,6 +16,8 @@ import { listRequestValidation } from "../middleware/list-request-validation-mid
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { apiTracker } from "../middleware/api-tracker";
 import { validate as isUuid } from "uuid";
+import validateQueryDto from "../middleware/dto-validation-middleware";
+import { JOBS_API_PATH } from "../constants/app-constants";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
@@ -41,8 +43,8 @@ class GeneralController implements IController {
 
     public intializeRoutes() {
         this.router.delete(`${this.path}/dataset/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc"]), this.invalidateRecordRequest);
-        this.router.get(`${this.path}/jobs`, apiTracker, authenticate, listRequestValidation, this.getJobs);
-        this.router.get(`${this.path}/datasets`, apiTracker, authenticate, listRequestValidation, this.getDatasetList);
+        this.router.get(`${JOBS_API_PATH}`, apiTracker, authenticate, validateQueryDto(JobsQueryParams), listRequestValidation, this.getJobs);
+        this.router.get(`${this.path}/datasets`, apiTracker, authenticate, validateQueryDto(DatasetQueryParams), listRequestValidation, this.getDatasetList);
         this.router.get(`${this.path}/job/download/:job_id`, apiTracker, authenticate, this.getJobDownloadFile); // Download the formatted file
         this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), metajsonValidator("edit_metadata"), apiTracker, authenticate,
             async (req, res, next) => {
@@ -203,13 +205,13 @@ class GeneralController implements IController {
         }
     }
 
-     /**
-     * Get the service metrics data by project group id
-     * @param request
-     * @param response
-     * @param next
-     */
-     public getServiceMetrics = async (request: Request, response: express.Response, next: NextFunction) => {
+    /**
+    * Get the service metrics data by project group id
+    * @param request
+    * @param response
+    * @param next
+    */
+    public getServiceMetrics = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             const projectGroupId = request.params['tdei_project_group_id']
             // Validate UUID before making a DB call
@@ -250,7 +252,7 @@ class GeneralController implements IController {
             };
 
             let clone_result = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
-            response.setHeader('Location', `/api/v1/job?job_id=${clone_result.job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${clone_result.job_id}`);
             return response.status(200).send(clone_result.new_tdei_dataset_id);
 
         } catch (error) {
@@ -275,7 +277,7 @@ class GeneralController implements IController {
             const metafile = request.file;
 
             let job_id = await tdeiCoreService.editMetadata(request.params["tdei_dataset_id"], metafile, request.body.user_id, request.params["tdei_data_type"] as TDEIDataType);
-            response.setHeader('Location', `/api/v1/job?job_id=${job_id}`);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(200).send();
         } catch (error) {
             console.error("Error editing the metadata request", error);
