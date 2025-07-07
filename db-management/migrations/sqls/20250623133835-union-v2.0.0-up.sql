@@ -305,13 +305,21 @@ BEGIN
 	WITH 
 	-- Step 1: Reaggregate witness points to build new rings as a LINESTRING
 	ring_lines AS (
-	  SELECT p.source, p.element_id, p.element_sub_id,
-	         ST_MakeLine(p.geom ORDER BY p.element_sub_sub_id) AS old_ring_geom,
-	         ST_MakeLine(w.geom ORDER BY w.element_sub_sub_id) AS new_ring_geom
-	  FROM testzonepoints p, PointToWitness w
-	  WHERE p.element_id = w.element_id 
-	    AND p.element_sub_id = w.element_sub_id
-		AND p.element_sub_sub_id = w.element_sub_sub_id
+	  SELECT 
+	    p.source, 
+	    p.element_id, 
+	    p.element_sub_id,
+	    ST_MakeLine(p.geom ORDER BY p.element_sub_sub_id) AS old_ring_geom,
+	    ST_MakeLine(w.cluster_geom ORDER BY w.element_sub_sub_id) AS new_ring_geom,
+	    ARRAY_AGG(n.element_id ORDER BY p.element_sub_sub_id, w.element_sub_sub_id)
+      FILTER (WHERE n.element_id IS NOT NULL) AS node_ids
+	  FROM testzonepoints p
+	  JOIN PointToWitness w 
+	    ON p.element_id = w.element_id 
+	   AND p.element_sub_id = w.element_sub_id
+	   AND p.element_sub_sub_id = w.element_sub_sub_id
+	  LEFT JOIN testnodes n 
+	    ON ST_SnapToGrid(n.geom, 1e-8) = ST_SnapToGrid(w.cluster_geom, 1e-8) OR ST_SnapToGrid(n.geom, 1e-8) = ST_SnapToGrid(p.geom, 1e-8)
 	  GROUP BY p.source, p.element_id, p.element_sub_id
 	)
 	-- Step 2: Separate outer rings
@@ -322,20 +330,22 @@ BEGIN
 			 COALESCE(
 			    ARRAY_AGG(new_ring_geom) FILTER (WHERE element_sub_id > 1), --maybe null or what we want
 			    (ARRAY_AGG(new_ring_geom))[0:-1] -- empty ring	
-			) as new_inner_rings
+			) as new_inner_rings,
+			p.node_ids
 	  FROM ring_lines p
-	  GROUP BY p.source, p.element_id
+	  GROUP BY p.source, p.element_id,p.node_ids
 	)
 	, polygons as (
 		-- Step 3: Reconstruct the polygons
-		SELECT p.source, p.element_id, 
+		SELECT p.source, p.element_id, p.node_ids,
 		       ST_MakePolygon(new_outer_ring, new_inner_rings) AS newgeom
 		FROM outer_and_inners p
 	)
 	, witnesspolygon as (
 		SELECT DISTINCT ON (p1.source, p1.element_id)
 		       p1.source, p1.element_id as id,
-			   p2.newgeom
+			   p2.newgeom,
+			   p2.node_ids
 		FROM polygons p1, polygons p2
 	    WHERE ST_Area(ST_intersection(p1.newgeom, p2.newgeom)) / ST_Area(ST_Union(p1.newgeom, p2.newgeom)) > 0.7
 		ORDER BY p1.source, p1.element_id, p2.newgeom
@@ -343,7 +353,7 @@ BEGIN
 	SELECT * FROM witnesspolygon
 	UNION ALL
 	-- get the singletons that did not intersect anything
-	SELECT p.source, p.element_id as id, p.newgeom 
+	SELECT p.source, p.element_id as id, p.newgeom , p.node_ids
 	FROM polygons p
 	WHERE (p.source, p.element_id) NOT IN (
 	  SELECT w.source, w.id FROM witnesspolygon w
@@ -352,14 +362,14 @@ BEGIN
 	CREATE INDEX ON UnionZones (id);
 
 	-- show test output
-	-- CREATE TEMP TABLE WitnessZones ON COMMIT DROP AS 
-	-- SELECT DISTINCT ON(newgeom) newgeom, id FROM UnionZones;
+	CREATE TEMP TABLE WitnessZones ON COMMIT DROP AS 
+	SELECT DISTINCT ON(newgeom) newgeom, node_ids, id FROM UnionZones;
 
-	-- CREATE INDEX ON WitnessZones (id);
+	CREATE INDEX ON WitnessZones (id);
 
 	CREATE TEMP TABLE FinalZones ON COMMIT DROP AS 
-	SELECT newgeom as loc, id, z.feature, z.node_ids 
-	FROM UnionZones wz 
+	SELECT newgeom as loc, id, z.feature, content.dedup_consecutive(wz.node_ids) as node_ids
+	FROM WitnessZones wz 
 	JOIN testzones z on wz.id = z.element_id;
 
 	CREATE INDEX ON FinalZones (node_ids);
@@ -476,14 +486,7 @@ BEGIN
             'properties', 
             jsonb_build_object('_id', fz.id::text) || 
             ((fz.feature::jsonb->'properties') - '_w_id' - '_id')
-			|| jsonb_build_object('_w_id', 
-		            (  -- Replace _w_id with a new array of node ids
-		                SELECT jsonb_agg(n.element_id::text)  -- Aggregate the new node ids
-		                FROM jsonb_array_elements_text(fz.feature::jsonb->'properties'->'_w_id') AS w_id
-		                LEFT JOIN testnodes n
-		                    ON w_id::TEXT = n.node_id::TEXT
-		            )
-		        )
+			|| jsonb_build_object('_w_id', fz.node_ids)
         ) AS feature
 	FROM FinalZones fz;
 	
