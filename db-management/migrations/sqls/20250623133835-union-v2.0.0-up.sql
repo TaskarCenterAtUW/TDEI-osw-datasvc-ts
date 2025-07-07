@@ -1,7 +1,3 @@
--- FUNCTION: content.tdei_union_dataset(character varying, character varying, real)
--- original
--- DROP FUNCTION IF EXISTS content.tdei_union_dataset(character varying, character varying, real);
-
 CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
 	src_one_tdei_dataset_id character varying,
 	src_two_tdei_dataset_id character varying,
@@ -20,6 +16,7 @@ DECLARE
     row_count BIGINT;
     node_mixed_type_keys JSONB;
     edge_mixed_type_keys JSONB;
+	zone_mixed_type_keys JSONB;
 	proximity_degrees real;
 BEGIN
     -- Convert proximity from meters to degrees for EPSG:4326 (1 degree ≈ 111,111 meters)
@@ -32,10 +29,12 @@ BEGIN
 			n.tdei_dataset_id as source, 
 			n.id as element_id, 
 			n.feature,
+			n.node_id,
 			-- assign 0 as the sub_id
 			-- for nodes and edges, there is no sub_id (it's always 0)
 			-- for internal line string nodes, there is a sub_id (see below)
 			0 as element_sub_id, 
+			0 as element_sub_sub_id,
 			n.node_loc as geom 
 		from content.node n
 		where n.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
@@ -54,7 +53,20 @@ BEGIN
 	);
 	CREATE INDEX idx_testedges_element_id ON testedges (element_id,source);
 
-	
+	-- Find the edges in the test zones
+	CREATE TEMP TABLE testzones ON COMMIT DROP AS (
+		select 	
+			z.tdei_dataset_id as source, 
+			z.id as element_id, 
+			z.zone_loc as geom,
+			z.feature,
+			z.node_ids
+		from content.zone z
+		where z.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
+	);
+	CREATE INDEX idx_testzones_element_id ON testzones (element_id,source);
+    CREATE INDEX ON testzones USING GIST (geom);
+
 	-- Find the *internal* nodes for the edges in the test datasets
 	CREATE TEMP TABLE testedgepoints ON COMMIT DROP AS (
 	  SELECT 
@@ -63,8 +75,22 @@ BEGIN
 			-- sub id indicates the order or the internal nodes.  
 			-- Begins with 1 (not 0, which is important)
 			dp.path[1] AS element_sub_id,
+			0 as element_sub_sub_id, -- for polygon rings
 			dp.geom
 	  FROM testedges path, ST_DumpPoints(path.geom) dp
+	);
+
+	-- Find the *internal* nodes for the zones in the test datasets
+	CREATE TEMP TABLE testzonepoints ON COMMIT DROP AS (
+	  SELECT 
+	  		z.source, 
+	  		z.element_id,
+			-- sub id indicates the order or the internal nodes.  
+			-- Begins with 1 (not 0, which is important)
+	   		p.path[1] AS element_sub_id,         -- 1 = outer, 2+ = holes
+			p.path[2] as element_sub_sub_id, -- for polygon rings
+	        p.geom
+	  FROM testzones z, LATERAL ST_DumpPoints(geom) p
 	);
 
     -- =================================================
@@ -88,6 +114,7 @@ BEGIN
 		source, 
 		element_id, 
 		element_sub_id, 
+	    element_sub_sub_id, 
 		geom
 	FROM testnodes
 	UNION
@@ -96,9 +123,18 @@ BEGIN
 		source, 
 		element_id, 
 		element_sub_id, 
+	    element_sub_sub_id, 
+		geom  
+	FROM testedgepoints
+	UNION
+-- From internal polygon nodes (may be redundant, hence union)
+	SELECT 
+		source, 
+		element_id, 
+		element_sub_id, 
+	    element_sub_sub_id, 
 		geom 
-	FROM testedgepoints;
-
+	FROM testzonepoints;
 
     CREATE INDEX ON AllPoints USING GIST (geom);
 
@@ -164,10 +200,10 @@ BEGIN
 	-- ====================================================================================
 
 	CREATE TEMP TABLE MaterializedPoints ON COMMIT DROP AS
-	  SELECT source, element_id, element_sub_id, geom,
-	  		 -- construct new ids for each node (could use cantor pairing function here)
-	         row_number() OVER (ORDER BY element_id, element_sub_id) as id
-	  FROM AllPoints;
+	SELECT source, element_id, element_sub_id, element_sub_sub_id, geom,
+	-- construct new ids for each node (could use cantor pairing function here)
+	row_number() OVER (ORDER BY element_id, element_sub_id, element_sub_sub_id) as id
+	FROM AllPoints;
 	
 	-- CREATE spatial INDEX on materialized nodes -- must use for performance!
 	CREATE INDEX idx_mat_geom ON MaterializedPoints USING GIST (geom);
@@ -248,9 +284,11 @@ BEGIN
 		    s.source,
 		    s.element_id,
 		    s.element_sub_id,
+			s.element_sub_sub_id,
 		    s.geom,
 		    w.cluster_id,
 		    w.cluster_geom
+		    -- w.witness_element_id
 		FROM MaterializedPoints s
 		JOIN Canonical c ON s.id = c.id
 		JOIN Witness w ON c.cluster_id = w.cluster_id;
@@ -259,6 +297,75 @@ BEGIN
 		CREATE INDEX ON PointToWitness USING GIST (cluster_geom);
 
 	RAISE NOTICE 'Ending algorithm at: %', clock_timestamp();
+
+    ------------------------------ Zones processing -------------------------------------
+    RAISE NOTICE 'Stating Zone processing at: %', clock_timestamp();
+
+	CREATE TEMP TABLE UnionZones ON COMMIT DROP AS
+	WITH 
+	-- Step 1: Reaggregate witness points to build new rings as a LINESTRING
+	ring_lines AS (
+	  SELECT p.source, p.element_id, p.element_sub_id,
+	         ST_MakeLine(p.geom ORDER BY p.element_sub_sub_id) AS old_ring_geom,
+	         ST_MakeLine(w.geom ORDER BY w.element_sub_sub_id) AS new_ring_geom
+	  FROM testzonepoints p, PointToWitness w
+	  WHERE p.element_id = w.element_id 
+	    AND p.element_sub_id = w.element_sub_id
+		AND p.element_sub_sub_id = w.element_sub_sub_id
+	  GROUP BY p.source, p.element_id, p.element_sub_id
+	)
+	-- Step 2: Separate outer rings
+	, outer_and_inners AS (
+	  SELECT p.source, p.element_id, 
+	         (ARRAY_AGG(new_ring_geom) 
+	           FILTER (WHERE element_sub_id = 1))[1] AS new_outer_ring,
+			 COALESCE(
+			    ARRAY_AGG(new_ring_geom) FILTER (WHERE element_sub_id > 1), --maybe null or what we want
+			    (ARRAY_AGG(new_ring_geom))[0:-1] -- empty ring	
+			) as new_inner_rings
+	  FROM ring_lines p
+	  GROUP BY p.source, p.element_id
+	)
+	, polygons as (
+		-- Step 3: Reconstruct the polygons
+		SELECT p.source, p.element_id, 
+		       ST_MakePolygon(new_outer_ring, new_inner_rings) AS newgeom
+		FROM outer_and_inners p
+	)
+	, witnesspolygon as (
+		SELECT DISTINCT ON (p1.source, p1.element_id)
+		       p1.source, p1.element_id as id,
+			   p2.newgeom
+		FROM polygons p1, polygons p2
+	    WHERE ST_Area(ST_intersection(p1.newgeom, p2.newgeom)) / ST_Area(ST_Union(p1.newgeom, p2.newgeom)) > 0.7
+		ORDER BY p1.source, p1.element_id, p2.newgeom
+	)
+	SELECT * FROM witnesspolygon
+	UNION ALL
+	-- get the singletons that did not intersect anything
+	SELECT p.source, p.element_id as id, p.newgeom 
+	FROM polygons p
+	WHERE (p.source, p.element_id) NOT IN (
+	  SELECT w.source, w.id FROM witnesspolygon w
+	);
+	
+	CREATE INDEX ON UnionZones (id);
+
+	-- show test output
+	-- CREATE TEMP TABLE WitnessZones ON COMMIT DROP AS 
+	-- SELECT DISTINCT ON(newgeom) newgeom, id FROM UnionZones;
+
+	-- CREATE INDEX ON WitnessZones (id);
+
+	CREATE TEMP TABLE FinalZones ON COMMIT DROP AS 
+	SELECT newgeom as loc, id, z.feature, z.node_ids 
+	FROM UnionZones wz 
+	JOIN testzones z on wz.id = z.element_id;
+
+	CREATE INDEX ON FinalZones (node_ids);
+
+	RAISE NOTICE 'Ending Zone processing at: %', clock_timestamp();
+	
     ------------------------------ Reconstruct Nodes -------------------------------------
     RAISE NOTICE 'Start Reconstruct Nodes at: %', clock_timestamp();
 	CREATE TEMP TABLE new_export_nodes ON COMMIT DROP AS
@@ -275,7 +382,10 @@ BEGIN
     FROM PointToWitness p
     JOIN testnodes n 
         ON p.element_id = n.element_id; 
-
+        -- AND p.element_sub_id = 0
+        -- AND n.tdei_dataset_id = p.source
+    -- WHERE p.element_sub_id = 0;
+	
     CREATE INDEX ON new_export_nodes (id);
     CREATE INDEX ON new_export_nodes USING GIST (loc);
 	RAISE NOTICE 'Ending Reconstruct Nodes at: %', clock_timestamp();
@@ -354,10 +464,37 @@ BEGIN
 	JOIN edge_endpoints ep ON e.id = ep.id;
 
     RAISE NOTICE 'Ending Reconstruct Edges at: %', clock_timestamp();
+	------------------------------ Reconstruct Polygons -------------------------------------
+    RAISE NOTICE 'Start Reconstruct Polygon at: %', clock_timestamp();
+	CREATE TEMP TABLE new_export_zones ON COMMIT DROP AS
+	SELECT DISTINCT ON (fz.id)
+        fz.id,
+        fz.loc AS loc,
+        jsonb_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(fz.loc, 15)::json,
+            'properties', 
+            jsonb_build_object('_id', fz.id::text) || 
+            ((fz.feature::jsonb->'properties') - '_w_id' - '_id')
+			|| jsonb_build_object('_w_id', 
+		            (  -- Replace _w_id with a new array of node ids
+		                SELECT jsonb_agg(n.element_id::text)  -- Aggregate the new node ids
+		                FROM jsonb_array_elements_text(fz.feature::jsonb->'properties'->'_w_id') AS w_id
+		                LEFT JOIN testnodes n
+		                    ON w_id::TEXT = n.node_id::TEXT
+		            )
+		        )
+        ) AS feature
+	FROM FinalZones fz;
+	
+    CREATE INDEX ON new_export_zones (id);
+    CREATE INDEX ON new_export_zones USING GIST (loc);
+	RAISE NOTICE 'Ending Reconstruct Polygon at: %', clock_timestamp();
+	
 	------------------------------ Export Nodes -------------------------------------
     RAISE NOTICE 'Starting Export Nodes at: %', clock_timestamp();
 	-- SELECT COUNT(*) INTO row_count FROM new_export_nodes;
- --    RAISE NOTICE 'The table nodes has % rows.', row_count;
+ 	-- RAISE NOTICE 'The table nodes has % rows.', row_count;
 
     SELECT jsonb_object_agg(key, TRUE)
     INTO node_mixed_type_keys
@@ -442,6 +579,56 @@ BEGIN
     cursor_ref := result_cursor;
     RETURN NEXT;
     RAISE NOTICE 'Ending Export Edges at: %', clock_timestamp();
+
+	------------------------------ Export Polygon -------------------------------------
+          
+    RAISE NOTICE 'Starting Export Zones at: %', clock_timestamp();
+
+	SELECT jsonb_object_agg(key, TRUE)
+    INTO zone_mixed_type_keys
+    FROM (
+		SELECT DISTINCT key
+		FROM new_export_zones e
+		LEFT JOIN LATERAL jsonb_each(COALESCE(e.feature::jsonb->'properties', '{}'::jsonb)) AS prop(key, value)
+		ON TRUE
+		WHERE key LIKE 'ext:%'
+		GROUP BY key
+		HAVING COUNT(DISTINCT jsonb_typeof(value)) > 1
+    ) subquery;
+
+	UPDATE new_export_zones 
+    SET feature = jsonb_set(
+        feature::jsonb, 
+        '{properties}', 
+        (
+            SELECT jsonb_object_agg(
+                key, 
+                CASE 
+                    -- Convert only keys in zone_mixed_type_keys and that are not already strings
+                    WHEN zone_mixed_type_keys ? key AND jsonb_typeof(value) != 'string' 
+                    THEN to_jsonb(value::text)  
+                    ELSE value
+                END
+            )
+            FROM jsonb_each(feature::jsonb->'properties')  -- Keep all properties
+        )
+    )
+    WHERE feature::jsonb ? 'properties'  -- Update only rows where 'properties' exists
+    AND EXISTS (
+        SELECT 1 FROM jsonb_each(feature::jsonb->'properties') WHERE key LIKE 'ext:%'
+    ); 
+
+	fname := 'polygon';
+    result_cursor := 'polygon_cursor';
+	OPEN result_cursor FOR 		
+		SELECT feature
+		FROM new_export_zones
+		WHERE feature is not null
+		ORDER by id ASC;
+	file_name := fname;
+    cursor_ref := result_cursor;
+    RETURN NEXT;
+    RAISE NOTICE 'Ending Export Zones at: %', clock_timestamp();
 
     RETURN;
 END;
