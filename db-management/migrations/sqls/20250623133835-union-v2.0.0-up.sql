@@ -639,3 +639,40 @@ $BODY$;
 
 ALTER FUNCTION content.tdei_union_dataset(character varying, character varying, real)
     OWNER TO tdeiadmin;
+
+
+
+
+
+----------------- Dedupe function -----------------
+CREATE OR REPLACE FUNCTION content.dedup_consecutive(arr bigint[])
+RETURNS text[] AS $$
+DECLARE
+  deduped int[];
+  closed text[];
+BEGIN
+  -- Step 1: Remove consecutive duplicates
+  SELECT ARRAY_AGG(val ORDER BY ord) INTO deduped
+  FROM (
+    SELECT val, ord
+    FROM (
+      SELECT val, ord,
+             LAG(val) OVER (ORDER BY ord) AS prev
+      FROM unnest(arr) WITH ORDINALITY AS t(val, ord)
+    ) sub
+    WHERE prev IS DISTINCT FROM val OR ord = 1
+  ) deduped_inner;
+
+  -- Step 2: Ensure ring is closed (first == last)
+  IF array_length(deduped, 1) IS NOT NULL 
+     AND deduped[1] IS DISTINCT FROM deduped[array_length(deduped, 1)] THEN
+    deduped := deduped || deduped[1];
+  END IF;
+
+  -- Step 3: Convert to text[]
+  SELECT ARRAY_AGG(val::text) INTO closed
+  FROM unnest(deduped) AS t(val);
+
+  RETURN closed;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
