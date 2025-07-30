@@ -255,6 +255,259 @@
             ]
         },
         {
+            "name": "osw_upload_v2",
+            "description": "Workflow for uploading osw files",
+            "workflow_input": {
+                "job_id": "<%=job_id%>",
+                "user_id": "<%=user_id%>",
+                "tdei_project_group_id": "<%=tdei_project_group_id%>",
+                "dataset_url": "<%=dataset_url%>",
+                "metadata_url": "<%=metadata_url%>",
+                "changeset_url": "<%=changeset_url%>",
+                "latest_dataset_url": "<%=latest_dataset_url%>",
+                "tdei_dataset_id": "<%=tdei_dataset_id%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_validation",
+                    "task_reference_name": "osw_validation",
+                    "description": "Validating the uploaded osw file",
+                    "type": "Event",
+                    "topic": "osw-validation-request",
+                    "input_params": {
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "tdei_project_group_id": "<%=workflow_input.tdei_project_group_id%>",
+                        "file_upload_path": "<%=workflow_input.dataset_url%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>"
+                    }
+                },
+                {
+                    "name": "osw_compression",
+                    "task_reference_name": "osw_compression",
+                    "description": "Compressing the osw, metadata and changeset files",
+                    "type": "Event",
+                    "topic": "dataset-zip-request",
+                    "input_params": {
+                        "isOsm": false,
+                        "input_urls": "<%= JSON.stringify([workflow_input.latest_dataset_url, workflow_input.metadata_url, workflow_input.changeset_url]) %>",
+                        "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.osw.zip"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "output_path": "<%=data.output_path%>"
+                    }
+                },
+                {
+                    "name": "update_osw_db",
+                    "task_reference_name": "update_osw_db",
+                    "description": "Updating the dataset download url",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "dataset_download_url": "<%=tasks.osw_compression.output.output_path%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "osw_extract_load",
+                    "task_reference_name": "osw_extract_load",
+                    "description": "Unpacking the osw dataset elements to the database",
+                    "type": "Event",
+                    "topic": "extract-load-request",
+                    "input_params": {
+                        "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>",
+                        "file_upload_path": "<%=workflow_input.dataset_url%>",
+                        "data_type": "osw"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>"
+                    }
+                },
+                {
+                    "name": "osw_osm_formatting",
+                    "task_reference_name": "osw_osm_formatting",
+                    "description": "Formating the validated osw file",
+                    "type": "Event",
+                    "topic": "backend-request",
+                    "input_params": {
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "file_upload_path": "<%=data.file_upload_path%>"
+                    }
+                },
+                {
+                    "name": "update_formatted_url_db",
+                    "task_reference_name": "update_formatted_url_db",
+                    "description": "Updating the dataset osw url",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "osm_url": "<%= decodeURIComponent(tasks.osw_osm_formatting.output.file_upload_path) %>",
+                            "latest_osm_url": "<%= decodeURIComponent(tasks.osw_osm_formatting.output.file_upload_path) %>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "get_blob_folder_path_wo_ext",
+                    "task_reference_name": "get_blob_folder_path_wo_ext",
+                    "description": "Getting the blob folder path for zip upload",
+                    "type": "Utility",
+                    "input_params": {
+                        "blobUrl": "<%=workflow_input.dataset_url%>",
+                        "identifier": "<%=workflow_input.tdei_dataset_id%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>",
+                        "folder_path": "<%=folder_path%>"
+                    },
+                    "function": "get_blob_folder_path_wo_ext"
+                },
+                {
+                    "name": "osm_compression",
+                    "task_reference_name": "osm_compression",
+                    "description": "Compressing the osm, metadata and changeset files",
+                    "type": "Event",
+                    "topic": "dataset-zip-request",
+                    "input_params": {
+                        "isOsm": true,
+                        "input_urls": "<%= JSON.stringify([decodeURIComponent(tasks.osw_osm_formatting.output.file_upload_path), workflow_input.metadata_url, workflow_input.changeset_url]) %>",
+                        "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.osm.zip"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "output_path": "<%=data.output_path%>"
+                    }
+                },
+                {
+                    "name": "update_osm_db",
+                    "task_reference_name": "update_osm_db",
+                    "description": "Updating the dataset osm download url",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "dataset_osm_download_url": "<%=tasks.osm_compression.output.output_path%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "osw_pre_release_db",
+                    "task_reference_name": "osw_pre_release_db",
+                    "description": "Updating the status of the dataset to Pre-Release",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "status": "Pre-Release"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "osm_upload_job_update_db",
+                    "task_reference_name": "osm_upload_job_update_db",
+                    "description": "Updating the job details",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "COMPLETED",
+                            "message": "Job Completed Successfully"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "osw_upload_failure",
+                    "task_reference_name": "osw_upload_failure",
+                    "description": "Deleting the draft dataset on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "delete_draft_dataset"
+                },
+                {
+                    "name": "osw_upload_failure_db",
+                    "task_reference_name": "osw_upload_failure_db",
+                    "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
+        },
+        {
             "name": "osw_publish",
             "description": "Workflow for publishing osw files",
             "workflow_input": {
