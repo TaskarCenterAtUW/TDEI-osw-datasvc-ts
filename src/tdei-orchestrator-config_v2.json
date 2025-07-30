@@ -285,6 +285,22 @@
                     }
                 },
                 {
+                    "name": "get_blob_folder_path_wo_ext",
+                    "task_reference_name": "get_blob_folder_path_wo_ext",
+                    "description": "Getting the blob folder path for zip upload",
+                    "type": "Utility",
+                    "input_params": {
+                        "blobUrl": "<%=workflow_input.dataset_url%>",
+                        "identifier": "<%=workflow_input.tdei_dataset_id%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>",
+                        "folder_path": "<%=folder_path%>"
+                    },
+                    "function": "get_blob_folder_path_wo_ext"
+                },
+                {
                     "name": "osw_compression",
                     "task_reference_name": "osw_compression",
                     "description": "Compressing the osw, metadata and changeset files",
@@ -344,8 +360,9 @@
                     "type": "Event",
                     "topic": "backend-request",
                     "input_params": {
+                        "service": "osw_osm_query",
                         "user_id": "<%=workflow_input.user_id%>",
-                        "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        "parameters": "<%= JSON.stringify({'tdei_dataset_id' : workflow_input.tdei_dataset_id}) %>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -373,22 +390,6 @@
                         "message": "<%=message%>"
                     },
                     "function": "update_table"
-                },
-                {
-                    "name": "get_blob_folder_path_wo_ext",
-                    "task_reference_name": "get_blob_folder_path_wo_ext",
-                    "description": "Getting the blob folder path for zip upload",
-                    "type": "Utility",
-                    "input_params": {
-                        "blobUrl": "<%=workflow_input.dataset_url%>",
-                        "identifier": "<%=workflow_input.tdei_dataset_id%>"
-                    },
-                    "output_params": {
-                        "success": "<%=success%>",
-                        "message": "<%=message%>",
-                        "folder_path": "<%=folder_path%>"
-                    },
-                    "function": "get_blob_folder_path_wo_ext"
                 },
                 {
                     "name": "osm_compression",
