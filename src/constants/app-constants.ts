@@ -1,5 +1,5 @@
 export enum WorkflowName {
-    "osw_upload" = "osw_upload",
+    "osw_upload" = "osw_upload_v2",
     "osw_publish" = "osw_publish",
     "osw_validation_only" = "osw_validation_only",
     "osw_confidence_on_demand" = "osw_confidence_on_demand",
