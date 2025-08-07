@@ -16,7 +16,6 @@ WITH
         FROM content.dataset
         WHERE status NOT IN ('Deleted', 'Draft')
     ),
-
     -- Count of distinct users (excluding admin roles):
     users_cte AS (
         SELECT COUNT(DISTINCT user_id) AS totalUsers
@@ -24,14 +23,12 @@ WITH
                  INNER JOIN public.roles r ON ur.role_id = r.role_id
         WHERE r.name != 'tdei_admin'
     ),
-
     -- Count of active project groups:
     project_groups_cte AS (
 SELECT COUNT(*) AS totalProjectGroups
 FROM public.project_group
 WHERE is_active = 'true'
     ),
-
 -- Aggregation from the service table:
     services_cte AS (
 SELECT
@@ -42,14 +39,15 @@ SELECT
 FROM public.service
 WHERE is_active = 'true'
     ),
-
 -- Count of downloads coming from the API usage details:
     downloads_api_cte AS (
-SELECT COUNT(*) AS totalDownloads
+SELECT
+    COUNT(*) AS totalDownloads
 FROM content.api_usage_details
-WHERE endpoint IN ('/api/v1/osw/:id', '/api/v1/gtfs-flex/:id', '/api/v1/gtfs-pathways/:id')
+WHERE endpoint IN ('/api/v1/osw/:id',
+    '/api/v1/gtfs-flex/:id',
+    '/api/v1/gtfs-pathways/:id')
     ),
-
 -- Monthly breakdown from api_usage_details:
     downloads_api_per_month_cte AS (
 SELECT
@@ -57,7 +55,9 @@ SELECT
     TO_CHAR(timestamp, 'Month') AS month_name,
     COUNT(*) AS download_count
 FROM content.api_usage_details
-WHERE endpoint IN ('/api/v1/osw/:id', '/api/v1/gtfs-flex/:id', '/api/v1/gtfs-pathways/:id')
+WHERE endpoint IN ('/api/v1/osw/:id',
+    '/api/v1/gtfs-flex/:id',
+    '/api/v1/gtfs-pathways/:id')
 GROUP BY TO_CHAR(timestamp, 'YYYY'),
     TO_CHAR(timestamp, 'Month'),
     EXTRACT(YEAR FROM timestamp),
@@ -65,7 +65,6 @@ GROUP BY TO_CHAR(timestamp, 'YYYY'),
 ORDER BY EXTRACT(YEAR FROM timestamp),
     EXTRACT(MONTH FROM timestamp)
     ),
-
     -- Aggregate monthly data into a JSON object per year:
     downloads_api_per_year AS (
 SELECT
@@ -74,7 +73,6 @@ SELECT
 FROM downloads_api_per_month_cte
 GROUP BY year
     ),
-
     -- Sum of file sizes based on the API usage details matching a download_stats row:
     downloads_file_size_cte AS (
 SELECT
@@ -87,13 +85,8 @@ FROM content.api_usage_details aud
     FROM content.download_stats
     GROUP BY tdei_dataset_id
     ) agg ON agg.tdei_dataset_id = aud.request_params->>'id'
-WHERE aud.endpoint IN (
-    '/api/v1/osw/:id',
-    '/api/v1/gtfs-flex/:id',
-    '/api/v1/gtfs-pathways/:id'
-    )
+WHERE aud.endpoint IN ('/api/v1/osw/:id', '/api/v1/gtfs-flex/:id', '/api/v1/gtfs-pathways/:id')
     ),
-
 -- API usage summary (unchanged):
     aggregated_counts AS (
 SELECT
@@ -102,7 +95,6 @@ SELECT
 FROM content.api_usage_summary
 GROUP BY endpoint
     ),
-
     api_usage_cte AS (
 SELECT
     SUM(total_count) AS totalApiCalls,
@@ -134,23 +126,24 @@ SELECT json_build_object(
                        'totalDownloads', json_build_object(
                                'count', da.totalDownloads,
                                'totalSizeMB', ROUND(df.totalDownloadSizeBytes / 1048576.0, 2)
-                                   'downloadsPerMonth', (
-                                   SELECT json_object_agg(year, monthly_data)
-                                   FROM downloads_api_per_year
-                               )
                                          ),
-                       'apiCalls', json_build_object(
-                               'total', auc.totalApiCalls,
-                               'byApi', auc.apiCallsByEndpoint
-                                   )
-                                 ) INTO result
-        FROM users_cte uc
-        CROSS JOIN project_groups_cte pgc
-        CROSS JOIN services_cte sc
-        CROSS JOIN dataset_stat_cte dsc
-        CROSS JOIN downloads_api_cte da
-        CROSS JOIN downloads_file_size_cte df
-        CROSS JOIN api_usage_cte auc;
+                       'downloadsPerMonth', (
+                           SELECT json_object_agg(year, monthly_data)
+                           FROM downloads_api_per_year
+                       )
+                                 ),
+               'apiCalls', json_build_object(
+                       'total', auc.totalApiCalls,
+                       'byApi', auc.apiCallsByEndpoint
+                           )
+       ) INTO result
+FROM users_cte uc
+         CROSS JOIN project_groups_cte pgc
+         CROSS JOIN services_cte sc
+         CROSS JOIN dataset_stat_cte dsc
+         CROSS JOIN downloads_api_cte da
+         CROSS JOIN downloads_file_size_cte df
+         CROSS JOIN api_usage_cte auc;
 
 RETURN result;
 END;
