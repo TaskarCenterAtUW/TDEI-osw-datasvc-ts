@@ -152,7 +152,8 @@ class FlexService implements IFlexService {
             let workflow_input = {
                 job_id: job_id.toString(),
                 user_id: user_id,
-                dataset_url: datasetUploadUrl
+                dataset_url: datasetUploadUrl,
+                file_upload_name: datasetFile.originalname
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -244,7 +245,7 @@ class FlexService implements IFlexService {
             datasetEntity.dataset_url = decodeURIComponent(datasetUploadUrl);
             datasetEntity.uploaded_by = uploadRequestObject.user_id;
             datasetEntity.updated_by = uploadRequestObject.user_id;
-            
+
             datasetEntity.upload_file_size_bytes = Utility.calculateTotalSize(uploadRequestObject.datasetFile);
 
             //flatten the metadata to level 1
@@ -308,7 +309,8 @@ class FlexService implements IFlexService {
                 dataset_url: decodeURIComponent(datasetUploadUrl),
                 tdei_dataset_id: uid,
                 metadata_url: decodeURIComponent(metadataUploadUrl),
-                changeset_url: decodeURIComponent(changesetUploadUrl)
+                changeset_url: decodeURIComponent(changesetUploadUrl),
+                dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, uploadRequestObject.user_id);
