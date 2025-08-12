@@ -72,7 +72,9 @@ class OswService implements IOswService {
                 job_id: job_id.toString(),
                 service: "union_dataset",
                 parameters: requestService,
-                user_id: user_id
+                user_id: user_id,
+                tdei_dataset_id_one: requestService.tdei_dataset_id_one,
+                tdei_dataset_id_two: requestService.tdei_dataset_id_two
             }
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -295,7 +297,9 @@ class OswService implements IOswService {
                 job_id: job_id.toString(),
                 service: "spatial_join",
                 parameters: requestService,
-                user_id: user_id
+                user_id: user_id,
+                source_dataset_id: requestService.source_dataset_id,
+                target_dataset_id: requestService.target_dataset_id
             }
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -365,7 +369,8 @@ class OswService implements IOswService {
                 metadata_url: targetDataset.metadata_url,
                 dataset_url: targetDataset.latest_dataset_url,
                 changeset_url: targetDataset.changeset_url,
-                tdei_project_group_id: targetDataset.tdei_project_group_id
+                tdei_project_group_id: targetDataset.tdei_project_group_id,
+                source_dataset_id: backendRequest.parameters.source_dataset_id
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, backendRequest.user_id);
@@ -438,7 +443,8 @@ class OswService implements IOswService {
                 user_id: user_id,// Required field for message authorization
                 source: source,
                 target: target,
-                sourceUrl: decodeURIComponent(source_url)
+                sourceUrl: decodeURIComponent(source_url),
+                file_upload_name: uploadedFile!.originalname
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -527,7 +533,8 @@ class OswService implements IOswService {
                 user_id: user_id,// Required field for message authorization
                 dataset_url: dataset.latest_dataset_url,
                 metadata_url: dataset.metadata_url,
-                sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : ""
+                sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : "",
+                tdei_dataset_id: tdei_dataset_id
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -681,7 +688,8 @@ class OswService implements IOswService {
                     service: backendRequest.service,
                     parameters: backendRequest.parameters,
                     user_id: backendRequest.user_id,// Required field for message authorization
-                    tdei_project_group_id: dataset.tdei_project_group_id
+                    tdei_project_group_id: dataset.tdei_project_group_id,
+                    tdei_dataset_id: backendRequest.parameters.tdei_dataset_id
                 };
             } else if (file_type == 'osw') {
                 workflow_start = WorkflowName.osw_dataset_bbox;
@@ -689,7 +697,8 @@ class OswService implements IOswService {
                     job_id: job_id.toString(),
                     service: backendRequest.service,
                     parameters: backendRequest.parameters,
-                    user_id: backendRequest.user_id// Required field for message authorization
+                    user_id: backendRequest.user_id,// Required field for message authorization
+                    tdei_dataset_id: backendRequest.parameters.tdei_dataset_id
                 };
             }
             //Trigger the workflow
@@ -749,6 +758,7 @@ class OswService implements IOswService {
                 job_id: job_id.toString(),
                 user_id: user_id,// Required field for message authorization
                 dataset_url: decodeURIComponent(datasetUploadUrl),
+                file_upload_name: datasetFile.originalname
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -895,7 +905,8 @@ class OswService implements IOswService {
                 metadata_url: decodeURIComponent(metadataUploadUrl),
                 changeset_url: changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "",
                 tdei_dataset_id: uid,
-                latest_dataset_url: decodeURIComponent(datasetUploadUrl)
+                latest_dataset_url: decodeURIComponent(datasetUploadUrl),
+                dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, uploadRequestObject.user_id);
@@ -1054,7 +1065,8 @@ class OswService implements IOswService {
                 user_id: user_id,
                 file_url: dataset.latest_dataset_url,
                 algorithm: algorithm,
-                sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : ""
+                sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : "",
+                tdei_dataset_id: tdei_dataset_id
             };
 
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
