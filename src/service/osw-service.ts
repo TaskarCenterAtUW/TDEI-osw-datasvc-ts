@@ -33,6 +33,7 @@ import { FeedbackEntity } from "../database/entity/feedback-entity";
 import { QueryConfig } from "pg";
 import { feedbackRequestParams } from "../model/feedback-request-params";
 import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
+import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -46,6 +47,8 @@ class OswService implements IOswService {
         try {
             // Check if the dataset exists
             const dataset = this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            //verify project group dataviewer config is configured 
+            let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig((await dataset).tdei_project_group_id);
 
             // Update the dataset visibility
             const queryConfig: QueryConfig = {
@@ -139,28 +142,9 @@ class OswService implements IOswService {
             if (feedbackDataset.data_viewer_allowed === false)
                 throw new InputException(`Feedback is not allowed for dataset ${feedback.tdei_dataset_id}. Please contact the project administrator.`);
 
-            let pg_data_viewer_config: { number: number; unit: string } | undefined = undefined;
+            let pg_data_viewer_config: IProjectDataviewerConfig | undefined = undefined;
             if (feedback.tdei_project_id && feedback.tdei_project_id.trim() != '') {
-                const queryConfig = <QueryConfig>{
-                    text: "select data_viewer_config from public.project_group where project_group_id = $1",
-                    values: [feedback.tdei_project_id]
-                }
-                let result = await dbClient.query(queryConfig);
-                if (result.rowCount == 0) {
-                    throw new HttpException(404, `Project group with ${feedback.tdei_project_id} doesn't exist in the system`);
-                }
-
-                if (result.rows[0].data_viewer_config && result.rows[0].data_viewer_config.feedback_turnaround_time
-                    && result.rows[0].data_viewer_config.feedback_turnaround_time.number
-                    && result.rows[0].data_viewer_config.feedback_turnaround_time.unit
-                ) {
-                    //Get the feedback turnaround time from project group config
-                    pg_data_viewer_config = result.rows[0].data_viewer_config ? result.rows[0].data_viewer_config.feedback_turnaround_time : undefined;
-                }
-                else {
-                    //Default to 7 days if not configured
-                    throw new InputException(`Feedback turnaround time is not configured for project group ${feedback.tdei_project_id}. Please contact the project administrator.`);
-                }
+                pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(feedback.tdei_project_id);
             }
 
             let entity = new FeedbackEntity();
@@ -171,8 +155,8 @@ class OswService implements IOswService {
             entity.location_latitude = feedback.location_latitude;
             entity.location_longitude = feedback.location_longitude;
 
-            if (pg_data_viewer_config != undefined && pg_data_viewer_config.number && pg_data_viewer_config.unit && pg_data_viewer_config.number > 0) {
-                entity.due_date = TdeiDate.getFutureUTCDate(pg_data_viewer_config.number, pg_data_viewer_config.unit);
+            if (pg_data_viewer_config != undefined && pg_data_viewer_config.feedback_turnaround_time.number && pg_data_viewer_config.feedback_turnaround_time.unit && pg_data_viewer_config.feedback_turnaround_time.number > 0) {
+                entity.due_date = TdeiDate.getFutureUTCDate(pg_data_viewer_config.feedback_turnaround_time.number, pg_data_viewer_config.feedback_turnaround_time.unit);
             }
 
             const result = await dbClient.query(entity.getInsertQuery());
@@ -180,6 +164,34 @@ class OswService implements IOswService {
 
         } catch (error) {
             return Promise.reject(error);
+        }
+    }
+
+    /*
+        * Gets the project group dataviewer configuration.
+        * @param tdei_project_id - The ID of the TDEI project.
+        * @returns A Promise that resolves to the project dataviewer configuration or undefined if not configured.
+        * @throws If the project group does not exist or if the dataviewer is not configured.
+        */
+    private async getProjectGroupDataviewerConfig(tdei_project_id: string): Promise<IProjectDataviewerConfig | undefined> {
+        const queryConfig = <QueryConfig>{
+            text: "select data_viewer_config from public.project_group where project_group_id = $1",
+            values: [tdei_project_id]
+        };
+        let result = await dbClient.query(queryConfig);
+        if (result.rowCount == 0) {
+            throw new HttpException(404, `Project group with ${tdei_project_id} doesn't exist in the system`);
+        }
+
+        if (result.rows[0].data_viewer_config && result.rows[0].data_viewer_config.feedback_turnaround_time
+            && result.rows[0].data_viewer_config.feedback_turnaround_time.number
+            && result.rows[0].data_viewer_config.feedback_turnaround_time.unit) {
+            //Get the feedback turnaround time from project group config
+            return result.rows[0].data_viewer_config ? result.rows[0].data_viewer_config : undefined;
+        }
+        else {
+            //Default to 7 days if not configured
+            throw new InputException(`Dataviewer not configured for project group ${tdei_project_id}. Please contact the project administrator.`);
         }
     }
 
