@@ -14,9 +14,7 @@ import { IOswService } from "./interface/osw-service-interface";
 import { BboxServiceRequest, InclinationServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import jobService from "./job-service";
 import { IJobService } from "./interface/job-service-interface";
-import { IDownloadStats } from "./interface/download-stats-interface";
 import { CreateJobDTO } from "../model/job-dto";
-import { DownloadStatsDTO } from "../model/download-stats-dto";
 import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params";
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
@@ -30,9 +28,172 @@ import oswSchema from "../assets/opensidewalks_0.2.schema.json";
 import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
 import { Utility } from "../utility/utility";
 import AdmZip from "adm-zip";
+import { FeedbackRequestDto, FeedbackResponseDTO } from "../model/feedback-dto";
+import { FeedbackEntity } from "../database/entity/feedback-entity";
+import { QueryConfig } from "pg";
+import { feedbackRequestParams } from "../model/feedback-request-params";
+import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
+import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
+    /**
+     * Updates the visibility of a dataset.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param allow_viewer_access - A boolean indicating whether to allow viewer access.
+     * @returns A Promise that resolves to a boolean indicating success or failure.
+     */
+    async updateDatasetVisibility(tdei_dataset_id: string, allow_viewer_access: boolean): Promise<boolean> {
+        try {
+            // Check if the dataset exists
+            const dataset = this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            //verify project group dataviewer config is configured 
+            let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig((await dataset).tdei_project_group_id);
+
+            // Update the dataset visibility
+            const queryConfig: QueryConfig = {
+                text: `UPDATE content.dataset SET data_viewer_allowed = $1 WHERE tdei_dataset_id = $2`,
+                values: [allow_viewer_access, tdei_dataset_id]
+            };
+            await dbClient.query(queryConfig);
+            return true;
+
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    /**
+         * Gets feedback requests.
+         * @param user_id - The ID of the user making the request.
+         * @param params - The feedback request parameters.
+         * @returns A Promise that resolves to an array of feedback DTOs.
+         */
+    async getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackResponseDTO>> {
+        try {
+            const queryObject = params.getQuery(user_id);
+
+            const queryConfig = <QueryConfig>{
+                text: queryObject.text,
+                values: queryObject.values
+            }
+            //Get feedback details
+            const result = await dbClient.query(queryConfig);
+            return result.rows.map((row: any) => {
+                let info = FeedbackResponseDTO.from(row);
+                info.project_group = {
+                    tdei_project_group_id: row.tdei_project_group_id,
+                    name: row.project_group_name
+                };
+                info.dataset = {
+                    tdei_dataset_id: row.tdei_dataset_id,
+                    name: row.dataset_name,
+
+                };
+                return info;
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Gets feedbacks metadata.
+     * @param user_id - The ID of the user making the request.
+     * @returns A Promise that resolves to an array of feedback DTOs.
+     * @throws If there is an error retrieving the feedback metadata.
+     * @throws If there is an error executing the query.
+     */
+    async getFeedbacksMetadata(user_id: any): Promise<Array<FeedbackMetadataDTO>> {
+        try {
+            const queryConfig = <QueryConfig>{
+                text: `
+                SELECT COUNT(fd.id) as total_count, 
+                SUM(CASE WHEN fd.due_date < NOW() AND fd.status = 'open' THEN 1 ELSE 0 END) as total_overdues,
+                SUM(CASE WHEN fd.status = 'open' THEN 1 ELSE 0 END) as total_open 
+                from content.feedback fd`,
+                values: []
+            }
+            //Get feedback details
+            const result = await dbClient.query(queryConfig);
+            return result.rows.map((row: any) => FeedbackMetadataDTO.from(row));
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Adds a feedback request.
+     * @param feedback - The feedback data transfer object.
+     * @param project_id - The ID of the project.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @returns A Promise that resolves to the ID of the created feedback.
+     */
+    async addFeedbackRequest(feedback: FeedbackRequestDto): Promise<string> {
+        try {
+            //verify dataset exists
+            const feedbackDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(feedback.tdei_dataset_id);
+
+            if (feedbackDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${feedback.tdei_dataset_id} is not an osw dataset.`);
+
+            if (feedbackDataset.data_viewer_allowed === false)
+                throw new InputException(`Feedback is not allowed for dataset ${feedback.tdei_dataset_id}. Please contact the project administrator.`);
+
+            let pg_data_viewer_config: IProjectDataviewerConfig | undefined = undefined;
+            if (feedback.tdei_project_id && feedback.tdei_project_id.trim() != '') {
+                pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(feedback.tdei_project_id);
+            }
+
+            let entity = new FeedbackEntity();
+            entity.tdei_project_id = feedback.tdei_project_id;
+            entity.tdei_dataset_id = feedback.tdei_dataset_id;
+            entity.feedback_text = feedback.feedback_text;
+            entity.customer_email = feedback.customer_email;
+            entity.location_latitude = feedback.location_latitude;
+            entity.location_longitude = feedback.location_longitude;
+
+            if (pg_data_viewer_config != undefined && pg_data_viewer_config.feedback_turnaround_time.number && pg_data_viewer_config.feedback_turnaround_time.unit && pg_data_viewer_config.feedback_turnaround_time.number > 0) {
+                entity.due_date = TdeiDate.getFutureUTCDate(pg_data_viewer_config.feedback_turnaround_time.number, pg_data_viewer_config.feedback_turnaround_time.unit);
+            }
+
+            const result = await dbClient.query(entity.getInsertQuery());
+            return result.rows[0].id;
+
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    /*
+        * Gets the project group dataviewer configuration.
+        * @param tdei_project_id - The ID of the TDEI project.
+        * @returns A Promise that resolves to the project dataviewer configuration or undefined if not configured.
+        * @throws If the project group does not exist or if the dataviewer is not configured.
+        */
+    private async getProjectGroupDataviewerConfig(tdei_project_id: string): Promise<IProjectDataviewerConfig | undefined> {
+        const queryConfig = <QueryConfig>{
+            text: "select data_viewer_config from public.project_group where project_group_id = $1",
+            values: [tdei_project_id]
+        };
+        let result = await dbClient.query(queryConfig);
+        if (result.rowCount == 0) {
+            throw new HttpException(404, `Project group with ${tdei_project_id} doesn't exist in the system`);
+        }
+
+        if (result.rows[0].data_viewer_config && result.rows[0].data_viewer_config.feedback_turnaround_time
+            && result.rows[0].data_viewer_config.feedback_turnaround_time.number
+            && result.rows[0].data_viewer_config.feedback_turnaround_time.unit) {
+            //Get the feedback turnaround time from project group config
+            return result.rows[0].data_viewer_config ? result.rows[0].data_viewer_config : undefined;
+        }
+        else {
+            //Default to 7 days if not configured
+            throw new InputException(`Dataviewer not configured for project group ${tdei_project_id}. Please contact the project administrator.`);
+        }
+    }
 
     /**
     * Processes a union join request.

@@ -86,6 +86,13 @@ export class DatasetEntity extends BaseDto {
     @IsOptional()
     upload_file_size_bytes!: number;
 
+    @Prop()
+    @IsOptional()
+    data_viewer_allowed!: boolean;
+    @Prop()
+    @IsOptional()
+    pm_tiles_url!: string;
+
     constructor(init?: Partial<DatasetEntity>) {
         super();
         Object.assign(this, init);
