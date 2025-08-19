@@ -55,18 +55,16 @@ export class feedbackRequestParams {
             "fd.tdei_dataset_id",
             "ds.name as dataset_name",
             // Feedback info
+            "fd.id",
             "fd.feedback_text",
             "fd.created_at",
+            "fd.updated_at",
             "fd.due_date",
             "fd.dataset_element_id",
             "fd.status",
             "fd.location_latitude",
             "fd.location_longitude",
-            "fd.customer_email",
-            // Metadata (example: count, overdue, open)
-            "COUNT(fd.id) OVER() as count",
-            "SUM(CASE WHEN fd.due_date < NOW() AND fd.status = 'open' THEN 1 ELSE 0 END) OVER() as overdue",
-            "SUM(CASE WHEN fd.status = 'open' THEN 1 ELSE 0 END) OVER() as open"
+            "fd.customer_email"
         ];
 
         // Main table name

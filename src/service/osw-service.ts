@@ -28,7 +28,7 @@ import oswSchema from "../assets/opensidewalks_0.2.schema.json";
 import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
 import { Utility } from "../utility/utility";
 import AdmZip from "adm-zip";
-import { FeedbackDto } from "../model/feedback-dto";
+import { FeedbackRequestDto, FeedbackResponseDTO } from "../model/feedback-dto";
 import { FeedbackEntity } from "../database/entity/feedback-entity";
 import { QueryConfig } from "pg";
 import { feedbackRequestParams } from "../model/feedback-request-params";
@@ -49,7 +49,7 @@ class OswService implements IOswService {
 
             // Update the dataset visibility
             const queryConfig: QueryConfig = {
-                text: `UPDATE content.dataset SET allow_viewer_access = $1 WHERE tdei_dataset_id = $2`,
+                text: `UPDATE content.dataset SET data_viewer_allowed = $1 WHERE tdei_dataset_id = $2`,
                 values: [allow_viewer_access, tdei_dataset_id]
             };
             await dbClient.query(queryConfig);
@@ -66,7 +66,7 @@ class OswService implements IOswService {
          * @param params - The feedback request parameters.
          * @returns A Promise that resolves to an array of feedback DTOs.
          */
-    async getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackDto>> {
+    async getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackResponseDTO>> {
         try {
             const queryObject = params.getQuery(user_id);
 
@@ -76,7 +76,19 @@ class OswService implements IOswService {
             }
             //Get feedback details
             const result = await dbClient.query(queryConfig);
-            return result.rows.map((row: any) => FeedbackDto.from(row));
+            return result.rows.map((row: any) => {
+                let info = FeedbackResponseDTO.from(row);
+                info.project_group = {
+                    tdei_project_group_id: row.tdei_project_group_id,
+                    name: row.project_group_name
+                };
+                info.dataset = {
+                    tdei_dataset_id: row.tdei_dataset_id,
+                    name: row.dataset_name,
+
+                };
+                return info;
+            });
         }
         catch (error) {
             throw error;
@@ -94,10 +106,10 @@ class OswService implements IOswService {
         try {
             const queryConfig = <QueryConfig>{
                 text: `
-                COUNT(fd.id) as total_count, 
+                SELECT COUNT(fd.id) as total_count, 
                 SUM(CASE WHEN fd.due_date < NOW() AND fd.status = 'open' THEN 1 ELSE 0 END) as total_overdues,
                 SUM(CASE WHEN fd.status = 'open' THEN 1 ELSE 0 END) as total_open 
-                from content.feedback`,
+                from content.feedback fd`,
                 values: []
             }
             //Get feedback details
@@ -116,10 +128,17 @@ class OswService implements IOswService {
      * @param tdei_dataset_id - The ID of the TDEI dataset.
      * @returns A Promise that resolves to the ID of the created feedback.
      */
-    async addFeedbackRequest(feedback: FeedbackDto, project_id: string, tdei_dataset_id: string): Promise<string> {
+    async addFeedbackRequest(feedback: FeedbackRequestDto): Promise<string> {
         try {
             //verify dataset exists
             const feedbackDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(feedback.tdei_dataset_id);
+
+            if (feedbackDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${feedback.tdei_dataset_id} is not an osw dataset.`);
+
+            if (feedbackDataset.data_viewer_allowed === false)
+                throw new InputException(`Feedback is not allowed for dataset ${feedback.tdei_dataset_id}. Please contact the project administrator.`);
+
             let pg_data_viewer_config: { number: number; unit: string } | undefined = undefined;
             if (feedback.tdei_project_id && feedback.tdei_project_id.trim() != '') {
                 const queryConfig = <QueryConfig>{
@@ -130,18 +149,29 @@ class OswService implements IOswService {
                 if (result.rowCount == 0) {
                     throw new HttpException(404, `Project group with ${feedback.tdei_project_id} doesn't exist in the system`);
                 }
-                pg_data_viewer_config = result.rows[0].data_viewer_config;
+
+                if (result.rows[0].data_viewer_config && result.rows[0].data_viewer_config.feedback_turnaround_time
+                    && result.rows[0].data_viewer_config.feedback_turnaround_time.number
+                    && result.rows[0].data_viewer_config.feedback_turnaround_time.unit
+                ) {
+                    //Get the feedback turnaround time from project group config
+                    pg_data_viewer_config = result.rows[0].data_viewer_config ? result.rows[0].data_viewer_config.feedback_turnaround_time : undefined;
+                }
+                else {
+                    //Default to 7 days if not configured
+                    throw new InputException(`Feedback turnaround time is not configured for project group ${feedback.tdei_project_id}. Please contact the project administrator.`);
+                }
             }
 
             let entity = new FeedbackEntity();
-            entity.tdei_project_id = project_id;
-            entity.tdei_dataset_id = tdei_dataset_id;
+            entity.tdei_project_id = feedback.tdei_project_id;
+            entity.tdei_dataset_id = feedback.tdei_dataset_id;
             entity.feedback_text = feedback.feedback_text;
             entity.customer_email = feedback.customer_email;
             entity.location_latitude = feedback.location_latitude;
             entity.location_longitude = feedback.location_longitude;
 
-            if (pg_data_viewer_config != undefined) {
+            if (pg_data_viewer_config != undefined && pg_data_viewer_config.number && pg_data_viewer_config.unit && pg_data_viewer_config.number > 0) {
                 entity.due_date = TdeiDate.getFutureUTCDate(pg_data_viewer_config.number, pg_data_viewer_config.unit);
             }
 

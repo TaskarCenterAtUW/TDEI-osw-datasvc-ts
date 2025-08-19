@@ -20,7 +20,7 @@ import polygonSchema from "../../schema/polygon.geojson.schema.json";
 import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 import { apiTracker } from "../middleware/api-tracker";
 import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../constants/app-constants";
-import { FeedbackDto } from "../model/feedback-dto";
+import { FeedbackRequestDto } from "../model/feedback-dto";
 import { feedbackRequestParams } from "../model/feedback-request-params";
 /**
   * Multer for multiple uploads
@@ -256,11 +256,13 @@ class OSWController implements IController {
                 return next(new InputException('request body is empty', response));
             }
 
-            const feedback = FeedbackDto.from(request.body);
+            const feedback = FeedbackRequestDto.from(request.body);
+            feedback.tdei_project_id = request.params.project_id;
+            feedback.tdei_dataset_id = request.params.tdei_dataset_id;
             await feedback.validateRequestInput();
 
             Utility.checkForSqlInjection(feedback);
-            await oswService.addFeedbackRequest(feedback, request.params.project_id, request.params.tdei_dataset_id);
+            await oswService.addFeedbackRequest(feedback);
             return response.status(200).send("Feedback submitted successfully");
 
         } catch (error) {

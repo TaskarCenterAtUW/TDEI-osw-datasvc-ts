@@ -4,7 +4,7 @@ import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } 
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
 import { SpatialJoinRequest, UnionRequest } from "../../model/request-interfaces";
-import { FeedbackDto } from "../../model/feedback-dto";
+import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dto";
 import { feedbackRequestParams } from "../../model/feedback-request-params";
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
 
@@ -32,15 +32,13 @@ export interface IOswService {
      * @param params - The feedback request parameters.
      * @returns A Promise that resolves to an array of feedback DTOs.
      */
-    getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackDto>>;
+    getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackResponseDTO>>;
     /**
      * Adds a feedback request.
      * @param feedback - The feedback data transfer object.
-     * @param project_id - The ID of the project.
-     * @param tdei_dataset_id - The ID of the TDEI dataset.
      * @returns A Promise that resolves to the ID of the created feedback.
      */
-    addFeedbackRequest(feedback: FeedbackDto, project_id: string, tdei_dataset_id: string): Promise<string>;
+    addFeedbackRequest(feedback: FeedbackRequestDto): Promise<string>;
 
     /**
      * Processes a union join request.
