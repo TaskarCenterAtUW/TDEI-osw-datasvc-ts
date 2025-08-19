@@ -1,20 +1,23 @@
-import { IsEnum, IsIn, IsISO8601, IsOptional } from "class-validator";
+import { IsIn, IsISO8601, IsOptional, validate, ValidationError } from "class-validator";
 import { buildQuery, JoinCondition, PgQueryObject, SqlORder, WhereCondition } from "../database/dynamic-query-object";
+import { InputException } from "../exceptions/http/http-exceptions";
 
 export class feedbackRequestParams {
     /** ID of the project group. */
     @IsOptional()
-    project_id!: string;
+    tdei_project_group_id!: string;
 
     /** ID of the dataset. */
     @IsOptional()
     tdei_dataset_id!: string;
 
     /** Date in ISO 8601 format, filters feedbacks created after this date. */
+    @IsOptional()
     @IsISO8601()
     from_date?: string;
 
     /** Date in ISO 8601 format, filters feedbacks created before this date. */
+    @IsOptional()
     @IsISO8601()
     to_date?: string;
 
@@ -43,6 +46,16 @@ export class feedbackRequestParams {
 
     constructor(init?: Partial<feedbackRequestParams>) {
         Object.assign(this, init);
+    }
+
+    async validateRequestInput() {
+        let errors = await validate(this);
+        if (errors.length > 0) {
+            console.log('Input validation failed');
+            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            throw new InputException(`Required fields are missing or invalid: ${message}`);
+        }
+        return true;
     }
 
     getQuery(user_id: string): PgQueryObject {
@@ -79,8 +92,8 @@ export class feedbackRequestParams {
         // Conditions
         const conditions: WhereCondition[] = [];
 
-        if (this.project_id) {
-            conditions.push({ clouse: "fd.tdei_project_id = ", value: this.project_id });
+        if (this.tdei_project_group_id) {
+            conditions.push({ clouse: "fd.tdei_project_id = ", value: this.tdei_project_group_id });
         }
         if (this.tdei_dataset_id) {
             conditions.push({ clouse: "fd.tdei_dataset_id = ", value: this.tdei_dataset_id });

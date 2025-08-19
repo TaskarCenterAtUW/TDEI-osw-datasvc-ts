@@ -46,9 +46,12 @@ class OswService implements IOswService {
     async updateDatasetVisibility(tdei_dataset_id: string, allow_viewer_access: boolean): Promise<boolean> {
         try {
             // Check if the dataset exists
-            const dataset = this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
             //verify project group dataviewer config is configured 
-            let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig((await dataset).tdei_project_group_id);
+            let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(dataset.tdei_project_group_id);
+
+            if (pg_data_viewer_config && pg_data_viewer_config.dataset_viewer_allowed === false)
+                throw new InputException(`Please contact the project administrator to allow dataset viewer access for project group.`);
 
             // Update the dataset visibility
             const queryConfig: QueryConfig = {
@@ -140,11 +143,13 @@ class OswService implements IOswService {
                 throw new InputException(`${feedback.tdei_dataset_id} is not an osw dataset.`);
 
             if (feedbackDataset.data_viewer_allowed === false)
-                throw new InputException(`Feedback is not allowed for dataset ${feedback.tdei_dataset_id}. Please contact the project administrator.`);
+                throw new InputException(`Dataset ${feedback.tdei_dataset_id} is not allowed for viewer access and cannot accept feedbacks. Please contact the project administrator.`);
 
             let pg_data_viewer_config: IProjectDataviewerConfig | undefined = undefined;
             if (feedback.tdei_project_id && feedback.tdei_project_id.trim() != '') {
                 pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(feedback.tdei_project_id);
+                if (pg_data_viewer_config && pg_data_viewer_config.dataset_viewer_allowed === false)
+                    throw new InputException(`Dataset viewer access is not allowed for project group ${feedback.tdei_project_id} and cannot accept feedbacks. Please contact the project administrator.`);
             }
 
             let entity = new FeedbackEntity();
@@ -183,16 +188,10 @@ class OswService implements IOswService {
             throw new HttpException(404, `Project group with ${tdei_project_id} doesn't exist in the system`);
         }
 
-        if (result.rows[0].data_viewer_config && result.rows[0].data_viewer_config.feedback_turnaround_time
-            && result.rows[0].data_viewer_config.feedback_turnaround_time.number
-            && result.rows[0].data_viewer_config.feedback_turnaround_time.unit) {
-            //Get the feedback turnaround time from project group config
-            return result.rows[0].data_viewer_config ? result.rows[0].data_viewer_config : undefined;
-        }
-        else {
-            //Default to 7 days if not configured
+        if (result.rows[0].data_viewer_config === null || Object.keys(result.rows[0].data_viewer_config).length === 0)
             throw new InputException(`Dataviewer not configured for project group ${tdei_project_id}. Please contact the project administrator.`);
-        }
+
+        return result.rows[0].data_viewer_config ? result.rows[0].data_viewer_config : undefined;
     }
 
     /**
