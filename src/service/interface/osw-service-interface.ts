@@ -4,8 +4,43 @@ import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } 
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
 import { SpatialJoinRequest, UnionRequest } from "../../model/request-interfaces";
+import { FeedbackDto } from "../../model/feedback-dto";
+import { feedbackRequestParams } from "../../model/feedback-request-params";
+import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
 
 export interface IOswService {
+    /**
+     * Updates the visibility of a dataset.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param allow_viewer_access - A boolean indicating whether to allow viewer access.
+     * @returns A Promise that resolves to an unknown type.
+     */
+    updateDatasetVisibility(tdei_dataset_id: string, allow_viewer_access: boolean): Promise<boolean>;
+
+    /**
+         * Gets feedbacks metadata.
+         * @param user_id - The ID of the user making the request.
+         * @returns A Promise that resolves to an array of feedback DTOs.
+         * @throws If there is an error retrieving the feedback metadata.
+         * @throws If there is an error executing the query.
+         */
+    getFeedbacksMetadata(user_id: any): Promise<Array<FeedbackMetadataDTO>>
+
+    /**
+     * Gets feedback requests.
+     * @param user_id - The ID of the user making the request.
+     * @param params - The feedback request parameters.
+     * @returns A Promise that resolves to an array of feedback DTOs.
+     */
+    getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackDto>>;
+    /**
+     * Adds a feedback request.
+     * @param feedback - The feedback data transfer object.
+     * @param project_id - The ID of the project.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @returns A Promise that resolves to the ID of the created feedback.
+     */
+    addFeedbackRequest(feedback: FeedbackDto, project_id: string, tdei_dataset_id: string): Promise<string>;
 
     /**
      * Processes a union join request.
