@@ -160,8 +160,8 @@ class OswService implements IOswService {
             entity.location_latitude = feedback.location_latitude;
             entity.location_longitude = feedback.location_longitude;
 
-            if (pg_data_viewer_config != undefined && pg_data_viewer_config.feedback_turnaround_time.number && pg_data_viewer_config.feedback_turnaround_time.unit && pg_data_viewer_config.feedback_turnaround_time.number > 0) {
-                entity.due_date = TdeiDate.getFutureUTCDate(pg_data_viewer_config.feedback_turnaround_time.number, pg_data_viewer_config.feedback_turnaround_time.unit);
+            if (pg_data_viewer_config != undefined && pg_data_viewer_config.feedback_turnaround_time.number && pg_data_viewer_config.feedback_turnaround_time.units && pg_data_viewer_config.feedback_turnaround_time.number > 0) {
+                entity.due_date = TdeiDate.getFutureUTCDate(pg_data_viewer_config.feedback_turnaround_time.number, pg_data_viewer_config.feedback_turnaround_time.units);
             }
 
             const result = await dbClient.query(entity.getInsertQuery());

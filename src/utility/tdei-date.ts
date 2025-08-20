@@ -20,10 +20,10 @@ export class TdeiDate {
         return true;
     }
 
-    static getFutureUTCDate(number: number, unit: string): string {
+    static getFutureUTCDate(number: number, units: string): string {
         const now = new Date();
 
-        switch (unit.toLowerCase()) {
+        switch (units.toLowerCase()) {
             case "days":
             case "day":
                 now.setDate(now.getDate() + number);
@@ -40,7 +40,7 @@ export class TdeiDate {
                 break;
 
             default:
-                throw new Error(`Invalid unit: ${unit}. Use 'days', 'months', or 'years'.`);
+                throw new Error(`Invalid unit: ${units}. Use 'days', 'months', or 'years'.`);
         }
 
         return now.toISOString();
