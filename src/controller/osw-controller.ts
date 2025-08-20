@@ -168,7 +168,7 @@ class OSWController implements IController {
     async updatePmTiles(req: Request, res: express.Response, next: NextFunction) {
         try {
             let pmTilesUrl = await oswService.getDownloadableOSWPmTilesUrl(req.params["tdei_dataset_id"]);
-            res.redirect(pmTilesUrl);
+            res.status(200).send(pmTilesUrl);
         } catch (error) {
             console.error("Error while retriving the PM tiles", error);
             if (error instanceof HttpException) {
