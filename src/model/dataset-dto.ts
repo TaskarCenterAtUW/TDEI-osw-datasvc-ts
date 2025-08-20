@@ -22,6 +22,8 @@ export class DatasetDTO extends AbstractDomainEntity {
     @Prop()
     download_url!: string;
     @Prop()
+    data_viewer_allowed!: boolean;
+    @Prop()
     metadata!: MetadataModel;
 }
 

@@ -9,6 +9,15 @@ import { feedbackRequestParams } from "../../model/feedback-request-params";
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
 
 export interface IOswService {
+
+    /**
+     * Get downloadable OSM PM tiles URL
+     * @param id Dataset ID
+     * @param user_id User ID
+     * @returns Downloadable URL
+     */
+    getDownloadableOSWPmTilesUrl(id: string): Promise<string>;
+
     /**
      * Updates the visibility of a dataset.
      * @param tdei_dataset_id - The ID of the TDEI dataset.
