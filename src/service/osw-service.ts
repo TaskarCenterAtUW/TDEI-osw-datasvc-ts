@@ -142,6 +142,9 @@ class OswService implements IOswService {
             if (feedbackDataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${feedback.tdei_dataset_id} is not an osw dataset.`);
 
+            if (feedbackDataset.tdei_project_group_id != feedback.tdei_project_id)
+                throw new InputException(`Dataset ${feedback.tdei_dataset_id} does not belong to project group ${feedback.tdei_project_id}.`);
+
             if (feedbackDataset.data_viewer_allowed === false)
                 throw new InputException(`Dataset ${feedback.tdei_dataset_id} is not allowed for viewer access and cannot accept feedbacks. Please contact the project administrator.`);
 
