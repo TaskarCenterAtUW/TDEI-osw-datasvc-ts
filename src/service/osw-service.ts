@@ -4,7 +4,7 @@ import dbClient from "../database/data-source";
 import { DatasetEntity } from "../database/entity/dataset-entity";
 import { DownloadStatsEntity } from "../database/entity/download-stats";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
+import { ForbiddenRequest, InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { IUploadRequest } from "./interface/upload-request-interface";
 import path from "path";
 import { Readable } from "stream";
@@ -52,13 +52,13 @@ class OswService implements IOswService {
                 throw new InputException(`${tdei_dataset_id} is not an osw dataset.`);
 
             if (dataset.status !== RecordStatus["Publish"])
-                throw new InputException(`Dataset ${tdei_dataset_id} has not been released. You can update its visibility only once it is released.`);
+                throw new ForbiddenRequest(`Dataset ${tdei_dataset_id} has not been released. You can update its visibility only once it is released.`);
 
             //verify project group dataviewer config is configured 
             let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(dataset.tdei_project_group_id);
 
             if (pg_data_viewer_config && pg_data_viewer_config.dataset_viewer_allowed === false)
-                throw new InputException(`Please contact the project administrator to allow dataset viewer access for project group.`);
+                throw new ForbiddenRequest(`Please contact the project administrator to allow dataset viewer access for project group.`);
 
             // Update the dataset visibility
             const queryConfig: QueryConfig = {
@@ -1189,6 +1189,47 @@ class OswService implements IOswService {
         return sasUrl;
 
 
+    }
+
+    /**
+     * Get downloadable OSM PM tiles URL
+     * @param id Dataset ID
+     * @param user_id User ID
+     * @returns Downloadable URL
+     */
+    async getDownloadableOSWPmTilesUrl(id: string): Promise<string> {
+
+        let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(id);
+
+        if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+            throw new InputException(`${id} is not a osw dataset.`);
+
+        if (dataset.data_viewer_allowed === false)
+            throw new ForbiddenRequest(`Dataset ${id} is not allowed for data viewer access.`);
+
+        let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(dataset.tdei_project_group_id);
+
+        if (pg_data_viewer_config && pg_data_viewer_config.dataset_viewer_allowed === false)
+            throw new ForbiddenRequest(`Please contact the project administrator to allow dataset viewer access for project group.`);
+
+
+        const storageClient = Core.getStorageClient();
+        if (storageClient == null) throw new Error("Storage not configured");
+        let pm_tiles_db_url = '';
+
+        if (dataset.pm_tiles_url && dataset.pm_tiles_url != '') {
+            pm_tiles_db_url = decodeURIComponent(dataset.pm_tiles_url);
+        }
+        else
+            throw new HttpException(404, "Requested OSM PM tiles file not found");
+
+        let dlUrl = new URL(pm_tiles_db_url);
+        let relative_path = dlUrl.pathname;
+        let container = relative_path.split('/')[1];
+        let file_path_in_container = relative_path.split('/').slice(2).join('/');
+        let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 24); // 24 hours expiry
+
+        return sasUrl;
     }
 
     async calculateQualityMetric(tdei_dataset_id: string, algorithm: string, sub_regions_file: any, user_id: string): Promise<string> {
