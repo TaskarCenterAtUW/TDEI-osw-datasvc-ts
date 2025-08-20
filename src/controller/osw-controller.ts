@@ -156,7 +156,7 @@ class OSWController implements IController {
         this.router.get(`${this.path}/dataset-viewer/feedbacks`, apiTracker, authenticate, listRequestValidation, this.getFeedbackRequests);
         this.router.get(`${this.path}/dataset-viewer/feedbacks/metadata`, apiTracker, authenticate, this.getFeedbackMetadata);
         this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.updateDatasetVisibility);
-        this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.updatePmTiles);
+        this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.retrievePmTiles);
     }
 
     /**
@@ -165,7 +165,7 @@ class OSWController implements IController {
      * @param res - The response object.
      * @param next - The next middleware function.
      */
-    async updatePmTiles(req: Request, res: express.Response, next: NextFunction) {
+    async retrievePmTiles(req: Request, res: express.Response, next: NextFunction) {
         try {
             let pmTilesUrl = await oswService.getDownloadableOSWPmTilesUrl(req.params["tdei_dataset_id"]);
             res.status(200).send(pmTilesUrl);
