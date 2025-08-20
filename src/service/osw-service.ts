@@ -47,6 +47,13 @@ class OswService implements IOswService {
         try {
             // Check if the dataset exists
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+
+            if (dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${tdei_dataset_id} is not an osw dataset.`);
+
+            if (dataset.status !== RecordStatus["Publish"])
+                throw new InputException(`Dataset ${tdei_dataset_id} has not been released. You can update its visibility only once it is released.`);
+
             //verify project group dataviewer config is configured 
             let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(dataset.tdei_project_group_id);
 
