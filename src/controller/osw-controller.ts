@@ -22,6 +22,7 @@ import { apiTracker } from "../middleware/api-tracker";
 import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../constants/app-constants";
 import { FeedbackRequestDto } from "../model/feedback-dto";
 import { feedbackRequestParams } from "../model/feedback-request-params";
+import { listRequestValidation } from "../middleware/list-request-validation-middleware";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -152,9 +153,9 @@ class OSWController implements IController {
         this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
         //TODO:: Domain check authorization
         this.router.post(`${this.path}/dataset-viewer/feedbacks/:project_id/:tdei_dataset_id`, apiTracker, authenticate, this.addFeedbackRequest);
-        this.router.get(`${this.path}/dataset-viewer/feedbacks`, apiTracker, authenticate, this.getFeedbackRequests);
+        this.router.get(`${this.path}/dataset-viewer/feedbacks`, apiTracker, authenticate, listRequestValidation, this.getFeedbackRequests);
         this.router.get(`${this.path}/dataset-viewer/feedbacks/metadata`, apiTracker, authenticate, this.getFeedbackMetadata);
-        this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, this.updateDatasetVisibility);
+        this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.updateDatasetVisibility);
     }
 
 
@@ -227,6 +228,7 @@ class OSWController implements IController {
 
         try {
             const params: feedbackRequestParams = new feedbackRequestParams(JSON.parse(JSON.stringify(request.query)));
+            await params.validateRequestInput();
             const feedbacks = await oswService.getFeedbacks(request.body.user_id, params);
             response.status(200).send(feedbacks);
         } catch (error) {
