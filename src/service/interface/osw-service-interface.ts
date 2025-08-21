@@ -9,6 +9,13 @@ import { feedbackRequestParams } from "../../model/feedback-request-params";
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
 
 export interface IOswService {
+    /**
+     * Generates PMTiles for a given TDEI dataset ID.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user requesting the PMTiles generation.
+     * @returns The generated Job id for PMTiles creation.
+     */
+    generatePMTiles(user_id: string, tdei_dataset_id: string): Promise<string>;
 
     /**
      * Get downloadable OSM PM tiles URL

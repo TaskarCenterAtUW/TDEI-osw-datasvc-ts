@@ -157,6 +157,30 @@ class OSWController implements IController {
         this.router.get(`${this.path}/dataset-viewer/feedbacks/metadata`, apiTracker, authenticate, this.getFeedbackMetadata);
         this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.updateDatasetVisibility);
         this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.retrievePmTiles);
+        this.router.post(`${this.path}/dataset/generate/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.generatePMtiles);
+    }
+
+    /**
+     * Generates PM tiles for a dataset.
+     * @param req - The request object.
+     * @param res - The response object.
+     * @param next - The next middleware function.
+     */
+    async generatePMtiles(req: Request, res: express.Response, next: NextFunction) {
+        try {
+            let tdei_dataset_id = req.params["tdei_dataset_id"];
+            // Call the service to generate PM tiles
+            let job_id = await oswService.generatePMTiles(req.body.user_id, tdei_dataset_id);
+            res.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
+            return res.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while generating PM tiles", error);
+            if (error instanceof HttpException) {
+                res.status(error.status).send(error.message);
+                return next(error);
+            }
+            res.status(500).send("Error while generating PM tiles");
+        }
     }
 
     /**
