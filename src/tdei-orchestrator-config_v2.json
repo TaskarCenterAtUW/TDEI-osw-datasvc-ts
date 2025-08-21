@@ -651,6 +651,101 @@
             ]
         },
         {
+            "name": "osw_generate_pmtiles",
+            "description": "Workflow for generating PMTiles from OSW files",
+            "workflow_input": {
+                "job_id": "<%=job_id%>",
+                "user_id": "<%=user_id%>",
+                "dataset_url": "<%=dataset_url%>",
+                "tdei_dataset_id": "<%=tdei_dataset_id%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_pm_tile_generator",
+                    "task_reference_name": "osw_pm_tile_generator",
+                    "description": "Generating the PM tiles for the dataset",
+                    "type": "Event",
+                    "topic": "pm-tiles-gen-request",
+                    "input_params": {
+                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
+                        "sourceUrl": "<%=workflow_input.dataset_url%>",
+                        "user_id": "<%=workflow_input.user_id%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "pmtiles_file_path": "<%=data.pmtiles_file_path%>"
+                    }
+                },
+                {
+                    "name": "osw_update_pmtiles_url_db",
+                    "task_reference_name": "osw_update_pmtiles_url_db",
+                    "description": "Updating the PMTiles URL in the database",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.dataset",
+                        "where": {
+                            "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>"
+                        },
+                        "data": {
+                            "pm_tiles_url": "<%=tasks.osw_pm_tile_generator.output.pmtiles_file_path%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                },
+                {
+                    "name": "osw_generate_pmtiles_job_update_db",
+                    "task_reference_name": "osw_generate_pmtiles_job_update_db",
+                    "description": "Updating the job details",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "COMPLETED",
+                            "message": "PMTiles generation for OSW dataset <%=workflow_input.tdei_dataset_id%> successful",
+                            "updated_at": "CURRENT_TIMESTAMP"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP",
+                            "message": "PMTiles generation for OSW dataset <%=workflow_input.tdei_dataset_id%> failed"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
+        },
+        {
             "name": "osw_validation_only",
             "description": "Workflow for validating osw files",
             "workflow_input": {
