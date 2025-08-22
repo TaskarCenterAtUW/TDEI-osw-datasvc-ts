@@ -36,11 +36,12 @@ export interface IOswService {
     /**
          * Gets feedbacks metadata.
          * @param user_id - The ID of the user making the request.
+         * @param tdei_project_group_id - The ID of the TDEI project group.
          * @returns A Promise that resolves to an array of feedback DTOs.
          * @throws If there is an error retrieving the feedback metadata.
          * @throws If there is an error executing the query.
          */
-    getFeedbacksMetadata(user_id: any): Promise<Array<FeedbackMetadataDTO>>
+    getFeedbacksMetadata(user_id: any, tdei_project_group_id?: string): Promise<FeedbackMetadataDTO>
 
     /**
      * Gets feedback requests.

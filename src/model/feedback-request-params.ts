@@ -7,6 +7,12 @@ export class feedbackRequestParams {
     @IsOptional()
     tdei_project_group_id!: string;
 
+    @IsOptional()
+    @IsIn(['open', 'resolved'], {
+        message: "status must be either 'open' or 'resolved'",
+    })
+    status?: string;
+
     /** ID of the dataset. */
     @IsOptional()
     tdei_dataset_id!: string;
@@ -103,6 +109,9 @@ export class feedbackRequestParams {
         }
         if (this.to_date) {
             conditions.push({ clouse: "fd.created_at <= ", value: this.to_date });
+        }
+        if (this.status) {
+            conditions.push({ clouse: "fd.status = ", value: this.status.toLocaleLowerCase() });
         }
 
         // Sorting

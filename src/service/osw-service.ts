@@ -160,13 +160,14 @@ class OswService implements IOswService {
     /**
      * Gets feedbacks metadata.
      * @param user_id - The ID of the user making the request.
+     * @param tdei_project_group_id - The ID of the TDEI project group.
      * @returns A Promise that resolves to an array of feedback DTOs.
      * @throws If there is an error retrieving the feedback metadata.
      * @throws If there is an error executing the query.
      */
-    async getFeedbacksMetadata(user_id: any): Promise<Array<FeedbackMetadataDTO>> {
+    async getFeedbacksMetadata(user_id: any, tdei_project_group_id?: string): Promise<FeedbackMetadataDTO> {
         try {
-            const queryConfig = <QueryConfig>{
+            let queryConfig = <QueryConfig>{
                 text: `
                 SELECT COUNT(fd.id) as total_count, 
                 SUM(CASE WHEN fd.due_date < NOW() AND fd.status = 'open' THEN 1 ELSE 0 END) as total_overdues,
@@ -174,9 +175,21 @@ class OswService implements IOswService {
                 from content.feedback fd`,
                 values: []
             }
+            if (tdei_project_group_id) {
+                queryConfig.text += ` WHERE fd.tdei_project_id = $1`;
+                queryConfig.values?.push(tdei_project_group_id!);
+            }
             //Get feedback details
             const result = await dbClient.query(queryConfig);
-            return result.rows.map((row: any) => FeedbackMetadataDTO.from(row));
+            if (result.rows.length > 0) {
+                const row = result.rows[0];
+                return {
+                    total_count: Number(row.total_count) || 0,
+                    total_overdues: Number(row.total_overdues) || 0,
+                    total_open: Number(row.total_open) || 0
+                } as FeedbackMetadataDTO;
+            }
+            return { total_count: 0, total_overdues: 0, total_open: 0 } as FeedbackMetadataDTO;
         }
         catch (error) {
             throw error;
