@@ -247,7 +247,8 @@ class OSWController implements IController {
     async getFeedbackMetadata(request: Request, response: express.Response, next: NextFunction) {
 
         try {
-            const feedbackMetadata = await oswService.getFeedbacksMetadata(request.body.user_id);
+            const tdei_project_group_id = request.query["tdei_project_group_id"];
+            const feedbackMetadata = await oswService.getFeedbacksMetadata(request.body.user_id, tdei_project_group_id as string);
             response.status(200).send(feedbackMetadata);
         } catch (error) {
             console.error(error);
