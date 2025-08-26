@@ -182,7 +182,7 @@ export class DatasetQueryParams {
             throw new InputException("Invalid bounding box provided." + this.bbox)
 
         //Select columns
-        const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*', 'pg.name as project_group_name', 's.name as service_name', 'd.name as dataset_name'];
+        const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*', 'pg.name as project_group_name', 'pg.data_viewer_config as data_viewer_config', 's.name as service_name', 'd.name as dataset_name'];
         //Main table name
         const mainTableName = 'content.dataset d';
         //Joins
