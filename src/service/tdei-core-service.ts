@@ -358,8 +358,11 @@ class TdeiCoreService implements ITdeiCoreService {
                 name: x.service_name,
                 tdei_service_id: x.tdei_service_id,
             };
+
+            const allowed = !!(x?.data_viewer_config?.dataset_viewer_allowed);
             osw.project_group = {
                 name: x.project_group_name,
+                data_viewer_allowed: allowed,
                 tdei_project_group_id: x.tdei_project_group_id,
             };
             if (osw.metadata.dataset_detail.dataset_area) {
