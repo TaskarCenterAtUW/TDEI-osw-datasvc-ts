@@ -63,11 +63,10 @@ export interface IOswService {
 
     /**
      * Streams feedbacks for a project group in the requested format.
-     * @param params - Feedback request parameters.
-     * @param format - Output format (defaults to 'csv').
+     * @param params - Feedback request parameters including desired format.
      * @returns A Readable stream containing the data.
      */
-    downloadFeedbacks(params: FeedbackDownloadRequestParams, format?: string): Promise<Readable>;
+    downloadFeedbacks(params: FeedbackDownloadRequestParams): Promise<Readable>;
     /**
      * Adds a feedback request.
      * @param feedback - The feedback data transfer object.

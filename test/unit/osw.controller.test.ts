@@ -974,7 +974,7 @@ describe("OSW Controller Test", () => {
 
             await oswController.downloadFeedbacks(req, res, next);
 
-            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1' }), 'csv');
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', format: 'csv' }));
             expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
             expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="feedback.csv"');
             expect(pipeSpy).toHaveBeenCalledWith(res);
@@ -989,7 +989,7 @@ describe("OSW Controller Test", () => {
 
             await oswController.downloadFeedbacks(req, res, next);
 
-            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', page_no: '2', page_size: '5' }), 'csv');
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', page_no: '2', page_size: '5', format: 'csv' }));
         });
 
         test("When service throws InputException, Expect to return HTTP status 400", async () => {
@@ -1021,12 +1021,14 @@ describe("OSW Controller Test", () => {
         test("When unsupported format is requested, Expect to return HTTP status 400", async () => {
             const req = getMockReq({ query: { tdei_project_group_id: 'pg1', format: 'json' } });
             const { res, next } = getMockRes();
+            const spy = jest.spyOn(oswService, 'downloadFeedbacks');
 
             await oswController.downloadFeedbacks(req, res, next);
 
             expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.send).toHaveBeenCalledWith('format must be csv');
+            expect(res.send).toHaveBeenCalledWith('Required fields are missing or invalid: format must be csv');
             expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+            expect(spy).not.toHaveBeenCalled();
         });
     });
 

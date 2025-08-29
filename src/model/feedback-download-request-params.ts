@@ -1,5 +1,5 @@
-import { IsNotEmpty, IsOptional } from "class-validator";
-import { JoinCondition, PgQueryObject, SqlORder, WhereCondition } from "../database/dynamic-query-object";
+import { IsIn, IsNotEmpty, IsOptional } from "class-validator";
+import { buildQuery, JoinCondition, PgQueryObject, SqlORder, WhereCondition } from "../database/dynamic-query-object";
 import { feedbackRequestParams } from "./feedback-request-params";
 
 export class FeedbackDownloadRequestParams extends feedbackRequestParams {
@@ -11,6 +11,10 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
 
     @IsOptional()
     override page_size?: number;
+
+    @IsOptional()
+    @IsIn(['csv'], { message: 'format must be csv' })
+    format: string = 'csv';
 
     constructor(init?: Partial<FeedbackDownloadRequestParams>) {
         super();
@@ -69,101 +73,17 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
         const pageSize = this.page_size ?? 10;
         const pageNo = this.page_no ?? 1;
 
-        return this.buildQuery(
+        return buildQuery(
             selectColumns,
             mainTableName,
             conditions,
             joins,
             sortField,
             sortOrder,
-            excludeLimit ? undefined : pageSize,
-            excludeLimit ? undefined : pageNo
+            pageSize,
+            pageNo,
+            excludeLimit
         );
     }
-
-    private buildQuery(
-        selectColumns: string[],
-        mainTableName: string,
-        conditions: WhereCondition[],
-        joins: JoinCondition[],
-        sortField?: string,
-        sortOrder?: 'ASC' | 'DESC',
-        limit?: number,
-        offset?: number
-    ): PgQueryObject {
-        const whereClauseValues: any[] = [];
-        let whereClause = '';
-
-        if (conditions.length > 0) {
-            whereClause = ' WHERE ';
-            let paramIndex = 1;
-            conditions.forEach((condition, index) => {
-                if (index > 0) {
-                    whereClause += ' AND ';
-                }
-                if (condition.value) {
-                    whereClause += `${condition.clouse} $${paramIndex++}`;
-                    whereClauseValues.push(condition.value);
-                }
-                else {
-                    whereClause += `${condition.clouse}`;
-                }
-            });
-        }
-
-        let joinClause = '';
-        joins.forEach((join, index) => {
-            if (join.type) {
-                joinClause += ` ${join.type} JOIN ${join.tableName} AS ${join.alias} ON ${join.on}`;
-            }
-            else {
-                joinClause += ` INNER JOIN ${join.tableName} AS ${join.alias} ON ${join.on}`;
-            }
-
-            if (index !== joins.length - 1) {
-                joinClause += ' ';
-            }
-        });
-
-        let sortClause = '';
-        if (sortField && sortOrder) {
-            sortClause = ` ORDER BY ${sortField} ${sortOrder}`;
-        }
-
-        let limitClause = '';
-        let offsetClause = '';
-
-        if (limit !== undefined && offset !== undefined) {
-            limit = Number(limit);
-            offset = Number(offset);
-
-            if (limit === undefined || limit < 1) {
-                limit = 10;
-            }
-
-            if (offset === undefined || offset <= 0) {
-                offset = 0;
-            } else {
-                offset = (offset - 1) * limit;
-            }
-
-            if (limit > 50) {
-                limit = 50;
-            }
-
-            limitClause = ` LIMIT ${limit}`;
-            offsetClause = ` OFFSET ${offset}`;
-        }
-
-        let selectClause = '';
-        if (selectColumns.length > 0) {
-            selectClause = `SELECT ${selectColumns.join(', ')} `;
-        } else {
-            selectClause = 'SELECT * ';
-        }
-
-        const queryText = `${selectClause} FROM ${mainTableName}${joinClause}${whereClause}${sortClause}${limitClause}${offsetClause};`;
-
-        return { text: queryText, values: whereClauseValues };
-    }
 }
+
