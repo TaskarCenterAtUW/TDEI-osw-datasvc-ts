@@ -1030,6 +1030,19 @@ describe("OSW Controller Test", () => {
             expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
             expect(spy).not.toHaveBeenCalled();
         });
+
+        test("When unknown query parameter is supplied, Expect to return HTTP status 400", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1', fomat: 'json' } });
+            const { res, next } = getMockRes();
+            const spy = jest.spyOn(oswService, 'downloadFeedbacks');
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith('Required fields are missing or invalid: property fomat should not exist');
+            expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+            expect(spy).not.toHaveBeenCalled();
+        });
     });
 
     describe("OSW Controller - createInclineRequest", () => {

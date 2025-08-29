@@ -1,5 +1,6 @@
-import { IsIn, IsNotEmpty, IsOptional } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, validate, ValidationError } from "class-validator";
 import { buildQuery, JoinCondition, PgQueryObject, SqlORder, WhereCondition } from "../database/dynamic-query-object";
+import { InputException } from "../exceptions/http/http-exceptions";
 import { feedbackRequestParams } from "./feedback-request-params";
 
 export class FeedbackDownloadRequestParams extends feedbackRequestParams {
@@ -21,6 +22,18 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
         Object.assign(this, init);
         if (init?.page_no === undefined) this.page_no = undefined;
         if (init?.page_size === undefined) this.page_size = undefined;
+    }
+
+    async validateRequestInput() {
+        const errors = await validate(this, { whitelist: true, forbidNonWhitelisted: true });
+        if (errors.length > 0) {
+            console.log('Input validation failed');
+            const message = errors
+                .map((error: ValidationError) => Object.values(error.constraints as Record<string, string>))
+                .join(', ');
+            throw new InputException(`Required fields are missing or invalid: ${message}`);
+        }
+        return true;
     }
 
     override getQuery(user_id: string): PgQueryObject {
