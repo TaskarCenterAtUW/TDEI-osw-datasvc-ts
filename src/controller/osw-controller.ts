@@ -22,6 +22,7 @@ import { apiTracker } from "../middleware/api-tracker";
 import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../constants/app-constants";
 import { FeedbackRequestDto } from "../model/feedback-dto";
 import { feedbackRequestParams } from "../model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
 import { listRequestValidation } from "../middleware/list-request-validation-middleware";
 /**
   * Multer for multiple uploads
@@ -300,7 +301,7 @@ class OSWController implements IController {
     async downloadFeedbacks(request: Request, response: express.Response, next: NextFunction) {
         try {
             const excludeLimit = request.query.page_size === undefined && request.query.page_no === undefined;
-            const params: feedbackRequestParams = new feedbackRequestParams(JSON.parse(JSON.stringify(request.query)));
+            const params = new FeedbackDownloadRequestParams(JSON.parse(JSON.stringify(request.query)));
             await params.validateRequestInput();
             if (!params.tdei_project_group_id) {
                 response.status(422).send('tdei_project_group_id is required');

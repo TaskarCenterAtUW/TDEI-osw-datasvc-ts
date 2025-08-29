@@ -6,6 +6,7 @@ import { ITdeiCoreService } from "./tdei-core-service-interface";
 import { SpatialJoinRequest, UnionRequest } from "../../model/request-interfaces";
 import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dto";
 import { feedbackRequestParams } from "../../model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../../model/feedback-download-request-params";
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
 import { Readable } from "stream";
 import { IProjectDataviewerConfig } from "./project-dataviewer-config-interface";
@@ -67,7 +68,7 @@ export interface IOswService {
      * @param format - Output format (defaults to 'csv').
      * @returns A Readable stream containing the data.
      */
-    downloadFeedbacks(params: feedbackRequestParams, excludeLimit: boolean, format?: string): Promise<Readable>;
+    downloadFeedbacks(params: FeedbackDownloadRequestParams, excludeLimit: boolean, format?: string): Promise<Readable>;
     /**
      * Adds a feedback request.
      * @param feedback - The feedback data transfer object.

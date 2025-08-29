@@ -22,6 +22,7 @@ import { WorkflowName } from "../../src/constants/app-constants";
 import { SpatialJoinRequest, UnionRequest } from "../../src/model/request-interfaces";
 import { Utility } from "../../src/utility/utility";
 import { feedbackRequestParams } from "../../src/model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../../src/model/feedback-download-request-params";
 
 // group test using describe
 describe("OSW Service Test", () => {
@@ -1188,7 +1189,7 @@ describe("OSW Service Test", () => {
                 due_date: new Date('2025-01-02T00:00:00Z')
             }];
             jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
-            const params = new feedbackRequestParams({ tdei_project_group_id: 'pg1' });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
 
             const stream = await oswService.downloadFeedbacks(params, true, 'csv');
             const chunks: Buffer[] = [];
@@ -1207,7 +1208,7 @@ describe("OSW Service Test", () => {
         test("should include limit when pagination provided", async () => {
             const rows: any[] = [];
             jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
-            const params = new feedbackRequestParams({ tdei_project_group_id: 'pg1', page_size: 5, page_no: 2 });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', page_size: 5, page_no: 2 });
 
             await oswService.downloadFeedbacks(params, false, 'csv');
             const query = (dbClient.query as jest.Mock).mock.calls[0][0];
@@ -1218,13 +1219,13 @@ describe("OSW Service Test", () => {
         test("should throw error when db query fails", async () => {
             const error = new Error('db error');
             jest.spyOn(dbClient, 'query').mockRejectedValueOnce(error);
-            const params = new feedbackRequestParams({ tdei_project_group_id: 'pg1' });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
 
             await expect(oswService.downloadFeedbacks(params, true, 'csv')).rejects.toThrow(error);
         });
 
         test("should throw error for unsupported format", async () => {
-            const params = new feedbackRequestParams({ tdei_project_group_id: 'pg1' });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
             await expect(oswService.downloadFeedbacks(params, true, 'json')).rejects.toThrow(InputException);
         });
     });
