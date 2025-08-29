@@ -50,7 +50,7 @@ export const authorize = (approvedRoles: string[]) => {
             else {
                 //Case when tdei_project_group_id is not provided/ cannot retrived from dataset_id and reason we cannot authorize the request
                 console.error("authorize:tdei_project_group_id cannot be extracted");
-                return next(new Error("authorize:tdei_project_group_id cannot be extracted"));
+                return next(new HttpException(422, "tdei_project_group_id is required"));
             }
 
             //If no roles skip the check

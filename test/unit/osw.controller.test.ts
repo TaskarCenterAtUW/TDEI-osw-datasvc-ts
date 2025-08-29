@@ -956,11 +956,13 @@ describe("OSW Controller Test", () => {
 
 
     describe("downloadFeedbacks", () => {
-        test("When project group id is missing, Expect to call next with InputException", async () => {
+        test("When project group id is missing, Expect to return HTTP status 422", async () => {
             const req = getMockReq({ query: {} });
             const { res, next } = getMockRes();
             await oswController.downloadFeedbacks(req, res, next);
-            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+            expect(res.status).toHaveBeenCalledWith(422);
+            expect(res.send).toHaveBeenCalledWith('tdei_project_group_id is required');
+            expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 422 }));
         });
 
         test("When request is valid, Expect to stream csv and set headers", async () => {

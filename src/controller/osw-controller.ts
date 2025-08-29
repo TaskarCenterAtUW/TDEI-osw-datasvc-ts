@@ -301,7 +301,8 @@ class OSWController implements IController {
         try {
             const projectGroupId = request.query["tdei_project_group_id"] as string;
             if (!projectGroupId) {
-                return next(new InputException('tdei_project_group_id is required', response));
+                response.status(422).send('tdei_project_group_id is required');
+                return next(new HttpException(422, 'tdei_project_group_id is required'));
             }
             const csvStream = await oswService.downloadFeedbacks(projectGroupId);
             response.setHeader('Content-Type', 'text/csv');
