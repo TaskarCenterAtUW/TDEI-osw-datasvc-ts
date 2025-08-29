@@ -974,14 +974,14 @@ describe("OSW Controller Test", () => {
 
             await oswController.downloadFeedbacks(req, res, next);
 
-            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1' }), true, 'csv');
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1' }), 'csv');
             expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
             expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="feedback.csv"');
             expect(pipeSpy).toHaveBeenCalledWith(res);
             expect(next).not.toHaveBeenCalled();
         });
 
-        test("When request includes pagination, Expect excludeLimit false", async () => {
+        test("When request includes pagination, Expect service called with page params", async () => {
             const req = getMockReq({ query: { tdei_project_group_id: 'pg1', page_no: '2', page_size: '5' } });
             const { res, next } = getMockRes();
             const stream = new PassThrough();
@@ -989,7 +989,7 @@ describe("OSW Controller Test", () => {
 
             await oswController.downloadFeedbacks(req, res, next);
 
-            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1' }), false, 'csv');
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', page_no: '2', page_size: '5' }), 'csv');
         });
 
         test("When service throws InputException, Expect to return HTTP status 400", async () => {

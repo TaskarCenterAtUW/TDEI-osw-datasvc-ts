@@ -56,11 +56,10 @@ export interface IOswService {
     /**
      * Streams feedbacks for a project group in the requested format.
      * @param params - Feedback request parameters.
-     * @param excludeLimit - Indicates whether pagination should be excluded.
      * @param format - Output format (defaults to 'csv').
      * @returns A Readable stream containing the data.
      */
-    downloadFeedbacks(params: FeedbackDownloadRequestParams, excludeLimit: boolean, format?: string): Promise<Readable>;
+    downloadFeedbacks(params: FeedbackDownloadRequestParams, format?: string): Promise<Readable>;
     /**
      * Adds a feedback request.
      * @param feedback - The feedback data transfer object.

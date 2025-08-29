@@ -300,7 +300,6 @@ class OSWController implements IController {
      */
     async downloadFeedbacks(request: Request, response: express.Response, next: NextFunction) {
         try {
-            const excludeLimit = request.query.page_size === undefined && request.query.page_no === undefined;
             const params = new FeedbackDownloadRequestParams(JSON.parse(JSON.stringify(request.query)));
             await params.validateRequestInput();
             if (!params.tdei_project_group_id) {
@@ -312,7 +311,7 @@ class OSWController implements IController {
                 response.status(400).send('format must be csv');
                 return next(new HttpException(400, 'format must be csv'));
             }
-            const stream = await oswService.downloadFeedbacks(params, excludeLimit, format);
+            const stream = await oswService.downloadFeedbacks(params, format);
             response.setHeader('Content-Type', 'text/csv');
             response.setHeader('Content-Disposition', 'attachment; filename="feedback.csv"');
             stream.pipe(response);

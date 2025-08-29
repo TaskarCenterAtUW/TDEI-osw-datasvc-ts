@@ -200,15 +200,14 @@ class OswService implements IOswService {
     /**
      * Streams feedback records for a project group in CSV format.
      * @param params - Feedback request parameters.
-     * @param excludeLimit - Indicates whether pagination should be excluded.
      * @returns A Readable stream containing CSV data.
      */
-    async downloadFeedbacks(params: FeedbackDownloadRequestParams, excludeLimit: boolean, format: string = 'csv'): Promise<Readable> {
+    async downloadFeedbacks(params: FeedbackDownloadRequestParams, format: string = 'csv'): Promise<Readable> {
         try {
             if (format.toLowerCase() !== 'csv') {
                 throw new InputException(`Unsupported format: ${format}`);
             }
-            const queryObject = params.getQuery('', excludeLimit);
+            const queryObject = params.getQuery('');
             const queryConfig: QueryConfig = {
                 text: queryObject.text,
                 values: queryObject.values
