@@ -32,6 +32,7 @@ import { FeedbackRequestDto, FeedbackResponseDTO } from "../model/feedback-dto";
 import { FeedbackEntity } from "../database/entity/feedback-entity";
 import { QueryConfig } from "pg";
 import { feedbackRequestParams } from "../model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
 import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
 import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
 
@@ -202,7 +203,7 @@ class OswService implements IOswService {
      * @param excludeLimit - Indicates whether pagination should be excluded.
      * @returns A Readable stream containing CSV data.
      */
-    async downloadFeedbacks(params: feedbackRequestParams, excludeLimit: boolean, format: string = 'csv'): Promise<Readable> {
+    async downloadFeedbacks(params: FeedbackDownloadRequestParams, excludeLimit: boolean, format: string = 'csv'): Promise<Readable> {
         try {
             if (format.toLowerCase() !== 'csv') {
                 throw new InputException(`Unsupported format: ${format}`);
