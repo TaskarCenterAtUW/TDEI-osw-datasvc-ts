@@ -202,9 +202,10 @@ class OswService implements IOswService {
      * @param params - Feedback request parameters.
      * @returns A Readable stream containing CSV data.
      */
-    async downloadFeedbacks(params: FeedbackDownloadRequestParams, format: string = 'csv'): Promise<Readable> {
+    async downloadFeedbacks(params: FeedbackDownloadRequestParams): Promise<Readable> {
         try {
-            if (format.toLowerCase() !== 'csv') {
+            const format = params.format?.toLowerCase() ?? 'csv';
+            if (format !== 'csv') {
                 throw new InputException(`Unsupported format: ${format}`);
             }
             const queryObject = params.getQuery('');

@@ -1197,7 +1197,7 @@ describe("OSW Service Test", () => {
             jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
             const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
 
-            const stream = await oswService.downloadFeedbacks(params, 'csv');
+            const stream = await oswService.downloadFeedbacks(params);
             const chunks: Buffer[] = [];
             for await (const chunk of stream) {
                 chunks.push(Buffer.from(chunk));
@@ -1216,7 +1216,7 @@ describe("OSW Service Test", () => {
             jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
             const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', page_size: 5, page_no: 2 });
 
-            await oswService.downloadFeedbacks(params, 'csv');
+            await oswService.downloadFeedbacks(params);
             const query = (dbClient.query as jest.Mock).mock.calls[0][0];
             expect(query.text).toContain('LIMIT 5');
             expect(query.text).toContain('OFFSET 5');
@@ -1227,12 +1227,12 @@ describe("OSW Service Test", () => {
             jest.spyOn(dbClient, 'query').mockRejectedValueOnce(error);
             const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
 
-            await expect(oswService.downloadFeedbacks(params, 'csv')).rejects.toThrow(error);
+            await expect(oswService.downloadFeedbacks(params)).rejects.toThrow(error);
         });
 
         test("should throw error for unsupported format", async () => {
-            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
-            await expect(oswService.downloadFeedbacks(params, 'json')).rejects.toThrow(InputException);
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', format: 'json' });
+            await expect(oswService.downloadFeedbacks(params)).rejects.toThrow(InputException);
         });
     });
 });
