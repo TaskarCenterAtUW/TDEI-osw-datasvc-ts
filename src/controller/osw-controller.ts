@@ -306,10 +306,15 @@ class OSWController implements IController {
                 response.status(422).send('tdei_project_group_id is required');
                 return next(new HttpException(422, 'tdei_project_group_id is required'));
             }
-            const csvStream = await oswService.downloadFeedbacks(params, excludeLimit);
+            const format = typeof request.query.format === 'string' ? request.query.format.toLowerCase() : 'csv';
+            if (format !== 'csv') {
+                response.status(400).send('format must be csv');
+                return next(new HttpException(400, 'format must be csv'));
+            }
+            const stream = await oswService.downloadFeedbacks(params, excludeLimit, format);
             response.setHeader('Content-Type', 'text/csv');
             response.setHeader('Content-Disposition', 'attachment; filename="feedback.csv"');
-            csvStream.pipe(response);
+            stream.pipe(response);
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
