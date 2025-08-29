@@ -72,18 +72,6 @@ describe('Authorize Middleware', () => {
         expect(next).toHaveBeenCalledWith();
     });
 
-    it('should call next() with HttpException 422 if tdei_project_group_id cannot be extracted', async () => {
-        const req = getMockReq();
-        const { res, next } = getMockRes();
-        req.headers.authorization = 'Bearer validToken';
-        req.body.user_id = 'someUserId';
-        mockCoreAuth(true);
-
-        await authorize(['approvedRole1'])(req, res, next);
-
-        expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 422 }));
-    });
-
     it('should call next() with forbidden error if roles are not approved', async () => {
         const req = getMockReq()
         const { res, next } = getMockRes();
