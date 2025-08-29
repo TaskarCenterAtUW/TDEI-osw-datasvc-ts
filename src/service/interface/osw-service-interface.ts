@@ -61,12 +61,13 @@ export interface IOswService {
     getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackResponseDTO>>;
 
     /**
-     * Streams feedbacks for a project group as CSV.
+     * Streams feedbacks for a project group in the requested format.
      * @param params - Feedback request parameters.
      * @param excludeLimit - Indicates whether pagination should be excluded.
-     * @returns A Readable stream containing the CSV data.
+     * @param format - Output format (defaults to 'csv').
+     * @returns A Readable stream containing the data.
      */
-    downloadFeedbacks(params: feedbackRequestParams, excludeLimit: boolean): Promise<Readable>;
+    downloadFeedbacks(params: feedbackRequestParams, excludeLimit: boolean, format?: string): Promise<Readable>;
     /**
      * Adds a feedback request.
      * @param feedback - The feedback data transfer object.

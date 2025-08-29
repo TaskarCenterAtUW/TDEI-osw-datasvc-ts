@@ -974,7 +974,7 @@ describe("OSW Controller Test", () => {
 
             await oswController.downloadFeedbacks(req, res, next);
 
-            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1' }), true);
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1' }), true, 'csv');
             expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
             expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="feedback.csv"');
             expect(pipeSpy).toHaveBeenCalledWith(res);
@@ -989,7 +989,7 @@ describe("OSW Controller Test", () => {
 
             await oswController.downloadFeedbacks(req, res, next);
 
-            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1' }), false);
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1' }), false, 'csv');
         });
 
         test("When service throws InputException, Expect to return HTTP status 400", async () => {
@@ -1016,6 +1016,17 @@ describe("OSW Controller Test", () => {
             expect(res.status).toHaveBeenCalledWith(500);
             expect(res.send).toHaveBeenCalledWith('Error while downloading the feedback information');
             expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        test("When unsupported format is requested, Expect to return HTTP status 400", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1', format: 'json' } });
+            const { res, next } = getMockRes();
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith('format must be csv');
+            expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
         });
     });
 

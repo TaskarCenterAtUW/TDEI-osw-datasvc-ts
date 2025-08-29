@@ -202,8 +202,11 @@ class OswService implements IOswService {
      * @param excludeLimit - Indicates whether pagination should be excluded.
      * @returns A Readable stream containing CSV data.
      */
-    async downloadFeedbacks(params: feedbackRequestParams, excludeLimit: boolean): Promise<Readable> {
+    async downloadFeedbacks(params: feedbackRequestParams, excludeLimit: boolean, format: string = 'csv'): Promise<Readable> {
         try {
+            if (format.toLowerCase() !== 'csv') {
+                throw new InputException(`Unsupported format: ${format}`);
+            }
             const queryObject = params.getQuery('', excludeLimit);
             const queryConfig: QueryConfig = {
                 text: queryObject.text,
