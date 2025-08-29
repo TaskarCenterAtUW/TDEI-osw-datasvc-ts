@@ -62,10 +62,11 @@ export interface IOswService {
 
     /**
      * Streams feedbacks for a project group as CSV.
-     * @param tdei_project_group_id - The project group identifier.
+     * @param params - Feedback request parameters.
+     * @param excludeLimit - Indicates whether pagination should be excluded.
      * @returns A Readable stream containing the CSV data.
      */
-    downloadFeedbacks(tdei_project_group_id: string): Promise<Readable>;
+    downloadFeedbacks(params: feedbackRequestParams, excludeLimit: boolean): Promise<Readable>;
     /**
      * Adds a feedback request.
      * @param feedback - The feedback data transfer object.
