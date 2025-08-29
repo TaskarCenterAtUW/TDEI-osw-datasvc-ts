@@ -6,6 +6,7 @@ import { ForbiddenAccess, InputException, UnAuthenticated } from "../../src/exce
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
 import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../../src/constants/app-constants";
+import { PassThrough } from "stream";
 
 // group test using describe
 describe("OSW Controller Test", () => {
@@ -953,6 +954,57 @@ describe("OSW Controller Test", () => {
         });
     });
 
+
+    describe("downloadFeedbacks", () => {
+        test("When project group id is missing, Expect to call next with InputException", async () => {
+            const req = getMockReq({ query: {} });
+            const { res, next } = getMockRes();
+            await oswController.downloadFeedbacks(req, res, next);
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When request is valid, Expect to stream csv and set headers", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1' } });
+            const { res, next } = getMockRes();
+            const stream = new PassThrough();
+            const pipeSpy = jest.spyOn(stream, 'pipe');
+            jest.spyOn(oswService, 'downloadFeedbacks').mockResolvedValueOnce(stream as any);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith('pg1');
+            expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+            expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="feedback.csv"');
+            expect(pipeSpy).toHaveBeenCalledWith(res);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When service throws InputException, Expect to return HTTP status 400", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1' } });
+            const { res, next } = getMockRes();
+            const error = new InputException('invalid');
+            jest.spyOn(oswService, 'downloadFeedbacks').mockRejectedValueOnce(error);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When service throws an error, Expect to return HTTP status 500", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1' } });
+            const { res, next } = getMockRes();
+            const error = new Error('db error');
+            jest.spyOn(oswService, 'downloadFeedbacks').mockRejectedValueOnce(error);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith('Error while downloading the feedback information');
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
 
     describe("OSW Controller - createInclineRequest", () => {
 

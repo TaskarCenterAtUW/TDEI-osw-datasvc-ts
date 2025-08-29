@@ -155,6 +155,7 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-viewer/feedbacks/:project_id/:tdei_dataset_id`, apiTracker, authenticate, this.addFeedbackRequest);
         this.router.get(`${this.path}/dataset-viewer/feedbacks`, apiTracker, authenticate, listRequestValidation, this.getFeedbackRequests);
         this.router.get(`${this.path}/dataset-viewer/feedbacks/metadata`, apiTracker, authenticate, this.getFeedbackMetadata);
+        this.router.get(`${this.path}/dataset-viewer/feedbacks/download`, apiTracker, authenticate, authorize(["poc", "osw_data_generator"]), this.downloadFeedbacks);
         this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.updateDatasetVisibility);
         this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.retrievePmTiles);
         this.router.post(`${this.path}/dataset/generate/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.generatePMtiles);
@@ -286,6 +287,35 @@ class OSWController implements IController {
             else {
                 response.status(500).send("Error while fetching the feedback information");
                 next(new HttpException(500, "Error while fetching the feedback information"));
+            }
+        }
+    }
+
+    /**
+     * Streams feedbacks as CSV for a project group.
+     * @param request
+     * @param response
+     * @param next
+     */
+    async downloadFeedbacks(request: Request, response: express.Response, next: NextFunction) {
+        try {
+            const projectGroupId = request.query["tdei_project_group_id"] as string;
+            if (!projectGroupId) {
+                return next(new InputException('tdei_project_group_id is required', response));
+            }
+            const csvStream = await oswService.downloadFeedbacks(projectGroupId);
+            response.setHeader('Content-Type', 'text/csv');
+            response.setHeader('Content-Disposition', 'attachment; filename="feedback.csv"');
+            csvStream.pipe(response);
+        } catch (error) {
+            console.error(error);
+            if (error instanceof InputException) {
+                response.status(error.status).send(error.message);
+                next(error);
+            }
+            else {
+                response.status(500).send("Error while downloading the feedback information");
+                next(new HttpException(500, "Error while downloading the feedback information"));
             }
         }
     }

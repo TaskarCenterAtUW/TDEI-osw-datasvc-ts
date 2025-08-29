@@ -158,7 +158,7 @@ class OswService implements IOswService {
     }
 
     /**
-     * Gets feedbacks metadata.
+         * Gets feedbacks metadata.
      * @param user_id - The ID of the user making the request.
      * @param tdei_project_group_id - The ID of the TDEI project group.
      * @returns A Promise that resolves to an array of feedback DTOs.
@@ -190,6 +190,62 @@ class OswService implements IOswService {
                 } as FeedbackMetadataDTO;
             }
             return { total_count: 0, total_overdues: 0, total_open: 0 } as FeedbackMetadataDTO;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Streams feedback records for a project group in CSV format.
+     * @param tdei_project_group_id - The project group identifier.
+     * @returns A Readable stream containing CSV data.
+     */
+    async downloadFeedbacks(tdei_project_group_id: string): Promise<Readable> {
+        try {
+            const queryConfig: QueryConfig = {
+                text: `SELECT fd.id, fd.tdei_project_id as tdei_project_group_id, pg.name as project_group_name,
+                            fd.tdei_dataset_id, ds.name as dataset_name, fd.dataset_element_id, fd.feedback_text,
+                            fd.customer_email, fd.location_latitude, fd.location_longitude, fd.created_at, fd.updated_at,
+                            fd.status, fd.due_date
+                        FROM content.feedback fd
+                        LEFT JOIN public.project_group pg ON fd.tdei_project_id = pg.project_group_id
+                        LEFT JOIN content.dataset ds ON fd.tdei_dataset_id = ds.tdei_dataset_id
+                        WHERE fd.tdei_project_id = $1
+                        ORDER BY fd.created_at DESC`,
+                values: [tdei_project_group_id]
+            };
+            const result = await dbClient.query(queryConfig);
+
+            function* csvGenerator() {
+                const header = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n';
+                yield header;
+                for (const row of result.rows) {
+                    const values = [
+                        row.id,
+                        row.tdei_project_group_id,
+                        row.project_group_name,
+                        row.tdei_dataset_id,
+                        row.dataset_name,
+                        row.dataset_element_id ?? '',
+                        row.feedback_text ?? '',
+                        row.customer_email ?? '',
+                        row.location_latitude ?? '',
+                        row.location_longitude ?? '',
+                        row.created_at ? new Date(row.created_at).toISOString() : '',
+                        row.updated_at ? new Date(row.updated_at).toISOString() : '',
+                        row.status ?? '',
+                        row.due_date ? new Date(row.due_date).toISOString() : ''
+                    ].map((val: any) => {
+                        const strVal = val !== null && val !== undefined ? String(val) : '';
+                        // Escape double quotes by doubling them
+                        return strVal.includes(',') || strVal.includes('"') || strVal.includes('\n') ? `"${strVal.replace(/"/g, '""')}"` : strVal;
+                    }).join(',');
+                    yield values + '\n';
+                }
+            }
+
+            return Readable.from(csvGenerator());
         }
         catch (error) {
             throw error;

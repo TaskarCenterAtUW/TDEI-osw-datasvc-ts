@@ -323,7 +323,9 @@ describe("OSW Service Test", () => {
                     job_id: job_id.toString(),
                     service: "spatial_join",
                     parameters: requestService,
-                    user_id: user_id
+                    user_id: user_id,
+                    source_dataset_id: requestService.source_dataset_id,
+                    target_dataset_id: requestService.target_dataset_id
                 },
                 user_id
             );
@@ -1066,7 +1068,9 @@ describe("OSW Service Test", () => {
                     job_id: job_id.toString(),
                     service: "union_dataset",
                     parameters: requestService,
-                    user_id: user_id
+                    user_id: user_id,
+                    tdei_dataset_id_one: requestService.tdei_dataset_id_one,
+                    tdei_dataset_id_two: requestService.tdei_dataset_id_two
                 },
                 user_id
             );
@@ -1164,6 +1168,50 @@ describe("OSW Service Test", () => {
                 expect.any(Object), // Ensure the correct object is passed to the workflow
                 backendRequest.user_id
             );
+        });
+    });
+
+    describe("downloadFeedbacks", () => {
+        test("should return csv stream of feedbacks", async () => {
+            const rows = [{
+                id: 1,
+                tdei_project_group_id: 'pg1',
+                project_group_name: 'PG',
+                tdei_dataset_id: 'ds1',
+                dataset_name: 'Dataset',
+                dataset_element_id: 'way/1',
+                feedback_text: 'test',
+                customer_email: 'user@example.com',
+                location_latitude: 1,
+                location_longitude: 2,
+                created_at: new Date('2025-01-01T00:00:00Z'),
+                updated_at: new Date('2025-01-01T00:00:00Z'),
+                status: 'open',
+                due_date: new Date('2025-01-02T00:00:00Z')
+            }];
+
+            jest.spyOn(dbClient, 'query').mockResolvedValue(<any>{ rows });
+
+            const stream = await oswService.downloadFeedbacks('pg1');
+            const chunks: Buffer[] = [];
+            for await (const chunk of stream) {
+                chunks.push(Buffer.from(chunk));
+            }
+            const csv = Buffer.concat(chunks).toString();
+
+            const expected = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n' +
+                '1,pg1,PG,ds1,Dataset,way/1,test,user@example.com,1,2,2025-01-01T00:00:00.000Z,2025-01-01T00:00:00.000Z,open,2025-01-02T00:00:00.000Z\n';
+
+            expect(csv).toBe(expected);
+            expect(dbClient.query).toHaveBeenCalledTimes(1);
+        });
+
+        test("should throw error when db query fails", async () => {
+            const error = new Error('db error');
+            jest.spyOn(dbClient, 'query').mockRejectedValueOnce(error);
+
+            await expect(oswService.downloadFeedbacks('pg1')).rejects.toThrow(error);
+            expect(dbClient.query).toHaveBeenCalledTimes(1);
         });
     });
 });
