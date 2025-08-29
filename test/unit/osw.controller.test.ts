@@ -992,6 +992,17 @@ describe("OSW Controller Test", () => {
             expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', page_no: '2', page_size: '5', format: 'csv' }));
         });
 
+        test("When sort field provided via due_date alias, Expect service called with sort_by", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1', due_date: 'created_at', sort_order: 'asc' } });
+            const { res, next } = getMockRes();
+            const stream = new PassThrough();
+            jest.spyOn(oswService, 'downloadFeedbacks').mockResolvedValueOnce(stream as any);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', sort_by: 'created_at', sort_order: 'asc', format: 'csv' }));
+        });
+
         test("When service throws InputException, Expect to return HTTP status 400", async () => {
             const req = getMockReq({ query: { tdei_project_group_id: 'pg1' } });
             const { res, next } = getMockRes();

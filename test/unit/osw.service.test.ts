@@ -1222,6 +1222,16 @@ describe("OSW Service Test", () => {
             expect(query.text).toContain('OFFSET 5');
         });
 
+        test("should map due_date alias to sort_by", async () => {
+            const rows: any[] = [];
+            jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', due_date: 'created_at' });
+
+            await oswService.downloadFeedbacks(params);
+            const query = (dbClient.query as jest.Mock).mock.calls[0][0];
+            expect(query.text).toContain('ORDER BY fd.created_at');
+        });
+
         test("should throw error when db query fails", async () => {
             const error = new Error('db error');
             jest.spyOn(dbClient, 'query').mockRejectedValueOnce(error);

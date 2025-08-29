@@ -17,11 +17,18 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
     @IsIn(['csv'], { message: 'format must be csv' })
     format: string = 'csv';
 
+    @IsOptional()
+    @IsIn(['created_at', 'due_date'], { message: "due_date must be either 'created_at' or 'due_date'" })
+    due_date?: 'created_at' | 'due_date';
+
     constructor(init?: Partial<FeedbackDownloadRequestParams>) {
         super();
         Object.assign(this, init);
         if (init?.page_no === undefined) this.page_no = undefined;
         if (init?.page_size === undefined) this.page_size = undefined;
+        if (init?.due_date !== undefined && init?.sort_by === undefined) {
+            this.sort_by = init.due_date;
+        }
     }
 
     async validateRequestInput() {
