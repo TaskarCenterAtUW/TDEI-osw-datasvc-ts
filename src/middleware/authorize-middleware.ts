@@ -38,6 +38,10 @@ export const authorize = (approvedRoles: string[]) => {
                 req.body.tdei_project_group_id = req.params["tdei_project_group_id"];
                 await tdeiCoreService.checkProjectGroupExistsById(req.params["tdei_project_group_id"])
             }
+            else if (req.query["tdei_project_group_id"]) {
+                req.body.tdei_project_group_id = req.query["tdei_project_group_id"] as string;
+                await tdeiCoreService.checkProjectGroupExistsById(req.body.tdei_project_group_id);
+            }
             else if (req.params["tdei_dataset_id"]) {
                 //Fetch tdei_project_group_id from tdei_dataset_id
                 let osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);

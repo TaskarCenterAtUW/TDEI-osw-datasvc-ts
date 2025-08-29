@@ -7,6 +7,7 @@ import { SpatialJoinRequest, UnionRequest } from "../../model/request-interfaces
 import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dto";
 import { feedbackRequestParams } from "../../model/feedback-request-params";
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
+import { Readable } from "stream";
 import { IProjectDataviewerConfig } from "./project-dataviewer-config-interface";
 
 export interface IOswService {
@@ -58,6 +59,13 @@ export interface IOswService {
      * @returns A Promise that resolves to an array of feedback DTOs.
      */
     getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackResponseDTO>>;
+
+    /**
+     * Streams feedbacks for a project group as CSV.
+     * @param tdei_project_group_id - The project group identifier.
+     * @returns A Readable stream containing the CSV data.
+     */
+    downloadFeedbacks(tdei_project_group_id: string): Promise<Readable>;
     /**
      * Adds a feedback request.
      * @param feedback - The feedback data transfer object.

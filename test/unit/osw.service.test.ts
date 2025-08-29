@@ -21,6 +21,8 @@ import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query
 import { WorkflowName } from "../../src/constants/app-constants";
 import { SpatialJoinRequest, UnionRequest } from "../../src/model/request-interfaces";
 import { Utility } from "../../src/utility/utility";
+import { feedbackRequestParams } from "../../src/model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../../src/model/feedback-download-request-params";
 
 // group test using describe
 describe("OSW Service Test", () => {
@@ -323,9 +325,10 @@ describe("OSW Service Test", () => {
                     job_id: job_id.toString(),
                     service: "spatial_join",
                     parameters: requestService,
-                    user_id: user_id
-                }),
-                user_id
+                    user_id: user_id,
+                    source_dataset_id: requestService.source_dataset_id,
+                    target_dataset_id: requestService.target_dataset_id
+                })
             );
         });
     });
@@ -1066,9 +1069,10 @@ describe("OSW Service Test", () => {
                     job_id: job_id.toString(),
                     service: "union_dataset",
                     parameters: requestService,
-                    user_id: user_id
-                }),
-                user_id
+                    user_id: user_id,
+                    tdei_dataset_id_one: requestService.tdei_dataset_id_one,
+                    tdei_dataset_id_two: requestService.tdei_dataset_id_two
+                })
             );
         });
     });
@@ -1164,6 +1168,79 @@ describe("OSW Service Test", () => {
                 expect.any(Object), // Ensure the correct object is passed to the workflow
                 backendRequest.user_id
             );
+        });
+    });
+
+    describe("downloadFeedbacks", () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+        test("should return csv stream of feedbacks without limit", async () => {
+            const rows = [{
+                id: 1,
+                tdei_project_group_id: 'pg1',
+                project_group_name: 'PG',
+                tdei_dataset_id: 'ds1',
+                dataset_name: 'Dataset',
+                dataset_element_id: 'way/1',
+                feedback_text: 'test',
+                customer_email: 'user@example.com',
+                location_latitude: 1,
+                location_longitude: 2,
+                created_at: new Date('2025-01-01T00:00:00Z'),
+                updated_at: new Date('2025-01-01T00:00:00Z'),
+                status: 'open',
+                due_date: new Date('2025-01-02T00:00:00Z')
+            }];
+            jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
+
+            const stream = await oswService.downloadFeedbacks(params);
+            const chunks: Buffer[] = [];
+            for await (const chunk of stream) {
+                chunks.push(Buffer.from(chunk));
+            }
+            const csv = Buffer.concat(chunks).toString();
+            const expected = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n' +
+                '1,pg1,PG,ds1,Dataset,way/1,test,user@example.com,1,2,2025-01-01T00:00:00.000Z,2025-01-01T00:00:00.000Z,open,2025-01-02T00:00:00.000Z\n';
+
+            expect(csv).toBe(expected);
+            const query = (dbClient.query as jest.Mock).mock.calls[0][0];
+            expect(query.text).not.toContain('LIMIT');
+        });
+
+        test("should include limit when pagination provided", async () => {
+            const rows: any[] = [];
+            jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', page_size: 5, page_no: 2 });
+
+            await oswService.downloadFeedbacks(params);
+            const query = (dbClient.query as jest.Mock).mock.calls[0][0];
+            expect(query.text).toContain('LIMIT 5');
+            expect(query.text).toContain('OFFSET 5');
+        });
+
+        test("should map due_date alias to sort_by", async () => {
+            const rows: any[] = [];
+            jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', due_date: 'created_at' });
+
+            await oswService.downloadFeedbacks(params);
+            const query = (dbClient.query as jest.Mock).mock.calls[0][0];
+            expect(query.text).toContain('ORDER BY fd.created_at');
+        });
+
+        test("should throw error when db query fails", async () => {
+            const error = new Error('db error');
+            jest.spyOn(dbClient, 'query').mockRejectedValueOnce(error);
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
+
+            await expect(oswService.downloadFeedbacks(params)).rejects.toThrow(error);
+        });
+
+        test("should throw error for unsupported format", async () => {
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', format: 'json' });
+            await expect(oswService.downloadFeedbacks(params)).rejects.toThrow(InputException);
         });
     });
 
