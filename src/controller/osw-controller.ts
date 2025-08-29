@@ -299,12 +299,14 @@ class OSWController implements IController {
      */
     async downloadFeedbacks(request: Request, response: express.Response, next: NextFunction) {
         try {
-            const projectGroupId = request.query["tdei_project_group_id"] as string;
-            if (!projectGroupId) {
+            const excludeLimit = request.query.page_size === undefined && request.query.page_no === undefined;
+            const params: feedbackRequestParams = new feedbackRequestParams(JSON.parse(JSON.stringify(request.query)));
+            await params.validateRequestInput();
+            if (!params.tdei_project_group_id) {
                 response.status(422).send('tdei_project_group_id is required');
                 return next(new HttpException(422, 'tdei_project_group_id is required'));
             }
-            const csvStream = await oswService.downloadFeedbacks(projectGroupId);
+            const csvStream = await oswService.downloadFeedbacks(params, excludeLimit);
             response.setHeader('Content-Type', 'text/csv');
             response.setHeader('Content-Disposition', 'attachment; filename="feedback.csv"');
             csvStream.pipe(response);

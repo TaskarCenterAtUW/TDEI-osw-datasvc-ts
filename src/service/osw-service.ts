@@ -198,22 +198,16 @@ class OswService implements IOswService {
 
     /**
      * Streams feedback records for a project group in CSV format.
-     * @param tdei_project_group_id - The project group identifier.
+     * @param params - Feedback request parameters.
+     * @param excludeLimit - Indicates whether pagination should be excluded.
      * @returns A Readable stream containing CSV data.
      */
-    async downloadFeedbacks(tdei_project_group_id: string): Promise<Readable> {
+    async downloadFeedbacks(params: feedbackRequestParams, excludeLimit: boolean): Promise<Readable> {
         try {
+            const queryObject = params.getQuery('', excludeLimit);
             const queryConfig: QueryConfig = {
-                text: `SELECT fd.id, fd.tdei_project_id as tdei_project_group_id, pg.name as project_group_name,
-                            fd.tdei_dataset_id, ds.name as dataset_name, fd.dataset_element_id, fd.feedback_text,
-                            fd.customer_email, fd.location_latitude, fd.location_longitude, fd.created_at, fd.updated_at,
-                            fd.status, fd.due_date
-                        FROM content.feedback fd
-                        LEFT JOIN public.project_group pg ON fd.tdei_project_id = pg.project_group_id
-                        LEFT JOIN content.dataset ds ON fd.tdei_dataset_id = ds.tdei_dataset_id
-                        WHERE fd.tdei_project_id = $1
-                        ORDER BY fd.created_at DESC`,
-                values: [tdei_project_group_id]
+                text: queryObject.text,
+                values: queryObject.values
             };
             const result = await dbClient.query(queryConfig);
 
