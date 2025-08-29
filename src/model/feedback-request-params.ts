@@ -64,7 +64,7 @@ export class feedbackRequestParams {
         return true;
     }
 
-    getQuery(user_id: string, excludeLimit: boolean = false): PgQueryObject {
+    getQuery(user_id: string): PgQueryObject {
         // Select only required columns for Feedback response
         const selectColumns = [
             // Project group info
@@ -123,6 +123,6 @@ export class feedbackRequestParams {
         const pageNo = this.page_no ?? 1;
 
         // Build the query
-        return buildQuery(selectColumns, mainTableName, conditions, joins, sortField, sortOrder, pageSize, pageNo, excludeLimit);
+        return buildQuery(selectColumns, mainTableName, conditions, joins, sortField, sortOrder, pageSize, pageNo);
     }
 }
