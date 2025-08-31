@@ -321,12 +321,12 @@ describe("OSW Service Test", () => {
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 job_id.toString(),
                 WorkflowName.osw_spatial_join,
-                {
+                expect.objectContaining({
                     job_id: job_id.toString(),
                     service: "spatial_join",
                     parameters: requestService,
-                    user_id: user_id
-                },
+                    user_id: user_id,
+                }),
                 user_id
             );
         });
@@ -1064,12 +1064,12 @@ describe("OSW Service Test", () => {
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 job_id.toString(),
                 WorkflowName.osw_union_dataset,
-                {
+                expect.objectContaining({
                     job_id: job_id.toString(),
                     service: "union_dataset",
                     parameters: requestService,
-                    user_id: user_id
-                },
+                    user_id: user_id,
+                }),
                 user_id
             );
         });

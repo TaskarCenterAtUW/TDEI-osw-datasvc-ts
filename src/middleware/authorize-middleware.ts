@@ -38,10 +38,6 @@ export const authorize = (approvedRoles: string[]) => {
                 req.body.tdei_project_group_id = req.params["tdei_project_group_id"];
                 await tdeiCoreService.checkProjectGroupExistsById(req.params["tdei_project_group_id"])
             }
-            else if (req.query["tdei_project_group_id"]) {
-                req.body.tdei_project_group_id = req.query["tdei_project_group_id"] as string;
-                await tdeiCoreService.checkProjectGroupExistsById(req.body.tdei_project_group_id);
-            }
             else if (req.params["tdei_dataset_id"]) {
                 //Fetch tdei_project_group_id from tdei_dataset_id
                 let osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
@@ -50,7 +46,7 @@ export const authorize = (approvedRoles: string[]) => {
             else {
                 //Case when tdei_project_group_id is not provided/ cannot retrived from dataset_id and reason we cannot authorize the request
                 console.error("authorize:tdei_project_group_id cannot be extracted");
-                return next(new HttpException(422, "tdei_project_group_id is required"));
+                return next(new Error("authorize:tdei_project_group_id cannot be extracted"));
             }
 
             //If no roles skip the check
