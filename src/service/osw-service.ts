@@ -32,6 +32,7 @@ import { FeedbackRequestDto, FeedbackResponseDTO } from "../model/feedback-dto";
 import { FeedbackEntity } from "../database/entity/feedback-entity";
 import { QueryConfig } from "pg";
 import { feedbackRequestParams } from "../model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
 import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
 import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
 
@@ -158,7 +159,7 @@ class OswService implements IOswService {
     }
 
     /**
-     * Gets feedbacks metadata.
+         * Gets feedbacks metadata.
      * @param user_id - The ID of the user making the request.
      * @param tdei_project_group_id - The ID of the TDEI project group.
      * @returns A Promise that resolves to an array of feedback DTOs.
@@ -190,6 +191,59 @@ class OswService implements IOswService {
                 } as FeedbackMetadataDTO;
             }
             return { total_count: 0, total_overdues: 0, total_open: 0 } as FeedbackMetadataDTO;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Streams feedback records for a project group in CSV format.
+     * @param params - Feedback request parameters.
+     * @returns A Readable stream containing CSV data.
+     */
+    async downloadFeedbacks(params: FeedbackDownloadRequestParams): Promise<Readable> {
+        try {
+            const format = params.format?.toLowerCase() ?? 'csv';
+            if (format !== 'csv') {
+                throw new InputException(`Unsupported format: ${format}`);
+            }
+            const queryObject = params.getQuery('');
+            const queryConfig: QueryConfig = {
+                text: queryObject.text,
+                values: queryObject.values
+            };
+            const result = await dbClient.query(queryConfig);
+
+            function* csvGenerator() {
+                const header = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n';
+                yield header;
+                for (const row of result.rows) {
+                    const values = [
+                        row.id,
+                        row.tdei_project_group_id,
+                        row.project_group_name,
+                        row.tdei_dataset_id,
+                        row.dataset_name,
+                        row.dataset_element_id ?? '',
+                        row.feedback_text ?? '',
+                        row.customer_email ?? '',
+                        row.location_latitude ?? '',
+                        row.location_longitude ?? '',
+                        row.created_at ? new Date(row.created_at).toISOString() : '',
+                        row.updated_at ? new Date(row.updated_at).toISOString() : '',
+                        row.status ?? '',
+                        row.due_date ? new Date(row.due_date).toISOString() : ''
+                    ].map((val: any) => {
+                        const strVal = val !== null && val !== undefined ? String(val) : '';
+                        // Escape double quotes by doubling them
+                        return strVal.includes(',') || strVal.includes('"') || strVal.includes('\n') ? `"${strVal.replace(/"/g, '""')}"` : strVal;
+                    }).join(',');
+                    yield values + '\n';
+                }
+            }
+
+            return Readable.from(csvGenerator());
         }
         catch (error) {
             throw error;

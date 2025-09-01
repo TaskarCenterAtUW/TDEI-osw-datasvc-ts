@@ -25,7 +25,8 @@ export function buildQuery(
     sortField?: string,
     sortOrder?: 'ASC' | 'DESC',
     limit?: number,
-    offset?: number
+    offset?: number,
+    excludeLimit: boolean = false
 ): PgQueryObject {
     const whereClauseValues: any[] = [];
     let whereClause = '';
@@ -67,30 +68,33 @@ export function buildQuery(
         sortClause = ` ORDER BY ${sortField} ${sortOrder}`;
     }
 
-    limit = Number(limit);
-    offset = Number(offset);
-    if (limit === undefined || limit < 1) {
-        limit = 10; // Default limit to 10 items per page
-    }
-
-    if (offset === undefined || offset <= 0) {
-        offset = 0; // Default offset to 0
-    } else {
-        offset = (offset - 1) * limit; // Calculate offset based on page number
-    }
-
-    // Limit the items per page to a maximum of 50
-    if (limit > 50) {
-        limit = 50;
-    }
     let limitClause = '';
-    if (limit !== undefined && limit !== null) {
-        limitClause = ` LIMIT ${limit}`;
-    }
-
     let offsetClause = '';
-    if (offset !== undefined && offset !== null) {
-        offsetClause = ` OFFSET ${offset}`;
+
+    if (!excludeLimit) {
+        limit = Number(limit);
+        offset = Number(offset);
+        if (limit === undefined || limit < 1) {
+            limit = 10; // Default limit to 10 items per page
+        }
+
+        if (offset === undefined || offset <= 0) {
+            offset = 0; // Default offset to 0
+        } else {
+            offset = (offset - 1) * limit; // Calculate offset based on page number
+        }
+
+        // Limit the items per page to a maximum of 50
+        if (limit > 50) {
+            limit = 50;
+        }
+        if (limit !== undefined && limit !== null) {
+            limitClause = ` LIMIT ${limit}`;
+        }
+
+        if (offset !== undefined && offset !== null) {
+            offsetClause = ` OFFSET ${offset}`;
+        }
     }
 
     let selectClause = '';

@@ -6,6 +6,7 @@ import { ForbiddenAccess, InputException, UnAuthenticated } from "../../src/exce
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
 import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../../src/constants/app-constants";
+import { PassThrough } from "stream";
 
 // group test using describe
 describe("OSW Controller Test", () => {
@@ -168,7 +169,7 @@ describe("OSW Controller Test", () => {
     describe("Process Dataset Tag Road Request", () => {
         test("When request body is empty, Expect to return HTTP status 400", async () => {
             // Arrange
-            const req = getMockReq({ query: {} });
+            const req = getMockReq({ params: {}, query: {} });
             const { res, next } = getMockRes();
             const inputException = new InputException("required input is empty", res);
             jest.spyOn(oswService, "processDatasetTagRoadRequest").mockRejectedValueOnce(inputException);
@@ -953,6 +954,107 @@ describe("OSW Controller Test", () => {
         });
     });
 
+
+    describe("downloadFeedbacks", () => {
+        test("When project group id is missing, Expect to return HTTP status 500", async () => {
+            const req = getMockReq({ params: {}, query: {} });
+            const { res, next } = getMockRes();
+            await oswController.downloadFeedbacks(req, res, next);
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith('Error while downloading the feedback information');
+            expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 500 }));
+        });
+
+        test("When request is valid without pagination, Expect to stream csv and set headers", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1' } });
+            const { res, next } = getMockRes();
+            const stream = new PassThrough();
+            const pipeSpy = jest.spyOn(stream, 'pipe');
+            jest.spyOn(oswService, 'downloadFeedbacks').mockResolvedValueOnce(stream as any);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', format: 'csv' }));
+            expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+            expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="feedback.csv"');
+            expect(pipeSpy).toHaveBeenCalledWith(res);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When request includes pagination, Expect service called with page params", async () => {
+            const req = getMockReq({ params: { tdei_project_group_id: 'pg1' }, query: { page_no: '2', page_size: '5' } });
+            const { res, next } = getMockRes();
+            const stream = new PassThrough();
+            jest.spyOn(oswService, 'downloadFeedbacks').mockResolvedValueOnce(stream as any);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', page_no: '2', page_size: '5', format: 'csv' }));
+        });
+
+        test("When sort field provided via due_date alias, Expect service called with sort_by", async () => {
+            const req = getMockReq({ params: { tdei_project_group_id: 'pg1' }, query: { due_date: 'created_at', sort_order: 'asc' } });
+            const { res, next } = getMockRes();
+            const stream = new PassThrough();
+            jest.spyOn(oswService, 'downloadFeedbacks').mockResolvedValueOnce(stream as any);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', sort_by: 'created_at', sort_order: 'asc', format: 'csv' }));
+        });
+
+        test("When service throws InputException, Expect to return HTTP status 400", async () => {
+            const req = getMockReq({ params: { tdei_project_group_id: 'pg1' }, query: {} });
+            const { res, next } = getMockRes();
+            const error = new InputException('invalid');
+            jest.spyOn(oswService, 'downloadFeedbacks').mockRejectedValueOnce(error);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When service throws an error, Expect to return HTTP status 500", async () => {
+            const req = getMockReq({ params: { tdei_project_group_id: 'pg1' }, query: {} });
+            const { res, next } = getMockRes();
+            const error = new Error('db error');
+            jest.spyOn(oswService, 'downloadFeedbacks').mockRejectedValueOnce(error);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith('Error while downloading the feedback information');
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        test("When unsupported format is requested, Expect to return HTTP status 400", async () => {
+            const req = getMockReq({ params: { tdei_project_group_id: 'pg1' }, query: { format: 'json' } });
+            const { res, next } = getMockRes();
+            const spy = jest.spyOn(oswService, 'downloadFeedbacks');
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith('Required fields are missing or invalid: format must be csv');
+            expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+            expect(spy).not.toHaveBeenCalled();
+        });
+
+        test("When unknown query parameter is supplied, Expect to return HTTP status 400", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1', fomat: 'json' } });
+            const { res, next } = getMockRes();
+            const spy = jest.spyOn(oswService, 'downloadFeedbacks');
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith('Required fields are missing or invalid: property fomat should not exist');
+            expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+            expect(spy).not.toHaveBeenCalled();
+        });
+    });
 
     describe("OSW Controller - createInclineRequest", () => {
 

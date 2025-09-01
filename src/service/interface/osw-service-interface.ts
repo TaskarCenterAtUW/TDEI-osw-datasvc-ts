@@ -6,7 +6,9 @@ import { ITdeiCoreService } from "./tdei-core-service-interface";
 import { SpatialJoinRequest, UnionRequest } from "../../model/request-interfaces";
 import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dto";
 import { feedbackRequestParams } from "../../model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../../model/feedback-download-request-params";
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
+import { Readable } from "stream";
 
 export interface IOswService {
     /**
@@ -50,6 +52,13 @@ export interface IOswService {
      * @returns A Promise that resolves to an array of feedback DTOs.
      */
     getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackResponseDTO>>;
+
+    /**
+     * Streams feedbacks for a project group in the requested format.
+     * @param params - Feedback request parameters including desired format.
+     * @returns A Readable stream containing the data.
+     */
+    downloadFeedbacks(params: FeedbackDownloadRequestParams): Promise<Readable>;
     /**
      * Adds a feedback request.
      * @param feedback - The feedback data transfer object.
