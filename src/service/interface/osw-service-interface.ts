@@ -8,9 +8,17 @@ import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dt
 import { feedbackRequestParams } from "../../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../../model/feedback-download-request-params";
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
+import { IProjectDataviewerConfig } from "./project-dataviewer-config-interface";
 import { Readable } from "stream";
 
 export interface IOswService {
+    /*
+           * Gets the project group dataviewer configuration.
+           * @param tdei_project_id - The ID of the TDEI project.
+           * @returns A Promise that resolves to the project dataviewer configuration or undefined if not configured.
+           * @throws If the project group does not exist or if the dataviewer is not configured.
+           */
+    getProjectGroupDataviewerConfig(tdei_project_id: string): Promise<IProjectDataviewerConfig | undefined>;
     /**
      * Generates PMTiles for a given TDEI dataset ID.
      * @param tdei_dataset_id - The ID of the TDEI dataset.

@@ -1166,5 +1166,425 @@ describe("OSW Controller Test", () => {
             expect(res.status).toHaveBeenCalledWith(202);
             expect(res.send).toHaveBeenCalledWith(job_id);
         });
-    })
+    });
+
+    describe("OSW Controller - generatePMtiles", () => {
+        test("When requested with valid parameters, Expect to return HTTP status 202 and job_id", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" },
+                body: { user_id: "mock-user-id" }
+            });
+            const { res, next } = getMockRes();
+            const job_id = "mock-job-id";
+            jest.spyOn(oswService, "generatePMTiles").mockResolvedValueOnce(job_id);
+
+            // Act
+            await oswController.generatePMtiles(req, res, next);
+
+            // Assert
+            expect(res.setHeader).toHaveBeenCalledWith("Location", `${JOBS_API_PATH}?job_id=${job_id}`);
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When service throws HttpException, Expect to return error status and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" },
+                body: { user_id: "mock-user-id" }
+            });
+            const { res, next } = getMockRes();
+            const error = new HttpException(400, "Bad request");
+            jest.spyOn(oswService, "generatePMTiles").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.generatePMtiles(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When service throws generic error, Expect to return HTTP status 500 and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" },
+                body: { user_id: "mock-user-id" }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "generatePMTiles").mockRejectedValueOnce(new Error("Service error"));
+
+            // Act
+            await oswController.generatePMtiles(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while generating PM tiles");
+            expect(next).not.toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
+    describe("OSW Controller - retrievePmTiles", () => {
+        test("When requested with valid tdei_dataset_id, Expect to return HTTP status 200 and pmTilesUrl", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" }
+            });
+            const { res, next } = getMockRes();
+            const pmTilesUrl = "https://mock-url.com/pmtiles";
+            jest.spyOn(oswService, "getDownloadableOSWPmTilesUrl").mockResolvedValueOnce(pmTilesUrl);
+
+            // Act
+            await oswController.retrievePmTiles(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(pmTilesUrl);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When service throws HttpException, Expect to return error status and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" }
+            });
+            const { res, next } = getMockRes();
+            const error = new HttpException(404, "Not found");
+            jest.spyOn(oswService, "getDownloadableOSWPmTilesUrl").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.retrievePmTiles(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When service throws generic error, Expect to return HTTP status 500 and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "getDownloadableOSWPmTilesUrl").mockRejectedValueOnce(new Error("Service error"));
+
+            // Act
+            await oswController.retrievePmTiles(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while retriving the PM tiles");
+            expect(next).not.toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
+    describe("OSW Controller - updateDatasetVisibility", () => {
+        test("When allow_viewer_access is valid boolean, Expect to update visibility and return HTTP status 200", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" },
+                body: { allow_viewer_access: true }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "updateDatasetVisibility").mockResolvedValueOnce(true);
+
+            // Act
+            await oswController.updateDatasetVisibility(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith("Dataset visibility updated successfully");
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When allow_viewer_access is missing, Expect to throw InputException", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" },
+                body: {}
+            });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.updateDatasetVisibility(req, res, next);
+
+            // Assert
+            expect(res.status).not.toHaveBeenCalledWith(200);
+            expect(res.send).not.toHaveBeenCalledWith("Dataset visibility updated successfully");
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When allow_viewer_access is not boolean, Expect to throw InputException", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" },
+                body: { allow_viewer_access: "not-a-boolean" }
+            });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.updateDatasetVisibility(req, res, next);
+
+            // Assert
+            expect(res.status).not.toHaveBeenCalledWith(200);
+            expect(res.send).not.toHaveBeenCalledWith("Dataset visibility updated successfully");
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When service throws HttpException, Expect to return error status and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" },
+                body: { allow_viewer_access: true }
+            });
+            const { res, next } = getMockRes();
+            const error = new HttpException(400, "Bad request");
+            jest.spyOn(oswService, "updateDatasetVisibility").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.updateDatasetVisibility(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When service throws generic error, Expect to return HTTP status 500 and not call next with HttpException", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { tdei_dataset_id: "mock-dataset-id" },
+                body: { allow_viewer_access: true }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "updateDatasetVisibility").mockRejectedValueOnce(new Error("Service error"));
+
+            // Act
+            await oswController.updateDatasetVisibility(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while updating the dataset visibility");
+            expect(next).not.toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
+    describe("OSW Controller - getFeedbackMetadata", () => {
+        test("When requested with valid tdei_project_group_id, Expect to return HTTP status 200 and feedbackMetadata", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: { tdei_project_group_id: "mock-project-group-id" },
+                body: { user_id: "mock-user-id" }
+            });
+            const { res, next } = getMockRes();
+            const feedbackMetadata: any = { count: 5, overdue: 0, open: 3 };
+            jest.spyOn(oswService, "getFeedbacksMetadata").mockResolvedValueOnce(feedbackMetadata);
+
+            // Act
+            await oswController.getFeedbackMetadata(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(feedbackMetadata);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When service throws InputException, Expect to return error status and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: { tdei_project_group_id: "mock-project-group-id" },
+                body: { user_id: "mock-user-id" }
+            });
+            const { res, next } = getMockRes();
+            const error = new InputException("Invalid input");
+            jest.spyOn(oswService, "getFeedbacksMetadata").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.getFeedbackMetadata(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When service throws generic error, Expect to return HTTP status 500 and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: { tdei_project_group_id: "mock-project-group-id" },
+                body: { user_id: "mock-user-id" }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "getFeedbacksMetadata").mockRejectedValueOnce(new Error("Service error"));
+
+            // Act
+            await oswController.getFeedbackMetadata(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while fetching the feedback metadata");
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
+    describe("OSW Controller - getFeedbackRequests", () => {
+        test("When request is valid, Expect to return HTTP status 200 and feedbacks", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    tdei_project_group_id: "mock-project-group-id",
+                    tdei_dataset_id: "mock-dataset-id"
+                },
+                body: {
+                    user_id: "mock-user-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const expectedFeedbacks: any = [{ feedback_text: "Test feedback" }];
+            jest.spyOn(oswService, "getFeedbacks").mockResolvedValueOnce(expectedFeedbacks);
+
+            // Act
+            await oswController.getFeedbackRequests(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(expectedFeedbacks);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When validation fails, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {},
+                body: { user_id: "mock-user-id" }
+            });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.getFeedbackRequests(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        test("When service throws error, Expect to return HTTP status 500 and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                query: {
+                    tdei_project_group_id: "mock-project-group-id"
+                },
+                body: { user_id: "mock-user-id" }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "getFeedbacks").mockRejectedValueOnce(new Error("Service error"));
+
+            // Act
+            await oswController.getFeedbackRequests(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while fetching the feedback information");
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
+    describe("OSW Controller - addFeedbackRequest", () => {
+        test("When request body is empty, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq({ body: null, params: { project_id: "mock-project-id", tdei_dataset_id: "mock-dataset-id" } });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.addFeedbackRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When feedback is valid, Expect to return HTTP status 200", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    feedback_text: "Test feedback",
+                    customer_email: "test@example.com",
+                    location_latitude: 1,
+                    location_longitude: 2,
+                    due_date: "2025-08-29T00:00:00Z"
+                },
+                params: {
+                    project_id: "mock-project-id",
+                    tdei_dataset_id: "mock-dataset-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "addFeedbackRequest").mockResolvedValueOnce("101");
+
+            // Act
+            await oswController.addFeedbackRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith("Feedback submitted successfully");
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When service throws HttpException, Expect to return error status and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    feedback_text: "Test feedback",
+                    customer_email: "test@example.com",
+                    location_latitude: 1,
+                    location_longitude: 2,
+                    due_date: "2025-08-29T00:00:00Z"
+                },
+                params: {
+                    project_id: "mock-project-id",
+                    tdei_dataset_id: "mock-dataset-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new HttpException(400, "Bad request");
+            jest.spyOn(oswService, "addFeedbackRequest").mockRejectedValueOnce(error);
+
+            // Act
+            await oswController.addFeedbackRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When service throws generic error, Expect to return HTTP status 500 and call next", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    feedback_text: "Test feedback",
+                    customer_email: "test@example.com",
+                    location_latitude: 1,
+                    location_longitude: 2,
+                    due_date: "2025-08-29T00:00:00Z"
+                },
+                params: {
+                    project_id: "mock-project-id",
+                    tdei_dataset_id: "mock-dataset-id"
+                }
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "addFeedbackRequest").mockRejectedValueOnce(new Error("Service error"));
+
+            // Act
+            await oswController.addFeedbackRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the feedback request");
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
 });
