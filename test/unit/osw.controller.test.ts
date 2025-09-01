@@ -981,6 +981,22 @@ describe("OSW Controller Test", () => {
             expect(next).not.toHaveBeenCalled();
         });
 
+        test("When request is for geojson, Expect to stream geojson and set headers", async () => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1', format: 'geojson' } });
+            const { res, next } = getMockRes();
+            const stream = new PassThrough();
+            const pipeSpy = jest.spyOn(stream, 'pipe');
+            jest.spyOn(oswService, 'downloadFeedbacks').mockResolvedValueOnce(stream as any);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', format: 'geojson' }));
+            expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/geo+json');
+            expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="feedback.geojson"');
+            expect(pipeSpy).toHaveBeenCalledWith(res);
+            expect(next).not.toHaveBeenCalled();
+        });
+
         test("When request includes pagination, Expect service called with page params", async () => {
             const req = getMockReq({ params: { tdei_project_group_id: 'pg1' }, query: { page_no: '2', page_size: '5' } });
             const { res, next } = getMockRes();
@@ -1037,7 +1053,7 @@ describe("OSW Controller Test", () => {
             await oswController.downloadFeedbacks(req, res, next);
 
             expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.send).toHaveBeenCalledWith('Required fields are missing or invalid: format must be csv');
+            expect(res.send).toHaveBeenCalledWith('Required fields are missing or invalid: format must be csv or geojson');
             expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
             expect(spy).not.toHaveBeenCalled();
         });

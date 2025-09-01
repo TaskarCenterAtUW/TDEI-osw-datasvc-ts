@@ -14,7 +14,7 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
     override page_size?: number;
 
     @IsOptional()
-    @IsIn(['csv'], { message: 'format must be csv' })
+    @IsIn(['csv', 'geojson'], { message: 'format must be csv or geojson' })
     format: string = 'csv';
 
     @IsOptional()

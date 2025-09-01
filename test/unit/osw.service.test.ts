@@ -1207,6 +1207,59 @@ describe("OSW Service Test", () => {
             expect(query.text).not.toContain('LIMIT');
         });
 
+        test("should return geojson stream of feedbacks", async () => {
+            const rows = [{
+                id: 1,
+                tdei_project_group_id: 'pg1',
+                project_group_name: 'PG',
+                tdei_dataset_id: 'ds1',
+                dataset_name: 'Dataset',
+                dataset_element_id: 'way/1',
+                feedback_text: 'test',
+                customer_email: 'user@example.com',
+                location_latitude: 1,
+                location_longitude: 2,
+                created_at: new Date('2025-01-01T00:00:00Z'),
+                updated_at: new Date('2025-01-01T00:00:00Z'),
+                status: 'open',
+                due_date: new Date('2025-01-02T00:00:00Z')
+            }];
+            jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', format: 'geojson' });
+
+            const stream = await oswService.downloadFeedbacks(params);
+            const chunks: Buffer[] = [];
+            for await (const chunk of stream) {
+                chunks.push(Buffer.from(chunk));
+            }
+            const geojson = Buffer.concat(chunks).toString();
+            const expected = JSON.stringify({
+                type: 'FeatureCollection',
+                features: [
+                    {
+                        type: 'Feature',
+                        geometry: { type: 'Point', coordinates: [2, 1] },
+                        properties: {
+                            id: 1,
+                            project_group_name: 'PG',
+                            tdei_project_group_id: 'pg1',
+                            dataset_name: 'Dataset',
+                            tdei_dataset_id: 'ds1',
+                            dataset_element_id: 'way/1',
+                            feedback_text: 'test',
+                            reporter_email: 'user@example.com',
+                            created_at: '2025-01-01T00:00:00.000Z',
+                            updated_at: '2025-01-01T00:00:00.000Z',
+                            status: 'open',
+                            due_date: '2025-01-02T00:00:00.000Z'
+                        }
+                    }
+                ]
+            });
+
+            expect(geojson).toBe(expected);
+        });
+
         test("should include limit when pagination provided", async () => {
             const rows: any[] = [];
             jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
