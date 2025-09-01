@@ -325,7 +325,7 @@ describe("OSW Service Test", () => {
                     job_id: job_id.toString(),
                     service: "spatial_join",
                     parameters: requestService,
-                    user_id: user_id,
+                    user_id: user_id
                 }),
                 user_id
             );
@@ -1068,7 +1068,7 @@ describe("OSW Service Test", () => {
                     job_id: job_id.toString(),
                     service: "union_dataset",
                     parameters: requestService,
-                    user_id: user_id,
+                    user_id: user_id
                 }),
                 user_id
             );
