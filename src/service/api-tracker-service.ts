@@ -21,7 +21,8 @@ export class APITrackerService {
               ...req.query
             }
             // Extract the real client IP
-            const clientIp = req.headers['x-forwarded-for'] ? (req.headers['x-forwarded-for'] as string).split(',')[0].trim() : req.ip;
+            const clientIpHeader = req.headers['x-forwarded-for'] as string | undefined;
+            const clientIp = clientIpHeader ? clientIpHeader.split(',')[0].trim() : (req.ip || 'unknown');
             const details = new APIUsageDetailsEntity({
                 endpoint: matchedRoute,
                 method: req.method,
