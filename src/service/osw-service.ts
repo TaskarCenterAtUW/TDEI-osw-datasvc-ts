@@ -251,7 +251,7 @@ class OswService implements IOswService {
         * @returns A Promise that resolves to the project dataviewer configuration or undefined if not configured.
         * @throws If the project group does not exist or if the dataviewer is not configured.
         */
-    private async getProjectGroupDataviewerConfig(tdei_project_id: string): Promise<IProjectDataviewerConfig | undefined> {
+    async getProjectGroupDataviewerConfig(tdei_project_id: string): Promise<IProjectDataviewerConfig | undefined> {
         const queryConfig = <QueryConfig>{
             text: "select data_viewer_config from public.project_group where project_group_id = $1",
             values: [tdei_project_id]

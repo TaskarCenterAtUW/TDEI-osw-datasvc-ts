@@ -2,7 +2,7 @@ import { QueryResult } from "pg";
 import dbClient from "../../src/database/data-source";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { mockAppContext, mockCore } from "../common/mock-utils";
-import { InputException, ServiceNotFoundException } from "../../src/exceptions/http/http-exceptions";
+import { ForbiddenRequest, InputException, ServiceNotFoundException } from "../../src/exceptions/http/http-exceptions";
 import HttpException from "../../src/exceptions/http/http-base-exception";
 import { Core } from "nodets-ms-core";
 import storageService from "../../src/service/storage-service";
@@ -319,12 +319,12 @@ describe("OSW Service Test", () => {
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 job_id.toString(),
                 WorkflowName.osw_spatial_join,
-                {
+                expect.objectContaining({
                     job_id: job_id.toString(),
                     service: "spatial_join",
                     parameters: requestService,
                     user_id: user_id
-                },
+                }),
                 user_id
             );
         });
@@ -726,7 +726,7 @@ describe("OSW Service Test", () => {
             const validateMetadataSpy = jest.spyOn(tdeiCoreService, 'validateMetadata').mockResolvedValue(true);
             const uploadSpy = jest.spyOn(storageService, 'uploadFile').mockResolvedValue("file-path");
             jest.spyOn(storageService, "generateRandomUUID").mockReturnValueOnce('mocked-uuid');
-            Utility.calculateTotalSize  = jest.fn().mockReturnValue(1000);
+            Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
 
             // Mock the behavior of checkMetaNameAndVersionUnique
             // jest.spyOn(tdeiCoreService, 'checkMetaNameAndVersionUnique').mockResolvedValue(false);
@@ -1062,12 +1062,12 @@ describe("OSW Service Test", () => {
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 job_id.toString(),
                 WorkflowName.osw_union_dataset,
-                {
+                expect.objectContaining({
                     job_id: job_id.toString(),
                     service: "union_dataset",
                     parameters: requestService,
                     user_id: user_id
-                },
+                }),
                 user_id
             );
         });
@@ -1164,6 +1164,433 @@ describe("OSW Service Test", () => {
                 expect.any(Object), // Ensure the correct object is passed to the workflow
                 backendRequest.user_id
             );
+        });
+    });
+
+    describe("OSW Service - generatePMTiles", () => {
+        test("When dataset is valid and published, Expect to create job, start workflow, and return job_id", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_dataset_id = "mock-dataset-id";
+            const dataset = {
+                data_type: "osw",
+                status: "Publish",
+                latest_dataset_url: "mock-url"
+            };
+            const job_id = 123;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset as any);
+            jest.spyOn(oswService.jobServiceInstance, "createJob").mockResolvedValueOnce(job_id);
+            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
+
+            // Act
+            const result = await oswService.generatePMTiles(user_id, tdei_dataset_id);
+
+            // Assert
+            expect(oswService.tdeiCoreServiceInstance.getDatasetDetailsById).toHaveBeenCalledWith(tdei_dataset_id);
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(expect.objectContaining({
+                data_type: "osw",
+                job_type: "Dataset-PMTiles",
+                status: "IN-PROGRESS",
+                user_id: user_id,
+                request_input: { tdei_dataset_id }
+            }));
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                job_id.toString(),
+                WorkflowName.osw_generate_pmtiles,
+                expect.objectContaining({
+                    tdei_dataset_id,
+                    job_id: job_id.toString(),
+                    dataset_url: dataset.latest_dataset_url,
+                    user_id
+                }),
+                user_id
+            );
+            expect(result).toBe(job_id.toString());
+        });
+
+        test("When dataset is not OSW, Expect to throw InputException", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_dataset_id = "mock-dataset-id";
+            const dataset = {
+                data_type: "pathways",
+                status: "Publish"
+            };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset as any);
+
+            // Act & Assert
+            await expect(oswService.generatePMTiles(user_id, tdei_dataset_id)).rejects.toThrow(InputException);
+        });
+
+        test("When dataset is not published, Expect to throw ForbiddenRequest", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_dataset_id = "mock-dataset-id";
+            const dataset = {
+                data_type: "osw",
+                status: "Draft"
+            };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset as any);
+
+            // Act & Assert
+            await expect(oswService.generatePMTiles(user_id, tdei_dataset_id)).rejects.toThrow(ForbiddenRequest);
+        });
+
+        test("When service throws error, Expect to propagate error", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_dataset_id = "mock-dataset-id";
+            const error = new Error("Unexpected error");
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockRejectedValue(error);
+
+            // Act & Assert
+            await expect(oswService.generatePMTiles(user_id, tdei_dataset_id)).rejects.toThrow(error);
+        });
+    });
+
+    describe("OSW Service - updateDatasetVisibility", () => {
+        test("When dataset is valid, published, and project group allows viewer, Expect to update visibility and return true", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const allow_viewer_access = true;
+            const dataset = {
+                data_type: "osw",
+                status: "Publish",
+                tdei_project_group_id: "mock-project-group-id"
+            };
+            const pg_data_viewer_config = { dataset_viewer_allowed: true };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset as any);
+            jest.spyOn(oswService, "getProjectGroupDataviewerConfig").mockResolvedValue(pg_data_viewer_config as any);
+            const dbSpy = jest.spyOn(dbClient, "query").mockResolvedValue(<any>{ rowCount: 1 });
+
+            // Act
+            const result = await oswService.updateDatasetVisibility(tdei_dataset_id, allow_viewer_access);
+
+            // Assert
+            expect(oswService.tdeiCoreServiceInstance.getDatasetDetailsById).toHaveBeenCalledWith(tdei_dataset_id);
+            expect(oswService.getProjectGroupDataviewerConfig).toHaveBeenCalledWith(dataset.tdei_project_group_id);
+            expect(dbSpy).toHaveBeenCalledWith(expect.objectContaining({
+                text: expect.stringContaining("UPDATE content.dataset SET data_viewer_allowed = $1 WHERE tdei_dataset_id = $2"),
+                values: [allow_viewer_access, tdei_dataset_id]
+            }));
+            expect(result).toBe(true);
+        });
+
+        test("When dataset is not OSW, Expect to throw InputException", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const allow_viewer_access = true;
+            const dataset = {
+                data_type: "pathways",
+                status: "Publish",
+                tdei_project_group_id: "mock-project-group-id"
+            };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset as any);
+
+            // Act & Assert
+            await expect(oswService.updateDatasetVisibility(tdei_dataset_id, allow_viewer_access)).rejects.toThrow(InputException);
+        });
+
+        test("When dataset is not published, Expect to throw ForbiddenRequest", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const allow_viewer_access = true;
+            const dataset = {
+                data_type: "osw",
+                status: "Draft",
+                tdei_project_group_id: "mock-project-group-id"
+            };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset as any);
+
+            // Act & Assert
+            await expect(oswService.updateDatasetVisibility(tdei_dataset_id, allow_viewer_access)).rejects.toThrow(ForbiddenRequest);
+        });
+
+        test("When project group config does not allow viewer, Expect to throw ForbiddenRequest", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const allow_viewer_access = true;
+            const dataset = {
+                data_type: "osw",
+                status: "Publish",
+                tdei_project_group_id: "mock-project-group-id"
+            };
+            const pg_data_viewer_config = { dataset_viewer_allowed: false };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset as any);
+            jest.spyOn(oswService, "getProjectGroupDataviewerConfig").mockResolvedValue(pg_data_viewer_config as any);
+
+            // Act & Assert
+            await expect(oswService.updateDatasetVisibility(tdei_dataset_id, allow_viewer_access)).rejects.toThrow(ForbiddenRequest);
+        });
+
+        test("When dbClient.query throws error, Expect to propagate error", async () => {
+            // Arrange
+            const tdei_dataset_id = "mock-dataset-id";
+            const allow_viewer_access = true;
+            const dataset = {
+                data_type: "osw",
+                status: "Publish",
+                tdei_project_group_id: "mock-project-group-id"
+            };
+            const pg_data_viewer_config = { dataset_viewer_allowed: true };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(dataset as any);
+            jest.spyOn(oswService, "getProjectGroupDataviewerConfig").mockResolvedValue(pg_data_viewer_config as any);
+            const dbError = new Error("DB error");
+            jest.spyOn(dbClient, "query").mockRejectedValue(dbError);
+
+            // Act & Assert
+            await expect(oswService.updateDatasetVisibility(tdei_dataset_id, allow_viewer_access)).rejects.toThrow(dbError);
+        });
+    });
+
+    describe("OSW Service - getFeedbacks", () => {
+        test("When query returns feedback rows, Expect to map and return FeedbackResponseDTO array", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const params = {
+                getQuery: jest.fn().mockReturnValue({
+                    text: "SELECT ...",
+                    values: ["val1"]
+                })
+            } as any;
+            const dbRows = [
+                {
+                    tdei_project_group_id: "pgid1",
+                    project_group_name: "Project Group 1",
+                    tdei_dataset_id: "dsid1",
+                    dataset_name: "Dataset 1",
+                    feedback_text: "Feedback 1"
+                },
+                {
+                    tdei_project_group_id: "pgid2",
+                    project_group_name: "Project Group 2",
+                    tdei_dataset_id: "dsid2",
+                    dataset_name: "Dataset 2",
+                    feedback_text: "Feedback 2"
+                }
+            ];
+            jest.spyOn(dbClient, "query").mockResolvedValue(<any>{ rows: dbRows });
+
+            // Act
+            const result = await oswService.getFeedbacks(user_id, params);
+
+            // Assert
+            expect(params.getQuery).toHaveBeenCalledWith(user_id);
+            expect(dbClient.query).toHaveBeenCalledWith({
+                text: "SELECT ...",
+                values: ["val1"]
+            });
+            expect(result).toHaveLength(2);
+            expect(result[0].project_group).toEqual({
+                tdei_project_group_id: "pgid1",
+                name: "Project Group 1"
+            });
+            expect(result[0].dataset).toEqual({
+                tdei_dataset_id: "dsid1",
+                name: "Dataset 1"
+            });
+            expect(result[0].feedback_text).toBe("Feedback 1");
+        });
+
+        test("When dbClient.query throws error, Expect to propagate error", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const params = {
+                getQuery: jest.fn().mockReturnValue({
+                    text: "SELECT ...",
+                    values: ["val1"]
+                })
+            } as any;
+            const dbError = new Error("DB error");
+            jest.spyOn(dbClient, "query").mockRejectedValue(dbError);
+
+            // Act & Assert
+            await expect(oswService.getFeedbacks(user_id, params)).rejects.toThrow(dbError);
+        });
+    });
+
+    describe("OSW Service - getFeedbacksMetadata", () => {
+        test("When query returns metadata row, Expect to map and return FeedbackMetadataDTO", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_project_group_id = "mock-project-group-id";
+            const dbRows = [
+                {
+                    total_count: "5",
+                    total_overdues: "2",
+                    total_open: "3"
+                }
+            ];
+            jest.spyOn(dbClient, "query").mockResolvedValue(<any>{ rows: dbRows });
+
+            // Act
+            const result = await oswService.getFeedbacksMetadata(user_id, tdei_project_group_id);
+
+            // Assert
+            expect(dbClient.query).toHaveBeenCalledWith(expect.objectContaining({
+                text: expect.stringContaining("SELECT COUNT(fd.id) as total_count"),
+                values: [tdei_project_group_id]
+            }));
+            expect(result).toEqual({
+                total_count: 5,
+                total_overdues: 2,
+                total_open: 3
+            });
+        });
+
+        test("When query returns no rows, Expect to return zeroed FeedbackMetadataDTO", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_project_group_id = "mock-project-group-id";
+            jest.spyOn(dbClient, "query").mockResolvedValue(<any>{ rows: [] });
+
+            // Act
+            const result = await oswService.getFeedbacksMetadata(user_id, tdei_project_group_id);
+
+            // Assert
+            expect(result).toEqual({
+                total_count: 0,
+                total_overdues: 0,
+                total_open: 0
+            });
+        });
+
+        test("When dbClient.query throws error, Expect to propagate error", async () => {
+            // Arrange
+            const user_id = "mock-user-id";
+            const tdei_project_group_id = "mock-project-group-id";
+            const dbError = new Error("DB error");
+            jest.spyOn(dbClient, "query").mockRejectedValue(dbError);
+
+            // Act & Assert
+            await expect(oswService.getFeedbacksMetadata(user_id, tdei_project_group_id)).rejects.toThrow(dbError);
+        });
+    });
+
+    describe("OSW Service - addFeedbackRequest", () => {
+        test("When feedback is valid, Expect to insert feedback and return new feedback id", async () => {
+            // Arrange
+            const feedback = {
+                tdei_project_id: "pgid1",
+                tdei_dataset_id: "dsid1",
+                feedback_text: "Test feedback",
+                customer_email: "test@example.com",
+                location_latitude: 12.34,
+                location_longitude: 56.78,
+                dataset_element_id: "elem1"
+            } as any;
+            const feedbackDataset = {
+                data_type: "osw",
+                tdei_project_group_id: "pgid1",
+                data_viewer_allowed: true
+            };
+            const pg_data_viewer_config = { dataset_viewer_allowed: true, feedback_turnaround_time: { number: 2, units: "days" } };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(feedbackDataset as any);
+            jest.spyOn(oswService, "getProjectGroupDataviewerConfig").mockResolvedValue(pg_data_viewer_config as any);
+            jest.spyOn(dbClient, "query").mockResolvedValue(<any>{ rows: [{ id: "new-feedback-id" }] });
+
+            // Act
+            const result = await oswService.addFeedbackRequest(feedback);
+
+            // Assert
+            expect(oswService.tdeiCoreServiceInstance.getDatasetDetailsById).toHaveBeenCalledWith(feedback.tdei_dataset_id);
+            expect(oswService.getProjectGroupDataviewerConfig).toHaveBeenCalledWith(feedback.tdei_project_id);
+            expect(dbClient.query).toHaveBeenCalled();
+            expect(result).toBe("new-feedback-id");
+        });
+
+        test("When dataset is not OSW, Expect to throw InputException", async () => {
+            // Arrange
+            const feedback = {
+                tdei_project_id: "pgid1",
+                tdei_dataset_id: "dsid1"
+            } as any;
+            const feedbackDataset = {
+                data_type: "pathways",
+                tdei_project_group_id: "pgid1"
+            };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(feedbackDataset as any);
+
+            // Act & Assert
+            await expect(oswService.addFeedbackRequest(feedback)).rejects.toThrow(InputException);
+        });
+
+        test("When dataset does not belong to project group, Expect to throw InputException", async () => {
+            // Arrange
+            const feedback = {
+                tdei_project_id: "pgid1",
+                tdei_dataset_id: "dsid1"
+            } as any;
+            const feedbackDataset = {
+                data_type: "osw",
+                tdei_project_group_id: "pgid2"
+            };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(feedbackDataset as any);
+
+            // Act & Assert
+            await expect(oswService.addFeedbackRequest(feedback)).rejects.toThrow(InputException);
+        });
+
+        test("When dataset viewer not allowed, Expect to throw InputException", async () => {
+            // Arrange
+            const feedback = {
+                tdei_project_id: "pgid1",
+                tdei_dataset_id: "dsid1"
+            } as any;
+            const feedbackDataset = {
+                data_type: "osw",
+                tdei_project_group_id: "pgid1",
+                data_viewer_allowed: false
+            };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(feedbackDataset as any);
+
+            // Act & Assert
+            await expect(oswService.addFeedbackRequest(feedback)).rejects.toThrow(InputException);
+        });
+
+        test("When project group config does not allow viewer, Expect to throw InputException", async () => {
+            // Arrange
+            const feedback = {
+                tdei_project_id: "pgid1",
+                tdei_dataset_id: "dsid1"
+            } as any;
+            const feedbackDataset = {
+                data_type: "osw",
+                tdei_project_group_id: "pgid1",
+                data_viewer_allowed: true
+            };
+            const pg_data_viewer_config = { dataset_viewer_allowed: false };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(feedbackDataset as any);
+            jest.spyOn(oswService, "getProjectGroupDataviewerConfig").mockResolvedValue(pg_data_viewer_config as any);
+
+            // Act & Assert
+            await expect(oswService.addFeedbackRequest(feedback)).rejects.toThrow(InputException);
+        });
+
+        test("When dbClient.query throws error, Expect to propagate error", async () => {
+            // Arrange
+            const feedback = {
+                tdei_project_id: "pgid1",
+                tdei_dataset_id: "dsid1",
+                feedback_text: "Test feedback",
+                customer_email: "test@example.com",
+                location_latitude: 12.34,
+                location_longitude: 56.78,
+                dataset_element_id: "elem1"
+            } as any;
+            const feedbackDataset = {
+                data_type: "osw",
+                tdei_project_group_id: "pgid1",
+                data_viewer_allowed: true
+            };
+            const pg_data_viewer_config = { dataset_viewer_allowed: true, feedback_turnaround_time: { number: 2, units: "days" } };
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue(feedbackDataset as any);
+            jest.spyOn(oswService, "getProjectGroupDataviewerConfig").mockResolvedValue(pg_data_viewer_config as any);
+            const dbError = new Error("DB error");
+            jest.spyOn(dbClient, "query").mockRejectedValue(dbError);
+
+            // Act & Assert
+            await expect(oswService.addFeedbackRequest(feedback)).rejects.toThrow(dbError);
         });
     });
 });

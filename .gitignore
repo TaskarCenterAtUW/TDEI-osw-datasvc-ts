@@ -171,3 +171,4 @@ package-lock.json
 test-report.html
 test_results
 .idea/
+.nvmrc
