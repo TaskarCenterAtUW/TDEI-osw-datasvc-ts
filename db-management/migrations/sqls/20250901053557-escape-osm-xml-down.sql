@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS content.tdei_escape_xml_attr(text);
