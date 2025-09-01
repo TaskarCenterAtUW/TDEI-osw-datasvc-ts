@@ -156,7 +156,7 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-viewer/feedbacks/:project_id/:tdei_dataset_id`, apiTracker, authenticate, this.addFeedbackRequest);
         this.router.get(`${this.path}/dataset-viewer/feedbacks`, apiTracker, authenticate, listRequestValidation, this.getFeedbackRequests);
         this.router.get(`${this.path}/dataset-viewer/feedbacks/metadata`, apiTracker, authenticate, this.getFeedbackMetadata);
-        this.router.get(`${this.path}/dataset-viewer/feedbacks/download`, apiTracker, authenticate, this.downloadFeedbacks);
+        this.router.get(`${this.path}/dataset-viewer/feedbacks/download/:tdei_project_group_id`, apiTracker, authenticate, authorize(["poc", "osw_data_generator"]), this.downloadFeedbacks);
         this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.updateDatasetVisibility);
         this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.retrievePmTiles);
         this.router.post(`${this.path}/dataset/generate/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.generatePMtiles);
@@ -294,18 +294,19 @@ class OSWController implements IController {
 
     /**
      * Streams feedbacks as CSV for a project group.
+     * Only users with roles `poc` and `osw_data_generator` are permitted.
      * @param request
      * @param response
      * @param next
      */
     async downloadFeedbacks(request: Request, response: express.Response, next: NextFunction) {
         try {
-            const params = new FeedbackDownloadRequestParams(JSON.parse(JSON.stringify(request.query)));
-            await params.validateRequestInput();
-            if (!params.tdei_project_group_id) {
-                response.status(422).send('tdei_project_group_id is required');
-                return next(new HttpException(422, 'tdei_project_group_id is required'));
+            const initParams: any = { ...request.query };
+            if (request.params?.tdei_project_group_id) {
+                initParams.tdei_project_group_id = request.params.tdei_project_group_id;
             }
+            const params = new FeedbackDownloadRequestParams(JSON.parse(JSON.stringify(initParams)));
+            await params.validateRequestInput();
             const stream = await oswService.downloadFeedbacks(params);
             response.setHeader('Content-Type', 'text/csv');
             response.setHeader('Content-Disposition', `attachment; filename="feedback.${params.format}"`);
