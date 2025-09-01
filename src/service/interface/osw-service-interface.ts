@@ -8,8 +8,8 @@ import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dt
 import { feedbackRequestParams } from "../../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../../model/feedback-download-request-params";
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
-import { Readable } from "stream";
 import { IProjectDataviewerConfig } from "./project-dataviewer-config-interface";
+import { Readable } from "stream";
 
 export interface IOswService {
     /*
