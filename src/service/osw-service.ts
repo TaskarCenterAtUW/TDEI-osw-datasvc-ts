@@ -4,7 +4,7 @@ import dbClient from "../database/data-source";
 import { DatasetEntity } from "../database/entity/dataset-entity";
 import { DownloadStatsEntity } from "../database/entity/download-stats";
 import HttpException from "../exceptions/http/http-base-exception";
-import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
+import { ForbiddenRequest, InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { IUploadRequest } from "./interface/upload-request-interface";
 import path from "path";
 import { Readable } from "stream";
@@ -14,9 +14,7 @@ import { IOswService } from "./interface/osw-service-interface";
 import { BboxServiceRequest, InclinationServiceRequest, TagRoadServiceRequest } from "../model/backend-request-interface";
 import jobService from "./job-service";
 import { IJobService } from "./interface/job-service-interface";
-import { IDownloadStats } from "./interface/download-stats-interface";
 import { CreateJobDTO } from "../model/job-dto";
-import { DownloadStatsDTO } from "../model/download-stats-dto";
 import { JobStatus, JobType, TDEIDataType } from "../model/jobs-get-query-params";
 import tdeiCoreService from "./tdei-core-service";
 import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
@@ -30,9 +28,298 @@ import oswSchema from "../assets/opensidewalks_0.2.schema.json";
 import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
 import { Utility } from "../utility/utility";
 import AdmZip from "adm-zip";
+import { FeedbackRequestDto, FeedbackResponseDTO } from "../model/feedback-dto";
+import { FeedbackEntity } from "../database/entity/feedback-entity";
+import { QueryConfig } from "pg";
+import { feedbackRequestParams } from "../model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
+import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
+import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
+
+    /**
+     * Generates PMTiles for a given TDEI dataset ID.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user requesting the PMTiles generation.
+     * @returns The generated Job id for PMTiles creation.
+     */
+    async generatePMTiles(user_id: string, tdei_dataset_id: string): Promise<string> {
+
+        try {
+
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+
+            if (dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${tdei_dataset_id} is not an osw dataset.`);
+
+            if (dataset.status !== RecordStatus["Publish"])
+                throw new ForbiddenRequest(`Dataset ${tdei_dataset_id} has not been released. PMTiles generation is not allowed.`);
+
+            let job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-PMTiles"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id: tdei_dataset_id
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            let workflow_start = WorkflowName.osw_generate_pmtiles;
+            let workflow_input = {
+                tdei_dataset_id: tdei_dataset_id,
+                job_id: job_id.toString(),
+                dataset_url: dataset.latest_dataset_url,
+                user_id: user_id
+            }
+            //Trigger the workflow
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
+            return job_id.toString();
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    /**
+     * Updates the visibility of a dataset.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param allow_viewer_access - A boolean indicating whether to allow viewer access.
+     * @returns A Promise that resolves to a boolean indicating success or failure.
+     */
+    async updateDatasetVisibility(tdei_dataset_id: string, allow_viewer_access: boolean): Promise<boolean> {
+        try {
+            // Check if the dataset exists
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+
+            if (dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${tdei_dataset_id} is not an osw dataset.`);
+
+            if (dataset.status !== RecordStatus["Publish"])
+                throw new ForbiddenRequest(`Dataset ${tdei_dataset_id} has not been released. You can update its visibility only once it is released.`);
+
+            //verify project group dataviewer config is configured 
+            let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(dataset.tdei_project_group_id);
+
+            if (pg_data_viewer_config && pg_data_viewer_config.dataset_viewer_allowed === false)
+                throw new ForbiddenRequest(`Please contact the project administrator to allow dataset viewer access for project group.`);
+
+            // Update the dataset visibility
+            const queryConfig: QueryConfig = {
+                text: `UPDATE content.dataset SET data_viewer_allowed = $1 WHERE tdei_dataset_id = $2`,
+                values: [allow_viewer_access, tdei_dataset_id]
+            };
+            await dbClient.query(queryConfig);
+            return true;
+
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    /**
+         * Gets feedback requests.
+         * @param user_id - The ID of the user making the request.
+         * @param params - The feedback request parameters.
+         * @returns A Promise that resolves to an array of feedback DTOs.
+         */
+    async getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackResponseDTO>> {
+        try {
+            const queryObject = params.getQuery(user_id);
+
+            const queryConfig = <QueryConfig>{
+                text: queryObject.text,
+                values: queryObject.values
+            }
+            //Get feedback details
+            const result = await dbClient.query(queryConfig);
+            return result.rows.map((row: any) => {
+                let info = FeedbackResponseDTO.from(row);
+                info.project_group = {
+                    tdei_project_group_id: row.tdei_project_group_id,
+                    name: row.project_group_name
+                };
+                info.dataset = {
+                    tdei_dataset_id: row.tdei_dataset_id,
+                    name: row.dataset_name,
+
+                };
+                return info;
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+         * Gets feedbacks metadata.
+     * @param user_id - The ID of the user making the request.
+     * @param tdei_project_group_id - The ID of the TDEI project group.
+     * @returns A Promise that resolves to an array of feedback DTOs.
+     * @throws If there is an error retrieving the feedback metadata.
+     * @throws If there is an error executing the query.
+     */
+    async getFeedbacksMetadata(user_id: any, tdei_project_group_id?: string): Promise<FeedbackMetadataDTO> {
+        try {
+            let queryConfig = <QueryConfig>{
+                text: `
+                SELECT COUNT(fd.id) as total_count, 
+                SUM(CASE WHEN fd.due_date < NOW() AND fd.status = 'open' THEN 1 ELSE 0 END) as total_overdues,
+                SUM(CASE WHEN fd.status = 'open' THEN 1 ELSE 0 END) as total_open 
+                from content.feedback fd`,
+                values: []
+            }
+            if (tdei_project_group_id) {
+                queryConfig.text += ` WHERE fd.tdei_project_id = $1`;
+                queryConfig.values?.push(tdei_project_group_id!);
+            }
+            //Get feedback details
+            const result = await dbClient.query(queryConfig);
+            if (result.rows.length > 0) {
+                const row = result.rows[0];
+                return {
+                    total_count: Number(row.total_count) || 0,
+                    total_overdues: Number(row.total_overdues) || 0,
+                    total_open: Number(row.total_open) || 0
+                } as FeedbackMetadataDTO;
+            }
+            return { total_count: 0, total_overdues: 0, total_open: 0 } as FeedbackMetadataDTO;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Streams feedback records for a project group in CSV format.
+     * @param params - Feedback request parameters.
+     * @returns A Readable stream containing CSV data.
+     */
+    async downloadFeedbacks(params: FeedbackDownloadRequestParams): Promise<Readable> {
+        try {
+            const format = params.format?.toLowerCase() ?? 'csv';
+            if (format !== 'csv') {
+                throw new InputException(`Unsupported format: ${format}`);
+            }
+            const queryObject = params.getQuery('');
+            const queryConfig: QueryConfig = {
+                text: queryObject.text,
+                values: queryObject.values
+            };
+            const result = await dbClient.query(queryConfig);
+
+            function* csvGenerator() {
+                const header = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n';
+                yield header;
+                for (const row of result.rows) {
+                    const values = [
+                        row.id,
+                        row.tdei_project_group_id,
+                        row.project_group_name,
+                        row.tdei_dataset_id,
+                        row.dataset_name,
+                        row.dataset_element_id ?? '',
+                        row.feedback_text ?? '',
+                        row.customer_email ?? '',
+                        row.location_latitude ?? '',
+                        row.location_longitude ?? '',
+                        row.created_at ? new Date(row.created_at).toISOString() : '',
+                        row.updated_at ? new Date(row.updated_at).toISOString() : '',
+                        row.status ?? '',
+                        row.due_date ? new Date(row.due_date).toISOString() : ''
+                    ].map((val: any) => {
+                        const strVal = val !== null && val !== undefined ? String(val) : '';
+                        // Escape double quotes by doubling them
+                        return strVal.includes(',') || strVal.includes('"') || strVal.includes('\n') ? `"${strVal.replace(/"/g, '""')}"` : strVal;
+                    }).join(',');
+                    yield values + '\n';
+                }
+            }
+
+            return Readable.from(csvGenerator());
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Adds a feedback request.
+     * @param feedback - The feedback data transfer object.
+     * @param project_id - The ID of the project.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @returns A Promise that resolves to the ID of the created feedback.
+     */
+    async addFeedbackRequest(feedback: FeedbackRequestDto): Promise<string> {
+        try {
+            //verify dataset exists
+            const feedbackDataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(feedback.tdei_dataset_id);
+
+            if (feedbackDataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${feedback.tdei_dataset_id} is not an osw dataset.`);
+
+            if (feedbackDataset.tdei_project_group_id != feedback.tdei_project_id)
+                throw new InputException(`Dataset ${feedback.tdei_dataset_id} does not belong to project group ${feedback.tdei_project_id}.`);
+
+            if (feedbackDataset.data_viewer_allowed === false)
+                throw new InputException(`Dataset ${feedback.tdei_dataset_id} is not allowed for viewer access and cannot accept feedbacks. Please contact the project administrator.`);
+
+            let pg_data_viewer_config: IProjectDataviewerConfig | undefined = undefined;
+            if (feedback.tdei_project_id && feedback.tdei_project_id.trim() != '') {
+                pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(feedback.tdei_project_id);
+                if (pg_data_viewer_config && pg_data_viewer_config.dataset_viewer_allowed === false)
+                    throw new InputException(`Dataset viewer access is not allowed for project group ${feedback.tdei_project_id} and cannot accept feedbacks. Please contact the project administrator.`);
+            }
+
+            let entity = new FeedbackEntity();
+            entity.tdei_project_id = feedback.tdei_project_id;
+            entity.tdei_dataset_id = feedback.tdei_dataset_id;
+            entity.feedback_text = feedback.feedback_text;
+            entity.customer_email = feedback.customer_email;
+            entity.location_latitude = feedback.location_latitude;
+            entity.location_longitude = feedback.location_longitude;
+            entity.dataset_element_id = feedback.dataset_element_id ?? '';
+
+            if (pg_data_viewer_config != undefined && pg_data_viewer_config.feedback_turnaround_time.number && pg_data_viewer_config.feedback_turnaround_time.units && pg_data_viewer_config.feedback_turnaround_time.number > 0) {
+                entity.due_date = TdeiDate.getFutureUTCDate(pg_data_viewer_config.feedback_turnaround_time.number, pg_data_viewer_config.feedback_turnaround_time.units);
+            }
+
+            const result = await dbClient.query(entity.getInsertQuery());
+            return result.rows[0].id;
+
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    /*
+        * Gets the project group dataviewer configuration.
+        * @param tdei_project_id - The ID of the TDEI project.
+        * @returns A Promise that resolves to the project dataviewer configuration or undefined if not configured.
+        * @throws If the project group does not exist or if the dataviewer is not configured.
+        */
+    async getProjectGroupDataviewerConfig(tdei_project_id: string): Promise<IProjectDataviewerConfig | undefined> {
+        const queryConfig = <QueryConfig>{
+            text: "select data_viewer_config from public.project_group where project_group_id = $1",
+            values: [tdei_project_id]
+        };
+        let result = await dbClient.query(queryConfig);
+        if (result.rowCount == 0) {
+            throw new HttpException(404, `Project group with ${tdei_project_id} doesn't exist in the system`);
+        }
+
+        if (result.rows[0].data_viewer_config === null || Object.keys(result.rows[0].data_viewer_config).length === 0)
+            throw new InputException(`Dataviewer not configured for project group ${tdei_project_id}. Please contact the project administrator.`);
+
+        return result.rows[0].data_viewer_config ? result.rows[0].data_viewer_config : undefined;
+    }
 
     /**
     * Processes a union join request.
@@ -1019,6 +1306,47 @@ class OswService implements IOswService {
         return sasUrl;
 
 
+    }
+
+    /**
+     * Get downloadable OSM PM tiles URL
+     * @param id Dataset ID
+     * @param user_id User ID
+     * @returns Downloadable URL
+     */
+    async getDownloadableOSWPmTilesUrl(id: string): Promise<string> {
+
+        let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(id);
+
+        if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
+            throw new InputException(`${id} is not a osw dataset.`);
+
+        if (dataset.data_viewer_allowed === false)
+            throw new ForbiddenRequest(`Dataset ${id} is not allowed for data viewer access.`);
+
+        let pg_data_viewer_config = await this.getProjectGroupDataviewerConfig(dataset.tdei_project_group_id);
+
+        if (pg_data_viewer_config && pg_data_viewer_config.dataset_viewer_allowed === false)
+            throw new ForbiddenRequest(`Please contact the project administrator to allow dataset viewer access for project group.`);
+
+
+        const storageClient = Core.getStorageClient();
+        if (storageClient == null) throw new Error("Storage not configured");
+        let pm_tiles_db_url = '';
+
+        if (dataset.pm_tiles_url && dataset.pm_tiles_url != '') {
+            pm_tiles_db_url = decodeURIComponent(dataset.pm_tiles_url);
+        }
+        else
+            throw new HttpException(404, "Requested OSM PM tiles file not found");
+
+        let dlUrl = new URL(pm_tiles_db_url);
+        let relative_path = dlUrl.pathname;
+        let container = relative_path.split('/')[1];
+        let file_path_in_container = relative_path.split('/').slice(2).join('/');
+        let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 24); // 24 hours expiry
+
+        return sasUrl;
     }
 
     async calculateQualityMetric(tdei_dataset_id: string, algorithm: string, sub_regions_file: any, user_id: string): Promise<string> {

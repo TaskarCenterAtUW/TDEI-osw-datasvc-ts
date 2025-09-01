@@ -22,11 +22,14 @@ export class DatasetDTO extends AbstractDomainEntity {
     @Prop()
     download_url!: string;
     @Prop()
+    data_viewer_allowed!: boolean;
+    @Prop()
     metadata!: MetadataModel;
 }
 
 export interface IProjectGroup {
     tdei_project_group_id: string;
+    data_viewer_allowed: boolean;
     name: string;
 }
 

@@ -19,4 +19,31 @@ export class TdeiDate {
         }
         return true;
     }
+
+    static getFutureUTCDate(number: number, units: string): string {
+        const now = new Date();
+
+        switch (units.toLowerCase()) {
+            case "days":
+            case "day":
+                now.setDate(now.getDate() + number);
+                break;
+
+            case "months":
+            case "month":
+                now.setMonth(now.getMonth() + number);
+                break;
+
+            case "years":
+            case "year":
+                now.setFullYear(now.getFullYear() + number);
+                break;
+
+            default:
+                throw new Error(`Invalid unit: ${units}. Use 'days', 'months', or 'years'.`);
+        }
+
+        return now.toISOString();
+    }
+
 }

@@ -26,6 +26,9 @@ export class DatasetQueryParams {
     data_type: TDEIDataType | undefined;
 
     @IsOptional()
+    data_viewer_allowed: boolean | undefined;
+
+    @IsOptional()
     @IsIn([RecordStatus.Publish, RecordStatus["Pre-Release"], RecordStatus.All], {
         message: 'status must be one of: Publish, Pre-Release, All',
     }) status: RecordStatus = RecordStatus.All;
@@ -179,7 +182,7 @@ export class DatasetQueryParams {
             throw new InputException("Invalid bounding box provided." + this.bbox)
 
         //Select columns
-        const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*', 'pg.name as project_group_name', 's.name as service_name', 'd.name as dataset_name'];
+        const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*', 'pg.name as project_group_name', 'pg.data_viewer_config as data_viewer_config', 's.name as service_name', 'd.name as dataset_name'];
         //Main table name
         const mainTableName = 'content.dataset d';
         //Joins
@@ -210,6 +213,7 @@ export class DatasetQueryParams {
             conditions.push({ clouse: `(status = 'Publish' OR (status = 'Pre-Release' AND ur.project_group_id IS NOT NULL))` });
         }
 
+        addConditionIfValueExists('d.data_viewer_allowed = ', this.data_viewer_allowed);
         addConditionIfValueExists('d.name ILIKE ', this.name ? '%' + this.name + '%' : null);
         addConditionIfValueExists('d.version = ', this.version);
         addConditionIfValueExists('d.confidence_level > ', this.confidence_level);

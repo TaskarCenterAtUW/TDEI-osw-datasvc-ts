@@ -20,6 +20,10 @@ import polygonSchema from "../../schema/polygon.geojson.schema.json";
 import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 import { apiTracker } from "../middleware/api-tracker";
 import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../constants/app-constants";
+import { FeedbackRequestDto } from "../model/feedback-dto";
+import { feedbackRequestParams } from "../model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
+import { listRequestValidation } from "../middleware/list-request-validation-middleware";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -148,6 +152,210 @@ class OSWController implements IController {
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), apiTracker, authenticate, this.tagQualityMetric);
         this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, apiTracker, authenticate, this.createInclineRequest);
         this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
+        //TODO:: Domain check authorization
+        this.router.post(`${this.path}/dataset-viewer/feedbacks/:project_id/:tdei_dataset_id`, apiTracker, authenticate, this.addFeedbackRequest);
+        this.router.get(`${this.path}/dataset-viewer/feedbacks`, apiTracker, authenticate, listRequestValidation, this.getFeedbackRequests);
+        this.router.get(`${this.path}/dataset-viewer/feedbacks/metadata`, apiTracker, authenticate, this.getFeedbackMetadata);
+        this.router.get(`${this.path}/dataset-viewer/feedbacks/download/:tdei_project_group_id`, apiTracker, authenticate, authorize(["poc", "osw_data_generator"]), this.downloadFeedbacks);
+        this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.updateDatasetVisibility);
+        this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.retrievePmTiles);
+        this.router.post(`${this.path}/dataset/generate/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.generatePMtiles);
+    }
+
+    /**
+     * Generates PM tiles for a dataset.
+     * @param req - The request object.
+     * @param res - The response object.
+     * @param next - The next middleware function.
+     */
+    async generatePMtiles(req: Request, res: express.Response, next: NextFunction) {
+        try {
+            let tdei_dataset_id = req.params["tdei_dataset_id"];
+            // Call the service to generate PM tiles
+            let job_id = await oswService.generatePMTiles(req.body.user_id, tdei_dataset_id);
+            res.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
+            return res.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while generating PM tiles", error);
+            if (error instanceof HttpException) {
+                res.status(error.status).send(error.message);
+                return next(error);
+            }
+            res.status(500).send("Error while generating PM tiles");
+        }
+    }
+
+    /**
+     * Updates the PM tiles for a dataset.
+     * @param req - The request object.
+     * @param res - The response object.
+     * @param next - The next middleware function.
+     */
+    async retrievePmTiles(req: Request, res: express.Response, next: NextFunction) {
+        try {
+            let pmTilesUrl = await oswService.getDownloadableOSWPmTilesUrl(req.params["tdei_dataset_id"]);
+            res.status(200).send(pmTilesUrl);
+        } catch (error) {
+            console.error("Error while retriving the PM tiles", error);
+            if (error instanceof HttpException) {
+                res.status(error.status).send(error.message);
+                return next(error);
+            }
+            res.status(500).send("Error while retriving the PM tiles");
+        }
+    }
+
+
+    /**
+     * Updates the visibility of a dataset.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param updateDatasetVisibility - Function to update the dataset visibility.
+     */
+    async updateDatasetVisibility(request: Request, response: express.Response, next: NextFunction) {
+        try {
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            const allow_viewer_access = request.body.allow_viewer_access;
+
+            if (allow_viewer_access === undefined || allow_viewer_access === null) {
+                throw new InputException("allow_viewer_access is required");
+            }
+
+            // Validate the visibility value
+            if (typeof allow_viewer_access !== 'boolean') {
+                throw new InputException("allow_viewer_access must be a boolean value");
+            }
+
+            // Update the dataset visibility
+            await oswService.updateDatasetVisibility(tdei_dataset_id, allow_viewer_access);
+            response.status(200).send("Dataset visibility updated successfully");
+        } catch (error) {
+            console.error("Error while updating the dataset visibility", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while updating the dataset visibility");
+        }
+    }
+
+
+    /**
+    * Gets feedback metadata
+    * @param request
+    * @param response
+    * @param next
+    * @returns
+    */
+    async getFeedbackMetadata(request: Request, response: express.Response, next: NextFunction) {
+
+        try {
+            const tdei_project_group_id = request.query["tdei_project_group_id"];
+            const feedbackMetadata = await oswService.getFeedbacksMetadata(request.body.user_id, tdei_project_group_id as string);
+            response.status(200).send(feedbackMetadata);
+        } catch (error) {
+            console.error(error);
+            if (error instanceof InputException) {
+                response.status(error.status).send(error.message);
+                next(error);
+            }
+            else {
+                response.status(500).send("Error while fetching the feedback metadata");
+                next(new HttpException(500, "Error while fetching the feedback metadata"));
+            }
+        }
+    }
+
+    /**
+     * Gets feedback requests
+     * @param request
+     * @param response
+     * @param next
+     * @returns
+     */
+    async getFeedbackRequests(request: Request, response: express.Response, next: NextFunction) {
+
+        try {
+            const params: feedbackRequestParams = new feedbackRequestParams(JSON.parse(JSON.stringify(request.query)));
+            await params.validateRequestInput();
+            const feedbacks = await oswService.getFeedbacks(request.body.user_id, params);
+            response.status(200).send(feedbacks);
+        } catch (error) {
+            console.error(error);
+            if (error instanceof InputException) {
+                response.status(error.status).send(error.message);
+                next(error);
+            }
+            else {
+                response.status(500).send("Error while fetching the feedback information");
+                next(new HttpException(500, "Error while fetching the feedback information"));
+            }
+        }
+    }
+
+    /**
+     * Streams feedbacks as CSV for a project group.
+     * Only users with roles `poc` and `osw_data_generator` are permitted.
+     * @param request
+     * @param response
+     * @param next
+     */
+    async downloadFeedbacks(request: Request, response: express.Response, next: NextFunction) {
+        try {
+            const initParams: any = { ...request.query };
+            if (request.params?.tdei_project_group_id) {
+                initParams.tdei_project_group_id = request.params.tdei_project_group_id;
+            }
+            const params = new FeedbackDownloadRequestParams(JSON.parse(JSON.stringify(initParams)));
+            await params.validateRequestInput();
+            const stream = await oswService.downloadFeedbacks(params);
+            response.setHeader('Content-Type', 'text/csv');
+            response.setHeader('Content-Disposition', `attachment; filename="feedback.${params.format}"`);
+            stream.pipe(response);
+        } catch (error) {
+            console.error(error);
+            if (error instanceof InputException) {
+                response.status(error.status).send(error.message);
+                next(error);
+            }
+            else {
+                response.status(500).send("Error while downloading the feedback information");
+                next(new HttpException(500, "Error while downloading the feedback information"));
+            }
+        }
+    }
+
+    /**
+     * Processes the feedback request
+     * @param request
+     * @param response
+     * @param next
+     * @returns
+     */
+    async addFeedbackRequest(request: Request, response: express.Response, next: NextFunction) {
+
+        try {
+            if (!request.body) {
+                return next(new InputException('request body is empty', response));
+            }
+
+            const feedback = FeedbackRequestDto.from(request.body);
+            feedback.tdei_project_id = request.params.project_id;
+            feedback.tdei_dataset_id = request.params.tdei_dataset_id;
+            await feedback.validateRequestInput();
+
+            Utility.checkForSqlInjection(feedback);
+            await oswService.addFeedbackRequest(feedback);
+            return response.status(200).send("Feedback submitted successfully");
+
+        } catch (error) {
+            console.error("Error while processing the feedback request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the feedback request");
+            next(new HttpException(500, "Error while processing the feedback request"));
+        }
     }
 
 
