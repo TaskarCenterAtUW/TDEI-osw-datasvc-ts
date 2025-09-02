@@ -981,8 +981,24 @@ describe("OSW Controller Test", () => {
             expect(next).not.toHaveBeenCalled();
         });
 
-        test("When request is for geojson, Expect to stream geojson and set headers", async () => {
-            const req = getMockReq({ query: { tdei_project_group_id: 'pg1', format: 'geojson' } });
+        test.each(['csv', 'CSV'])("When request is valid with format %s, Expect to stream csv and set headers", async (fmt) => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1', format: fmt } });
+            const { res, next } = getMockRes();
+            const stream = new PassThrough();
+            const pipeSpy = jest.spyOn(stream, 'pipe');
+            jest.spyOn(oswService, 'downloadFeedbacks').mockResolvedValueOnce(stream as any);
+
+            await oswController.downloadFeedbacks(req, res, next);
+
+            expect(oswService.downloadFeedbacks).toHaveBeenCalledWith(expect.objectContaining({ tdei_project_group_id: 'pg1', format: 'csv' }));
+            expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+            expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="feedback.csv"');
+            expect(pipeSpy).toHaveBeenCalledWith(res);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test.each(['geojson', 'geoJSON', 'GeoJSON', 'GEOJSON'])("When request is for geojson format %s, Expect to stream geojson and set headers", async (fmt) => {
+            const req = getMockReq({ query: { tdei_project_group_id: 'pg1', format: fmt } });
             const { res, next } = getMockRes();
             const stream = new PassThrough();
             const pipeSpy = jest.spyOn(stream, 'pipe');

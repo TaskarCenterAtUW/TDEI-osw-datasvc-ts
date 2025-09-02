@@ -1173,7 +1173,7 @@ describe("OSW Service Test", () => {
         afterEach(() => {
             jest.restoreAllMocks();
         });
-        test("should return csv stream of feedbacks without limit", async () => {
+        test.each(['csv', 'CSV'])("should return csv stream of feedbacks without limit for format %s", async (fmt) => {
             const rows = [{
                 id: 1,
                 tdei_project_group_id: 'pg1',
@@ -1191,7 +1191,7 @@ describe("OSW Service Test", () => {
                 due_date: new Date('2025-01-02T00:00:00Z')
             }];
             jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
-            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1' });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', format: fmt });
 
             const stream = await oswService.downloadFeedbacks(params);
             const chunks: Buffer[] = [];
@@ -1207,7 +1207,7 @@ describe("OSW Service Test", () => {
             expect(query.text).not.toContain('LIMIT');
         });
 
-        test("should return geojson stream of feedbacks", async () => {
+        test.each(['geojson', 'geoJSON', 'GeoJSON', 'GEOJSON'])("should return geojson stream of feedbacks for format %s", async (fmt) => {
             const rows = [{
                 id: 1,
                 tdei_project_group_id: 'pg1',
@@ -1225,7 +1225,7 @@ describe("OSW Service Test", () => {
                 due_date: new Date('2025-01-02T00:00:00Z')
             }];
             jest.spyOn(dbClient, 'query').mockResolvedValueOnce(<any>{ rows });
-            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', format: 'geojson' });
+            const params = new FeedbackDownloadRequestParams({ tdei_project_group_id: 'pg1', format: fmt });
 
             const stream = await oswService.downloadFeedbacks(params);
             const chunks: Buffer[] = [];

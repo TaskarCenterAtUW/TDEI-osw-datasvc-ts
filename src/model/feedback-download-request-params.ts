@@ -24,6 +24,9 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
     constructor(init?: Partial<FeedbackDownloadRequestParams>) {
         super();
         Object.assign(this, init);
+        if (this.format) {
+            this.format = this.format.toLowerCase();
+        }
         if (init?.page_no === undefined) this.page_no = undefined;
         if (init?.page_size === undefined) this.page_size = undefined;
         if (init?.due_date !== undefined && init?.sort_by === undefined) {
