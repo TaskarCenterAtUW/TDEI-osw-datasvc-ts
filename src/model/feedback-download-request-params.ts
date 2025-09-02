@@ -14,7 +14,7 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
     override page_size?: number;
 
     @IsOptional()
-    @IsIn(['csv'], { message: 'format must be csv' })
+    @IsIn(['csv', 'CSV', 'geojson', 'geoJSON', 'GeoJSON', 'GEOJSON'], { message: 'format must be csv or geojson' })
     format: string = 'csv';
 
     @IsOptional()
@@ -24,6 +24,9 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
     constructor(init?: Partial<FeedbackDownloadRequestParams>) {
         super();
         Object.assign(this, init);
+        if (this.format) {
+            this.format = this.format.toLowerCase();
+        }
         if (init?.page_no === undefined) this.page_no = undefined;
         if (init?.page_size === undefined) this.page_size = undefined;
         if (init?.due_date !== undefined && init?.sort_by === undefined) {

@@ -308,7 +308,8 @@ class OSWController implements IController {
             const params = new FeedbackDownloadRequestParams(JSON.parse(JSON.stringify(initParams)));
             await params.validateRequestInput();
             const stream = await oswService.downloadFeedbacks(params);
-            response.setHeader('Content-Type', 'text/csv');
+            const contentType = params.format === 'geojson' ? 'application/geo+json' : 'text/csv';
+            response.setHeader('Content-Type', contentType);
             response.setHeader('Content-Disposition', `attachment; filename="feedback.${params.format}"`);
             stream.pipe(response);
         } catch (error) {

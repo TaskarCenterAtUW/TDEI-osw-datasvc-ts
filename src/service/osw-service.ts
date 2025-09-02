@@ -205,7 +205,7 @@ class OswService implements IOswService {
     async downloadFeedbacks(params: FeedbackDownloadRequestParams): Promise<Readable> {
         try {
             const format = params.format?.toLowerCase() ?? 'csv';
-            if (format !== 'csv') {
+            if (format !== 'csv' && format !== 'geojson') {
                 throw new InputException(`Unsupported format: ${format}`);
             }
             const queryObject = params.getQuery('');
@@ -215,35 +215,69 @@ class OswService implements IOswService {
             };
             const result = await dbClient.query(queryConfig);
 
-            function* csvGenerator() {
-                const header = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n';
-                yield header;
-                for (const row of result.rows) {
-                    const values = [
-                        row.id,
-                        row.tdei_project_group_id,
-                        row.project_group_name,
-                        row.tdei_dataset_id,
-                        row.dataset_name,
-                        row.dataset_element_id ?? '',
-                        row.feedback_text ?? '',
-                        row.customer_email ?? '',
-                        row.location_latitude ?? '',
-                        row.location_longitude ?? '',
-                        row.created_at ? new Date(row.created_at).toISOString() : '',
-                        row.updated_at ? new Date(row.updated_at).toISOString() : '',
-                        row.status ?? '',
-                        row.due_date ? new Date(row.due_date).toISOString() : ''
-                    ].map((val: any) => {
-                        const strVal = val !== null && val !== undefined ? String(val) : '';
-                        // Escape double quotes by doubling them
-                        return strVal.includes(',') || strVal.includes('"') || strVal.includes('\n') ? `"${strVal.replace(/"/g, '""')}"` : strVal;
-                    }).join(',');
-                    yield values + '\n';
+            if (format === 'csv') {
+                function* csvGenerator() {
+                    const header = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n';
+                    yield header;
+                    for (const row of result.rows) {
+                        const values = [
+                            row.id,
+                            row.tdei_project_group_id,
+                            row.project_group_name,
+                            row.tdei_dataset_id,
+                            row.dataset_name,
+                            row.dataset_element_id ?? '',
+                            row.feedback_text ?? '',
+                            row.customer_email ?? '',
+                            row.location_latitude ?? '',
+                            row.location_longitude ?? '',
+                            row.created_at ? new Date(row.created_at).toISOString() : '',
+                            row.updated_at ? new Date(row.updated_at).toISOString() : '',
+                            row.status ?? '',
+                            row.due_date ? new Date(row.due_date).toISOString() : ''
+                        ].map((val: any) => {
+                            const strVal = val !== null && val !== undefined ? String(val) : '';
+                            // Escape double quotes by doubling them
+                            return strVal.includes(',') || strVal.includes('"') || strVal.includes('\n') ? `"${strVal.replace(/"/g, '""')}"` : strVal;
+                        }).join(',');
+                        yield values + '\n';
+                    }
                 }
+                return Readable.from(csvGenerator());
             }
 
-            return Readable.from(csvGenerator());
+            function* geoJsonGenerator() {
+                yield '{"type":"FeatureCollection","features":[';
+                for (let i = 0; i < result.rows.length; i++) {
+                    const row = result.rows[i];
+                    const feature = {
+                        type: 'Feature',
+                        geometry: (row.location_longitude !== null && row.location_longitude !== undefined && row.location_latitude !== null && row.location_latitude !== undefined)
+                            ? { type: 'Point', coordinates: [Number(row.location_longitude), Number(row.location_latitude)] }
+                            : null,
+                        properties: {
+                            id: row.id,
+                            project_group_name: row.project_group_name,
+                            tdei_project_group_id: row.tdei_project_group_id,
+                            dataset_name: row.dataset_name,
+                            tdei_dataset_id: row.tdei_dataset_id,
+                            dataset_element_id: row.dataset_element_id ?? '',
+                            feedback_text: row.feedback_text ?? '',
+                            reporter_email: row.customer_email ?? '',
+                            created_at: row.created_at ? new Date(row.created_at).toISOString() : '',
+                            updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : '',
+                            status: row.status ?? '',
+                            due_date: row.due_date ? new Date(row.due_date).toISOString() : ''
+                        }
+                    };
+                    yield JSON.stringify(feature);
+                    if (i < result.rows.length - 1) {
+                        yield ',';
+                    }
+                }
+                yield ']}';
+            }
+            return Readable.from(geoJsonGenerator());
         }
         catch (error) {
             throw error;
