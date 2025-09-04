@@ -37,6 +37,42 @@ class TdeiCoreService implements ITdeiCoreService {
 
     constructor() { }
 
+    /**
+   * Exports download stats as CSV stream.
+   * @param from_date - The start date for the report (optional).
+   * @param to_date - The end date for the report (optional).
+   * @returns A Promise that resolves to a Readable stream of the CSV data.
+   */
+    async exportDownloadStatsCSV(from_date?: string, to_date?: string): Promise<Readable> {
+        try {
+            const queryConfig = {
+                text: `SELECT * FROM content.tdei_get_download_stats($1, $2)`,
+                values: [from_date ?? null, to_date ?? null]
+            };
+            const result = await dbClient.query(queryConfig);
+
+            const header = 'full_name,user_name,total_number_of_downloads,osw_file_downloads\n';
+            function* csvGenerator() {
+                yield header;
+                for (const row of result.rows) {
+                    const values = [
+                        row.full_name ?? '',
+                        row.user_name ?? '',
+                        row.total_number_of_downloads ?? 0,
+                        row.osw_file_downloads ?? 0
+                    ].map(val => {
+                        const strVal = val !== null && val !== undefined ? String(val) : '';
+                        return strVal.includes(',') || strVal.includes('"') || strVal.includes('\n') ? `"${strVal.replace(/"/g, '""')}"` : strVal;
+                    }).join(',');
+                    yield values + '\n';
+                }
+            }
+            return Readable.from(csvGenerator());
+        } catch (error) {
+            console.error('Error exporting download stats CSV:', error);
+            throw new Error('Failed to export download stats CSV');
+        }
+    }
 
     /**
      * Regenerates the API key for a given username.
