@@ -19,6 +19,13 @@ export class ForbiddenAccess extends HttpException {
     }
 }
 
+export class ForbiddenRequest extends HttpException {
+    constructor(message: string, response?: Response) {
+        response?.status(403).send(message);
+        super(403, message);
+    }
+}
+
 export class ForeignKeyException extends HttpException {
     constructor(name: string) {
         super(400, `No reference found for the constraint '${name}' in the system.`);

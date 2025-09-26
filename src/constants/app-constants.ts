@@ -1,5 +1,5 @@
 export enum WorkflowName {
-    "osw_upload" = "osw_upload",
+    "osw_upload" = "osw_upload_v2",
     "osw_publish" = "osw_publish",
     "osw_validation_only" = "osw_validation_only",
     "osw_confidence_on_demand" = "osw_confidence_on_demand",
@@ -18,7 +18,8 @@ export enum WorkflowName {
     "build_dataset_download" = "build_dataset_download",
     "build_osw_osm_dataset_download" = "build_osw_osm_dataset_download",
     "osw_dataset_incline_tag" = "osw_dataset_incline_tag",
-    "osw_union_dataset" = "osw_union_dataset"
+    "osw_union_dataset" = "osw_union_dataset",
+    "osw_generate_pmtiles" = "osw_generate_pmtiles"
 }
 
 export const JOBS_API_PATH = "/api/v1/jobs";

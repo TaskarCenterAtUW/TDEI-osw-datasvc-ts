@@ -4,8 +4,75 @@ import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } 
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
 import { SpatialJoinRequest, UnionRequest } from "../../model/request-interfaces";
+import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dto";
+import { feedbackRequestParams } from "../../model/feedback-request-params";
+import { FeedbackDownloadRequestParams } from "../../model/feedback-download-request-params";
+import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
+import { IProjectDataviewerConfig } from "./project-dataviewer-config-interface";
+import { Readable } from "stream";
 
 export interface IOswService {
+    /*
+           * Gets the project group dataviewer configuration.
+           * @param tdei_project_id - The ID of the TDEI project.
+           * @returns A Promise that resolves to the project dataviewer configuration or undefined if not configured.
+           * @throws If the project group does not exist or if the dataviewer is not configured.
+           */
+    getProjectGroupDataviewerConfig(tdei_project_id: string): Promise<IProjectDataviewerConfig | undefined>;
+    /**
+     * Generates PMTiles for a given TDEI dataset ID.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user requesting the PMTiles generation.
+     * @returns The generated Job id for PMTiles creation.
+     */
+    generatePMTiles(user_id: string, tdei_dataset_id: string): Promise<string>;
+
+    /**
+     * Get downloadable OSM PM tiles URL
+     * @param id Dataset ID
+     * @param user_id User ID
+     * @returns Downloadable URL
+     */
+    getDownloadableOSWPmTilesUrl(id: string): Promise<string>;
+
+    /**
+     * Updates the visibility of a dataset.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param allow_viewer_access - A boolean indicating whether to allow viewer access.
+     * @returns A Promise that resolves to an unknown type.
+     */
+    updateDatasetVisibility(tdei_dataset_id: string, allow_viewer_access: boolean): Promise<boolean>;
+
+    /**
+         * Gets feedbacks metadata.
+         * @param user_id - The ID of the user making the request.
+         * @param tdei_project_group_id - The ID of the TDEI project group.
+         * @returns A Promise that resolves to an array of feedback DTOs.
+         * @throws If there is an error retrieving the feedback metadata.
+         * @throws If there is an error executing the query.
+         */
+    getFeedbacksMetadata(user_id: any, tdei_project_group_id?: string): Promise<FeedbackMetadataDTO>
+
+    /**
+     * Gets feedback requests.
+     * @param user_id - The ID of the user making the request.
+     * @param params - The feedback request parameters.
+     * @returns A Promise that resolves to an array of feedback DTOs.
+     */
+    getFeedbacks(user_id: any, params: feedbackRequestParams): Promise<Array<FeedbackResponseDTO>>;
+
+    /**
+     * Streams feedbacks for a project group in the requested format.
+     * @param params - Feedback request parameters including desired format.
+     * @returns A Readable stream containing the data.
+     */
+    downloadFeedbacks(params: FeedbackDownloadRequestParams): Promise<Readable>;
+    /**
+     * Adds a feedback request.
+     * @param feedback - The feedback data transfer object.
+     * @returns A Promise that resolves to the ID of the created feedback.
+     */
+    addFeedbackRequest(feedback: FeedbackRequestDto): Promise<string>;
 
     /**
      * Processes a union join request.
