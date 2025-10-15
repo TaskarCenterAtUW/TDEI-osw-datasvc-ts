@@ -9,8 +9,18 @@ import { MetadataModel } from "../../model/metadata.model";
 import { IDatasetCloneRequest } from "../../model/request-interfaces";
 import { DownloadStatsEntity } from "../../database/entity/download-stats";
 import { DownloadStatsDTO } from "../../model/download-stats-dto";
+import { Readable } from "stream";
 
 export interface ITdeiCoreService {
+
+  /**
+   * Exports download stats as CSV stream.
+   * @param from_date - The start date for the report (optional).
+   * @param to_date - The end date for the report (optional).
+   * @returns A Promise that resolves to a Readable stream of the CSV data.
+   */
+  exportDownloadStatsCSV(from_date?: string, to_date?: string): Promise<Readable>;
+
 
   /**
     * Regenerates the API key for a given username.

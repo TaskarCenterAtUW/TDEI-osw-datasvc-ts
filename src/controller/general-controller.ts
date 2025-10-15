@@ -83,7 +83,37 @@ class GeneralController implements IController {
         this.router.post(`${this.path}/recover-password`, apiTracker, this.recoverPassword);
         this.router.post(`${this.path}/verify-email`, apiTracker, this.verifyEmail);
         this.router.post(`${this.path}/regenerate-api-key`, apiTracker, authenticate, this.regenerateApiKey);
+        this.router.get(`${this.path}/download-stats/export`, apiTracker, authenticate, this.exportDownloadStats);
     }
+
+    /**
+     * Exports download stats as CSV stream for admins only.
+     * GET /api/v1/download-stats/export
+     * Query params: from_date, to_date (ISO8601 strings, optional)
+     */
+    public exportDownloadStats = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            if (!request.body.isAdmin)
+                throw new ForbiddenAccess();
+
+            const from_date = request.query["from_date"] as string | undefined;
+            const to_date = request.query["to_date"] as string | undefined;
+
+            const csvStream = await tdeiCoreService.exportDownloadStatsCSV(from_date, to_date);
+
+            response.setHeader('Content-Type', 'text/csv');
+            response.setHeader('Content-Disposition', `attachment; filename="download_stats_${from_date ? from_date + '_' + to_date : 'last_7_days'}.csv"`);
+            return csvStream.pipe(response);
+        } catch (error) {
+            console.error("Error exporting download stats", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error exporting download stats");
+            next(new HttpException(500, "Error exporting download stats"));
+        }
+    };
 
     public regenerateApiKey = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
