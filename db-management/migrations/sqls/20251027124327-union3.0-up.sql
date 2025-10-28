@@ -21,7 +21,7 @@ DECLARE
     line_mixed_type_keys JSONB;
 	polygon_mixed_type_keys JSONB;
 	proximity_degrees real;
-	    rec RECORD;
+	rec RECORD;
 
 BEGIN
     -- Convert proximity from meters to degrees for EPSG:4326 (1 degree ≈ 111,111 meters)
@@ -44,7 +44,8 @@ BEGIN
 			-- for internal line string nodes, there is a sub_id (see below)
 			0 as element_sub_id, 
 			0 as element_sub_sub_id,
-			n.node_loc as geom 
+			n.node_loc as geom ,
+			n.node_loc_3857 as geom_3857 
 		from content.node n
 		where n.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
 	);
@@ -56,6 +57,7 @@ BEGIN
 			e.tdei_dataset_id as source, 
 			e.id as element_id, 
 			e.edge_loc as geom,
+			e.edge_loc_3857 as geom_3857,
 			e.feature
 		from content.edge e
 		where e.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
@@ -68,6 +70,7 @@ BEGIN
 			z.tdei_dataset_id as source, 
 			z.id as element_id, 
 			z.zone_loc as geom,
+			z.zone_loc_3857 as geom_3857,
 			z.feature,
 			z.node_ids
 		from content.zone z
@@ -86,7 +89,8 @@ BEGIN
 			-- Begins with 1 (not 0, which is important)
 			dp.path[1] AS element_sub_id,
 			0 as element_sub_sub_id, -- for polygon rings
-			dp.geom
+			dp.geom,
+			ST_Transform(dp.geom, 3857) AS geom_3857
 	  FROM testedges path, ST_DumpPoints(path.geom) dp
 	);
 
@@ -100,7 +104,8 @@ BEGIN
 			-- Begins with 1 (not 0, which is important)
 	   		p.path[1] AS element_sub_id,         -- 1 = outer, 2+ = holes
 			p.path[2] as element_sub_sub_id, -- for polygon rings
-	        p.geom
+	        p.geom,
+			ST_Transform(p.geom, 3857) AS geom_3857
 	  FROM testzones z, LATERAL ST_DumpPoints(geom) p
 	);
 ------------------------------------------------
@@ -124,7 +129,8 @@ BEGIN
 			-- for internal line string nodes, there is a sub_id (see below)
 			0 as element_sub_id, 
 			0 as element_sub_sub_id,
-			n.point_loc as geom 
+			n.point_loc as geom,
+			n.point_loc_3857 as geom_3857
 		from content.extension_point n
 		where n.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
 	);
@@ -136,6 +142,7 @@ BEGIN
 			e.tdei_dataset_id as source, 
 			e.id as element_id, 
 			e.line_loc as geom,
+			e.line_loc_3857 as geom_3857,
 			e.feature
 		from content.extension_line e
 		where e.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
@@ -148,6 +155,7 @@ BEGIN
 			z.tdei_dataset_id as source, 
 			z.id as element_id, 
 			z.polygon_loc as geom,
+			z.polygon_loc_3857 as geom_3857,
 			z.feature
 		from content.extension_polygon z
 		where z.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id)
@@ -165,7 +173,8 @@ BEGIN
 			-- Begins with 1 (not 0, which is important)
 			dp.path[1] AS element_sub_id,
 			0 as element_sub_sub_id, -- for polygon rings
-			dp.geom
+			dp.geom,
+			ST_Transform(dp.geom, 3857) AS geom_3857
 	  FROM ext_lines path, ST_DumpPoints(path.geom) dp
 	);
 
@@ -179,7 +188,8 @@ BEGIN
 			-- Begins with 1 (not 0, which is important)
 	   		p.path[1] AS element_sub_id,         -- 1 = outer, 2+ = holes
 			p.path[2] as element_sub_sub_id, -- for polygon rings
-	        p.geom
+	        p.geom,
+			ST_Transform(p.geom, 3857) AS geom_3857
 	  FROM ext_polygons z, LATERAL ST_DumpPoints(geom) p
 	);
 
@@ -208,7 +218,8 @@ BEGIN
 		element_id, 
 		element_sub_id, 
 	    element_sub_sub_id, 
-		geom
+		geom,
+		geom_3857
 	FROM testnodes
 	UNION
 	-- From internal linestring nodes
@@ -218,7 +229,8 @@ BEGIN
 		element_id, 
 		element_sub_id, 
 	    element_sub_sub_id, 
-		geom  
+		geom,
+		geom_3857
 	FROM testedgepoints
 	UNION
 -- From internal polygon nodes (may be redundant, hence union)
@@ -228,7 +240,8 @@ BEGIN
 		element_id, 
 		element_sub_id, 
 	    element_sub_sub_id, 
-		geom 
+		geom,
+		geom_3857 
 	FROM testzonepoints
     UNION
     -- From extension points
@@ -238,7 +251,8 @@ BEGIN
         element_id, 
         element_sub_id, 
         element_sub_sub_id, 
-        geom 
+        geom,
+		geom_3857 
     FROM ext_points
     UNION
     -- From extension lines
@@ -248,7 +262,8 @@ BEGIN
         element_id, 
         element_sub_id, 
         element_sub_sub_id, 
-        geom 
+        geom,
+		geom_3857 
     FROM ext_linepoints
     UNION
     -- From extension polygons
@@ -258,7 +273,8 @@ BEGIN
         element_id, 
         element_sub_id, 
         element_sub_sub_id, 
-        geom 
+        geom,
+		geom_3857 
     FROM ext_polygonpoints;
 
     CREATE INDEX ON AllPoints USING GIST (geom);
@@ -325,13 +341,14 @@ BEGIN
 	-- ====================================================================================
 
 	CREATE TEMP TABLE MaterializedPoints ON COMMIT DROP AS
-	SELECT source, type, element_id, element_sub_id, element_sub_sub_id, geom,
+	SELECT source, type, element_id, element_sub_id, element_sub_sub_id, geom,geom_3857,
 	-- construct new ids for each node (could use cantor pairing function here)
 	row_number() OVER (ORDER BY element_id, element_sub_id, element_sub_sub_id) as id
 	FROM AllPoints;
 	
 	-- CREATE spatial INDEX on materialized nodes -- must use for performance!
 	CREATE INDEX idx_mat_geom ON MaterializedPoints USING GIST (geom);
+	CREATE INDEX idx_mat_geom_3857 ON MaterializedPoints USING GIST (geom_3857);
 	CREATE INDEX idx_mat_id ON MaterializedPoints (id);
 	
 	-- ====================================================================================
@@ -346,7 +363,7 @@ BEGIN
 	   AND a.source != b.source  
 	  --   AND a.source = 'd1'            -- D1 = fixed dataset
    -- AND b.source = 'd2'            -- D2 = to be clustered
-      AND ST_DWithin(a.geom, b.geom, proximity_degrees)  -- Tolerance: nodes within this distance should be clustered
+      AND ST_DWithin(a.geom_3857, b.geom_3857, proximity_degrees)  -- Tolerance: nodes within this distance should be clustered
 	  AND a.id < b.id;
 	
 	CREATE INDEX idx_id1_id2 ON Neighbors (id1, id2);
