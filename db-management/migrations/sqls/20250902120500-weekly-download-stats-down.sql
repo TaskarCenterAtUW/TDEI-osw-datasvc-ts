@@ -1,0 +1,1 @@
+Drop FUNCTION IF EXISTS content.tdei_get_download_stats(text, text);
