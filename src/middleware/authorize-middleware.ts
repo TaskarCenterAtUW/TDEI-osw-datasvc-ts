@@ -34,7 +34,11 @@ export const authorize = (approvedRoles: string[]) => {
             if (!req.body.user_id)
                 return next(new UnAuthenticated());
 
-            if (req.params["tdei_project_group_id"]) {
+            if (req.params["project_id"]) {
+                req.body.tdei_project_group_id = req.params["project_id"];
+                await tdeiCoreService.checkProjectGroupExistsById(req.params["project_id"])
+            }
+            else if (req.params["tdei_project_group_id"]) {
                 req.body.tdei_project_group_id = req.params["tdei_project_group_id"];
                 await tdeiCoreService.checkProjectGroupExistsById(req.params["tdei_project_group_id"])
             }

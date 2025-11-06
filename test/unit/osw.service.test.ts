@@ -1720,5 +1720,117 @@ describe("OSW Service Test", () => {
             await expect(oswService.addFeedbackRequest(feedback)).rejects.toThrow(dbError);
         });
     });
+
+    describe("OSW Service - updateFeedbackStatus", () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        test("should return success report when updates applied", async () => {
+            // Arrange
+            const tdei_project_group_id = "pg1";
+            const tdei_dataset_id = "ds1";
+            const user_id = "user-1";
+            const updates = [
+                { id: 10, status: "resolved", resolution: "ok", status_description: "done" }
+            ];
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any);
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "checkProjectGroupExistsById").mockResolvedValueOnce(true);
+
+            // First dbClient.query -> check SELECT returns rowCount 1
+            // Second dbClient.query -> UPDATE returns rowCount 1
+            jest.spyOn(dbClient, "query")
+                .mockResolvedValueOnce(<any>{ rowCount: 1 }) // check SELECT
+                .mockResolvedValueOnce(<any>{ rowCount: 1 }); // update
+
+            // Act
+            const report = await oswService.updateFeedbackStatus(tdei_project_group_id, tdei_dataset_id, user_id, updates as any);
+
+            // Assert
+            expect(report).toHaveLength(1);
+            expect(report[0].id).toBe(updates[0].id);
+            expect(report[0].status).toBe("Success");
+            expect(report[0].message).toMatch(/updated/i);
+        });
+
+        test("should return mixed report when some records not found and some updated", async () => {
+            // Arrange
+            const tdei_project_group_id = "pg1";
+            const tdei_dataset_id = "ds1";
+            const user_id = "user-1";
+            const updates = [
+                { id: 11, status: "resolved" }, // not found
+                { id: 12, status: "open" }      // found & updated
+            ];
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({ data_type: TDEIDataType.osw } as any);
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "checkProjectGroupExistsById").mockResolvedValue(true);
+
+            // Sequence:
+            // 1) check for id 11 -> rowCount 0 (not found)
+            // 2) check for id 12 -> rowCount 1 (found)
+            // 3) update id 12 -> rowCount 1 (updated)
+            const mockQuery = jest.spyOn(dbClient, "query")
+                .mockResolvedValueOnce(<any>{ rowCount: 0 }) // check id 11
+                .mockResolvedValueOnce(<any>{ rowCount: 1 }) // check id 12
+                .mockResolvedValueOnce(<any>{ rowCount: 1 }); // update id 12
+
+            // Act
+            const report = await oswService.updateFeedbackStatus(tdei_project_group_id, tdei_dataset_id, user_id, updates as any);
+
+            // Assert
+            expect(report).toHaveLength(2);
+            const notFound = report.find(r => r.id === 11);
+            const updated = report.find(r => r.id === 12);
+            expect(notFound?.status).toBe("Failed");
+            expect(notFound?.message).toMatch(/not found/i);
+            expect(updated?.status).toBe("Success");
+            expect(mockQuery).toHaveBeenCalledTimes(3);
+        });
+
+        test("should mark failed when update query affects no rows", async () => {
+            // Arrange
+            const tdei_project_group_id = "pg1";
+            const tdei_dataset_id = "ds1";
+            const user_id = "user-1";
+            const updates = [
+                { id: 20, status: "resolved" }
+            ];
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({ data_type: TDEIDataType.osw } as any);
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "checkProjectGroupExistsById").mockResolvedValue(true);
+
+            // check SELECT -> found, update -> rowCount 0 (failed)
+            jest.spyOn(dbClient, "query")
+                .mockResolvedValueOnce(<any>{ rowCount: 1 }) // check
+                .mockResolvedValueOnce(<any>{ rowCount: 0 }); // update affected none
+
+            // Act
+            const report = await oswService.updateFeedbackStatus(tdei_project_group_id, tdei_dataset_id, user_id, updates as any);
+
+            // Assert
+            expect(report).toHaveLength(1);
+            expect(report[0].status).toBe("Failed");
+            expect(report[0].message).toMatch(/failed to update/i);
+        });
+
+        test("should throw when dataset is not OSW", async () => {
+            // Arrange
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({ data_type: "pathways" } as any);
+
+            // Act & Assert
+            await expect(oswService.updateFeedbackStatus("pg", "ds", "u", [{ id: 1 } as any])).rejects.toThrow(Error);
+        });
+
+        test("should throw when project group does not exist", async () => {
+            // Arrange
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({ data_type: TDEIDataType.osw } as any);
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "checkProjectGroupExistsById").mockResolvedValue(false);
+
+            // Act & Assert
+            await expect(oswService.updateFeedbackStatus("pg", "ds", "u", [{ id: 1 } as any])).rejects.toThrow(Error);
+        });
+    });
 });
 
