@@ -10,8 +10,18 @@ import { FeedbackDownloadRequestParams } from "../../model/feedback-download-req
 import { FeedbackMetadataDTO } from "../../model/feedback-metadata-dto";
 import { IProjectDataviewerConfig } from "./project-dataviewer-config-interface";
 import { Readable } from "stream";
+import { FeedbackStatusRequestDto, FeedbackStatusUpdateResponseDto } from "../../model/feedback-status-dto";
 
 export interface IOswService {
+    /**
+     * Updates the feedback status based on the provided feedback status updates.
+     * @param tdei_project_group_id - The ID of the TDEI project group.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user making the request.
+     * @param feedbackStatusUpdates - An array of FeedbackStatusRequestDto containing the feedback status updates.
+     * @returns A Promise that resolves to an unknown type.
+     */
+    updateFeedbackStatus(tdei_project_group_id: string, tdei_dataset_id: string, user_id: string, feedbackStatusUpdates: FeedbackStatusRequestDto[]): Promise<FeedbackStatusUpdateResponseDto[]>;
     /*
            * Gets the project group dataviewer configuration.
            * @param tdei_project_id - The ID of the TDEI project.

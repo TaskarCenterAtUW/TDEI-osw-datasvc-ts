@@ -7,6 +7,7 @@ import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
 import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../../src/constants/app-constants";
 import { PassThrough } from "stream";
+import { FeedbackStatusRequestDto } from "../../src/model/feedback-status-dto";
 
 // group test using describe
 describe("OSW Controller Test", () => {
@@ -1617,6 +1618,126 @@ describe("OSW Controller Test", () => {
             expect(res.status).toHaveBeenCalledWith(500);
             expect(res.send).toHaveBeenCalledWith("Error while processing the feedback request");
             expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
+    describe("OSW Controller - updateFeedbackStatus", () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        test("When request body is not an array, Expect HTTP 400", async () => {
+            const req = getMockReq({
+                params: { project_id: "pg1", tdei_dataset_id: "ds1" },
+                body: {} // not an array
+            });
+            const { res, next } = getMockRes();
+
+            await oswController.updateFeedbackStatus(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith("Request body must be an array of Feedback status objects");
+        });
+
+        test("When valid array provided, Expect to call service and return 200 with report", async () => {
+            const req = getMockReq({
+                params: { project_id: "pg1", tdei_dataset_id: "ds1" },
+                body: [{ id: 1, status: "resolved" }]
+            });
+            // attach user_id to the array object (controller reads (request.body as any).user_id)
+            (req.body as any).user_id = "mock-user-id";
+
+            // Make FeedbackStatusRequestDto.from() return an object with validateRequestInput() => true
+            jest.spyOn(FeedbackStatusRequestDto, "from").mockImplementation((v: any) => {
+                return { ...v, validateRequestInput: async () => true } as any;
+            });
+
+            const report = [{ id: 1, message: "Updated", status: "Success" }];
+            jest.spyOn(oswService, "updateFeedbackStatus").mockResolvedValueOnce(report as any);
+
+            const { res, next } = getMockRes();
+            await oswController.updateFeedbackStatus(req, res, next);
+
+            expect(oswService.updateFeedbackStatus).toHaveBeenCalledWith(
+                "pg1",
+                "ds1",
+                "mock-user-id",
+                expect.any(Array)
+            );
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(report);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When service throws HttpException, Expect to return error status and call next", async () => {
+            const req = getMockReq({
+                params: { project_id: "pg1", tdei_dataset_id: "ds1" },
+                body: [{ id: 2, status: "open" }]
+            });
+            (req.body as any).user_id = "mock-user-id";
+
+            jest.spyOn(FeedbackStatusRequestDto, "from").mockImplementation((v: any) => {
+                return { ...v, validateRequestInput: async () => true } as any;
+            });
+
+            const error = new HttpException(400, "Bad request");
+            jest.spyOn(oswService, "updateFeedbackStatus").mockRejectedValueOnce(error);
+
+            const { res, next } = getMockRes();
+            await oswController.updateFeedbackStatus(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(error.status);
+            expect(res.send).toHaveBeenCalledWith(error.message);
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When service throws generic error, Expect HTTP 500", async () => {
+            const req = getMockReq({
+                params: { project_id: "pg1", tdei_dataset_id: "ds1" },
+                body: [{ id: 3, status: "resolved" }]
+            });
+            (req.body as any).user_id = "mock-user-id";
+
+            jest.spyOn(FeedbackStatusRequestDto, "from").mockImplementation((v: any) => {
+                return { ...v, validateRequestInput: async () => true } as any;
+            });
+
+            jest.spyOn(oswService, "updateFeedbackStatus").mockRejectedValueOnce(new Error("Service error"));
+
+            const { res, next } = getMockRes();
+            await oswController.updateFeedbackStatus(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while updating the feedback status");
+        });
+
+        test("When model validation fails for all items, Expect to call next with InputException and not call service", async () => {
+            // Arrange
+            const req = getMockReq({
+                params: { project_id: "pg1", tdei_dataset_id: "ds1" },
+                body: [{ id: 1, status: "resolved" }]
+            });
+            (req.body as any).user_id = "mock-user-id";
+
+            // Make FeedbackStatusRequestDto.from() return an object whose validateRequestInput resolves to false
+            jest.spyOn(FeedbackStatusRequestDto, "from").mockImplementation((v: any) => {
+                return {
+                    ...v, validateRequestInput: async () => {
+                        throw new InputException(`Required fields are missing or invalid`);
+                    }
+                } as any;
+            });
+
+            const updateSpy = jest.spyOn(oswService, "updateFeedbackStatus").mockResolvedValueOnce([] as any);
+
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.updateFeedbackStatus(req, res, next);
+
+            // Assert
+            expect(updateSpy).not.toHaveBeenCalled();
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
         });
     });
 });

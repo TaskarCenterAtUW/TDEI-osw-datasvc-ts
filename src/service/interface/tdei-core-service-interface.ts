@@ -174,4 +174,11 @@ export interface ITdeiCoreService {
    * @throws {Error} If an error occurs while saving the download stats.
    */
   createDownloadStats(downloadStatsObj: DownloadStatsEntity): Promise<DownloadStatsDTO>;
+
+  /**
+   * Checks if a project group exists by its ID.
+   * @param id - The ID of the project group.
+   * @returns A promise that resolves to a boolean indicating whether the project group exists.
+   */
+  checkProjectGroupExistsById(id: string): Promise<Boolean>
 }
