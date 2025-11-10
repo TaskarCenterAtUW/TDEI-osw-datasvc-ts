@@ -1,5 +1,5 @@
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
-import { IsOptional, IsString, IsIn, IsNotEmpty, validate, ValidationError } from "class-validator";
+import { IsOptional, IsString, IsIn, IsNotEmpty, validate, ValidationError, IsNumber } from "class-validator";
 import { InputException } from "../exceptions/http/http-exceptions";
 
 export class FeedbackStatusRequestDto extends AbstractDomainEntity {
@@ -24,6 +24,7 @@ export class FeedbackStatusRequestDto extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
+    @IsNumber()
     id?: number;
 
     async validateRequestInput() {
