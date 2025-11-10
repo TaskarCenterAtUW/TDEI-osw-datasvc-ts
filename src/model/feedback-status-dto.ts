@@ -15,7 +15,7 @@ export class FeedbackStatusRequestDto extends AbstractDomainEntity {
     @IsIn(['fixed', 'wont_fix', 'not_an_issue'], {
         message: "resolution must be either 'fixed', 'wont_fix' or 'not_an_issue'",
     })
-    resolution?: string;
+    resolution_status?: string;
 
     @Prop()
     @IsOptional()

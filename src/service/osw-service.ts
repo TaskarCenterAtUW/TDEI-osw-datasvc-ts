@@ -76,10 +76,10 @@ class OswService implements IOswService {
                 }
 
                 const queryConfig: QueryConfig = {
-                    text: `UPDATE content.feedback SET status = $1, resolution = $2, resolution_description = $3, resolved_by = $4, updated_at = NOW() WHERE id = $5 AND tdei_project_id = $6 AND tdei_dataset_id = $7`,
+                    text: `UPDATE content.feedback SET status = $1, resolution_status = $2, resolution_description = $3, resolved_by = $4, updated_at = NOW() WHERE id = $5 AND tdei_project_id = $6 AND tdei_dataset_id = $7`,
                     values: [
                         feedbackStatusUpdate.status,
-                        feedbackStatusUpdate.resolution,
+                        feedbackStatusUpdate.resolution_status,
                         feedbackStatusUpdate.resolution_description,
                         user_id,
                         feedbackStatusUpdate.id,
