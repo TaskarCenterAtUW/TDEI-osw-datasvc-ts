@@ -102,7 +102,7 @@ export class FeedbackResponseDTO extends AbstractDomainEntity {
     due_date!: string;
 
     @Prop()
-    resolution!: string;
+    resolution_status!: string;
 
     @Prop()
     resolution_description!: string;
