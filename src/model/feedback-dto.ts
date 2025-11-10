@@ -105,7 +105,7 @@ export class FeedbackResponseDTO extends AbstractDomainEntity {
     resolution!: string;
 
     @Prop()
-    status_description!: string;
+    resolution_description!: string;
 
     @Prop()
     resolved_by!: string;

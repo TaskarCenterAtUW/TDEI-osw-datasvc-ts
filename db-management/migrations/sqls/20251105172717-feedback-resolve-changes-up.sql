@@ -5,4 +5,4 @@ ALTER TABLE IF EXISTS content.feedback
     ADD COLUMN IF NOT EXISTS  resolution character varying(100);
 
 ALTER TABLE IF EXISTS content.feedback
-    ADD COLUMN IF NOT EXISTS  status_description character varying(5000);
+    ADD COLUMN IF NOT EXISTS  resolution_description character varying(5000);

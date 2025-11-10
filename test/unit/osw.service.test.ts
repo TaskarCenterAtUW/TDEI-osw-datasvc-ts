@@ -1732,7 +1732,7 @@ describe("OSW Service Test", () => {
             const tdei_dataset_id = "ds1";
             const user_id = "user-1";
             const updates = [
-                { id: 10, status: "resolved", resolution: "ok", status_description: "done" }
+                { id: 10, status: "resolved", resolution: "ok", resolution_description: "done" }
             ];
 
             jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any);

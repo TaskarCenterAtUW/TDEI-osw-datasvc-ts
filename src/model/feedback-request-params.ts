@@ -85,7 +85,7 @@ export class feedbackRequestParams {
             "fd.location_longitude",
             "fd.customer_email",
             "fd.resolution",
-            "fd.status_description",
+            "fd.resolution_description",
             "ue.username as resolved_by"
         ];
 
