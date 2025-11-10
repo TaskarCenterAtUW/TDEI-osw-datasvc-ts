@@ -83,7 +83,10 @@ export class feedbackRequestParams {
             "fd.status",
             "fd.location_latitude",
             "fd.location_longitude",
-            "fd.customer_email"
+            "fd.customer_email",
+            "fd.resolution",
+            "fd.resolution_description",
+            "ue.username as resolved_by"
         ];
 
         // Main table name
@@ -92,7 +95,8 @@ export class feedbackRequestParams {
         // Joins
         const joins: JoinCondition[] = [
             { tableName: "public.project_group", alias: "pg", on: "fd.tdei_project_id = pg.project_group_id", type: "LEFT" },
-            { tableName: "content.dataset", alias: "ds", on: "fd.tdei_dataset_id = ds.tdei_dataset_id", type: "LEFT" }
+            { tableName: "content.dataset", alias: "ds", on: "fd.tdei_dataset_id = ds.tdei_dataset_id", type: "LEFT" },
+            { tableName: "keycloak.user_entity", alias: "ue", on: "fd.resolved_by = ue.id", type: "LEFT" },
         ];
 
         // Conditions

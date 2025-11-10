@@ -5,4 +5,4 @@ ALTER TABLE IF EXISTS content.feedback
     DROP COLUMN IF EXISTS resolution;
 
 ALTER TABLE IF EXISTS content.feedback
-    DROP COLUMN IF EXISTS status_description;
+    DROP COLUMN IF EXISTS resolution_description;

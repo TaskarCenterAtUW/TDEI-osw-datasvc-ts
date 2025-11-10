@@ -20,7 +20,7 @@ export class FeedbackStatusRequestDto extends AbstractDomainEntity {
     @Prop()
     @IsOptional()
     @IsString()
-    status_description?: string;
+    resolution_description?: string;
 
     @Prop()
     @IsNotEmpty()
