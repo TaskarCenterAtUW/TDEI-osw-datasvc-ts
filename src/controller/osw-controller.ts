@@ -24,6 +24,7 @@ import { FeedbackRequestDto } from "../model/feedback-dto";
 import { feedbackRequestParams } from "../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
 import { listRequestValidation } from "../middleware/list-request-validation-middleware";
+import { FeedbackStatusRequestDto } from "../model/feedback-status-dto";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -160,6 +161,38 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.updateDatasetVisibility);
         this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.retrievePmTiles);
         this.router.post(`${this.path}/dataset/generate/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.generatePMtiles);
+        this.router.put(`${this.path}/dataset-viewer/feedbacks/:project_id/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator", "member"]), this.updateFeedbackStatus);
+    }
+
+    async updateFeedbackStatus(request: Request, response: express.Response, next: NextFunction) {
+        try {
+            const tdei_project_group_id = request.params.project_id;
+            const tdei_dataset_id = request.params.tdei_dataset_id;
+
+            //verify body is an array
+            if (!Array.isArray(request.body)) {
+                return response.status(400).send("Request body must be an array of Feedback status objects");
+            }
+            //Accept array of feedback status updates
+            let feedbackStatusUpdates: FeedbackStatusRequestDto[] = [];
+            for (const value of request.body) {
+                const feedbackStatusUpdate = FeedbackStatusRequestDto.from(value);
+                const isValid = await feedbackStatusUpdate.validateRequestInput();
+                if (isValid) {
+                    feedbackStatusUpdates.push(feedbackStatusUpdate);
+                }
+            }
+            const user_id = (request.body as any).user_id;
+            const feedbackStatusReport = await oswService.updateFeedbackStatus(tdei_project_group_id, tdei_dataset_id, user_id, feedbackStatusUpdates);
+            response.status(200).send(feedbackStatusReport);
+        } catch (error) {
+            console.error("Error while updating the feedback status", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while updating the feedback status");
+        }
     }
 
     /**
