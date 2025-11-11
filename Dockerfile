@@ -9,6 +9,8 @@ COPY db-management ./db-management
 COPY schema ./schema
 COPY .db-migraterc ./
 RUN ls -a
+RUN npm install @azure/service-bus@7.9.4
+RUN npm install @azure/storage-blob@12.18.0
 RUN npm install
 RUN npm run build
 
