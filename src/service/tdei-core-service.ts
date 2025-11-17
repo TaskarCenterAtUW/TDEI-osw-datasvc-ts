@@ -648,7 +648,7 @@ class TdeiCoreService implements ITdeiCoreService {
      */
     async checkProjectGroupExistsById(id: string): Promise<Boolean> {
         const query = {
-            text: `Select count(*) from public.project_group WHERE project_group_id = $1`,
+            text: `Select 1 from public.project_group WHERE project_group_id = $1 LIMIT 1`,
             values: [id],
         }
         const result = await dbClient.query(query);

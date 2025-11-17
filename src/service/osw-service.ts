@@ -35,9 +35,72 @@ import { feedbackRequestParams } from "../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
 import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
 import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
+import { FeedbackStatusRequestDto, FeedbackStatusUpdateResponseDto } from "../model/feedback-status-dto";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
+
+    /**
+     * Updates the feedback status based on the provided feedback status updates.
+     * @param tdei_project_group_id - The ID of the TDEI project group.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user making the request.
+     * @param feedbackStatusUpdates - An array of FeedbackStatusRequestDto containing the feedback status updates.
+     * @returns A Promise that resolves to an unknown type.
+     */
+    async updateFeedbackStatus(tdei_project_group_id: string, tdei_dataset_id: string, user_id: string, feedbackStatusUpdates: FeedbackStatusRequestDto[]): Promise<FeedbackStatusUpdateResponseDto[]> {
+
+        try {
+            //check dataset exists
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            if (dataset.data_type !== TDEIDataType.osw) {
+                throw new Error('Dataset is not of type OSW');
+            }
+
+            //Check for project group exists
+            const projectGroup = await this.tdeiCoreServiceInstance.checkProjectGroupExistsById(tdei_project_group_id);
+            if (!projectGroup) {
+                throw new Error('Project group not found');
+            }
+
+            const report: FeedbackStatusUpdateResponseDto[] = [];
+            for (const feedbackStatusUpdate of feedbackStatusUpdates) {
+                const checkQueryConfig: QueryConfig = {
+                    text: `SELECT id FROM content.feedback WHERE id = $1 AND tdei_project_id = $2 AND tdei_dataset_id = $3`,
+                    values: [feedbackStatusUpdate.id, tdei_project_group_id, tdei_dataset_id]
+                };
+
+                if ((await dbClient.query(checkQueryConfig)).rowCount == 0) {
+                    report.push({ id: feedbackStatusUpdate.id!, message: 'Feedback record not found or does not belong to the specified project group or dataset.', status: "Failed" });
+                    continue;
+                }
+
+                const queryConfig: QueryConfig = {
+                    text: `UPDATE content.feedback SET status = $1, resolution_status = $2, resolution_description = $3, resolved_by = $4, updated_at = NOW() WHERE id = $5 AND tdei_project_id = $6 AND tdei_dataset_id = $7`,
+                    values: [
+                        feedbackStatusUpdate.status,
+                        feedbackStatusUpdate.resolution_status,
+                        feedbackStatusUpdate.resolution_description,
+                        user_id,
+                        feedbackStatusUpdate.id,
+                        tdei_project_group_id,
+                        tdei_dataset_id
+                    ]
+                };
+                const result = await dbClient.query(queryConfig);
+                if (result.rowCount == 0) {
+                    report.push({ id: feedbackStatusUpdate.id!, message: 'Failed to update feedback status.', status: "Failed" });
+                } else {
+                    report.push({ id: feedbackStatusUpdate.id!, message: 'Feedback status updated successfully.', status: "Success" });
+                }
+            }
+
+            return report;
+        } catch (error) {
+            console.error('Error updating feedback status:', error);
+            throw error;
+        }
+    }
 
     /**
      * Generates PMTiles for a given TDEI dataset ID.
