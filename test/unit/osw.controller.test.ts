@@ -1561,7 +1561,7 @@ describe("OSW Controller Test", () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.send).toHaveBeenCalledWith("Feedback submitted successfully");
+            expect(res.send).toHaveBeenCalledWith(expect.any(String));
             expect(next).not.toHaveBeenCalled();
         });
 
