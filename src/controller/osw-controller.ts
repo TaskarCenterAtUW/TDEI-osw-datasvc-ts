@@ -378,8 +378,8 @@ class OSWController implements IController {
             await feedback.validateRequestInput();
 
             Utility.checkForSqlInjection(feedback);
-            await oswService.addFeedbackRequest(feedback);
-            return response.status(200).send("Feedback submitted successfully");
+            const feedbackId = await oswService.addFeedbackRequest(feedback);
+            return response.status(200).send(feedbackId);
 
         } catch (error) {
             console.error("Error while processing the feedback request", error);
