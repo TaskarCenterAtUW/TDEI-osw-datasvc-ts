@@ -157,7 +157,7 @@ class OSWController implements IController {
         this.router.post(`${this.path}/dataset-viewer/feedbacks/:project_id/:tdei_dataset_id`, apiTracker, authenticate, this.addFeedbackRequest);
         this.router.get(`${this.path}/dataset-viewer/feedbacks`, apiTracker, authenticate, listRequestValidation, this.getFeedbackRequests);
         this.router.get(`${this.path}/dataset-viewer/feedbacks/metadata`, apiTracker, authenticate, this.getFeedbackMetadata);
-        this.router.get(`${this.path}/dataset-viewer/feedbacks/download/:tdei_project_group_id`, apiTracker, authenticate, authorize(["poc", "osw_data_generator"]), this.downloadFeedbacks);
+        this.router.get(`${this.path}/dataset-viewer/feedbacks/download/:tdei_project_group_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.downloadFeedbacks);
         this.router.post(`${this.path}/dataset-viewer/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.updateDatasetVisibility);
         this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.retrievePmTiles);
         this.router.post(`${this.path}/dataset/generate/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.generatePMtiles);

@@ -1,7 +1,3 @@
--- FUNCTION: content.export_osm_xml(text)
-
--- DROP FUNCTION IF EXISTS content.export_osm_xml(text);
-
 CREATE OR REPLACE FUNCTION content.export_osm_xml(
 	dataset_id text)
     RETURNS SETOF text 
@@ -119,8 +115,7 @@ BEGIN
         ep.*,
         COALESCE(
             pn.node_id, 
-			((ABS(HASHTEXT(ep.edge_id || ':' || ep.point_index || ':' || ep.lat || ':' || ep.lon))) % 9223372036854775807 )::VARCHAR
-            -- (((ABS(HASHTEXT(ep.lat || ':' || ep.lon)) + (SELECT COALESCE(ABS(MAX(CAST(node_id AS BIGINT))), 0) FROM temp_parsed_nodes))) % 9223372036854775807 )::VARCHAR
+			(ABS(hashtextextended(ep.edge_id || ep.point_index || ep.lat || ep.lon, 987654321)))::VARCHAR
         ) AS final_node_id,
         pn.node_id IS NULL AS is_new
     FROM temp_edge_points ep
@@ -172,7 +167,7 @@ BEGIN
     INSERT INTO temp_parsed_extension_points
     SELECT 
         true AS is_new,
-        COALESCE( NULL, ( ABS( HASHTEXT(pp.point_id || ':' || pp.lat || ':' || pp.lon) ) % 9223372036854775807 )::VARCHAR ) AS final_node_id,
+        COALESCE( NULL, ( ABS( hashtextextended(pp.point_id || pp.lat || pp.lon, 987654321) ))::VARCHAR ) AS final_node_id,
         pp.lat,
         pp.lon,
         jsonb_build_object(
@@ -185,7 +180,7 @@ BEGIN
             (
                 -- COALESCE((pn.feature_json->'properties'), '{}'::JSONB) - '_id' || 
                 COALESCE((pp.feature_json->'properties'), '{}'::JSONB) - '_id' ||
-                jsonb_build_object('_id', COALESCE( NULL, ( ABS( HASHTEXT(pp.point_id || ':' || pp.lat || ':' || pp.lon) ) % 9223372036854775807 )::VARCHAR ))
+                jsonb_build_object('_id', COALESCE( NULL, (ABS( hashtextextended(pp.point_id || pp.lat || pp.lon, 987654321)))::VARCHAR ))
             )
         ) AS feature_json
     FROM temp_extension_points pp;
@@ -257,7 +252,7 @@ BEGIN
         ep.*,
         COALESCE(
             null,
-            (( ABS(HASHTEXT(ep.lat || ':' || ep.lon))) % 9223372036854775807 )::VARCHAR
+            ( ABS(hashtextextended(ep.lat || ep.lon || ep.point_index || ep.line_id, 987654321)))::VARCHAR
         ) AS final_node_id,
         true AS is_new
     FROM temp_extension_lines_points ep;
@@ -394,7 +389,7 @@ BEGIN
     INSERT INTO temp_parsed_extension_polygons
     SELECT 
         fc.*,
-        ((ABS(HASHTEXT(fc.lat || ':' || fc.lon))) % 9223372036854775807 )::VARCHAR AS final_node_id,
+        (ABS(hashtextextended(fc.lat || fc.lon || fc.ring_index || fc.point_index || fc.polygon_id , 987654321)))::VARCHAR AS final_node_id,
         true AS is_new
     FROM temp_flattened_polygon_coords fc;
 
@@ -539,7 +534,7 @@ BEGIN
     INSERT INTO temp_parsed_zone_polygons
     SELECT 
         fc.*,
-        ((ABS(HASHTEXT(fc.lat || ':' || fc.lon))) % 9223372036854775807 )::VARCHAR AS final_node_id,
+        (ABS(hashtextextended(fc.lat || fc.lon || fc.ring_index || fc.point_index || fc.zone_id, 987654321)))::VARCHAR AS final_node_id,
         pn.node_id IS NULL AS is_new
     FROM temp_flattened_zone_coords fc
     LEFT JOIN temp_parsed_nodes pn 
@@ -681,14 +676,14 @@ BEGIN
                 FROM jsonb_each_text(feature_json->'properties')
                 WHERE key NOT IN ('_id', '_u_id', '_v_id', '_w_id')
             ) > 0)
-            THEN '<node visible="true" version="1" id="' || abs(hashtext(node_id))::bigint || '" lat="' || lat || '" lon="' || lon || '">' || (
+            THEN '<node visible="true" version="1" id="' || node_id::bigint || '" lat="' || lat || '" lon="' || lon || '">' || (
                 SELECT string_agg('<tag k="' || key || '" v="' || content.tdei_escape_xml_attr(value) || '"/>', E'')
                 FROM jsonb_each_text(feature_json->'properties')
                 WHERE key NOT IN ('_id', '_u_id', '_v_id', '_w_id')
             ) || '</node>'
-            ELSE '<node visible="true" version="1" id="' || abs(hashtext(node_id))::bigint || '" lat="' || lat || '" lon="' || lon || '"/>'
+            ELSE '<node visible="true" version="1" id="' || node_id::bigint || '" lat="' || lat || '" lon="' || lon || '"/>'
         END AS line,
-		abs(hashtext(node_id))::bigint as seq_id
+		node_id::bigint as seq_id
     FROM temp_deduplicated_nodes;
     RAISE NOTICE 'processing temp_node_blocks() {%}', clock_timestamp() - operation_start_time;
 
@@ -703,9 +698,9 @@ BEGIN
     INSERT INTO temp_edge_way_blocks
     SELECT
         pep.edge_id,
-		abs(hashtext(pep.edge_id))::bigint as seq_id,
-        '<way visible="true" version="1" id="' || abs(hashtext(pep.edge_id))::bigint || '">' ||
-        STRING_AGG('<nd ref="' || abs(hashtext(final_node_id))::bigint || '"/>', E'' ORDER BY point_index) ||
+		abs(hashtextextended(pep.edge_id, 987654321))::bigint as seq_id,
+        '<way visible="true"  version="1" id="' || abs(hashtextextended(pep.edge_id, 987654321))::bigint || '">' ||
+        STRING_AGG('<nd ref="' || final_node_id::bigint || '"/>', E'' ORDER BY point_index) ||
         COALESCE(
             (
                 SELECT STRING_AGG('<tag k="' || Key || '" v="' || CASE 
@@ -754,9 +749,9 @@ BEGIN
     SELECT
         pep.polygon_id,
         ring_index,
-		abs(hashtext(pep.polygon_id || ring_index::text))::bigint as seq_id,
-        '<way visible="true" version="1" id="' || abs(hashtext(pep.polygon_id || ring_index::text))::bigint  || '">' ||
-        STRING_AGG('<nd ref="' || abs(hashtext(final_node_id))::bigint || '"/>', E'' ORDER BY point_index) ||
+		abs(hashtextextended(pep.polygon_id || ring_index, 987654321))::bigint as seq_id,
+        '<way visible="true"  version="1" id="' || abs(hashtextextended(pep.polygon_id || ring_index, 987654321))::bigint  || '">' ||
+        STRING_AGG('<nd ref="' || final_node_id::bigint || '"/>', E'' ORDER BY point_index) ||
         COALESCE(
             (
                 SELECT STRING_AGG('<tag k="' || Key || '" v="' || CASE 
@@ -802,11 +797,11 @@ BEGIN
     INSERT INTO temp_polygon_relation_blocks
     SELECT
         pep.polygon_id,
-       	abs(hashtext(pep.polygon_id))::bigint as seq_id,
-		 '<relation visible="true" version="1" id="' || abs(hashtext(pep.polygon_id))::bigint || '">' || 
+       	abs(hashtextextended(pep.polygon_id, 987654321))::bigint as seq_id,
+		 '<relation visible="true"  version="1" id="' || abs(hashtextextended(pep.polygon_id, 987654321))::bigint || '">' || 
         STRING_AGG(
             DISTINCT 
-            '<member type="way" ref="' || abs(hashtext(pep.polygon_id || COALESCE(ring_index::text, '0')))::bigint  || 
+            '<member type="way" ref="' || abs(hashtextextended(pep.polygon_id || ring_index, 987654321))::bigint  || 
             '" role="' || CASE WHEN ring_index = 1 THEN 'outer' ELSE 'inner' END || '"/>',
             ''
         ) ||
@@ -848,9 +843,9 @@ BEGIN
     SELECT
         pzp.zone_id,
         ring_index,
-		abs(hashtext(pzp.zone_id || COALESCE(ring_index::text, '0')))::bigint as seq_id,
-        '<way visible="true" version="1" id="' || abs(hashtext(pzp.zone_id || COALESCE(ring_index::text, '0')))::bigint  || '">' ||
-        STRING_AGG('<nd ref="' || abs(hashtext(final_node_id))::bigint || '"/>', E'' ORDER BY point_index) ||
+		abs(hashtextextended(pzp.zone_id || ring_index, 987654321))::bigint as seq_id,
+        '<way visible="true"  version="1" id="' || abs(hashtextextended(pzp.zone_id || ring_index, 987654321))::bigint  || '">' ||
+        STRING_AGG('<nd ref="' || final_node_id::bigint || '"/>', E'' ORDER BY point_index) ||
         COALESCE(
             (
                 SELECT STRING_AGG('<tag k="' || Key || '" v="' || CASE 
@@ -908,11 +903,11 @@ BEGIN
     INSERT INTO temp_zone_relation_blocks
     SELECT
         pzp.zone_id,
-		abs(hashtext(pzp.zone_id))::bigint as seq_id,
-        '<relation visible="true" version="1" id="' || abs(hashtext(pzp.zone_id))::bigint || '">' || 
+		abs(hashtextextended(pzp.zone_id, 987654321))::bigint as seq_id,
+        '<relation visible="true"  version="1" id="' || abs(hashtextextended(pzp.zone_id, 987654321))::bigint || '">' || 
         STRING_AGG(
             DISTINCT 
-            '<member type="way" ref="' || abs(hashtext(pzp.zone_id || COALESCE(ring_index::text, '0')))::bigint  || 
+            '<member type="way" ref="' || abs(hashtextextended(pzp.zone_id || ring_index, 987654321))::bigint  || 
             '" role="' || CASE WHEN ring_index = 1 THEN 'outer' ELSE 'inner' END || '"/>',
             ''
         ) ||
@@ -964,9 +959,9 @@ BEGIN
     INSERT INTO temp_extension_lines_way_blocks
     SELECT
         pel.line_id,
-		abs(hashtext(pel.line_id))::bigint as seq_id,
-        '<way visible="true" version="1" id="' || abs(hashtext(pel.line_id))::bigint || '">' ||
-        STRING_AGG('<nd ref="' || abs(hashtext(final_node_id))::bigint || '"/>', E'' ORDER BY point_index) ||
+		abs(hashtextextended(pel.line_id, 987654321))::bigint as seq_id,
+        '<way visible="true"  version="1" id="' || abs(hashtextextended(pel.line_id, 987654321))::bigint || '">' ||
+        STRING_AGG('<nd ref="' || final_node_id::bigint || '"/>', E'' ORDER BY point_index) ||
         COALESCE(
             (
                 SELECT STRING_AGG('<tag k="' || Key || '" v="' || CASE 
