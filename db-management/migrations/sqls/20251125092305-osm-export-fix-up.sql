@@ -38,7 +38,7 @@ BEGIN
     ) ON COMMIT DROP;
     INSERT INTO temp_parsed_nodes
     SELECT 
-        n.node_id,
+        (ABS(hashtextextended(n.node_id || ST_Y(n.node_loc)::NUMERIC || ST_X(n.node_loc)::NUMERIC, 987654321)))::VARCHAR as node_id, 
         n.node_loc AS geom,
         ST_Y(n.node_loc)::NUMERIC AS lat,
         ST_X(n.node_loc)::NUMERIC AS lon,
