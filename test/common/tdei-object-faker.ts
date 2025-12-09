@@ -73,7 +73,7 @@ export class TdeiObjectFaker {
                         }
                     ]
                 },
-                "schema_version": "v0.2"
+                "schema_version": "v0.3"
             },
             "dataset_summary": {
                 "collection_name": "tacoma",
