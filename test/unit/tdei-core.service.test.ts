@@ -538,6 +538,7 @@ describe("TDEI core Service Test", () => {
             // Arrange
             let metadata = MetadataModel.from({});
             metadata = JSON.parse(JSON.stringify(TdeiObjectFaker.getMetadataSampleMultiPolygon()));
+            metadata.dataset_detail.schema_version = "v0.3"; // Valid schema version
             jest.spyOn(tdeiCoreService, "checkMetaNameAndVersionUnique").mockResolvedValue(false);
 
             // Act & Assert
