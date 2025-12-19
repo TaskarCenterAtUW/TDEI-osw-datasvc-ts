@@ -1123,7 +1123,7 @@
                         "data": {
                             "download_url": "<%= decodeURIComponent(tasks.osw_osm_formatting_ON_DEMAND.output.formattedUrl) %>",
                             "status": "COMPLETED",
-                            "message": "OSW file <%=workflow_input.file_upload_name%> conversion to OSM file <%= tasks.osw_formatting_on_demand_compression.output.output_path.substring(tasks.osw_formatting_on_demand_compression.output.output_path.lastIndexOf('/') + 1) %> completed",
+                            "message": "OSW file <%=workflow_input.file_upload_name%> conversion to OSM file <%= tasks.osw_osm_formatting_ON_DEMAND.output.formattedUrl.substring(tasks.osw_osm_formatting_ON_DEMAND.output.formattedUrl.lastIndexOf('/') + 1) %> completed",
                             "updated_at": "CURRENT_TIMESTAMP"
                         }
                     },
