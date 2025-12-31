@@ -302,8 +302,8 @@ class TdeiCoreService implements ITdeiCoreService {
 
         switch (data_type) {
             case "osw":
-                if (!["v0.2"].includes(metadata.dataset_detail.schema_version))
-                    throw new InputException("Metadata->dataset_detail : Schema version is not supported. Please use v0.2 schema version.");
+                if (!["v0.3"].includes(metadata.dataset_detail.schema_version))
+                    throw new InputException("Metadata->dataset_detail : Schema version is not supported. Please use v0.3 schema version.");
                 break;
             case "pathways":
                 if (!["v1.0"].includes(metadata.dataset_detail.schema_version))
