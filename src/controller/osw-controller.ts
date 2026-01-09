@@ -547,7 +547,7 @@ class OSWController implements IController {
         let versionsList = new Versions([{
             documentation: environment.schemaDocumentationUrl as string ?? '',
             specification: environment.schemaUrl as string ?? '',
-            version: "0.2"
+            version: "0.3"
         }]);
 
         response.status(200).send(versionsList);
