@@ -330,6 +330,68 @@ describe("OSW Service Test", () => {
                 user_id
             );
         });
+
+        test("When all conditions are met with exclusive assignment method, Expect to create job, start workflow, and return job_id", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = SpatialJoinRequest.from({
+                source_dataset_id: "mock-source-dataset-id",
+                target_dataset_id: "mock-target-dataset-id",
+                source_dimension: "edge",
+                target_dimension: "point",
+                join_condition: "ST_Contains(geometry_target, geometry_source)",
+                transform_target: "ST_Buffer(geometry_target, 5)",
+                transform_source: "",
+                filter_target: "highway='footway' AND footway='sidewalk'",
+                filter_source: "highway='street_lamp'",
+                aggregate: ["array_agg(highway)"],
+                attributes: ["highway"],
+                assignment_method: "exclusive"
+            });
+
+            const sourceDataset = {
+                data_type: TDEIDataType.osw
+            };
+            const targetDataset = {
+                data_type: TDEIDataType.osw
+            };
+
+            const job_id = 303;
+            const createJobDTO = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Spatial-Join"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: requestService,
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
+                .mockResolvedValueOnce(sourceDataset as any)
+                .mockResolvedValueOnce(targetDataset as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValueOnce(job_id);
+            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
+
+            // Act
+            const result = await oswService.processSpatialQueryRequest(user_id, requestService);
+
+            // Assert
+            expect(result).toBe(job_id.toString());
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(createJobDTO);
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                job_id.toString(),
+                WorkflowName.osw_spatial_join,
+                expect.objectContaining({
+                    job_id: job_id.toString(),
+                    service: "spatial_join",
+                    parameters: requestService,
+                    user_id: user_id,
+                }),
+                user_id
+            );
+        });
     });
 
     describe("Get OSW file by Id", () => {
