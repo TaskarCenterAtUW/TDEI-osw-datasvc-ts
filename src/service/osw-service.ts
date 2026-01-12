@@ -668,7 +668,8 @@ class OswService implements IOswService {
                     join_condition: requestService.join_condition,
                     filter_target: requestService.join_filter_target,
                     filter_source: requestService.join_filter_source,
-                    aggregate: requestService.aggregate
+                    aggregate: requestService.aggregate,
+                    assignment_method: requestService.assignment_method
                 },
                 tdei_project_group_id: '',
                 user_id: user_id,
