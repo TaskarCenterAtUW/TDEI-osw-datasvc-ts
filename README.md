@@ -130,7 +130,6 @@ graph LR;
 
 ```mermaid
 sequenceDiagram
-sequenceDiagram
     Client->>+Gateway:GET(Dataset)
     Gateway->>+Dataservice: GET
     Dataservice->>+Database: QUERY
