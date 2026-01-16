@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS content.tdei_dataset_spatial_join(text, text[], text);
+
 CREATE OR REPLACE FUNCTION content.tdei_dataset_spatial_join(
 	destination_dataset_id text,
 	dynamic_query text,
