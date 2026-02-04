@@ -49,7 +49,7 @@ export class SpatialJoinRequest extends AbstractDomainEntity {
     @Prop()
     aggregate!: string[];
     @Prop()
-    @IsIn(['default', 'exclusive'])
+    @IsIn(['default', 'exclusive', 'shared'])
     assignment_method: string = 'default';
 
     async validateRequestInput() {
