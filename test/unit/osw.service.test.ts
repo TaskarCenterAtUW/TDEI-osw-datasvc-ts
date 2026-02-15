@@ -583,6 +583,7 @@ describe("OSW Service Test", () => {
             jest.spyOn(storageService, "uploadFile").mockReturnValueOnce(mockRemoteUrl);
 
 
+
             Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
 
             mockAppContext();
@@ -936,20 +937,30 @@ describe('process publish request', () => {
         // Call the function
         let result = await oswService.processPublishRequest(userId, tdeiRecordId);
 
-        // Assertions
-        expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
-        expect(getOSWRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
-        // expect(dbClient.query).toHaveBeenCalled();
-        expect(validateDatasetDatesSpy).toHaveBeenCalled();
-        expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
-            mockJobId.toString(),
-            WorkflowName.osw_publish,
-            expect.anything(),
-            userId
-        );
-        // expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(mockJobId.toString(), undefined);
+            // Assertions
+            expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
+            expect(getOSWRecordByIdSpy).toHaveBeenCalledWith(tdeiRecordId);
+            // expect(dbClient.query).toHaveBeenCalled();
+            expect(validateDatasetDatesSpy).toHaveBeenCalled();
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                WorkflowName.osw_publish,
+                expect.anything(),
+                userId
+            );
+<<<<<<< HEAD
+            // expect(workflowDatabaseService.obseleteAnyExistingWorkflowHistory).toHaveBeenCalledWith(mockJobId.toString(), undefined);
+        });
     });
-});
+=======
+        });
+    });
+
+    describe('createQualityReportJob', () => {
+        const tdei_dataset_id = 'tdei-dataset-id';
+        const user_id = 'user-id';
+        const mockJobId = 101;
+>>>>>>> f1780ab (3065 changes)
 
 describe('process upload request', () => {
     const uploadRequestObject: IUploadRequest = {
