@@ -54,6 +54,7 @@ export interface TaskConfig {
     input_params: any;
     output_params: any;
     function?: string
+    message_application_properties?: Record<string, string>;
 }
 
 export interface Subscription {

@@ -582,27 +582,14 @@ describe("OSW Service Test", () => {
             jest.spyOn(storageService, "getFormatJobPath").mockReturnValueOnce(mockFolderPath);
             jest.spyOn(storageService, "uploadFile").mockReturnValueOnce(mockRemoteUrl);
 
+            Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
+
             mockAppContext();
 
             // Mock createOSWFormatJob function
             const mockJobId = 101;
             jest.spyOn(jobService, "createJob")
                 .mockResolvedValue(mockJobId);
-
-            // Mock OswFormatJobRequest.from function
-            const mockOswFormatRequest = {
-                jobId: mockJobId,
-                source: mockSource,
-                target: mockTarget,
-                sourceUrl: "mockRemoteUrl",
-            };
-
-            // Mock QueueMessage.from function
-            const mockQueueMessage = {
-                messageId: mockJobId,
-                messageType: WorkflowName.osw_formatting_on_demand,
-                data: mockOswFormatRequest,
-            };
 
             // Execute the function
             const result = await oswService.processFormatRequest(mockSource, mockTarget, mockUploadedFile, mockUserId);
@@ -611,10 +598,19 @@ describe("OSW Service Test", () => {
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getFormatJobPath).toHaveBeenCalledWith(mockUid);
             expect(result).toBe(mockJobId.toString());
+            const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 WorkflowName.osw_formatting_on_demand,
-                expect.anything(),
+                expect.objectContaining({
+                    job_id: mockJobId.toString(),
+                    user_id: mockUserId,
+                    source: mockSource,
+                    target: mockTarget,
+                    sourceUrl: "mockRemoteUrl",
+                    file_upload_name: mockUploadedFile.originalname,
+                    upload_file_size_mb: expectedUploadFileSizeMb
+                }),
                 mockUserId
             );
         });
@@ -684,107 +680,69 @@ describe("OSW Service Test", () => {
         });
     });
 
-    describe('createQualityReportJob', () => {
-        const tdei_dataset_id = 'tdei-dataset-id';
-        const user_id = 'user-id';
-        const mockJobId = 101;
+    describe('calculate quality metric', () => {
+        const tdeiDatasetId = 'tdei-dataset-id';
+        const algorithm = 'fixed';
+        const userId = 'user-id';
 
-        it('should create quality report job successfully when tdei_auth_token provided', async () => {
+        it('should calculate quality metric successfully with upload_file_size_mb from dataset', async () => {
+            const uploadFileSizeBytes = 1048576; // 1 MB
+            const expectedUploadFileSizeMb = 1;
+
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
                 .mockResolvedValue(Promise.resolve(<any>{
                     data_type: 'osw',
-                    latest_dataset_url: 'https://example.com/dataset.zip',
+                    latest_dataset_url: 'https://blob.example.com/dataset.osw.zip',
+                    upload_file_size_bytes: uploadFileSizeBytes,
                 }));
 
+            const mockJobId = 101;
             jest.spyOn(jobService, "createJob").mockResolvedValue(mockJobId);
             mockAppContext();
 
-            //mock auth host getUserDetails
-            jest.spyOn(tdeiCoreService, "getUserDetails")
-                .mockResolvedValue(Promise.resolve({ apiKey: 'fetched-api-key' }));
-
-            const result = await oswService.createQualityReportJob(
-                tdei_dataset_id,
-                user_id,
-                "username",
-                'Bearer mock-token'
-            );
+            const result = await oswService.calculateQualityMetric(tdeiDatasetId, algorithm, undefined, userId);
 
             expect(result).toBe(mockJobId.toString());
-            expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith(tdei_dataset_id);
-            expect(jobService.createJob).toHaveBeenCalledWith(expect.objectContaining({
-                job_type: 'Quality-Report',
-                data_type: TDEIDataType.osw,
-                request_input: { tdei_dataset_id },
-            }));
+            expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith(tdeiDatasetId);
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
-                WorkflowName.osw_quality_report,
+                WorkflowName.osw_quality_on_demand,
                 expect.objectContaining({
-                    jobId: mockJobId.toString(),
-                    tdei_dataset_ids: tdei_dataset_id,
-                    tdei_api_key: 'fetched-api-key',
-                    tdei_auth_token: 'Bearer mock-token',
+                    job_id: mockJobId.toString(),
+                    user_id: userId,
+                    file_url: 'https://blob.example.com/dataset.osw.zip',
+                    algorithm: algorithm,
+                    sub_regions_file: '',
+                    tdei_dataset_id: tdeiDatasetId,
+                    upload_file_size_mb: expectedUploadFileSizeMb
                 }),
-                user_id
+                userId
             );
-            const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
-            expect(workflowInput.tdei_api_key).toBeTruthy();
-            expect(workflowInput.tdei_auth_token).toBeTruthy();
         });
 
-        it('should throw InputException when tdei_auth_token is missing', async () => {
-            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
-                .mockResolvedValue(Promise.resolve(<any>{ data_type: 'osw' }));
-
-            await expect(oswService.createQualityReportJob(
-                tdei_dataset_id,
-                user_id,
-                undefined
-            )).rejects.toThrow(InputException);
-
-            expect(tdeiCoreService.getDatasetDetailsById).not.toHaveBeenCalled();
-        });
-
-        it('should throw InputException when api key cannot be resolved (no tdei_api_key and no username)', async () => {
+        it('should use 0 for upload_file_size_mb when dataset has no upload_file_size_bytes', async () => {
             jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
                 .mockResolvedValue(Promise.resolve(<any>{
                     data_type: 'osw',
-                    latest_dataset_url: 'https://example.com/dataset.zip',
+                    latest_dataset_url: 'https://blob.example.com/dataset.osw.zip',
+                    upload_file_size_bytes: undefined,
                 }));
 
-            await expect(oswService.createQualityReportJob(
-                tdei_dataset_id,
-                user_id,
-                "username",
-                'Bearer mock-token'
-            )).rejects.toThrow(InputException);
-        });
+            const mockJobId = 101;
+            jest.spyOn(jobService, "createJob").mockResolvedValue(mockJobId);
+            mockAppContext();
 
-        it('should throw InputException when dataset is not osw', async () => {
-            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
-                .mockResolvedValue(Promise.resolve(<any>{ data_type: 'pathways' }));
+            const result = await oswService.calculateQualityMetric(tdeiDatasetId, algorithm, undefined, userId);
 
-            await expect(oswService.createQualityReportJob(tdei_dataset_id, user_id, undefined, 'Bearer mock-token'))
-                .rejects.toThrow(InputException);
-            expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith(tdei_dataset_id);
-        });
-
-        it('should throw InputException when username provided but API key not found from AUTH_HOST', async () => {
-            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
-                .mockResolvedValue(Promise.resolve(<any>{
-                    data_type: 'osw',
-                    latest_dataset_url: 'https://example.com/dataset.zip',
-                }));
-            jest.spyOn(tdeiCoreService, "getUserDetails")
-                .mockResolvedValue(Promise.resolve({}));
-
-            await expect(oswService.createQualityReportJob(
-                tdei_dataset_id,
-                user_id,
-                "username",
-                'Bearer mock-token'
-            )).rejects.toThrow(InputException);
+            expect(result).toBe(mockJobId.toString());
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                WorkflowName.osw_quality_on_demand,
+                expect.objectContaining({
+                    upload_file_size_mb: 0
+                }),
+                userId
+            );
         });
     });
 
@@ -809,6 +767,8 @@ describe("OSW Service Test", () => {
             jest.spyOn(jobService, "createJob")
                 .mockResolvedValue(mockJobId);
 
+            Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
+
             // Mock the behavior of triggerWorkflow
             mockAppContext();
             // Call the function
@@ -819,10 +779,17 @@ describe("OSW Service Test", () => {
             expect(storageService.generateRandomUUID).toHaveBeenCalled();
             expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
             expect(storageService.uploadFile).toHaveBeenCalledWith('validation-job-path/original-name.zip', 'application/zip', expect.anything());
+            const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 WorkflowName.osw_validation_only,
-                expect.anything(),
+                expect.objectContaining({
+                    job_id: mockJobId.toString(),
+                    user_id: userId,
+                    dataset_url: 'dataset-upload-url',
+                    file_upload_name: datasetFile.originalname,
+                    upload_file_size_mb: expectedUploadFileSizeMb
+                }),
                 userId
             );
         });
@@ -968,10 +935,18 @@ describe("OSW Service Test", () => {
             expect(dbClient.query).toHaveBeenCalled();
             expect(validateMetadataSpy).toHaveBeenCalled(); // You may want to improve this assertion
             expect(uploadSpy).toHaveBeenCalledTimes(2); // Two files: dataset and metadata
+            const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 WorkflowName.osw_upload,
-                expect.any(Object),
+                expect.objectContaining({
+                    job_id: mockJobId.toString(),
+                    user_id: uploadRequestObject.user_id,
+                    tdei_project_group_id: uploadRequestObject.tdei_project_group_id,
+                    tdei_dataset_id: 'mocked-uuid',
+                    dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
+                    upload_file_size_mb: expectedUploadFileSizeMb
+                }),
                 uploadRequestObject.user_id
             );
             expect(result).toEqual(mockJobId.toString()); // Adjust the expected value based on your implementation
@@ -1427,6 +1402,7 @@ describe("OSW Service Test", () => {
                 chunks.push(Buffer.from(chunk));
             }
             const csv = Buffer.concat(chunks as any).toString();
+            const csv = Buffer.concat(chunks as any).toString();
             const expected = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n' +
                 '1,pg1,PG,ds1,Dataset,way/1,test,user@example.com,1,2,2025-01-01T00:00:00.000Z,2025-01-01T00:00:00.000Z,open,2025-01-02T00:00:00.000Z\n';
 
@@ -1460,6 +1436,7 @@ describe("OSW Service Test", () => {
             for await (const chunk of stream) {
                 chunks.push(Buffer.from(chunk));
             }
+            const geojson = Buffer.concat(chunks as any).toString();
             const geojson = Buffer.concat(chunks as any).toString();
             const expected = JSON.stringify({
                 type: 'FeatureCollection',
