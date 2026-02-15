@@ -582,8 +582,6 @@ describe("OSW Service Test", () => {
             jest.spyOn(storageService, "getFormatJobPath").mockReturnValueOnce(mockFolderPath);
             jest.spyOn(storageService, "uploadFile").mockReturnValueOnce(mockRemoteUrl);
 
-
-
             Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
 
             mockAppContext();
@@ -604,6 +602,15 @@ describe("OSW Service Test", () => {
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 WorkflowName.osw_formatting_on_demand,
+                expect.objectContaining({
+                    job_id: mockJobId.toString(),
+                    user_id: mockUserId,
+                    source: mockSource,
+                    target: mockTarget,
+                    sourceUrl: "mockRemoteUrl",
+                    file_upload_name: mockUploadedFile.originalname,
+                    upload_file_size_mb: expectedUploadFileSizeMb
+                }),
                 expect.objectContaining({
                     job_id: mockJobId.toString(),
                     user_id: mockUserId,
@@ -809,6 +816,8 @@ describe("OSW Service Test", () => {
 
             Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
 
+            Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
+
             // Mock the behavior of triggerWorkflow
             mockAppContext();
             // Call the function
@@ -820,9 +829,17 @@ describe("OSW Service Test", () => {
             expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
             expect(storageService.uploadFile).toHaveBeenCalledWith('validation-job-path/original-name.zip', 'application/zip', expect.anything());
             const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
+            const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 WorkflowName.osw_validation_only,
+                expect.objectContaining({
+                    job_id: mockJobId.toString(),
+                    user_id: userId,
+                    dataset_url: 'dataset-upload-url',
+                    file_upload_name: datasetFile.originalname,
+                    upload_file_size_mb: expectedUploadFileSizeMb
+                }),
                 expect.objectContaining({
                     job_id: mockJobId.toString(),
                     user_id: userId,
@@ -986,9 +1003,18 @@ describe("OSW Service Test", () => {
             expect(validateMetadataSpy).toHaveBeenCalled(); // You may want to improve this assertion
             expect(uploadSpy).toHaveBeenCalledTimes(2); // Two files: dataset and metadata
             const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
+            const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 mockJobId.toString(),
                 WorkflowName.osw_upload,
+                expect.objectContaining({
+                    job_id: mockJobId.toString(),
+                    user_id: uploadRequestObject.user_id,
+                    tdei_project_group_id: uploadRequestObject.tdei_project_group_id,
+                    tdei_dataset_id: 'mocked-uuid',
+                    dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
+                    upload_file_size_mb: expectedUploadFileSizeMb
+                }),
                 expect.objectContaining({
                     job_id: mockJobId.toString(),
                     user_id: uploadRequestObject.user_id,
