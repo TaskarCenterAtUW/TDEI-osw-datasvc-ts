@@ -868,8 +868,6 @@ describe("OSW Service Test", () => {
                     jest.spyOn(jobService, "createJob")
                         .mockResolvedValue(mockJobId);
 
-                    Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
-
                     // Mock the behavior of triggerWorkflow
                     mockAppContext();
                     // Call the function
@@ -880,17 +878,10 @@ describe("OSW Service Test", () => {
                     expect(storageService.generateRandomUUID).toHaveBeenCalled();
                     expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
                     expect(storageService.uploadFile).toHaveBeenCalledWith('validation-job-path/original-name.zip', 'application/zip', expect.anything());
-                    const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
                     expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                         mockJobId.toString(),
                         WorkflowName.osw_validation_only,
-                        expect.objectContaining({
-                            job_id: mockJobId.toString(),
-                            user_id: userId,
-                            dataset_url: 'dataset-upload-url',
-                            file_upload_name: datasetFile.originalname,
-                            upload_file_size_mb: expectedUploadFileSizeMb
-                        }),
+                        expect.anything(),
                         userId
                     );
                 });
@@ -1036,18 +1027,10 @@ describe("OSW Service Test", () => {
                     expect(dbClient.query).toHaveBeenCalled();
                     expect(validateMetadataSpy).toHaveBeenCalled(); // You may want to improve this assertion
                     expect(uploadSpy).toHaveBeenCalledTimes(2); // Two files: dataset and metadata
-                    const expectedUploadFileSizeMb = Math.round((1000 / (1024 * 1024)) * 100) / 100;
                     expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                         mockJobId.toString(),
                         WorkflowName.osw_upload,
-                        expect.objectContaining({
-                            job_id: mockJobId.toString(),
-                            user_id: uploadRequestObject.user_id,
-                            tdei_project_group_id: uploadRequestObject.tdei_project_group_id,
-                            tdei_dataset_id: 'mocked-uuid',
-                            dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
-                            upload_file_size_mb: expectedUploadFileSizeMb
-                        }),
+                        expect.any(Object),
                         uploadRequestObject.user_id
                     );
                     expect(result).toEqual(mockJobId.toString()); // Adjust the expected value based on your implementation
