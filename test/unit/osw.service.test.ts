@@ -582,6 +582,7 @@ describe("OSW Service Test", () => {
             jest.spyOn(storageService, "getFormatJobPath").mockReturnValueOnce(mockFolderPath);
             jest.spyOn(storageService, "uploadFile").mockReturnValueOnce(mockRemoteUrl);
 
+
             Utility.calculateTotalSize = jest.fn().mockReturnValue(1000);
 
             mockAppContext();
@@ -743,10 +744,13 @@ describe("OSW Service Test", () => {
                 }),
                 userId
             );
-            describe('createQualityReportJob', () => {
-                const tdei_dataset_id = 'tdei-dataset-id';
-                const user_id = 'user-id';
-                const mockJobId = 101;
+        });
+    });
+
+    describe('createQualityReportJob', () => {
+        const tdei_dataset_id = 'tdei-dataset-id';
+        const user_id = 'user-id';
+        const mockJobId = 101;
 
                 it('should create quality report job successfully when tdei_auth_token provided', async () => {
                     jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
