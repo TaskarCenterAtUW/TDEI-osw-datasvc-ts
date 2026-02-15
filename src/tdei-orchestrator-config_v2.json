@@ -12,7 +12,8 @@
                 "changeset_url": "<%=changeset_url%>",
                 "latest_dataset_url": "<%=latest_dataset_url%>",
                 "tdei_dataset_id": "<%=tdei_dataset_id%>",
-                "dataset_file_upload_name": "<%=dataset_file_upload_name%>"
+                "dataset_file_upload_name": "<%=dataset_file_upload_name%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -25,6 +26,9 @@
                         "user_id": "<%=workflow_input.user_id%>",
                         "tdei_project_group_id": "<%=workflow_input.tdei_project_group_id%>",
                         "file_upload_path": "<%=workflow_input.dataset_url%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -277,6 +281,9 @@
                     "description": "Validating the uploaded osw file",
                     "type": "Event",
                     "topic": "osw-validation-request",
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
+                    },
                     "input_params": {
                         "user_id": "<%=workflow_input.user_id%>",
                         "tdei_project_group_id": "<%=workflow_input.tdei_project_group_id%>",
@@ -752,7 +759,8 @@
                 "job_id": "<%=job_id%>",
                 "user_id": "<%=user_id%>",
                 "dataset_url": "<%=dataset_url%>",
-                "file_upload_name": "<%=file_upload_name%>"
+                "file_upload_name": "<%=file_upload_name%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -764,6 +772,9 @@
                     "input_params": {
                         "user_id": "<%=workflow_input.user_id%>",
                         "file_upload_path": "<%=workflow_input.dataset_url%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -1089,7 +1100,8 @@
                 "source": "<%=source%>",
                 "target": "<%=target%>",
                 "sourceUrl": "<%=sourceUrl%>",
-                "file_upload_name": "<%=file_upload_name%>"
+                "file_upload_name": "<%=file_upload_name%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -1103,6 +1115,9 @@
                         "source": "<%=workflow_input.source%>",
                         "target": "<%=workflow_input.target%>",
                         "sourceUrl": "<%=workflow_input.sourceUrl%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -2422,7 +2437,8 @@
                 "file_url": "<%=file_url%>",
                 "algorithm": "<%=algorithm%>",
                 "sub_regions_file": "<%=sub_regions_file%>",
-                "tdei_dataset_id": "<%=tdei_dataset_id%>"
+                "tdei_dataset_id": "<%=tdei_dataset_id%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -2436,6 +2452,9 @@
                         "data_file": "<%=workflow_input.file_url%>",
                         "algorithm": "<%=workflow_input.algorithm%>",
                         "sub_regions_file": "<%=workflow_input.sub_regions_file%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",

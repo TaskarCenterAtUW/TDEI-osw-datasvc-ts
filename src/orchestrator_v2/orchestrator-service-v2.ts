@@ -8,10 +8,12 @@ import { Task, WorkflowContext, WorkflowStatus } from "./workflow/workflow-conte
 import { WorkflowDetailsEntity } from "../database/entity/workflow-details-entity";
 import { OrchestratorUtility } from "./orchestrator-utility";
 
+export type ApplicationProperties = Record<string, number | boolean | string | Date | null>;
+
 export interface IOrchestratorService_v2 {
     startWorkflow(job_id: string, workflowName: string, workflow_input: any, user_id: string): Promise<void>;
     executeNextTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: any): Promise<void>;
-    publishMessage(topic: string, message: QueueMessage): Promise<void>;
+    publishMessage(topic: string, message: QueueMessage, applicationProperties?: ApplicationProperties): Promise<void>;
     executeExceptionTasks(workflow: WorkflowConfig, workflow_context: WorkflowContext): Promise<void>;
     executeNextExceptionTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext): Promise<void>;
 }
@@ -444,10 +446,11 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * Publishes the message to the specified topic
      * @param topic 
      * @param message 
+     * @param applicationProperties Optional application properties to set on the service bus message
      */
-    publishMessage = async (topic: string, message: QueueMessage): Promise<void> => {
+    publishMessage = async (topic: string, message: QueueMessage, applicationProperties?: ApplicationProperties): Promise<void> => {
         let topicInstance = this.getTopicInstance(topic);
-        await topicInstance.publish(message);
+        await topicInstance.publish(message, applicationProperties);
     }
 
     /**

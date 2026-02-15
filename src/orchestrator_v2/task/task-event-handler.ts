@@ -48,6 +48,15 @@ export class EventHandler extends workflowBase_v2 {
             Task.start(workflow_context.tasks[task.name], messageInput);
             WorkflowContext.updateCurrentTask(workflow_context, workflow_context.tasks[task.name]);
 
+            // Resolve message application properties from workflow context if defined
+            let applicationProperties: Record<string, number | boolean | string | Date | null> | undefined;
+            if (task.message_application_properties && Object.keys(task.message_application_properties).length > 0) {
+                const resolved = OrchestratorUtility.map_props(task.message_application_properties, workflow_context);
+                if (resolved && typeof resolved === 'object' && !(resolved instanceof Error)) {
+                    applicationProperties = resolved as Record<string, number | boolean | string | Date | null>;
+                }
+            }
+
             //Publish the message
             let queueMessage = QueueMessage.from({
                 messageId: workflow_context.execution_id,
@@ -55,7 +64,7 @@ export class EventHandler extends workflowBase_v2 {
                 data: messageInput
             });
 
-            await this.publishMessage(task.topic as string, queueMessage);
+            await this.publishMessage(task.topic as string, queueMessage, applicationProperties);
 
             //Save the workflow context
             await this.saveWorkflowContext(workflow_context);

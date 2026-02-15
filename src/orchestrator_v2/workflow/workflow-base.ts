@@ -4,7 +4,7 @@ import { WorkflowDetailsEntity } from "../../database/entity/workflow-details-en
 import { WorkflowConfig, TaskConfig } from "./workflow-config-model";
 import { WorkflowContext } from "./workflow-context.model";
 import { QueueMessage } from "nodets-ms-core/lib/core/queue";
-import { IOrchestratorService_v2 } from "../orchestrator-service-v2";
+import { ApplicationProperties, IOrchestratorService_v2 } from "../orchestrator-service-v2";
 
 export class workflowBase_v2 {
 
@@ -29,8 +29,8 @@ export class workflowBase_v2 {
         await this.orchestratorServiceInstance.executeNextTask(workflow, task, workflow_context);
     }
 
-    async publishMessage(topic: string, message: QueueMessage) {
-        await this.orchestratorServiceInstance.publishMessage(topic, message);
+    async publishMessage(topic: string, message: QueueMessage, applicationProperties?: ApplicationProperties) {
+        await this.orchestratorServiceInstance.publishMessage(topic, message, applicationProperties);
     }
 
     async saveWorkflowContext(workflow_context: WorkflowContext) {
