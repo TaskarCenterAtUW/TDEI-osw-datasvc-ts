@@ -81,6 +81,29 @@ class JobService implements IJobService {
     }
 
     /**
+     * Retrieves job download info (job_type, download_url) for the given job ID.
+     * @param job_id The ID of the job.
+     * @returns A Promise that resolves to { job_type, download_url }.
+     */
+    async getJobDownloadInfo(job_id: string): Promise<{ job_type: string; download_url: string }> {
+        if (Number.isNaN(Number(job_id)))
+            throw new InputException("Invalid job id");
+
+        const result = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
+
+        if (result.rowCount == 0)
+            throw new HttpException(404, "Job not found");
+
+        if (result.rows[0].download_url == null || result.rows[0].download_url == '')
+            throw new HttpException(404, "Download not available for this job.");
+
+        return {
+            job_type: result.rows[0].job_type,
+            download_url: decodeURIComponent(result.rows[0].download_url),
+        };
+    }
+
+    /**
      * Retrieves the FileEntity associated with the given job ID.
      * @param job_id The ID of the job.
      * @returns A Promise that resolves to the FileEntity.
