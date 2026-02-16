@@ -151,7 +151,7 @@ class OSWController implements IController {
         // Route for quality metric request
         this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), apiTracker, authenticate, this.createIXNQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), apiTracker, authenticate, this.tagQualityMetric);
-        this.router.post(`${this.path}/quality-report/:tdei_dataset_id`, apiTracker, authenticate, this.createQualityReportJob);
+        this.router.post(`${this.path}/quality-report/:tdei_dataset_id`, apiTracker, authenticate, authorize(["member"]), this.createQualityReportJob);
         this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, apiTracker, authenticate, this.createInclineRequest);
         this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
         //TODO:: Domain check authorization
@@ -893,10 +893,12 @@ class OSWController implements IController {
             if (tdei_dataset_id == undefined) {
                 throw new InputException("Missing tdei_dataset_id input");
             }
-            const tdei_api_key = request.headers['x-api-key'] as string | undefined;
-            const username = request.body.username as string | undefined;
             const tdei_auth_token = request.headers['authorization'] as string | undefined;
-            const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, tdei_api_key, username, tdei_auth_token);
+            if (!tdei_auth_token || tdei_auth_token.trim() === '') {
+                throw new InputException("tdei_auth_token is required (Authorization header)");
+            }
+            const username = request.body.username as string | undefined;
+            const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, username, tdei_auth_token);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {

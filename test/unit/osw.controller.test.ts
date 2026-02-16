@@ -852,6 +852,96 @@ describe("OSW Controller Test", () => {
         });
     });
 
+    describe('createQualityReportJob', () => {
+        let mockRequest: any;
+        let mockResponse: any;
+        let mockNext: jest.Mock;
+
+        beforeEach(() => {
+            mockRequest = getMockReq({
+                body: {
+                    user_id: 'mock-user-id',
+                    username: 'test_user',
+                },
+                params: {
+                    tdei_dataset_id: 'mock-tdei_dataset_id',
+                },
+                headers: {
+                    'x-api-key': 'mock-api-key',
+                    'authorization': 'Bearer mock-token',
+                },
+            });
+
+            mockResponse = {
+                status: jest.fn().mockReturnThis(),
+                send: jest.fn(),
+                setHeader: jest.fn(),
+            };
+
+            mockNext = jest.fn();
+        });
+
+        it('should create quality report job and return job_id (both api key and tdei_auth_token mandatory)', async () => {
+            const mockJobId = 'mock-job-id';
+            jest.spyOn(oswService, "createQualityReportJob").mockResolvedValueOnce(mockJobId);
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(202);
+            expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockJobId}`);
+            expect(oswService.createQualityReportJob).toHaveBeenCalledWith(
+                'mock-tdei_dataset_id',
+                'mock-user-id',
+                'test_user',
+                'Bearer mock-token'
+            );
+            expect(mockNext).not.toHaveBeenCalled();
+        });
+
+        it('should handle missing tdei_auth_token (Authorization header required)', async () => {
+            mockRequest.headers['authorization'] = undefined;
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith("tdei_auth_token is required (Authorization header)");
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        it('should handle missing tdei_dataset_id input', async () => {
+            mockRequest.params.tdei_dataset_id = undefined;
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('Missing tdei_dataset_id input');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        it('should handle HttpException from service', async () => {
+            const mockError = new HttpException(400, 'Dataset is not an osw dataset');
+            jest.spyOn(oswService, "createQualityReportJob").mockRejectedValueOnce(mockError);
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('Dataset is not an osw dataset');
+            expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+
+        it('should handle error during quality report job creation', async () => {
+            const mockError = new Error('Error while creating quality report job');
+            jest.spyOn(oswService, "createQualityReportJob").mockRejectedValueOnce(mockError);
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.send).toHaveBeenCalledWith('Error while creating quality report job');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
     describe("processUnionQueryRequest", () => {
         test("When request body is empty, Expect to call next with InputException", async () => {
             // Arrange

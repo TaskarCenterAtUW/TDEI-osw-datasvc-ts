@@ -180,12 +180,11 @@ export interface IOswService {
      * Creates a quality report job for a single dataset.
      * @param tdei_dataset_id - The ID of the TDEI dataset.
      * @param user_id - The ID of the user making the request.
-     * @param tdei_api_key - The logged-in user's API key (e.g. from x-api-key header); if missing, fetched by username.
-     * @param username - Optional username (e.g. from Bearer token); used to fetch apiKey from auth when tdei_api_key is missing.
+     * @param username - Optional username (e.g. from username query param); used to fetch apiKey from auth when tdei_api_key is missing.
      * @param tdei_auth_token - Optional Authorization header value (e.g. "Bearer <token>") to pass in the queue message.
      * @returns A Promise that resolves to the job ID.
      */
-    createQualityReportJob(tdei_dataset_id: string, user_id: string, tdei_api_key?: string, username?: string, tdei_auth_token?: string): Promise<string>;
+    createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string): Promise<string>;
 
     /**
      * Retrieves the OswStream by its ID.

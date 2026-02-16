@@ -684,6 +684,110 @@ describe("OSW Service Test", () => {
         });
     });
 
+    describe('createQualityReportJob', () => {
+        const tdei_dataset_id = 'tdei-dataset-id';
+        const user_id = 'user-id';
+        const mockJobId = 101;
+
+        it('should create quality report job successfully when tdei_auth_token provided', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'osw',
+                    latest_dataset_url: 'https://example.com/dataset.zip',
+                }));
+
+            jest.spyOn(jobService, "createJob").mockResolvedValue(mockJobId);
+            mockAppContext();
+
+            //mock auth host getUserDetails
+            jest.spyOn(tdeiCoreService, "getUserDetails")
+                .mockResolvedValue(Promise.resolve({ apiKey: 'fetched-api-key' }));
+
+            const result = await oswService.createQualityReportJob(
+                tdei_dataset_id,
+                user_id,
+                "username",
+                'Bearer mock-token'
+            );
+
+            expect(result).toBe(mockJobId.toString());
+            expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith(tdei_dataset_id);
+            expect(jobService.createJob).toHaveBeenCalledWith(expect.objectContaining({
+                job_type: 'Quality-Report',
+                data_type: TDEIDataType.osw,
+                request_input: { tdei_dataset_id },
+            }));
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                WorkflowName.osw_quality_report,
+                expect.objectContaining({
+                    jobId: mockJobId.toString(),
+                    tdei_dataset_ids: tdei_dataset_id,
+                    tdei_api_key: 'fetched-api-key',
+                    tdei_auth_token: 'Bearer mock-token',
+                }),
+                user_id
+            );
+            const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
+            expect(workflowInput.tdei_api_key).toBeTruthy();
+            expect(workflowInput.tdei_auth_token).toBeTruthy();
+        });
+
+        it('should throw InputException when tdei_auth_token is missing', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{ data_type: 'osw' }));
+
+            await expect(oswService.createQualityReportJob(
+                tdei_dataset_id,
+                user_id,
+                undefined
+            )).rejects.toThrow(InputException);
+
+            expect(tdeiCoreService.getDatasetDetailsById).not.toHaveBeenCalled();
+        });
+
+        it('should throw InputException when api key cannot be resolved (no tdei_api_key and no username)', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'osw',
+                    latest_dataset_url: 'https://example.com/dataset.zip',
+                }));
+
+            await expect(oswService.createQualityReportJob(
+                tdei_dataset_id,
+                user_id,
+                "username",
+                'Bearer mock-token'
+            )).rejects.toThrow(InputException);
+        });
+
+        it('should throw InputException when dataset is not osw', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{ data_type: 'pathways' }));
+
+            await expect(oswService.createQualityReportJob(tdei_dataset_id, user_id, undefined, 'Bearer mock-token'))
+                .rejects.toThrow(InputException);
+            expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith(tdei_dataset_id);
+        });
+
+        it('should throw InputException when username provided but API key not found from AUTH_HOST', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{
+                    data_type: 'osw',
+                    latest_dataset_url: 'https://example.com/dataset.zip',
+                }));
+            jest.spyOn(tdeiCoreService, "getUserDetails")
+                .mockResolvedValue(Promise.resolve({}));
+
+            await expect(oswService.createQualityReportJob(
+                tdei_dataset_id,
+                user_id,
+                "username",
+                'Bearer mock-token'
+            )).rejects.toThrow(InputException);
+        });
+    });
+
     describe('process validation only request', () => {
         const userId = 'user-id';
         const datasetFile = {
@@ -1322,7 +1426,7 @@ describe("OSW Service Test", () => {
             for await (const chunk of stream) {
                 chunks.push(Buffer.from(chunk));
             }
-            const csv = Buffer.concat(chunks).toString();
+            const csv = Buffer.concat(chunks as any).toString();
             const expected = 'id,project_group_id,project_group_name,dataset_id,dataset_name,dataset_element_id,feedback_text,reporter_email,location_latitude,location_longitude,created_at,updated_at,status,due_date\n' +
                 '1,pg1,PG,ds1,Dataset,way/1,test,user@example.com,1,2,2025-01-01T00:00:00.000Z,2025-01-01T00:00:00.000Z,open,2025-01-02T00:00:00.000Z\n';
 
@@ -1356,7 +1460,7 @@ describe("OSW Service Test", () => {
             for await (const chunk of stream) {
                 chunks.push(Buffer.from(chunk));
             }
-            const geojson = Buffer.concat(chunks).toString();
+            const geojson = Buffer.concat(chunks as any).toString();
             const expected = JSON.stringify({
                 type: 'FeatureCollection',
                 features: [
