@@ -1506,6 +1506,62 @@ class OswService implements IOswService {
     }
 
     /**
+     * Creates a quality report job for a single dataset.
+     * Workflow receives: { jobId, tdei_dataset_ids, tdei_api_key, tdei_auth_token }.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user making the request.
+     * @param tdei_api_key - The logged-in user's API key (e.g. from x-api-key header).
+     * @param username - Optional username; used to fetch apiKey from AUTH_HOST getUserByUsername when tdei_api_key is missing.
+     * @param tdei_auth_token - Optional Authorization header (e.g. "Bearer <token>") to include in the queue message.
+     * @returns A Promise that resolves to the job ID.
+     */
+    async createQualityReportJob(tdei_dataset_id: string, user_id: string, tdei_api_key?: string, username?: string, tdei_auth_token?: string): Promise<string> {
+        try {
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            if (dataset.data_type !== TDEIDataType.osw) {
+                throw new InputException(`${tdei_dataset_id} is not an osw dataset.`);
+            }
+
+            let api_key = tdei_api_key;
+            if ((api_key === undefined || api_key === '') && username) {
+                const userDetails = await this.tdeiCoreServiceInstance.getUserDetails(username);
+                api_key = userDetails?.apiKey ?? '';
+                if (!api_key) {
+                    throw new InputException(`API key not found for username: ${username}`);
+                }
+            }
+
+            const job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Quality-Report"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id: tdei_dataset_id,
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            const workflow_start = WorkflowName.osw_quality_report;
+            const workflow_input = {
+                jobId: job_id.toString(),
+                tdei_dataset_ids: tdei_dataset_id,
+                tdei_api_key: api_key ?? '',
+                tdei_auth_token: tdei_auth_token ?? '',
+            };
+
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
+            return job_id.toString();
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
     * Processes a inclination request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
     * @param backendRequest The backend request to process.
     * @returns A Promise that resolves to a string representing the job ID.

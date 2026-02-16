@@ -2498,6 +2498,88 @@
             ]
         },
         {
+            "name": "osw_quality_report",
+            "description": "Generate quality report (PDF) for OSW dataset(s)",
+            "workflow_input": {
+                "jobId": "<%=jobId%>",
+                "tdei_dataset_ids": "<%=tdei_dataset_ids%>",
+                "tdei_api_key": "<%=tdei_api_key%>",
+                "tdei_auth_token": "<%=tdei_auth_token%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_quality_report",
+                    "task_reference_name": "osw_quality_report",
+                    "description": "Request quality report generation",
+                    "type": "Event",
+                    "topic": "osw-quality-report-request",
+                    "input_params": {
+                        "jobId": "<%=workflow_input.jobId%>",
+                        "tdei_dataset_ids": "<%=workflow_input.tdei_dataset_ids%>",
+                        "tdei_api_key": "<%=workflow_input.tdei_api_key%>",
+                        "tdei_auth_token": "<%=workflow_input.tdei_auth_token%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "file_upload_path": "<%=data.file_upload_path%>"
+                    }
+                },
+                {
+                    "name": "update_quality_report_job_db",
+                    "task_reference_name": "update_quality_report_job_db",
+                    "description": "Persist PDF download URL and response to job",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.jobId%>"
+                        },
+                        "data": {
+                            "response_props": {
+                                "success": "<%=tasks.osw_quality_report.output.success%>",
+                                "message": "<%=tasks.osw_quality_report.output.message%>",
+                                "file_upload_path": "<%=tasks.osw_quality_report.output.file_upload_path%>"
+                            },
+                            "download_url": "<%=tasks.osw_quality_report.output.file_upload_path%>",
+                            "status": "COMPLETED",
+                            "message": "<%=tasks.osw_quality_report.output.message%>",
+                            "updated_at": "CURRENT_TIMESTAMP"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.jobId%>"
+                        },
+                        "data": {
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP",
+                            "message": "Quality report generation failed"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
+        },
+        {
             "name": "osw_dataset_incline_tag",
             "description": "Update the dataset with incline tags",
             "workflow_input": {
@@ -2877,6 +2959,11 @@
         {
             "description": "Subscription for osw quality metrics completion",
             "topic": "osw-quality-response",
+            "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for osw quality report (PDF) completion",
+            "topic": "osw-quality-report-response",
             "subscription": "res-handler"
         },
         {
