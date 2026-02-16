@@ -19,6 +19,14 @@ export interface IJobService {
    */
     getJobs(user_id: string, params: JobsQueryParams): Promise<JobDTO[]>;
     /**
+     * Retrieves job download info (job_type, download_url) for the given job ID.
+     * @param job_id The ID of the job.
+     * @returns A Promise that resolves to { job_type, download_url }.
+     * @throws HttpException if the job is not found or download is not available.
+     */
+    getJobDownloadInfo(job_id: string): Promise<{ job_type: string; download_url: string }>;
+
+    /**
     * Retrieves the FileEntity associated with the given job ID.
     * @param job_id The ID of the job.
     * @returns A Promise that resolves to the FileEntity.

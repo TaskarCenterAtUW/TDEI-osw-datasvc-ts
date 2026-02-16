@@ -115,6 +115,77 @@ describe('JobService', () => {
         });
     });
 
+    describe('getJobDownloadInfo', () => {
+        it('should return job_type and download_url for a valid job', async () => {
+            // Arrange
+            const job_id = '101';
+            const mockResult = <any>{
+                rowCount: 1,
+                rows: [
+                    {
+                        job_type: 'Quality-Report',
+                        download_url: encodeURIComponent('https://example.com/report.pdf'),
+                    },
+                ],
+            };
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult);
+
+            // Act
+            const result = await jobService.getJobDownloadInfo(job_id);
+
+            // Assert
+            expect(dbClient.query).toHaveBeenCalledWith(JobEntity.getJobByIdQuery(job_id));
+            expect(result).toEqual({
+                job_type: 'Quality-Report',
+                download_url: 'https://example.com/report.pdf',
+            });
+        });
+
+        it('should throw InputException when job_id is not a valid number', async () => {
+            // Arrange
+            const job_id = 'invalid-id';
+
+            // Act & Assert (single call so we do not hit DB)
+            await expect(jobService.getJobDownloadInfo(job_id)).rejects.toThrow(InputException);
+        });
+
+        it('should throw HttpException when job is not found', async () => {
+            // Arrange
+            const job_id = '999';
+            const mockResult = <any>{ rowCount: 0, rows: [] };
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult);
+
+            // Act & Assert (single call so mock is not consumed twice)
+            await expect(jobService.getJobDownloadInfo(job_id)).rejects.toThrow(HttpException);
+        });
+
+        it('should throw HttpException when download_url is null or empty', async () => {
+            // Arrange
+            const job_id = '101';
+            const mockResult = <any>{
+                rowCount: 1,
+                rows: [{ job_type: 'Dataset-Publish', download_url: null }],
+            };
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult);
+
+            // Act & Assert
+            await expect(jobService.getJobDownloadInfo(job_id)).rejects.toThrow(HttpException);
+        });
+
+        it('should throw HttpException when download_url is empty string', async () => {
+            // Arrange
+            const job_id = '101';
+            const mockResult = <any>{
+                rowCount: 1,
+                rows: [{ job_type: 'Dataset-Publish', download_url: '' }],
+            };
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(mockResult);
+
+            // Act & Assert
+            await expect(jobService.getJobDownloadInfo(job_id)).rejects.toThrow(HttpException);
+        });
+    });
+
     describe('createJob', () => {
         it('should create a job in the database and return the job ID', async () => {
             // Arrange

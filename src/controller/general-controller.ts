@@ -4,7 +4,7 @@ import { IController } from "./interface/IController";
 import HttpException from "../exceptions/http/http-base-exception";
 import { FileTypeException, ForbiddenAccess, InputException } from "../exceptions/http/http-exceptions";
 import { authenticate } from "../middleware/authenticate-middleware";
-import { JobsQueryParams, TDEIDataType, TDEIRole } from "../model/jobs-get-query-params";
+import { JobsQueryParams, TDEIDataType, TDEIRole, JobType } from "../model/jobs-get-query-params";
 import jobService from "../service/job-service";
 import tdeiCoreService from "../service/tdei-core-service";
 import { authorize } from "../middleware/authorize-middleware";
@@ -411,7 +411,8 @@ class GeneralController implements IController {
     }
 
     /**
-     * Gives the downloadable stream for the job
+     * Gives the downloadable stream for the job.
+     * If job type is Quality-Report, redirects to the external download URL.
      * @param request 
      * @param response 
      * @param next 
@@ -421,8 +422,13 @@ class GeneralController implements IController {
         try {
             const job_id = request.params['job_id'];
 
-            const fileEntity = await jobService.getJobFileEntity(job_id);
+            const downloadInfo = await jobService.getJobDownloadInfo(job_id);
 
+            if (downloadInfo.job_type === JobType["Quality-Report"]) {
+                return response.redirect(downloadInfo.download_url);
+            }
+
+            const fileEntity = await jobService.getJobFileEntity(job_id);
             response.setHeader('Content-Type', fileEntity.mimeType);
             response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
             (await fileEntity.getStream()).pipe(response);
