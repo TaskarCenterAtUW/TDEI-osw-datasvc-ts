@@ -38,7 +38,8 @@ export enum JobType {
     "Dataset-BBox" = "Dataset-BBox",
     "Dataset-Spatial-Join" = "Dataset-Spatial-Join",
     "Dataset-Union" = "Dataset-Union",
-    "Dataset-PMTiles" = "Dataset-PMTiles"
+    "Dataset-PMTiles" = "Dataset-PMTiles",
+    "Quality-Report" = "Quality-Report"
 }
 export class JobsQueryParams {
     @IsOptional()

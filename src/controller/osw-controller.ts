@@ -151,6 +151,7 @@ class OSWController implements IController {
         // Route for quality metric request
         this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), apiTracker, authenticate, this.createIXNQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), apiTracker, authenticate, this.tagQualityMetric);
+        this.router.post(`${this.path}/quality-report/:tdei_dataset_id`, apiTracker, authenticate, this.createQualityReportJob);
         this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, apiTracker, authenticate, this.createInclineRequest);
         this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
         //TODO:: Domain check authorization
@@ -879,6 +880,33 @@ class OSWController implements IController {
             }
             response.status(500).send("Error while processing the quality metric");
             next(new HttpException(500, "Error while processing the quality metric"));
+        }
+    }
+
+    /**
+     * Creates a quality report job for a single dataset.
+     * POST /api/v1/osw/quality-report/:tdei_dataset_id
+     */
+    createQualityReportJob = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            if (tdei_dataset_id == undefined) {
+                throw new InputException("Missing tdei_dataset_id input");
+            }
+            const tdei_api_key = request.headers['x-api-key'] as string | undefined;
+            const username = request.body.username as string | undefined;
+            const tdei_auth_token = request.headers['authorization'] as string | undefined;
+            const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, tdei_api_key, username, tdei_auth_token);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while creating quality report job", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while creating quality report job");
+            next(new HttpException(500, "Error while creating quality report job"));
         }
     }
 

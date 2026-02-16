@@ -33,6 +33,13 @@ export interface ITdeiCoreService {
     */
   regenerateApiKey(username: string): Promise<string>;
 
+  /**
+   * Fetches the user details by username via AUTH_HOST getUserByUsername API.
+   * @param username - The username for which to fetch the user.
+   * @returns A promise that resolves to the user's details, or null if not found/unavailable.
+   */
+  getUserDetails(username: string): Promise<any>;
+
   /*
  Send the email to the user with the email verification link
  *@param email - The email of the user
