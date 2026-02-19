@@ -5,7 +5,7 @@ import HttpException from "../../src/exceptions/http/http-base-exception";
 import { ForbiddenAccess, InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
-import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../../src/constants/app-constants";
+import { DATASET_UPLOAD_LIMIT_SIZE_BYTES, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE, JOBS_API_PATH } from "../../src/constants/app-constants";
 import { PassThrough } from "stream";
 import { FeedbackStatusRequestDto } from "../../src/model/feedback-status-dto";
 
@@ -511,12 +511,12 @@ describe("OSW Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(DATASET_UPLOAD_LIMIT_SIZE_BYTES + 1);
 
             await oswController.processUploadRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockResponse.send).toHaveBeenCalledWith(DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -638,12 +638,12 @@ describe("OSW Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(DATASET_UPLOAD_LIMIT_SIZE_BYTES + 1);
 
             await oswController.processValidationOnlyRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockResponse.send).toHaveBeenCalledWith(DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -778,12 +778,12 @@ describe("OSW Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(DATASET_UPLOAD_LIMIT_SIZE_BYTES + 1);
 
             await oswController.createFormatRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockResponse.send).toHaveBeenCalledWith(DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });

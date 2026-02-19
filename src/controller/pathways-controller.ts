@@ -14,7 +14,7 @@ import { authenticate } from "../middleware/authenticate-middleware";
 import pathwaysService from "../service/pathways-service";
 import { apiTracker } from "../middleware/api-tracker";
 import { Utility } from "../utility/utility";
-import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../constants/app-constants";
+import { DATASET_UPLOAD_LIMIT_SIZE_BYTES, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE, JOBS_API_PATH } from "../constants/app-constants";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -133,8 +133,8 @@ class PathwaysController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
-                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            if (file_size_in_bytes > DATASET_UPLOAD_LIMIT_SIZE_BYTES) {
+                throw new HttpException(400, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
             }
 
             let job_id = await pathwaysService.processValidationOnlyRequest(request.body.user_id, datasetFile);
@@ -206,8 +206,8 @@ class PathwaysController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize(uploadRequest.datasetFile);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
-                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            if (file_size_in_bytes > DATASET_UPLOAD_LIMIT_SIZE_BYTES) {
+                throw new HttpException(400, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
             }
 
             if (!uploadRequest.metadataFile) {

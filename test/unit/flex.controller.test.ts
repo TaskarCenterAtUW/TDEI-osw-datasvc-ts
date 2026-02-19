@@ -5,7 +5,7 @@ import { getMockSASUrl } from "../common/mock-utils";
 import flexService from "../../src/service/flex-service";
 import flexController from "../../src/controller/flex-controller";
 import { Utility } from "../../src/utility/utility";
-import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../../src/constants/app-constants";
+import { DATASET_UPLOAD_LIMIT_SIZE_BYTES, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE, JOBS_API_PATH } from "../../src/constants/app-constants";
 
 // group test using describe
 describe("Flex Controller Test", () => {
@@ -166,12 +166,12 @@ describe("Flex Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(DATASET_UPLOAD_LIMIT_SIZE_BYTES + 1);
 
             await flexController.processUploadRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockResponse.send).toHaveBeenCalledWith(DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -293,12 +293,12 @@ describe("Flex Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(DATASET_UPLOAD_LIMIT_SIZE_BYTES + 1);
 
             await flexController.processValidationOnlyRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockResponse.send).toHaveBeenCalledWith(DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
