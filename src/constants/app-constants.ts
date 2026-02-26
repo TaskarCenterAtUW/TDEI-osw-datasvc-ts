@@ -1,3 +1,13 @@
+/**
+ * Canonical enum for TDEI dataset/data types.
+ * Use this for type-safe references to osw, pathways, and flex.
+ */
+export enum DataType {
+    osw = "osw",
+    pathways = "pathways",
+    flex = "flex",
+}
+
 export enum WorkflowName {
     "osw_upload" = "osw_upload_v2",
     "osw_publish" = "osw_publish",
@@ -23,36 +33,3 @@ export enum WorkflowName {
 }
 
 export const JOBS_API_PATH = "/api/v1/jobs";
-
-const DEFAULT_DATASET_UPLOAD_LIMIT_SIZE_BYTES = 1073741824; // 1 GB in bytes
-
-const datasetUploadLimitFromEnv = Number(process.env.DATASET_UPLOAD_LIMIT_SIZE_BYTES);
-
-export const DATASET_UPLOAD_LIMIT_SIZE_BYTES =
-    Number.isFinite(datasetUploadLimitFromEnv) && datasetUploadLimitFromEnv > 0
-        ? datasetUploadLimitFromEnv
-        : DEFAULT_DATASET_UPLOAD_LIMIT_SIZE_BYTES;
-
-//decimal (SI) units
-const GB = 1_000_000_000;
-const MB = 1_000_000;
-const KB = 1_000;
-
-function formatBytesForDisplay(bytes: number): string {
-    if (bytes >= GB) {
-        const gb = bytes / GB;
-        return `${gb % 1 === 0 ? gb : gb.toFixed(1)} GB`;
-    }
-    if (bytes >= MB) {
-        const mb = bytes / MB;
-        return `${mb % 1 === 0 ? mb : mb.toFixed(1)} MB`;
-    }
-    if (bytes >= KB) {
-        const kb = bytes / KB;
-        return `${kb % 1 === 0 ? kb : kb.toFixed(1)} KB`;
-    }
-    return `${bytes} bytes`;
-}
-
-export const DATASET_UPLOAD_LIMIT_ERROR_MESSAGE =
-    `The total size of dataset zip files exceeds ${formatBytesForDisplay(DATASET_UPLOAD_LIMIT_SIZE_BYTES)} upload limit.`;

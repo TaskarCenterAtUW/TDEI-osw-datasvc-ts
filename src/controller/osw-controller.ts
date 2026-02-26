@@ -19,7 +19,8 @@ import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
 import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 import { apiTracker } from "../middleware/api-tracker";
-import { DATASET_UPLOAD_LIMIT_SIZE_BYTES, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE, JOBS_API_PATH } from "../constants/app-constants";
+import { DataType, JOBS_API_PATH } from "../constants/app-constants";
+import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../constants/system-capabilities";
 import { FeedbackRequestDto } from "../model/feedback-dto";
 import { feedbackRequestParams } from "../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
@@ -609,8 +610,8 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > DATASET_UPLOAD_LIMIT_SIZE_BYTES) {
-                throw new HttpException(400, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
+            if (file_size_in_bytes > getDatasetUploadLimitBytes(DataType.osw)) {
+                throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.osw));
             }
 
 
@@ -733,8 +734,8 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize(uploadRequest.datasetFile);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > DATASET_UPLOAD_LIMIT_SIZE_BYTES) {
-                throw new HttpException(400, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
+            if (file_size_in_bytes > getDatasetUploadLimitBytes(DataType.osw)) {
+                throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.osw));
             }
 
             if (!uploadRequest.metadataFile) {
@@ -820,8 +821,8 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > DATASET_UPLOAD_LIMIT_SIZE_BYTES) {
-                throw new HttpException(400, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
+            if (file_size_in_bytes > getDatasetUploadLimitBytes(DataType.osw)) {
+                throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.osw));
             }
 
             let source = request.body['source_format']; //TODO: Validate the input enums 

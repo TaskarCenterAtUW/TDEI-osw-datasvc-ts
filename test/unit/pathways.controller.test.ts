@@ -5,7 +5,8 @@ import { getMockSASUrl } from "../common/mock-utils";
 import pathwaysService from "../../src/service/pathways-service";
 import pathwaysController from "../../src/controller/pathways-controller";
 import { Utility } from "../../src/utility/utility";
-import { DATASET_UPLOAD_LIMIT_SIZE_BYTES, DATASET_UPLOAD_LIMIT_ERROR_MESSAGE, JOBS_API_PATH } from "../../src/constants/app-constants";
+import { DataType, JOBS_API_PATH } from "../../src/constants/app-constants";
+import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../../src/constants/system-capabilities";
 
 // group test using describe
 describe("Pathways Controller Test", () => {
@@ -214,12 +215,12 @@ describe("Pathways Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(DATASET_UPLOAD_LIMIT_SIZE_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(getDatasetUploadLimitBytes(DataType.pathways) + 1);
 
             await pathwaysController.processUploadRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith(DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
+            expect(mockResponse.send).toHaveBeenCalledWith(getDatasetUploadLimitErrorMessage(DataType.pathways));
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -341,12 +342,12 @@ describe("Pathways Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(DATASET_UPLOAD_LIMIT_SIZE_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(getDatasetUploadLimitBytes(DataType.pathways) + 1);
 
             await pathwaysController.processValidationOnlyRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith(DATASET_UPLOAD_LIMIT_ERROR_MESSAGE);
+            expect(mockResponse.send).toHaveBeenCalledWith(getDatasetUploadLimitErrorMessage(DataType.pathways));
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });

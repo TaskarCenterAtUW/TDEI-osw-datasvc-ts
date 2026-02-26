@@ -416,6 +416,31 @@ describe("General Controller Test", () => {
         });
     });
 
+    describe("getSystemCapabilities", () => {
+        test("When requested, Expect to return system capabilities with dataset upload limits", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+
+            // Act
+            await generalController.getSystemCapabilities(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(200);
+            const sent = (res.send as jest.Mock).mock.calls[0][0];
+            expect(sent).toHaveProperty("dataset_upload_limits");
+            expect(sent.dataset_upload_limits).toHaveProperty("osw");
+            expect(sent.dataset_upload_limits).toHaveProperty("pathways");
+            expect(sent.dataset_upload_limits).toHaveProperty("flex");
+            for (const type of ["osw", "pathways", "flex"]) {
+                expect(sent.dataset_upload_limits[type]).toEqual(expect.objectContaining({
+                    limit_bytes: expect.any(Number),
+                    limit_display: expect.any(String),
+                }));
+            }
+        });
+    });
+
     describe("getSystemMetrics", () => {
         test("When requested, Expect to return system metrics", async () => {
             // Arrange
