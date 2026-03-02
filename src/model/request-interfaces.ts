@@ -48,6 +48,9 @@ export class SpatialJoinRequest extends AbstractDomainEntity {
     join_filter_source!: string;
     @Prop()
     aggregate!: string[];
+    @Prop()
+    @IsIn(['default', 'exclusive', 'shared'])
+    assignment_method: string = 'default';
 
     async validateRequestInput() {
         let errors = await validate(this);
