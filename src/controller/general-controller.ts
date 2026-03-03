@@ -18,6 +18,7 @@ import { apiTracker } from "../middleware/api-tracker";
 import { validate as isUuid } from "uuid";
 import validateQueryDto from "../middleware/dto-validation-middleware";
 import { JOBS_API_PATH } from "../constants/app-constants";
+import { getSystemCapabilities } from "../constants/system-capabilities";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
@@ -78,6 +79,7 @@ class GeneralController implements IController {
             }
         }, this.cloneDataset); // clone Dataset request
         this.router.get(`${this.path}/system-metrics`, apiTracker, authenticate, this.getSystemMetrics);
+        this.router.get(`${this.path}/system/capabilities`, apiTracker, this.getSystemCapabilities);
         this.router.get(`${this.path}/data-metrics`, apiTracker, authenticate, this.getDataMetrics);
         this.router.get(`${this.path}/service-metrics/:tdei_project_group_id`, apiTracker, authenticate, this.getServiceMetrics);
         this.router.post(`${this.path}/recover-password`, apiTracker, this.recoverPassword);
@@ -202,6 +204,27 @@ class GeneralController implements IController {
             return response.status(200).send(result);
         } catch (error) {
             let errorMessage = "Error fetching the data metrics";
+            console.error(errorMessage, error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send(errorMessage);
+            next(new HttpException(500, errorMessage));
+        }
+    }
+
+    /**
+     * Get system capabilities (upload limits, etc.).
+     * GET /api/v1/system/capabilities
+     * No auth required so clients can read limits before uploading.
+     */
+    public getSystemCapabilities = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const result = getSystemCapabilities();
+            return response.status(200).send(result);
+        } catch (error) {
+            const errorMessage = "Error fetching system capabilities";
             console.error(errorMessage, error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);

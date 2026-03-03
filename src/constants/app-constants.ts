@@ -1,3 +1,13 @@
+/**
+ * Canonical enum for TDEI dataset/data types.
+ * Use this for type-safe references to osw, pathways, and flex.
+ */
+export enum DataType {
+    osw = "osw",
+    pathways = "pathways",
+    flex = "flex",
+}
+
 export enum WorkflowName {
     "osw_upload" = "osw_upload_v2",
     "osw_publish" = "osw_publish",
@@ -23,5 +33,3 @@ export enum WorkflowName {
 }
 
 export const JOBS_API_PATH = "/api/v1/jobs";
-
-export const ONE_GB_IN_BYTES = 1073741824;

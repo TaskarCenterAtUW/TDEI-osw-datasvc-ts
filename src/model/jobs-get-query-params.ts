@@ -1,6 +1,7 @@
 import { IsEnum, IsOptional, ValidateIf } from "class-validator";
 import { JoinCondition, PgQueryObject, SqlORder, WhereCondition, buildQuery } from "../database/dynamic-query-object";
 import { InputException } from "../exceptions/http/http-exceptions";
+import { DataType } from "../constants/app-constants";
 
 export enum TDEIRole {
     "tdei-admin" = "tdei-admin",
@@ -9,11 +10,9 @@ export enum TDEIRole {
     "pathways_data_generator" = "pathways_data_generator",
     "osw_data_generator" = "osw_data_generator"
 }
-export enum TDEIDataType {
-    "osw" = "osw",
-    "pathways" = "pathways",
-    "flex" = "flex"
-}
+
+/** @deprecated Prefer importing DataType from constants/app-constants. Re-exported for backward compatibility. */
+export { DataType as TDEIDataType };
 
 export enum JobStatus {
     "COMPLETED" = "COMPLETED",
