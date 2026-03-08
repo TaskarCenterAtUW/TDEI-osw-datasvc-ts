@@ -6,6 +6,7 @@ import jobService from "../../src/service/job-service";
 import { InputException } from "../../src/exceptions/http/http-exceptions";
 import { getMockFileEntity } from "../common/mock-utils";
 import { DatasetDTO } from "../../src/model/dataset-dto";
+import { JobType } from "../../src/model/jobs-get-query-params";
 
 // group test using describe
 describe("General Controller Test", () => {
@@ -269,57 +270,96 @@ describe("General Controller Test", () => {
     });
 
     describe("Get Job Download File", () => {
-        test("When valid job_id provided, Expect to return HTTP status 200", async () => {
+        test("When job type is Quality-Report, Expect to redirect to download URL", async () => {
             // Arrange
-            const req = getMockReq();
+            const req = getMockReq({ params: { job_id: "123" } });
+            const { res, next } = getMockRes();
+            const downloadUrl = "https://example.com/quality-report.pdf";
+            jest.spyOn(jobService, "getJobDownloadInfo").mockResolvedValueOnce({
+                job_type: JobType["Quality-Report"],
+                download_url: downloadUrl,
+            });
+
+            // Act
+            await generalController.getJobDownloadFile(req, res, next);
+
+            // Assert
+            expect(jobService.getJobDownloadInfo).toHaveBeenCalledWith("123");
+            expect(res.redirect).toHaveBeenCalledWith(downloadUrl);
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test("When valid job_id provided and job is not Quality-Report, Expect to stream file", async () => {
+            // Arrange
+            const req = getMockReq({ params: { job_id: "123" } });
             const { res, next } = getMockRes();
             let file = getMockFileEntity();
             file.mimeType = "application/zip";
+            jest.spyOn(jobService, "getJobDownloadInfo").mockResolvedValueOnce({
+                job_type: "Dataset-Publish",
+                download_url: "https://storage.example.com/file.zip",
+            });
             jest.spyOn(jobService, "getJobFileEntity").mockResolvedValueOnce(file);
 
             // Act
             await generalController.getJobDownloadFile(req, res, next);
 
             // Assert
-            expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/zip');
-            expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', `attachment; filename=${file.fileName}`);
+            expect(jobService.getJobDownloadInfo).toHaveBeenCalledWith("123");
+            expect(jobService.getJobFileEntity).toHaveBeenCalledWith("123");
+            expect(res.setHeader).toHaveBeenCalledWith("Content-Type", "application/zip");
+            expect(res.setHeader).toHaveBeenCalledWith("Content-Disposition", `attachment; filename=${file.fileName}`);
         });
 
-        test("When invalid job_id is provided, Expect to return HTTP status 400", async () => {
+        test("When invalid job_id is provided, Expect to call next with error", async () => {
             // Arrange
             const req = getMockReq({ params: { job_id: "mock-job-id" } });
             const { res, next } = getMockRes();
-            const error = new InputException("Job not found");
-            jest.spyOn(jobService, "getJobFileEntity").mockRejectedValueOnce(error);
+            const error = new InputException("Invalid job id");
+            jest.spyOn(jobService, "getJobDownloadInfo").mockRejectedValueOnce(error);
 
             // Act
             await generalController.getJobDownloadFile(req, res, next);
 
             // Assert
-
-            expect(next).toHaveBeenCalledWith(new InputException("Job not found"));
+            expect(jobService.getJobDownloadInfo).toHaveBeenCalledWith("mock-job-id");
+            expect(next).toHaveBeenCalledWith(error);
         });
 
-        test("When valid job_id is provided and download file not available, Expect to return HTTP status 404", async () => {
+        test("When job not found, Expect to return HTTP status 404", async () => {
             // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
+            const req = getMockReq({ params: { job_id: "999" } });
             const { res, next } = getMockRes();
-            const error = new HttpException(404, "File not found");
-            jest.spyOn(jobService, "getJobFileEntity").mockRejectedValueOnce(error);
+            const error = new HttpException(404, "Job not found");
+            jest.spyOn(jobService, "getJobDownloadInfo").mockRejectedValueOnce(error);
 
             // Act
             await generalController.getJobDownloadFile(req, res, next);
 
             // Assert
-            expect(next).toHaveBeenCalledWith(new HttpException(404, "File not found"));
+            expect(next).toHaveBeenCalledWith(error);
+        });
+
+        test("When download not available for job, Expect to return HTTP status 404", async () => {
+            // Arrange
+            const req = getMockReq({ params: { job_id: "123" } });
+            const { res, next } = getMockRes();
+            const error = new HttpException(404, "Download not available for this job.");
+            jest.spyOn(jobService, "getJobDownloadInfo").mockRejectedValueOnce(error);
+
+            // Act
+            await generalController.getJobDownloadFile(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(error);
         });
 
         test("When an error occurs while processing the request, Expect to return the error", async () => {
             // Arrange
-            const req = getMockReq({ params: { job_id: "mock-job-id" } });
+            const req = getMockReq({ params: { job_id: "123" } });
             const { res, next } = getMockRes();
             const error = new Error("Internal Server Error");
-            jest.spyOn(jobService, "getJobFileEntity").mockRejectedValueOnce(error);
+            jest.spyOn(jobService, "getJobDownloadInfo").mockRejectedValueOnce(error);
 
             // Act
             await generalController.getJobDownloadFile(req, res, next);
