@@ -2522,7 +2522,8 @@
                     "output_params": {
                         "success": "<%=data.success%>",
                         "message": "<%=data.message%>",
-                        "file_upload_path": "<%=data.file_upload_path%>"
+                        "file_upload_path": "<%=data.file_upload_path%>",
+                        "job_metadata": "<%=JSON.stringify(data.job_metadata)%>"
                     }
                 },
                 {
@@ -2539,7 +2540,8 @@
                             "response_props": {
                                 "success": "<%=tasks.osw_quality_report.output.success%>",
                                 "message": "<%=tasks.osw_quality_report.output.message%>",
-                                "file_upload_path": "<%=tasks.osw_quality_report.output.file_upload_path%>"
+                                "file_upload_path": "<%=tasks.osw_quality_report.output.file_upload_path%>",
+                                "job_metadata": "<%=JSON.stringify(tasks.osw_quality_report.output.job_metadata)%>"
                             },
                             "download_url": "<%=tasks.osw_quality_report.output.file_upload_path%>",
                             "status": "COMPLETED",
