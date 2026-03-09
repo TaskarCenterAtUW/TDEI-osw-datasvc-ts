@@ -74,6 +74,20 @@ class JobService implements IJobService {
             }
             job.current_stage = x['current_task_description'];
             job.updated_at = x['last_updated_at'];
+            job.response_props = x['response_props'];
+            // Parse string values that are JSON (e.g. "true" → true, "{\"key\":...}" → object); leave others as-is on parse failure
+            if (job.response_props && typeof job.response_props === 'object') {
+                Object.keys(job.response_props).forEach(key => {
+                    const val = job.response_props[key];
+                    if (typeof val === 'string') {
+                        try {
+                            job.response_props[key] = JSON.parse(val);
+                        } catch {
+                            // Keep original string (e.g. plain message, URL)
+                        }
+                    }
+                });
+            }
             list.push(job);
         });
 
