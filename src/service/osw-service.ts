@@ -36,6 +36,7 @@ import { FeedbackDownloadRequestParams } from "../model/feedback-download-reques
 import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
 import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
 import { FeedbackStatusRequestDto, FeedbackStatusUpdateResponseDto } from "../model/feedback-status-dto";
+import UniqueKeyDbException from "../exceptions/db/database-exceptions";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -1561,7 +1562,15 @@ class OswService implements IOswService {
                 user_id: user_id,
             });
 
-            const job_id = await this.jobServiceInstance.createJob(job);
+            let job_id;
+            try {
+                job_id = await this.jobServiceInstance.createJob(job);
+            } catch (error) {
+                if (error instanceof UniqueKeyDbException) {
+                    throw new HttpException(409, "A quality report job is already in progress for this user. Please wait for it to complete before starting a new one.");
+                }
+                throw error;
+            }
 
             const workflow_start = WorkflowName.osw_quality_report;
             const workflow_input = {
