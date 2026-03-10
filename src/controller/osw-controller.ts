@@ -894,9 +894,12 @@ class OSWController implements IController {
             if (tdei_dataset_id == undefined) {
                 throw new InputException("Missing tdei_dataset_id input");
             }
-            const tdei_auth_token = request.headers['authorization'] as string | undefined;
+            let tdei_auth_token = request.headers['authorization'] as string | undefined;
             if (!tdei_auth_token || tdei_auth_token.trim() === '') {
                 throw new InputException("tdei_auth_token is required (Authorization header)");
+            }
+            else {
+                tdei_auth_token = tdei_auth_token.replace('Bearer ', '');
             }
             const username = request.body.username as string | undefined;
             const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, username, tdei_auth_token);
