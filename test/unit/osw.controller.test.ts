@@ -869,7 +869,7 @@ describe("OSW Controller Test", () => {
                 },
                 headers: {
                     'x-api-key': 'mock-api-key',
-                    'authorization': 'Bearer mock-token',
+                    'authorization': 'mock-token',
                 },
             });
 
@@ -895,7 +895,7 @@ describe("OSW Controller Test", () => {
                 'mock-tdei_dataset_id',
                 'mock-user-id',
                 'test_user',
-                'Bearer mock-token'
+                mockRequest.headers['authorization']
             );
             expect(mockNext).not.toHaveBeenCalled();
         });
@@ -928,6 +928,17 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
             expect(mockResponse.send).toHaveBeenCalledWith('Dataset is not an osw dataset');
+            expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+
+        it('should return friendly 409 when a quality report job is already in progress', async () => {
+            const mockError = new HttpException(409, "A quality report job is already in progress for this user. Please wait for it to complete before starting a new one.");
+            jest.spyOn(oswService, "createQualityReportJob").mockRejectedValueOnce(mockError);
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(409);
+            expect(mockResponse.send).toHaveBeenCalledWith(mockError.message);
             expect(mockNext).toHaveBeenCalledWith(mockError);
         });
 
