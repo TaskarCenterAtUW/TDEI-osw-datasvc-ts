@@ -694,6 +694,7 @@ describe("OSW Service Test", () => {
                 .mockResolvedValue(Promise.resolve(<any>{
                     data_type: 'osw',
                     latest_dataset_url: 'https://example.com/dataset.zip',
+                    upload_file_size_bytes: 1048576,
                 }));
 
             jest.spyOn(jobService, "createJob").mockResolvedValue(mockJobId);
@@ -725,6 +726,7 @@ describe("OSW Service Test", () => {
                     tdei_dataset_ids: tdei_dataset_id,
                     tdei_api_key: 'fetched-api-key',
                     tdei_auth_token: 'Bearer mock-token',
+                    upload_file_size_mb: expect.any(Number),
                 }),
                 user_id
             );

@@ -2523,7 +2523,8 @@
                 "jobId": "<%=jobId%>",
                 "tdei_dataset_ids": "<%=tdei_dataset_ids%>",
                 "tdei_api_key": "<%=tdei_api_key%>",
-                "tdei_auth_token": "<%=tdei_auth_token%>"
+                "tdei_auth_token": "<%=tdei_auth_token%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -2537,6 +2538,9 @@
                         "tdei_dataset_ids": "<%=workflow_input.tdei_dataset_ids%>",
                         "tdei_api_key": "<%=workflow_input.tdei_api_key%>",
                         "tdei_auth_token": "<%=workflow_input.tdei_auth_token%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",

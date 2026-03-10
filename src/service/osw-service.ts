@@ -1541,6 +1541,9 @@ class OswService implements IOswService {
                 throw new InputException(`${tdei_dataset_id} is not an osw dataset.`);
             }
 
+            const upload_file_size_bytes = dataset.upload_file_size_bytes ?? 0;
+            const upload_file_size_mb = Math.round((upload_file_size_bytes / (1024 * 1024)) * 100) / 100;
+
             let api_key: string | undefined;
             if (username) {
                 const userDetails = await this.tdeiCoreServiceInstance.getUserDetails(username);
@@ -1578,6 +1581,7 @@ class OswService implements IOswService {
                 tdei_dataset_ids: tdei_dataset_id,
                 tdei_api_key: api_key,
                 tdei_auth_token: tdei_auth_token,
+                upload_file_size_mb: upload_file_size_mb,
             };
 
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
