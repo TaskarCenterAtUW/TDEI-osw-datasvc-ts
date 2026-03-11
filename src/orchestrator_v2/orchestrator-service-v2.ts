@@ -20,9 +20,12 @@ export interface IOrchestratorService_v2 {
 
 export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     private topicCollection = new Map<string, Topic>();
+    private subscriberTopicCollection = new Map<string, Topic>();
     private orchestratorConfigContext: OrchestratorWorkflowConfig = new OrchestratorWorkflowConfig({});
     private workflowEvent = new EventEmitter();
     private default_request_handler_subscription = "request-handler"; // Default subscription for all request handlers
+    // Track DLQ subscriptions we've already registered to avoid duplicate receivers
+    private registeredDlqSubscriptions = new Set<string>();
 
     constructor(orchestratorConfig: any, workflows: any) {
         console.log("Initializing TDEI Orchestrator service v2");
@@ -70,6 +73,20 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
         if (!topic) {
             topic = Core.getTopic(topicName);
             this.topicCollection.set(topicName, topic);
+        }
+        return topic;
+    }
+
+    /**
+     * Gets/creates a dedicated topic instance per (topic, subscription) receiver.
+     * The underlying queue client keeps a single listener per Topic instance.
+     */
+    private getTopicSubscriberInstance(topicName: string, subscriptionName: string) {
+        const key = `${topicName}:${subscriptionName}`;
+        let topic = this.subscriberTopicCollection.get(key);
+        if (!topic) {
+            topic = Core.getTopic(topicName);
+            this.subscriberTopicCollection.set(key, topic);
         }
         return topic;
     }
@@ -124,8 +141,10 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     private subscribe() {
         console.log("Subscribing TDEI orchestrator v2 subscriptions");
         this.orchestratorConfigContext.subscriptions.forEach(subscription => {
-            var topic = this.getTopicInstance(subscription.topic as string);
-            topic.subscribe(subscription.subscription as string,
+            // Use a dedicated instance per topic+subscription to avoid listener collisions
+            const subName = subscription.subscription as string;
+            const topic = this.getTopicSubscriberInstance(subscription.topic as string, subName);
+            topic.subscribe(subName,
                 {
                     onReceive: this.handleMessage,
                     onError: this.handleFailedMessages
@@ -135,31 +154,45 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
 
     private subscribeToDLQ() {
         console.log("Subscribing TDEI orchestrator v2 DLQ subscriptions");
-        const all_request_topics : string[] = []
-        // Get all the topics in the workflows
-        this.orchestratorConfigContext.workflows.forEach(workflow => {
-            workflow.tasks.forEach(task => {
-                if (task.type === "Event") {
-                  const topic_name = task.topic;
-                  if (topic_name) {
-                    all_request_topics.push(topic_name);
-                  }
-                }
+        const dlqSubs = this.orchestratorConfigContext.dlq_subscriptions;
+        if (dlqSubs && dlqSubs.length > 0) {
+            // Use dlq_subscriptions from config: for each (topic, subscription names) subscribe to each subscription's DLQ
+            dlqSubs.forEach(entry => {
+                const subNames = Array.isArray(entry.subscription) ? entry.subscription : [entry.subscription];
+                subNames.forEach(subName => {
+                    const dlqSubscription = String(subName) + "/$deadletterqueue";
+                    const key = `${entry.topic}:${dlqSubscription}`;
+                    if (this.registeredDlqSubscriptions.has(key)) {
+                        return;
+                    }
+                    this.registeredDlqSubscriptions.add(key);
+                    const topic = this.getTopicSubscriberInstance(entry.topic, dlqSubscription);
+                    topic.subscribe(dlqSubscription, {
+                        onReceive: this.handleDLQMessage,
+                        onError: this.handleFailedMessages
+                    });
+                });
             });
-            
-        });
-        // Make only unique topics
-        const unique_request_topics = [...new Set(all_request_topics)];
-        // Subscribe the the deadletterqueue for all the topics
-        unique_request_topics.forEach(topic_name => {
-        var topic = this.getTopicInstance(topic_name); // Not sure whether it should be used
-        const default_dlq_subscription = this.default_request_handler_subscription + "/$deadletterqueue"; // This is important. If we remove the suffix, the orchestrator will not work
-        topic.subscribe(default_dlq_subscription,
-            {
-                onReceive: this.handleDLQMessage,
-                onError: this.handleFailedMessages
+        } else {
+            // Fallback: discover request topics from workflow Event tasks and subscribe to default DLQ
+            const all_request_topics: string[] = [];
+            this.orchestratorConfigContext.workflows.forEach(workflow => {
+                workflow.tasks.forEach(task => {
+                    if (task.type === "Event" && task.topic) {
+                        all_request_topics.push(task.topic);
+                    }
+                });
             });
-        });
+            const unique_request_topics = [...new Set(all_request_topics)];
+            unique_request_topics.forEach(topic_name => {
+                const default_dlq_subscription = this.default_request_handler_subscription + "/$deadletterqueue";
+                const topic = this.getTopicSubscriberInstance(topic_name, default_dlq_subscription);
+                topic.subscribe(default_dlq_subscription, {
+                    onReceive: this.handleDLQMessage,
+                    onError: this.handleFailedMessages
+                });
+            });
+        }
     }
 
     /**
@@ -418,14 +451,14 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
                 let task_name = messageType[1];
                 let workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
                 if (workflowConfig) {
-                   
+
                     let taskConfig = workflowConfig.tasks.find(x => x.task_reference_name.toLowerCase() == task_name.toLowerCase());
                     if (taskConfig) {
                         // Prepare response for the abandoned task
                         let wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
-                         message.data['success']  = false;
-                         message.data['message'] = `Abandoned during ${taskConfig.description} task`;
-                         message.data['abandoned'] = true;
+                        message.data['success'] = false;
+                        message.data['message'] = `Abandoned during ${taskConfig.description} task`;
+                        message.data['abandoned'] = true;
                         // Generate the abandoned response and send to handleEventResponse
                         await this.handleEventResponse(workflowConfig, taskConfig, wokflow_details!.workflow_context, message);
                     }

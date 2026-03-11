@@ -2997,5 +2997,97 @@
             "topic": "pm-tiles-gen-response",
             "subscription": "res-handler"
         }
+    ],
+    "dlq_subscriptions": [
+        {
+            "description": "Subscription for osw validation request",
+            "topic": "osw-validation-request",
+            "subscription": [
+                "1-50MB",
+                "51-200MB",
+                "201-600MB",
+                "601-1GB",
+                "1GB-1.5GB",
+                "1.51GB-1.8GB",
+                "1.81GB-2GB"
+            ]
+        },
+        {
+            "description": "Subscription for osw formatting request",
+            "topic": "osw-formatting-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for osw confidence request",
+            "topic": "osw-confidence-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for extract load request",
+            "topic": "extract-load-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for backend service request",
+            "topic": "backend-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for flex validation request",
+            "topic": "flex-validation-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for pathways validation request",
+            "topic": "pathways-validation-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for dataset zipping request",
+            "topic": "dataset-zip-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for osw quality report request",
+            "topic": "osw-quality-report-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for osw inclination request",
+            "topic": "osw-incline-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for pm tiles generation request",
+            "topic": "pm-tiles-gen-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for osw quality metrics request",
+            "topic": "osw-quality-request",
+            "subscription": [
+                "request-handler"
+            ]
+        }
     ]
 }
