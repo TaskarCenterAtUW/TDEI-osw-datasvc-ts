@@ -19,7 +19,8 @@ import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
 import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
 import { apiTracker } from "../middleware/api-tracker";
-import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../constants/app-constants";
+import { DataType, JOBS_API_PATH } from "../constants/app-constants";
+import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../constants/system-capabilities";
 import { FeedbackRequestDto } from "../model/feedback-dto";
 import { feedbackRequestParams } from "../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
@@ -151,6 +152,7 @@ class OSWController implements IController {
         // Route for quality metric request
         this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), apiTracker, authenticate, this.createIXNQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), apiTracker, authenticate, this.tagQualityMetric);
+        this.router.post(`${this.path}/quality-report/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator", "member"]), this.createQualityReportJob);
         this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, apiTracker, authenticate, this.createInclineRequest);
         this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
         //TODO:: Domain check authorization
@@ -609,8 +611,8 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
-                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            if (file_size_in_bytes > getDatasetUploadLimitBytes(DataType.osw)) {
+                throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.osw));
             }
 
 
@@ -733,8 +735,8 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize(uploadRequest.datasetFile);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
-                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            if (file_size_in_bytes > getDatasetUploadLimitBytes(DataType.osw)) {
+                throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.osw));
             }
 
             if (!uploadRequest.metadataFile) {
@@ -820,8 +822,8 @@ class OSWController implements IController {
 
             const file_size_in_bytes = Utility.calculateTotalSize([request.file] as any);
             //if file size greater than 1GB then throw error
-            if (file_size_in_bytes > ONE_GB_IN_BYTES) {
-                throw new HttpException(400, `The total size of dataset zip files exceeds 1 GB upload limit.`);
+            if (file_size_in_bytes > getDatasetUploadLimitBytes(DataType.osw)) {
+                throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.osw));
             }
 
             let source = request.body['source_format']; //TODO: Validate the input enums 
@@ -879,6 +881,38 @@ class OSWController implements IController {
             }
             response.status(500).send("Error while processing the quality metric");
             next(new HttpException(500, "Error while processing the quality metric"));
+        }
+    }
+
+    /**
+     * Creates a quality report job for a single dataset.
+     * POST /api/v1/osw/quality-report/:tdei_dataset_id
+     */
+    createQualityReportJob = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            if (tdei_dataset_id == undefined) {
+                throw new InputException("Missing tdei_dataset_id input");
+            }
+            let tdei_auth_token = request.headers['authorization'] as string | undefined;
+            if (!tdei_auth_token || tdei_auth_token.trim() === '') {
+                throw new InputException("tdei_auth_token is required (Authorization header)");
+            }
+            else {
+                tdei_auth_token = tdei_auth_token.replace('Bearer ', '');
+            }
+            const username = request.body.username as string | undefined;
+            const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, username, tdei_auth_token);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while creating quality report job", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while creating quality report job");
+            next(new HttpException(500, "Error while creating quality report job"));
         }
     }
 

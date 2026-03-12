@@ -12,7 +12,8 @@
                 "changeset_url": "<%=changeset_url%>",
                 "latest_dataset_url": "<%=latest_dataset_url%>",
                 "tdei_dataset_id": "<%=tdei_dataset_id%>",
-                "dataset_file_upload_name": "<%=dataset_file_upload_name%>"
+                "dataset_file_upload_name": "<%=dataset_file_upload_name%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -25,6 +26,9 @@
                         "user_id": "<%=workflow_input.user_id%>",
                         "tdei_project_group_id": "<%=workflow_input.tdei_project_group_id%>",
                         "file_upload_path": "<%=workflow_input.dataset_url%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -277,6 +281,9 @@
                     "description": "Validating the uploaded osw file",
                     "type": "Event",
                     "topic": "osw-validation-request",
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
+                    },
                     "input_params": {
                         "user_id": "<%=workflow_input.user_id%>",
                         "tdei_project_group_id": "<%=workflow_input.tdei_project_group_id%>",
@@ -752,7 +759,8 @@
                 "job_id": "<%=job_id%>",
                 "user_id": "<%=user_id%>",
                 "dataset_url": "<%=dataset_url%>",
-                "file_upload_name": "<%=file_upload_name%>"
+                "file_upload_name": "<%=file_upload_name%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -764,6 +772,9 @@
                     "input_params": {
                         "user_id": "<%=workflow_input.user_id%>",
                         "file_upload_path": "<%=workflow_input.dataset_url%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -1089,7 +1100,8 @@
                 "source": "<%=source%>",
                 "target": "<%=target%>",
                 "sourceUrl": "<%=sourceUrl%>",
-                "file_upload_name": "<%=file_upload_name%>"
+                "file_upload_name": "<%=file_upload_name%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -1103,6 +1115,9 @@
                         "source": "<%=workflow_input.source%>",
                         "target": "<%=workflow_input.target%>",
                         "sourceUrl": "<%=workflow_input.sourceUrl%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -2422,7 +2437,8 @@
                 "file_url": "<%=file_url%>",
                 "algorithm": "<%=algorithm%>",
                 "sub_regions_file": "<%=sub_regions_file%>",
-                "tdei_dataset_id": "<%=tdei_dataset_id%>"
+                "tdei_dataset_id": "<%=tdei_dataset_id%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -2436,6 +2452,9 @@
                         "data_file": "<%=workflow_input.file_url%>",
                         "algorithm": "<%=workflow_input.algorithm%>",
                         "sub_regions_file": "<%=workflow_input.sub_regions_file%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -2487,6 +2506,90 @@
                             "status": "FAILED",
                             "updated_at": "CURRENT_TIMESTAMP",
                             "message": "Quality metrics calculation failed for the dataset <%=workflow_input.tdei_dataset_id%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
+        },
+        {
+            "name": "osw_quality_report",
+            "description": "Generate quality report (PDF) for OSW dataset(s)",
+            "workflow_input": {
+                "jobId": "<%=jobId%>",
+                "tdei_dataset_ids": "<%=tdei_dataset_ids%>",
+                "tdei_api_key": "<%=tdei_api_key%>",
+                "tdei_auth_token": "<%=tdei_auth_token%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_quality_report",
+                    "task_reference_name": "osw_quality_report",
+                    "description": "Request quality report generation",
+                    "type": "Event",
+                    "topic": "osw-quality-report-request",
+                    "input_params": {
+                        "jobId": "<%=workflow_input.jobId%>",
+                        "tdei_dataset_ids": "<%=workflow_input.tdei_dataset_ids%>",
+                        "tdei_api_key": "<%=workflow_input.tdei_api_key%>",
+                        "tdei_auth_token": "<%=workflow_input.tdei_auth_token%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "file_upload_path": "<%=data.file_upload_path%>",
+                        "job_metadata": "<%=JSON.stringify(data.job_metadata)%>"
+                    }
+                },
+                {
+                    "name": "update_quality_report_job_db",
+                    "task_reference_name": "update_quality_report_job_db",
+                    "description": "Persist PDF download URL and response to job",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.jobId%>"
+                        },
+                        "data": {
+                            "response_props": {
+                                "success": "<%=tasks.osw_quality_report.output.success%>",
+                                "message": "<%=tasks.osw_quality_report.output.message%>",
+                                "file_upload_path": "<%=tasks.osw_quality_report.output.file_upload_path%>",
+                                "job_metadata": "<%=JSON.stringify(tasks.osw_quality_report.output.job_metadata)%>"
+                            },
+                            "download_url": "<%=tasks.osw_quality_report.output.file_upload_path%>",
+                            "status": "COMPLETED",
+                            "message": "<%=tasks.osw_quality_report.output.message%>",
+                            "updated_at": "CURRENT_TIMESTAMP"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.jobId%>"
+                        },
+                        "data": {
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP",
+                            "message": "Quality report generation failed"
                         }
                     },
                     "output_params": {
@@ -2880,6 +2983,11 @@
             "subscription": "res-handler"
         },
         {
+            "description": "Subscription for osw quality report (PDF) completion",
+            "topic": "osw-quality-report-response",
+            "subscription": "res-handler"
+        },
+        {
             "description": "Subscription for inclination to be added to the dataset",
             "topic": "osw-incline-response",
             "subscription": "res-handler"
@@ -2888,6 +2996,98 @@
             "description": "Subscription for pm tiles generation completion",
             "topic": "pm-tiles-gen-response",
             "subscription": "res-handler"
+        }
+    ],
+    "dlq_subscriptions": [
+        {
+            "description": "Subscription for osw validation request",
+            "topic": "osw-validation-request",
+            "subscription": [
+                "1-50MB",
+                "51-200MB",
+                "201-600MB",
+                "601-1GB",
+                "1GB-1.5GB",
+                "1.51GB-1.8GB",
+                "1.81GB-2GB"
+            ]
+        },
+        {
+            "description": "Subscription for osw formatting request",
+            "topic": "osw-formatting-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for osw confidence request",
+            "topic": "osw-confidence-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for extract load request",
+            "topic": "extract-load-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for backend service request",
+            "topic": "backend-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for flex validation request",
+            "topic": "flex-validation-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for pathways validation request",
+            "topic": "pathways-validation-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for dataset zipping request",
+            "topic": "dataset-zip-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for osw quality report request",
+            "topic": "osw-quality-report-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for osw inclination request",
+            "topic": "osw-incline-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for pm tiles generation request",
+            "topic": "pm-tiles-gen-request",
+            "subscription": [
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for osw quality metrics request",
+            "topic": "osw-quality-request",
+            "subscription": [
+                "request-handler"
+            ]
         }
     ]
 }
