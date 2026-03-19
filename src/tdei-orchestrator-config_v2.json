@@ -3003,20 +3003,40 @@
             "description": "Subscription for osw validation request",
             "topic": "osw-validation-request",
             "subscription": [
-                "1-50MB",
-                "51-200MB",
-                "201-600MB",
-                "601-1GB",
-                "1GB-1.5GB",
-                "1.51GB-1.8GB",
-                "1.81GB-2GB"
+                "1MB-50MB",
+                "51MB-100MB",
+                "101MB-200MB",
+                "201MB-300MB",
+                "301MB-500MB",
+                "501MB-750MB",
+                "751MB-1GB",
+                "1GB-1.2GB",
+                "1.2GB-1.5GB",
+                "1.5GB-1.8GB",
+                "1.8GB-2.1GB",
+                "2.1GB-2.4GB",
+                "2.4GB-2.7GB",
+                "2.7GB-3GB"
             ]
         },
         {
             "description": "Subscription for osw formatting request",
             "topic": "osw-formatting-request",
             "subscription": [
-                "request-handler"
+                "1MB-50MB",
+                "51MB-100MB",
+                "101MB-200MB",
+                "201MB-300MB",
+                "301MB-500MB",
+                "501MB-750MB",
+                "751MB-1GB",
+                "1GB-1.2GB",
+                "1.2GB-1.5GB",
+                "1.5GB-1.8GB",
+                "1.8GB-2.1GB",
+                "2.1GB-2.4GB",
+                "2.4GB-2.7GB",
+                "2.7GB-3GB"
             ]
         },
         {
