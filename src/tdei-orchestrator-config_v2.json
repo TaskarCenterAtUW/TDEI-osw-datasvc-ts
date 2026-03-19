@@ -3021,6 +3021,7 @@
                 "2.5GB-2.7GB",
                 "2.7GB-2.9GB",
                 "2.9GB-3GB",
+                "request-handler",
                 "request-handler"
             ]
         },
