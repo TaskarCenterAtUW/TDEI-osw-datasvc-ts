@@ -3009,7 +3009,8 @@
                 "601-1GB",
                 "1GB-1.5GB",
                 "1.51GB-1.8GB",
-                "1.81GB-2GB"
+                "1.81GB-2GB",
+                "request-handler"
             ]
         },
         {
