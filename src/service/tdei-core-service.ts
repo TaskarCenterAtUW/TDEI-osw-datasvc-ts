@@ -109,6 +109,24 @@ class TdeiCoreService implements ITdeiCoreService {
         }
     }
 
+    /**
+     * Fetches the user details by username via AUTH_HOST /api/v1/getUserByUsername.
+     * @param username - The username (userName query param).
+     * @returns A promise that resolves to the user's details, or empty string if not found/unavailable.
+     */
+    async getUserDetails(username: string): Promise<any> {
+        try {
+            if (!username || username.trim() === '') return null;
+            const requestUrl = `${environment.getUserByUsernameUrl}?userName=${encodeURIComponent(username.trim())}`;
+            const result = await fetch(requestUrl, { method: 'get' });
+            if (result.status !== 200) return null;
+            return await result.json();
+        } catch (error: any) {
+            console.error('Error fetching user details', error);
+            return null;
+        }
+    }
+
     /*
      Send the email to the user with the password recovery link
      *@param email - The email of the user

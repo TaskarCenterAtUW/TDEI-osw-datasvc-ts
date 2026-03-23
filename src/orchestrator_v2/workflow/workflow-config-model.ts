@@ -6,10 +6,17 @@ export class OrchestratorWorkflowConfig {
         Object.assign(this, config);
         if (config.workflows)
             this.workflows = config.workflows.map((x: any) => new WorkflowConfig(x));
+        // Ensure dlq_subscriptions from raw JSON are bound correctly
+        const anyConfig = config as any;
+        if (anyConfig && Array.isArray(anyConfig.dlq_subscriptions)) {
+            this.dlq_subscriptions = anyConfig.dlq_subscriptions;
+        }
     }
 
     workflows: WorkflowConfig[] = [];
     subscriptions: Subscription[] = [];
+    /** Request topics and their subscription names to subscribe to for DLQ handling. */
+    dlq_subscriptions: DlqSubscription[] = [];
 
     getWorkflowByName(name: string): WorkflowConfig | undefined {
         var wokflow = this.workflows.find(x => x.name == name);
@@ -54,11 +61,20 @@ export interface TaskConfig {
     input_params: any;
     output_params: any;
     function?: string
+    message_application_properties?: Record<string, string>;
 }
 
 export interface Subscription {
     description: string;
     topic: string;
     subscription: string;
+}
+
+/** Config entry for subscribing to dead-letter queues for request topics. */
+export interface DlqSubscription {
+    description?: string;
+    topic: string;
+    /** Subscription names under this topic; each will be subscribed as <name>/$deadletterqueue */
+    subscription: string[];
 }
 

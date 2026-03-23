@@ -5,7 +5,8 @@ import HttpException from "../../src/exceptions/http/http-base-exception";
 import { ForbiddenAccess, InputException, UnAuthenticated } from "../../src/exceptions/http/http-exceptions";
 import tdeiCoreService from "../../src/service/tdei-core-service";
 import { Utility } from "../../src/utility/utility";
-import { ONE_GB_IN_BYTES, JOBS_API_PATH } from "../../src/constants/app-constants";
+import { DataType, JOBS_API_PATH } from "../../src/constants/app-constants";
+import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../../src/constants/system-capabilities";
 import { PassThrough } from "stream";
 import { FeedbackStatusRequestDto } from "../../src/model/feedback-status-dto";
 
@@ -511,12 +512,12 @@ describe("OSW Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(getDatasetUploadLimitBytes(DataType.osw) + 1);
 
             await oswController.processUploadRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockResponse.send).toHaveBeenCalledWith(getDatasetUploadLimitErrorMessage(DataType.osw));
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -638,12 +639,12 @@ describe("OSW Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(getDatasetUploadLimitBytes(DataType.osw) + 1);
 
             await oswController.processValidationOnlyRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockResponse.send).toHaveBeenCalledWith(getDatasetUploadLimitErrorMessage(DataType.osw));
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -778,12 +779,12 @@ describe("OSW Controller Test", () => {
         it('should handle file size restriction error', async () => {
             const req = getMockReq();
             const { res, next } = getMockRes();
-            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(ONE_GB_IN_BYTES + 1);
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(getDatasetUploadLimitBytes(DataType.osw) + 1);
 
             await oswController.createFormatRequest(mockRequest, mockResponse, mockNext);
 
             expect(mockResponse.status).toHaveBeenCalledWith(400);
-            expect(mockResponse.send).toHaveBeenCalledWith('The total size of dataset zip files exceeds 1 GB upload limit.');
+            expect(mockResponse.send).toHaveBeenCalledWith(getDatasetUploadLimitErrorMessage(DataType.osw));
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
@@ -849,6 +850,107 @@ describe("OSW Controller Test", () => {
             expect(mockResponse.status).toHaveBeenCalledWith(500);
             expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the quality metric');
             expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+    });
+
+    describe('createQualityReportJob', () => {
+        let mockRequest: any;
+        let mockResponse: any;
+        let mockNext: jest.Mock;
+
+        beforeEach(() => {
+            mockRequest = getMockReq({
+                body: {
+                    user_id: 'mock-user-id',
+                    username: 'test_user',
+                },
+                params: {
+                    tdei_dataset_id: 'mock-tdei_dataset_id',
+                },
+                headers: {
+                    'x-api-key': 'mock-api-key',
+                    'authorization': 'mock-token',
+                },
+            });
+
+            mockResponse = {
+                status: jest.fn().mockReturnThis(),
+                send: jest.fn(),
+                setHeader: jest.fn(),
+            };
+
+            mockNext = jest.fn();
+        });
+
+        it('should create quality report job and return job_id (both api key and tdei_auth_token mandatory)', async () => {
+            const mockJobId = 'mock-job-id';
+            jest.spyOn(oswService, "createQualityReportJob").mockResolvedValueOnce(mockJobId);
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(202);
+            expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockJobId}`);
+            expect(oswService.createQualityReportJob).toHaveBeenCalledWith(
+                'mock-tdei_dataset_id',
+                'mock-user-id',
+                'test_user',
+                mockRequest.headers['authorization']
+            );
+            expect(mockNext).not.toHaveBeenCalled();
+        });
+
+        it('should handle missing tdei_auth_token (Authorization header required)', async () => {
+            mockRequest.headers['authorization'] = undefined;
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith("tdei_auth_token is required (Authorization header)");
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        it('should handle missing tdei_dataset_id input', async () => {
+            mockRequest.params.tdei_dataset_id = undefined;
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('Missing tdei_dataset_id input');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        it('should handle HttpException from service', async () => {
+            const mockError = new HttpException(400, 'Dataset is not an osw dataset');
+            jest.spyOn(oswService, "createQualityReportJob").mockRejectedValueOnce(mockError);
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('Dataset is not an osw dataset');
+            expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+
+        it('should return friendly 409 when a quality report job is already in progress', async () => {
+            const mockError = new HttpException(409, "A quality report job is already in progress for this user. Please wait for it to complete before starting a new one.");
+            jest.spyOn(oswService, "createQualityReportJob").mockRejectedValueOnce(mockError);
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(409);
+            expect(mockResponse.send).toHaveBeenCalledWith(mockError.message);
+            expect(mockNext).toHaveBeenCalledWith(mockError);
+        });
+
+        it('should handle error during quality report job creation', async () => {
+            const mockError = new Error('Error while creating quality report job');
+            jest.spyOn(oswService, "createQualityReportJob").mockRejectedValueOnce(mockError);
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.send).toHaveBeenCalledWith('Error while creating quality report job');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
 

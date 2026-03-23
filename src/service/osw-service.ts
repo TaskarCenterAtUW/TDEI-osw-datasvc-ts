@@ -36,6 +36,7 @@ import { FeedbackDownloadRequestParams } from "../model/feedback-download-reques
 import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
 import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
 import { FeedbackStatusRequestDto, FeedbackStatusUpdateResponseDto } from "../model/feedback-status-dto";
+import UniqueKeyDbException from "../exceptions/db/database-exceptions";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -789,6 +790,9 @@ class OswService implements IOswService {
             const source_url = await storageService.uploadFile(uploadPath, fileType, Readable.from(uploadedFile!.buffer))
             console.log('Uplaoded to ', source_url);
 
+            const calculateTotalSize = Utility.calculateTotalSize([uploadedFile!]);
+            const upload_file_size_mb = Math.round((calculateTotalSize / (1024 * 1024)) * 100) / 100;
+
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Reformat"],
@@ -829,7 +833,8 @@ class OswService implements IOswService {
                 source: source,
                 target: target,
                 sourceUrl: decodeURIComponent(source_url),
-                file_upload_name: uploadedFile!.originalname
+                file_upload_name: uploadedFile!.originalname,
+                upload_file_size_mb: upload_file_size_mb
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -1113,6 +1118,9 @@ class OswService implements IOswService {
             const uploadStoragePath = path.join(storageFolderPath, datasetFile.originalname)
             const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer))
 
+            const calculateTotalSize = Utility.calculateTotalSize([datasetFile]);
+            const upload_file_size_mb = Math.round((calculateTotalSize / (1024 * 1024)) * 100) / 100;
+
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Validate"],
@@ -1143,7 +1151,8 @@ class OswService implements IOswService {
                 job_id: job_id.toString(),
                 user_id: user_id,// Required field for message authorization
                 dataset_url: decodeURIComponent(datasetUploadUrl),
-                file_upload_name: datasetFile.originalname
+                file_upload_name: datasetFile.originalname,
+                upload_file_size_mb: upload_file_size_mb
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -1239,7 +1248,8 @@ class OswService implements IOswService {
             datasetEntity.updated_by = uploadRequestObject.user_id;
 
             // Calculate total size of files inside the uploaded ZIP
-            datasetEntity.upload_file_size_bytes = Utility.calculateTotalSize(uploadRequestObject.datasetFile);
+            const calculateTotalSize = Utility.calculateTotalSize(uploadRequestObject.datasetFile);
+            datasetEntity.upload_file_size_bytes = calculateTotalSize;
 
             //flatten the metadata to level 1
             metadata = MetadataModel.flatten(metadata);
@@ -1276,6 +1286,7 @@ class OswService implements IOswService {
                 },
                 tdei_project_group_id: uploadRequestObject.tdei_project_group_id,
                 user_id: uploadRequestObject.user_id,
+                upload_file_size_mb: Math.round((calculateTotalSize / (1024 * 1024)) * 100) / 100
             });
 
             const job_id = await this.jobServiceInstance.createJob(job);
@@ -1291,7 +1302,8 @@ class OswService implements IOswService {
                 changeset_url: changesetUploadUrl ? decodeURIComponent(changesetUploadUrl) : "",
                 tdei_dataset_id: uid,
                 latest_dataset_url: decodeURIComponent(datasetUploadUrl),
-                dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname
+                dataset_file_upload_name: uploadRequestObject.datasetFile[0].originalname,
+                upload_file_size_mb: Math.round((calculateTotalSize / (1024 * 1024)) * 100) / 100
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, uploadRequestObject.user_id);
@@ -1452,6 +1464,9 @@ class OswService implements IOswService {
             const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
             if (dataset.data_type && dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${tdei_dataset_id} is not a osw dataset.`);
+
+            const upload_file_size_bytes = dataset.upload_file_size_bytes ?? 0;
+            const upload_file_size_mb = Math.round((upload_file_size_bytes / (1024 * 1024)) * 100) / 100;
             // Check the input algorithm types
             if (algorithm.length == 0) {
                 throw new InputException("No quality metric algorithms provided");
@@ -1492,7 +1507,8 @@ class OswService implements IOswService {
                 file_url: dataset.latest_dataset_url,
                 algorithm: algorithm,
                 sub_regions_file: sub_regions_upload_url ? decodeURIComponent(sub_regions_upload_url) : "",
-                tdei_dataset_id: tdei_dataset_id
+                tdei_dataset_id: tdei_dataset_id,
+                upload_file_size_mb: upload_file_size_mb
             };
 
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -1502,6 +1518,73 @@ class OswService implements IOswService {
         } catch (error) {
             console.log('Error calculating quality metric ', error);
             return Promise.reject(error);
+        }
+    }
+
+    /**
+     * Creates a quality report job for a single dataset.
+     * Both api key and tdei_auth_token are mandatory. Workflow receives: { jobId, tdei_dataset_ids, tdei_api_key, tdei_auth_token }.
+     * @param tdei_dataset_id - The ID of the TDEI dataset.
+     * @param user_id - The ID of the user making the request.
+     * @param username - Optional username; used to fetch apiKey from AUTH_HOST getUserByUsername when tdei_api_key is missing.
+     * @param tdei_auth_token - Optional Authorization header (e.g. "Bearer <token>") to include in the queue message.
+     * @returns A Promise that resolves to the job ID.
+     */
+    async createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string): Promise<string> {
+        try {
+            if (!tdei_auth_token || tdei_auth_token.trim() === '') {
+                throw new InputException("tdei_auth_token is required");
+            }
+
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+            if (dataset.data_type !== TDEIDataType.osw) {
+                throw new InputException(`${tdei_dataset_id} is not an osw dataset.`);
+            }
+
+            let api_key: string | undefined;
+            if (username) {
+                const userDetails = await this.tdeiCoreServiceInstance.getUserDetails(username);
+                api_key = userDetails?.apiKey;
+                if (!api_key) {
+                    throw new InputException(`API key not found for username: ${username}`);
+                }
+            }
+
+            const job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Quality-Report"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id: tdei_dataset_id,
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            let job_id;
+            try {
+                job_id = await this.jobServiceInstance.createJob(job);
+            } catch (error) {
+                if (error instanceof UniqueKeyDbException) {
+                    throw new HttpException(409, "A quality report job is already in progress for this user. Please wait for it to complete before starting a new one.");
+                }
+                throw error;
+            }
+
+            const workflow_start = WorkflowName.osw_quality_report;
+            const workflow_input = {
+                jobId: job_id.toString(),
+                tdei_dataset_ids: tdei_dataset_id,
+                tdei_api_key: api_key,
+                tdei_auth_token: tdei_auth_token,
+            };
+
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
+            return job_id.toString();
+        } catch (error) {
+            throw error;
         }
     }
 
