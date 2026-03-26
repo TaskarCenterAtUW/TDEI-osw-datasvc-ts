@@ -1037,6 +1037,8 @@ class OswService implements IOswService {
             let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(backendRequest.parameters.tdei_dataset_id);
             if (dataset.data_type !== TDEIDataType.osw)
                 throw new InputException(`${backendRequest.parameters.tdei_dataset_id} is not a osw dataset.`);
+            const upload_file_size_bytes = dataset.upload_file_size_bytes ?? 0;
+            const upload_file_size_mb = Math.round((upload_file_size_bytes / (1024 * 1024)) * 100) / 100;
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -1079,7 +1081,8 @@ class OswService implements IOswService {
                     parameters: backendRequest.parameters,
                     user_id: backendRequest.user_id,// Required field for message authorization
                     tdei_project_group_id: dataset.tdei_project_group_id,
-                    tdei_dataset_id: backendRequest.parameters.tdei_dataset_id
+                    tdei_dataset_id: backendRequest.parameters.tdei_dataset_id,
+                    file_size_mb: upload_file_size_mb
                 };
             } else if (file_type == 'osw') {
                 workflow_start = WorkflowName.osw_dataset_bbox;
