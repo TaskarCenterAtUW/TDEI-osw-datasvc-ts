@@ -1494,7 +1494,8 @@
                 "parameters": "<%= JSON.stringify(parameters) %>",
                 "tdei_project_group_id": "<%=tdei_project_group_id%>",
                 "job_id": "<%=job_id%>",
-                "tdei_dataset_id": "<%=tdei_dataset_id%>"
+                "tdei_dataset_id": "<%=tdei_dataset_id%>",
+                "file_size_mb": "<%=file_size_mb%>"
             },
             "tasks": [
                 {
@@ -1542,6 +1543,9 @@
                         "user_id": "<%=workflow_input.user_id%>",
                         "tdei_project_group_id": "<%=workflow_input.tdei_project_group_id%>",
                         "file_upload_path": "<%=tasks.osm_dataset_bbox.output.file_upload_path%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
