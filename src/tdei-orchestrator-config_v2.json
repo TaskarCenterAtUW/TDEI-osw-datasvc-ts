@@ -2614,7 +2614,8 @@
                 "metadata_url": "<%=metadata_url%>",
                 "changeset_url": "<%=changeset_url%>",
                 "tdei_dataset_id": "<%=tdei_dataset_id%>",
-                "tdei_project_group_id": "<%=tdei_project_group_id%>"
+                "tdei_project_group_id": "<%=tdei_project_group_id%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -2627,6 +2628,9 @@
                         "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
                         "user_id": "<%=workflow_input.user_id%>",
                         "dataset_url": "<%=workflow_input.dataset_url%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
