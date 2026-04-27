@@ -1609,6 +1609,9 @@ class OswService implements IOswService {
                 throw new InputException(`Dataset ${backendRequest.parameters.dataset_id} is not an osw dataset.`)
             }
 
+            const upload_file_size_bytes = dataset.upload_file_size_bytes ?? 0;
+            const upload_file_size_mb = Math.round((upload_file_size_bytes / (1024 * 1024)) * 100) / 100;
+
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-Incline-Tag"],
@@ -1632,7 +1635,8 @@ class OswService implements IOswService {
                 metadata_url: dataset.metadata_url,
                 changeset_url: dataset.changeset_url,
                 tdei_project_group_id: dataset.tdei_project_group_id,
-                tdei_dataset_id: dataset.tdei_dataset_id
+                tdei_dataset_id: dataset.tdei_dataset_id,
+                upload_file_size_mb: upload_file_size_mb
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, backendRequest.user_id);
