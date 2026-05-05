@@ -1592,6 +1592,61 @@ class OswService implements IOswService {
     }
 
     /**
+     * Creates a job to sanitize an OSW dataset uploaded as a zip file.
+     * Publishes request to topic `osw-data-sanitization-request` and expects response on `osw-data-sanitization-response`.
+     *
+     * Response `download_url` is `sanitization_dataset_url`.
+     */
+    async createDataSanitizationJob(user_id: string, datasetFile: Express.Multer.File): Promise<string> {
+        try {
+            if (!user_id || user_id.trim() === "") {
+                throw new InputException("user_id is required");
+            }
+            if (!datasetFile) {
+                throw new InputException("dataset file is required");
+            }
+
+            // Upload dataset zip to storage (same pattern as validation-only)
+            const uid = storageService.generateRandomUUID();
+            const storageFolderPath = storageService.getValidationJobPath(uid);
+            const uploadStoragePath = path.join(storageFolderPath, datasetFile.originalname);
+            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer));
+
+            const calculateTotalSize = Utility.calculateTotalSize([datasetFile]);
+            const upload_file_size_mb = Math.round((calculateTotalSize / (1024 * 1024)) * 100) / 100;
+
+            const job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Sanitization"],
+                status: JobStatus["IN-PROGRESS"],
+                message: "Job started",
+                request_input: {
+                    user_id,
+                    file_upload_name: datasetFile.originalname
+                },
+                tdei_project_group_id: '',
+                user_id: user_id
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            const workflow_start = WorkflowName.osw_dataset_sanitization;
+            const workflow_input = {
+                job_id: job_id.toString(),
+                user_id,
+                file_upload_path: decodeURIComponent(datasetUploadUrl),
+                file_upload_name: datasetFile.originalname,
+                upload_file_size_mb: upload_file_size_mb
+            };
+
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+            return job_id.toString();
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
     * Processes a inclination request by uploading a file, creating a job, triggering a workflow, and returning the job ID.
     * @param backendRequest The backend request to process.
     * @returns A Promise that resolves to a string representing the job ID.
