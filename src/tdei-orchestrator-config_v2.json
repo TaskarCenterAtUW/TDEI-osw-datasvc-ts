@@ -19,7 +19,8 @@
                     "topic": "osw-sanitization-request",
                     "input_params": {
                         "file_upload_path": "<%=workflow_input.file_upload_path%>",
-                        "user_id": "<%=workflow_input.user_id%>"
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>"
                     },
                     "message_application_properties": {
                         "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
@@ -367,7 +368,8 @@
                     "topic": "osw-sanitization-request",
                     "input_params": {
                         "file_upload_path": "<%=workflow_input.dataset_url%>",
-                        "user_id": "<%=workflow_input.user_id%>"
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>"
                     },
                     "message_application_properties": {
                         "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
