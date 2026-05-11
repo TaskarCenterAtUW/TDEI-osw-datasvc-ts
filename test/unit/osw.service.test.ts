@@ -828,6 +828,51 @@ describe("OSW Service Test", () => {
         });
     });
 
+    describe('create dataset sanitization job', () => {
+        const userId = 'user-id';
+        const datasetFile = {
+            originalname: 'original-name.zip',
+            buffer: Buffer.from('file-content'),
+        };
+
+        it('should create sanitization job successfully', async () => {
+            jest.spyOn(storageService, "generateRandomUUID")
+                .mockReturnValue('uuid');
+            jest.spyOn(storageService, "getValidationJobPath")
+                .mockReturnValue('validation-job-path');
+            jest.spyOn(storageService, "uploadFile")
+                .mockResolvedValue('dataset-upload-url');
+
+            const mockJobId = 202;
+            jest.spyOn(jobService, "createJob")
+                .mockResolvedValue(mockJobId);
+
+            mockAppContext();
+
+            const result = await oswService.createDataSanitizationJob(userId, datasetFile as any);
+
+            expect(result).toBe(mockJobId.toString());
+            expect(storageService.generateRandomUUID).toHaveBeenCalled();
+            expect(storageService.getValidationJobPath).toHaveBeenCalledWith('uuid');
+            expect(storageService.uploadFile).toHaveBeenCalledWith(
+                'validation-job-path/original-name.zip',
+                'application/zip',
+                expect.anything()
+            );
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(),
+                WorkflowName.osw_dataset_sanitization,
+                expect.objectContaining({
+                    job_id: mockJobId.toString(),
+                    user_id: userId,
+                    file_upload_path: 'dataset-upload-url',
+                    file_upload_name: 'original-name.zip'
+                }),
+                userId
+            );
+        });
+    });
+
     describe('process publish request', () => {
         const userId = 'user-id';
         const tdeiRecordId = 'tdei-dataset-id';

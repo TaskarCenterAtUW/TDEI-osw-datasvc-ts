@@ -649,6 +649,75 @@ describe("OSW Controller Test", () => {
         });
     });
 
+    describe('create dataset sanitization job', () => {
+        let mockRequest: any;
+        let mockResponse: any;
+        let mockNext: jest.Mock;
+
+        beforeEach(() => {
+            mockRequest = {
+                body: {
+                    user_id: 'mock-user-id',
+                },
+                file: {
+                    originalname: 'mock-dataset-file.zip',
+                    buffer: Buffer.from('mock-dataset-file-content'),
+                },
+            };
+
+            mockResponse = {
+                status: jest.fn().mockReturnThis(),
+                send: jest.fn(),
+                setHeader: jest.fn(),
+            };
+
+            mockNext = jest.fn();
+        });
+
+        it('should create the sanitization job and return job_id', async () => {
+            const mockJobId = 'mock-job-id';
+            jest.spyOn(oswService, "createDataSanitizationJob").mockResolvedValueOnce(mockJobId);
+
+            await oswController.createDataSanitizationJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(202);
+            expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockJobId}`);
+            expect(mockNext).not.toHaveBeenCalled();
+        });
+
+        it('should handle sanitization request with missing dataset file', async () => {
+            mockRequest.file = undefined;
+
+            await oswController.createDataSanitizationJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('Missing dataset file input');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        it('should handle sanitization request with missing user_id', async () => {
+            mockRequest.body.user_id = '';
+
+            await oswController.createDataSanitizationJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith('user_id is required');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        it('should handle internal server error', async () => {
+            const mockError = new Error('Internal Server Error');
+            jest.spyOn(oswService, "createDataSanitizationJob").mockRejectedValueOnce(mockError);
+
+            await oswController.createDataSanitizationJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.send).toHaveBeenCalledWith('Error while processing dataset sanitization job');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+    });
+
     describe('calculate confidence metric', () => {
         let mockRequest: any;
         let mockResponse: any;

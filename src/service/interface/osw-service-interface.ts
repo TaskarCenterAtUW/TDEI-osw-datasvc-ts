@@ -38,6 +38,14 @@ export interface IOswService {
     generatePMTiles(user_id: string, tdei_dataset_id: string): Promise<string>;
 
     /**
+     * Creates a job to sanitize an OSW dataset located at the provided URL.
+     * @param user_id - Requesting user id.
+     * @param datasetFile - Source OSW zip to sanitize.
+     * @returns Job id.
+     */
+    createDataSanitizationJob(user_id: string, datasetFile: Express.Multer.File): Promise<string>;
+
+    /**
      * Get downloadable OSM PM tiles URL
      * @param id Dataset ID
      * @param user_id User ID
