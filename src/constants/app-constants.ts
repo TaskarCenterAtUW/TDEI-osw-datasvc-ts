@@ -14,6 +14,7 @@ export enum WorkflowName {
     "osw_validation_only" = "osw_validation_only",
     "osw_confidence_on_demand" = "osw_confidence_on_demand",
     "osw_formatting_on_demand" = "osw_formatting_on_demand",
+    "osw_dataset_sanitization" = "osw_dataset_sanitization",
     "osw_dataset_road_tag" = "osw_dataset_road_tag",
     "osm_dataset_bbox" = "osm_dataset_bbox",
     "osw_dataset_bbox" = "osw_dataset_bbox",

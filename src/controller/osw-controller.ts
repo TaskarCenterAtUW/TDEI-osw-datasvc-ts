@@ -137,6 +137,7 @@ class OSWController implements IController {
     public intializeRoutes() {
         this.router.get(`${this.path}/:id`, apiTracker, authenticate, this.getOswById);
         this.router.post(`${this.path}/validate`, validate.single('dataset'), apiTracker, authenticate, this.processValidationOnlyRequest);
+        this.router.post(`${this.path}/sanitize`, validate.single('dataset'), apiTracker, authenticate, this.createDataSanitizationJob);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
@@ -164,6 +165,37 @@ class OSWController implements IController {
         this.router.get(`${this.path}/dataset-viewer/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, this.retrievePmTiles);
         this.router.post(`${this.path}/dataset/generate/pm-tiles/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator"]), this.generatePMtiles);
         this.router.put(`${this.path}/dataset-viewer/feedbacks/:project_id/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator", "member"]), this.updateFeedbackStatus);
+    }
+
+    /**
+     * Creates OSW data sanitization job.
+     * POST /api/v1/osw/sanitize
+     *
+     * Form-data:
+     * - dataset: .zip file
+     */
+    createDataSanitizationJob = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            const datasetFile = request.file;
+            if (!datasetFile) {
+                throw new InputException("Missing dataset file input");
+            }
+            const user_id = request.body.user_id;
+            if (!user_id || user_id.trim() === "") {
+                throw new InputException("user_id is required");
+            }
+            const job_id = await oswService.createDataSanitizationJob(user_id, datasetFile);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing dataset sanitization job", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing dataset sanitization job");
+            next(new HttpException(500, "Error while processing dataset sanitization job"));
+        }
     }
 
     async updateFeedbackStatus(request: Request, response: express.Response, next: NextFunction) {
