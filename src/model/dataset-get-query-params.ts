@@ -20,6 +20,26 @@ export enum SortField {
     project_group_name = 'pg.name',
 }
 
+/** Coerce query-string booleans ("true"/"false") before class-validator @IsBoolean(). */
+export function parseQueryBoolean(value: unknown): boolean | unknown {
+    if (value === undefined || value === null || value === '') {
+        return undefined;
+    }
+    if (typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true') {
+            return true;
+        }
+        if (normalized === 'false') {
+            return false;
+        }
+    }
+    return value;
+}
+
 export class DatasetQueryParams {
     @IsOptional()
     @IsEnum(TDEIDataType)
@@ -155,13 +175,21 @@ export class DatasetQueryParams {
     sort_field: string = "uploaded_timestamp";
     @IsOptional()
     sort_order: SqlORder = SqlORder.DESC;
-
+    @IsOptional()
+    @IsBoolean()
+    include_my_groups: boolean = false;
 
     @ValidateIf(() => false) //Skips the validation for internal property
     isAdmin = false;
 
     constructor(init?: Partial<DatasetQueryParams>) {
-        Object.assign(this, init);
+        if (init) {
+            const params = { ...init };
+            if ('include_my_groups' in params) {
+                params.include_my_groups = parseQueryBoolean(params.include_my_groups) as boolean;
+            }
+            Object.assign(this, params);
+        }
     }
 
     getQuery(user_id: string): PgQueryObject {
@@ -200,17 +228,30 @@ export class DatasetQueryParams {
         addConditionIfValueExists('status !=', 'Draft');
         addConditionIfValueExists('data_type =', this.data_type);
 
-        if (this.status && this.status == RecordStatus["Publish"]) {
-            conditions.push({ clouse: `status = 'Publish' ` });
-        }
-        else if (this.status && this.isAdmin && this.status == RecordStatus["All"]) {
-            conditions.push({ clouse: `(status = 'Publish' OR status = 'Pre-Release')` });
-        } else if (this.status && this.isAdmin && this.status == RecordStatus["Pre-Release"]) {
-            conditions.push({ clouse: ` status = 'Pre-Release' ` });
-        } else if (this.status && this.status == RecordStatus["Pre-Release"]) {
-            conditions.push({ clouse: `(status = 'Pre-Release' AND ur.project_group_id IS NOT NULL)` });
-        } else if (this.status && this.status == RecordStatus["All"]) {
-            conditions.push({ clouse: `(status = 'Publish' OR (status = 'Pre-Release' AND ur.project_group_id IS NOT NULL))` });
+        if (this.isAdmin) {
+            // Admin: include_my_groups is irrelevant;
+            if (this.status === RecordStatus.Publish) {
+                conditions.push({ clouse: `status = 'Publish'` });
+            } else if (this.status === RecordStatus["Pre-Release"]) {
+                conditions.push({ clouse: `status = 'Pre-Release'` });
+            }
+        } else if (this.include_my_groups) {
+            conditions.push({ clouse: `ur.project_group_id IS NOT NULL` });
+            if (this.status === RecordStatus.Publish) {
+                conditions.push({ clouse: `status = 'Publish'` });
+            } else if (this.status === RecordStatus["Pre-Release"]) {
+                conditions.push({ clouse: `status = 'Pre-Release'` });
+            } else if (this.status === RecordStatus.All) {
+                conditions.push({ clouse: `(status = 'Publish' OR status = 'Pre-Release')` });
+            }
+        } else {
+            if (this.status === RecordStatus.Publish) {
+                conditions.push({ clouse: `status = 'Publish'` });
+            } else if (this.status === RecordStatus["Pre-Release"]) {
+                conditions.push({ clouse: `(status = 'Pre-Release' AND ur.project_group_id IS NOT NULL)` });
+            } else if (this.status === RecordStatus.All) {
+                conditions.push({ clouse: `(status = 'Publish' OR (status = 'Pre-Release' AND ur.project_group_id IS NOT NULL))` });
+            }
         }
 
         addConditionIfValueExists('d.data_viewer_allowed = ', this.data_viewer_allowed);
