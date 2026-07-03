@@ -31,4 +31,42 @@ describe('validateQueryDto Middleware', () => {
             new HttpException(400, 'Query param param2 is not supported')
         );
     });
+
+    it('include_my_groups=true query string should pass boolean validation', async () => {
+        const mockRequest = getMockReq({
+            query: { include_my_groups: 'true' },
+        });
+        const { res: mockResponse, next } = getMockRes();
+
+        await validateQueryDto(DatasetQueryParams)(mockRequest, mockResponse, next);
+
+        expect(next).toHaveBeenCalledWith();
+    });
+
+    it('include_my_groups=false query string should pass boolean validation', async () => {
+        const mockRequest = getMockReq({
+            query: { include_my_groups: 'false' },
+        });
+        const { res: mockResponse, next } = getMockRes();
+
+        await validateQueryDto(DatasetQueryParams)(mockRequest, mockResponse, next);
+
+        expect(next).toHaveBeenCalledWith();
+    });
+
+    it('include_my_groups with invalid value should fail boolean validation', async () => {
+        const mockRequest = getMockReq({
+            query: { include_my_groups: 'maybe' },
+        });
+        const { res: mockResponse, next } = getMockRes();
+
+        await validateQueryDto(DatasetQueryParams)(mockRequest, mockResponse, next);
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 400,
+                message: expect.stringContaining('include_my_groups must be a boolean value'),
+            })
+        );
+    });
 });
