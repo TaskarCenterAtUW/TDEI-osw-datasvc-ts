@@ -1,6 +1,6 @@
 -- =============================================================================
 -- content.tdei_union_dataset
--- Version: v5 (clean rewrite)
+-- Version: v4
 --
 -- STRATEGY:
 --   DS1 (src_one) is the immutable source of truth.
