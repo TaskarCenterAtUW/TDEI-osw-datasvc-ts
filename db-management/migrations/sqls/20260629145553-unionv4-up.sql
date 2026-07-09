@@ -609,20 +609,51 @@ BEGIN
     CREATE INDEX ON road_crossing_points (crossing_id, crossing_src);
     CREATE INDEX ON road_crossing_points USING GIST (ipoint);
 
-    -- Stable shared node per distinct intersection point (snap-grid dedup),
-    -- so all edges splitting at the same point reference the SAME node id.
-    -- Node id = ixn-<road_id>-<crossing_id>. Also carries the contributing
-    -- road and crossing edge ids so their tags can be attached as provenance.
+    -- Shared node per distinct intersection point.
+    --
+    -- REUSE-EXISTING-NODE RULE: a road×crossing intersection often lands on a
+    -- node that ALREADY exists (e.g. the crossing's own endpoint sitting on the
+    -- road). Creating a brand-new ixn- node a fraction of a mm away from it
+    -- produces a degenerate micro-edge (the ixn node → existing node sub-edge
+    -- collapses to zero length when trimmed to 7dp → invalid geometry).
+    --
+    -- Fix: if an EXISTING node lies within reuse_tolerance of the intersection
+    -- point, REUSE it (its id + exact position) as the shared node. Only when
+    -- no existing node is nearby do we mint a new ixn- node (with provenance).
+    --
+    --   is_new = FALSE → reused existing node (id = real node id, no ixn tags)
+    --   is_new = TRUE  → freshly created ixn- node (gets ext:osw_/ext:road_ tags)
+    --
+    -- Tolerance ~0.1 m: catches coincident-but-different-precision nodes without
+    -- grabbing unrelated nearby nodes.
+    DROP TABLE IF EXISTS all_existing_nodes;
+    CREATE TEMP TABLE all_existing_nodes ON COMMIT DROP AS
+    SELECT element_id::TEXT AS node_id, geom FROM ds1_nodes
+    UNION ALL
+    SELECT element_id::TEXT, geom FROM ds2_nodes;
+    CREATE INDEX ON all_existing_nodes USING GIST (geom);
+
     DROP TABLE IF EXISTS crossing_shared_nodes;
     CREATE TEMP TABLE crossing_shared_nodes ON COMMIT DROP AS
     SELECT DISTINCT ON (ST_AsText(ST_SnapToGrid(ipoint, snap_tolerance)))
-        'ixn-' || road_id || '-' || crossing_id   AS node_id,
-        ipoint                                     AS geom,
+        -- reuse existing node id if one is within tolerance, else mint ixn-
+        COALESCE(nn.node_id, 'ixn-' || road_id || '-' || crossing_id) AS node_id,
+        -- reuse existing node's EXACT position if reusing, else the intersection point
+        COALESCE(nn.geom, ipoint)                                     AS geom,
+        (nn.node_id IS NULL)                                          AS is_new,
         road_id,
         road_src,
         crossing_id,
         crossing_src
-    FROM road_crossing_points
+    FROM road_crossing_points rcp
+    -- nearest existing node within reuse tolerance (0.1 m ≈ 0.1/111111 degrees)
+    LEFT JOIN LATERAL (
+        SELECT aen.node_id, aen.geom
+        FROM all_existing_nodes aen
+        WHERE ST_DWithin(aen.geom, rcp.ipoint, 0.1 / 111111.0)
+        ORDER BY ST_Distance(aen.geom, rcp.ipoint) ASC
+        LIMIT 1
+    ) nn ON TRUE
     ORDER BY ST_AsText(ST_SnapToGrid(ipoint, snap_tolerance));
 
     CREATE INDEX ON crossing_shared_nodes (node_id);
@@ -875,25 +906,29 @@ BEGIN
 
     -- Step 5a: ordered consecutive fraction pairs per edge
     DROP TABLE IF EXISTS ds2_frac_pairs;
+    -- Materialise the row-numbered fractions ONCE into an indexed temp table,
+    -- then self-join it for consecutive (start,end) pairing. Avoids computing
+    -- the ROW_NUMBER() window twice (it was duplicated across two identical
+    -- inline subqueries) and gives the self-join an explicit (edge_id, rn) index.
+    DROP TABLE IF EXISTS ds2_frac_numbered;
+    CREATE TEMP TABLE ds2_frac_numbered ON COMMIT DROP AS
+    SELECT edge_id, split_node_id, split_geom, fraction,
+           ROW_NUMBER() OVER (PARTITION BY edge_id ORDER BY fraction) AS rn
+    FROM dedup_ds2_fractions;
+    CREATE INDEX ON ds2_frac_numbered (edge_id, rn);
+
     CREATE TEMP TABLE ds2_frac_pairs ON COMMIT DROP AS
     SELECT
         f1.edge_id,
-        f1.fraction     AS frac_start,
-        f2.fraction     AS frac_end,
-        f1.split_geom   AS start_geom,
-        f2.split_geom   AS end_geom,
+        f1.fraction      AS frac_start,
+        f2.fraction      AS frac_end,
+        f1.split_geom    AS start_geom,
+        f2.split_geom    AS end_geom,
         f1.split_node_id AS u_node_id,
         f2.split_node_id AS v_node_id
-    FROM (
-        SELECT edge_id, split_node_id, split_geom, fraction,
-               ROW_NUMBER() OVER (PARTITION BY edge_id ORDER BY fraction) AS rn
-        FROM dedup_ds2_fractions
-    ) f1
-    JOIN (
-        SELECT edge_id, split_node_id, split_geom, fraction,
-               ROW_NUMBER() OVER (PARTITION BY edge_id ORDER BY fraction) AS rn
-        FROM dedup_ds2_fractions
-    ) f2 ON f1.edge_id = f2.edge_id AND f2.rn = f1.rn + 1
+    FROM ds2_frac_numbered f1
+    JOIN ds2_frac_numbered f2
+        ON f1.edge_id = f2.edge_id AND f2.rn = f1.rn + 1
     WHERE f2.fraction > f1.fraction;
 
     CREATE INDEX ON ds2_frac_pairs (edge_id);
@@ -1023,7 +1058,15 @@ BEGIN
     LEFT JOIN edge_type_groups ce
         ON ce.src = csn.crossing_src AND ce.element_id = csn.crossing_id
     LEFT JOIN edge_type_groups re
-        ON re.src = csn.road_src AND re.element_id = csn.road_id;
+        ON re.src = csn.road_src AND re.element_id = csn.road_id
+    -- Only NEW ixn- nodes become new output nodes with provenance tags.
+    -- Reused existing nodes are already emitted via the normal node pipeline;
+    -- emitting them here too would duplicate them.
+    WHERE csn.is_new;
+
+    -- GIST for the spatial LATERAL probe in ds2_resolved (fallback node lookup).
+    CREATE INDEX ON crossing_new_nodes USING GIST (geom);
+    CREATE INDEX ON crossing_new_nodes (element_id);
 
     -- ── DS1 node property merge ───────────────────────────────────────────────
     --
@@ -1365,30 +1408,67 @@ BEGIN
     CREATE INDEX ON ds1_split_dedup (edge_id);
 
     -- Consecutive fraction pairs → sub-edges
-    DROP TABLE IF EXISTS ds1_split_out;
-    CREATE TEMP TABLE ds1_split_out ON COMMIT DROP AS
+    -- Step: materialise the substring ONCE per split sub-edge (sub_geom), then
+    -- override its endpoints with the exact split-node coordinates. Computing
+    -- ST_LineSubstring a single time (not 2-3×) matters at production scale.
+    -- Materialise the LEAD-window fraction pairs ONCE into an indexed temp
+    -- table, then join to edge endpoints. Keeps the window computation out of
+    -- an inline subquery and gives the join an explicit edge_id index.
+    DROP TABLE IF EXISTS ds1_split_pairs;
+    CREATE TEMP TABLE ds1_split_pairs ON COMMIT DROP AS
     SELECT
-        fp.edge_id || '_' ||
-            ROUND(fp.frac_start::NUMERIC,7)::TEXT || '_' ||
-            ROUND(fp.frac_end::NUMERIC,7)::TEXT    AS sub_edge_id,
-        ST_LineSubstring(ee.loc, fp.frac_start, fp.frac_end) AS loc,
-        fp.u_node_id AS u_id,
-        fp.v_node_id AS v_id,
-        ee.feature
-    FROM (
-        SELECT
-            edge_id,
-            fraction AS frac_start,
-            LEAD(fraction) OVER (PARTITION BY edge_id ORDER BY fraction) AS frac_end,
-            node_id AS u_node_id,
-            LEAD(node_id) OVER (PARTITION BY edge_id ORDER BY fraction) AS v_node_id
-        FROM ds1_split_dedup
-    ) fp
+        edge_id,
+        fraction AS frac_start,
+        LEAD(fraction) OVER (PARTITION BY edge_id ORDER BY fraction) AS frac_end,
+        node_id AS u_node_id,
+        LEAD(node_id) OVER (PARTITION BY edge_id ORDER BY fraction) AS v_node_id,
+        pt_geom AS u_pt,
+        LEAD(pt_geom) OVER (PARTITION BY edge_id ORDER BY fraction) AS v_pt
+    FROM ds1_split_dedup;
+    CREATE INDEX ON ds1_split_pairs (edge_id);
+
+    DROP TABLE IF EXISTS ds1_split_substrings;
+    CREATE TEMP TABLE ds1_split_substrings ON COMMIT DROP AS
+    SELECT
+        fp.edge_id,
+        fp.frac_start,
+        fp.frac_end,
+        fp.u_node_id,
+        fp.v_node_id,
+        fp.u_pt,
+        fp.v_pt,
+        ee.feature,
+        ST_LineSubstring(ee.loc, fp.frac_start, fp.frac_end) AS sub_geom
+    FROM ds1_split_pairs fp
     JOIN ds1_edge_endpoints ee ON ee.edge_id = fp.edge_id
     WHERE fp.frac_end IS NOT NULL
       AND fp.frac_end > fp.frac_start
       AND fp.u_node_id IS NOT NULL
       AND fp.v_node_id IS NOT NULL;
+
+    DROP TABLE IF EXISTS ds1_split_out;
+    CREATE TEMP TABLE ds1_split_out ON COMMIT DROP AS
+    SELECT
+        edge_id || '_' ||
+            ROUND(frac_start::NUMERIC,7)::TEXT || '_' ||
+            ROUND(frac_end::NUMERIC,7)::TEXT    AS sub_edge_id,
+        -- Override first/last vertex of the (already-computed) substring with
+        -- the exact split-node geometry so edge endpoints == node coords.
+        -- sub_geom is computed once above; ST_NPoints reads it, no recompute.
+        CASE
+            WHEN u_pt IS NOT NULL AND v_pt IS NOT NULL THEN
+                ST_SetPoint(ST_SetPoint(sub_geom, 0, u_pt),
+                            ST_NPoints(sub_geom) - 1, v_pt)
+            WHEN u_pt IS NOT NULL THEN
+                ST_SetPoint(sub_geom, 0, u_pt)
+            WHEN v_pt IS NOT NULL THEN
+                ST_SetPoint(sub_geom, ST_NPoints(sub_geom) - 1, v_pt)
+            ELSE sub_geom
+        END AS loc,
+        u_node_id AS u_id,
+        v_node_id AS v_id,
+        feature
+    FROM ds1_split_substrings;
 
     -- Append split DS1 sub-edges to ds1_out
     INSERT INTO ds1_out (sub_edge_id, loc, u_id, v_id, feature)
