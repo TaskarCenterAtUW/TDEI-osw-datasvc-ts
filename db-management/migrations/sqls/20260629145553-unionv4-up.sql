@@ -54,17 +54,6 @@
 --   Phase 7 – Zones (overlap-based), extension points (type-guarded merge),
 --             lines and polygons
 --   Phase 8 – Mixed-type property normalisation + export cursors
---
--- SPATIAL DESIGN NOTES (for large datasets):
---   • Every temp table that participates in a spatial join has a GIST index.
---   • Every temp table used in a lookup join has a btree index on the join key.
---   • No CTEs are used — all intermediate results are materialised temp tables
---     so the planner can use indexes and statistics on each step.
---   • ST_DWithin is used exclusively for proximity tests (uses spatial index).
---   • DS1 edge buffers (Pass 2) are pre-materialised per-edge and GIST-indexed,
---     then intersected per same-type group (avoids a giant ST_Union + CROSS JOIN).
---   • DISTINCT ON with ORDER BY is wrapped in a subquery inside UNION ALL
---     to satisfy PostgreSQL syntax (ORDER BY inside UNION must be in subquery).
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION content.tdei_union_dataset(
