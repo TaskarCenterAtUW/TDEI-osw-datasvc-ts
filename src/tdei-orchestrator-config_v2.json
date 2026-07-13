@@ -634,7 +634,8 @@
                 "user_id": "<%=user_id%>",
                 "tdei_dataset_id": "<%=tdei_dataset_id%>",
                 "dataset_url": "<%=dataset_url%>",
-                "metadata_url": "<%=metadata_url%>"
+                "metadata_url": "<%=metadata_url%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -689,6 +690,9 @@
                         "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
                         "sourceUrl": "<%=workflow_input.dataset_url%>",
                         "user_id": "<%=workflow_input.user_id%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -771,7 +775,8 @@
                 "job_id": "<%=job_id%>",
                 "user_id": "<%=user_id%>",
                 "dataset_url": "<%=dataset_url%>",
-                "tdei_dataset_id": "<%=tdei_dataset_id%>"
+                "tdei_dataset_id": "<%=tdei_dataset_id%>",
+                "upload_file_size_mb": "<%=upload_file_size_mb%>"
             },
             "tasks": [
                 {
@@ -784,6 +789,9 @@
                         "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
                         "sourceUrl": "<%=workflow_input.dataset_url%>",
                         "user_id": "<%=workflow_input.user_id%>"
+                    },
+                    "message_application_properties": {
+                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -3173,6 +3181,24 @@
             "description": "Subscription for osw dataset sanitization request",
             "topic": "osw-sanitization-request",
             "subscription": [
+                "0MB-50MB",
+                "51MB-100MB",
+                "101MB-200MB",
+                "201MB-300MB",
+                "301MB-500MB",
+                "501MB-700MB",
+                "701MB-900MB",
+                "901MB-1.1GB",
+                "1.1GB-1.3GB",
+                "1.3GB-1.5GB",
+                "1.5GB-1.7GB",
+                "1.7GB-1.9GB",
+                "1.9GB-2.1GB",
+                "2.1GB-2.3GB",
+                "2.3GB-2.5GB",
+                "2.5GB-2.7GB",
+                "2.7GB-2.9GB",
+                "2.9GB-3GB",
                 "request-handler"
             ]
         },
@@ -3229,6 +3255,24 @@
             "description": "Subscription for osw inclination request",
             "topic": "osw-incline-request",
             "subscription": [
+                "0MB-50MB",
+                "51MB-100MB",
+                "101MB-200MB",
+                "201MB-300MB",
+                "301MB-500MB",
+                "501MB-700MB",
+                "701MB-900MB",
+                "901MB-1.1GB",
+                "1.1GB-1.3GB",
+                "1.3GB-1.5GB",
+                "1.5GB-1.7GB",
+                "1.7GB-1.9GB",
+                "1.9GB-2.1GB",
+                "2.1GB-2.3GB",
+                "2.3GB-2.5GB",
+                "2.5GB-2.7GB",
+                "2.7GB-2.9GB",
+                "2.9GB-3GB",
                 "request-handler"
             ]
         },
@@ -3236,6 +3280,24 @@
             "description": "Subscription for pm tiles generation request",
             "topic": "pm-tiles-gen-request",
             "subscription": [
+                "0MB-50MB",
+                "51MB-100MB",
+                "101MB-200MB",
+                "201MB-300MB",
+                "301MB-500MB",
+                "501MB-700MB",
+                "701MB-900MB",
+                "901MB-1.1GB",
+                "1.1GB-1.3GB",
+                "1.3GB-1.5GB",
+                "1.5GB-1.7GB",
+                "1.7GB-1.9GB",
+                "1.9GB-2.1GB",
+                "2.1GB-2.3GB",
+                "2.3GB-2.5GB",
+                "2.5GB-2.7GB",
+                "2.7GB-2.9GB",
+                "2.9GB-3GB",
                 "request-handler"
             ]
         },

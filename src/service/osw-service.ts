@@ -121,6 +121,9 @@ class OswService implements IOswService {
             if (dataset.status !== RecordStatus["Publish"])
                 throw new ForbiddenRequest(`Dataset ${tdei_dataset_id} has not been released. PMTiles generation is not allowed.`);
 
+            const upload_file_size_bytes = dataset.upload_file_size_bytes ?? 0;
+            const upload_file_size_mb = Math.round((upload_file_size_bytes / (1024 * 1024)) * 100) / 100;
+
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
                 job_type: JobType["Dataset-PMTiles"],
@@ -140,7 +143,8 @@ class OswService implements IOswService {
                 tdei_dataset_id: tdei_dataset_id,
                 job_id: job_id.toString(),
                 dataset_url: dataset.latest_dataset_url,
-                user_id: user_id
+                user_id: user_id,
+                upload_file_size_mb: upload_file_size_mb
             }
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
@@ -971,6 +975,8 @@ class OswService implements IOswService {
 
             //Validate the metadata dates
             tdeiCoreService.validateDatasetDates(dataset);
+            const upload_file_size_bytes = dataset.upload_file_size_bytes ?? 0;
+            const upload_file_size_mb = Math.round((upload_file_size_bytes / (1024 * 1024)) * 100) / 100;
 
             let job = CreateJobDTO.from({
                 data_type: TDEIDataType.osw,
@@ -1013,7 +1019,8 @@ class OswService implements IOswService {
                 user_id: user_id,// Required field for message authorization
                 dataset_url: decodeURIComponent(dataset.latest_dataset_url),
                 metadata_url: decodeURIComponent(dataset.metadata_url),
-                tdei_dataset_id: tdei_dataset_id
+                tdei_dataset_id: tdei_dataset_id,
+                upload_file_size_mb: upload_file_size_mb
             };
             //Trigger the workflow
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
