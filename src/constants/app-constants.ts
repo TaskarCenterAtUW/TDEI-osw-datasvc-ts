@@ -30,6 +30,7 @@ export enum WorkflowName {
     "build_osw_osm_dataset_download" = "build_osw_osm_dataset_download",
     "osw_dataset_incline_tag" = "osw_dataset_incline_tag",
     "osw_union_dataset" = "osw_union_dataset",
+    "osw_self_merge_dataset" = "osw_self_merge_dataset",
     "osw_generate_pmtiles" = "osw_generate_pmtiles",
     "osw_quality_report" = "osw_quality_report"
 }

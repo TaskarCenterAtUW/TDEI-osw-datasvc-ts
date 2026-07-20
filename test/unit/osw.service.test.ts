@@ -19,7 +19,7 @@ import { RecordStatus } from "../../src/model/dataset-get-query-params";
 import { CreateJobDTO } from "../../src/model/job-dto";
 import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
 import { WorkflowName } from "../../src/constants/app-constants";
-import { SpatialJoinRequest, UnionRequest } from "../../src/model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest, SelfMergeRequest } from "../../src/model/request-interfaces";
 import { Utility } from "../../src/utility/utility";
 import { feedbackRequestParams } from "../../src/model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../../src/model/feedback-download-request-params";
@@ -1341,6 +1341,79 @@ describe("OSW Service Test", () => {
                     job_id: job_id.toString(),
                     service: "union_dataset",
                     parameters: requestService,
+                    user_id: user_id,
+                }),
+                user_id
+            );
+        });
+    });
+
+    describe("processSelfMergeRequest", () => {
+        test("When tdei_dataset_id dataset is not a osw dataset, Expect to throw InputException", async () => {
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = SelfMergeRequest.from({
+                tdei_dataset_id: "mock-source-dataset-id"
+            });
+
+            const job_id = 303;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({
+                data_type: TDEIDataType.flex
+            } as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValue(job_id);
+
+            await expect(oswService.processSelfMergeRequest(user_id, requestService)).rejects.toThrow(InputException);
+        });
+
+        test("When all conditions are met, Expect to create job, start workflow, and return job_id", async () => {
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = SelfMergeRequest.from({
+                tdei_dataset_id: "mock-dataset-id"
+            });
+
+            const dataset = {
+                data_type: TDEIDataType.osw
+            };
+
+            const job_id = 304;
+            const createJobDTO = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Self-Merge"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id: requestService.tdei_dataset_id,
+                    proximity: requestService.proximity,
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            const workflowParameters = {
+                tdei_dataset_id: requestService.tdei_dataset_id,
+                proximity: requestService.proximity,
+            };
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
+                .mockResolvedValueOnce(dataset as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValueOnce(job_id);
+            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
+
+            // Act
+            const result = await oswService.processSelfMergeRequest(user_id, requestService);
+
+            // Assert
+            expect(result).toBe(job_id.toString());
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(createJobDTO);
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                job_id.toString(),
+                WorkflowName.osw_self_merge_dataset,
+                expect.objectContaining({
+                    job_id: job_id.toString(),
+                    service: "self_merge_dataset",
+                    parameters: workflowParameters,
+                    tdei_dataset_id: requestService.tdei_dataset_id,
                     user_id: user_id,
                 }),
                 user_id
