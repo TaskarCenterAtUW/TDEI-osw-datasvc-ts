@@ -3,7 +3,7 @@ import { IUploadRequest } from "./upload-request-interface";
 import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } from "../../model/backend-request-interface";
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
-import { SpatialJoinRequest, UnionRequest } from "../../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest, SelfMergeRequest } from "../../model/request-interfaces";
 import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dto";
 import { feedbackRequestParams } from "../../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../../model/feedback-download-request-params";
@@ -100,6 +100,15 @@ export interface IOswService {
      * @returns The job_id of the union join request.
      */
     processUnionRequest(user_id: string, requestService: UnionRequest): Promise<string>;
+
+    /**
+     * Processes a self merge request for a single OSW dataset.
+     *
+     * @param user_id - The ID of the user making the request.
+     * @param requestService - The self merge request.
+     * @returns The job_id of the self merge job.
+     */
+    processSelfMergeRequest(user_id: string, requestService: SelfMergeRequest): Promise<string>;
 
     /**
      * Processes a dataset tagging request.

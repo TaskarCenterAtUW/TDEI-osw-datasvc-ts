@@ -37,6 +37,7 @@ export enum JobType {
     "Dataset-BBox" = "Dataset-BBox",
     "Dataset-Spatial-Join" = "Dataset-Spatial-Join",
     "Dataset-Union" = "Dataset-Union",
+    "Dataset-Self-Merge" = "Dataset-Self-Merge",
     "Dataset-PMTiles" = "Dataset-PMTiles",
     "Quality-Report" = "Quality-Report",
     "Dataset-Sanitization" = "Dataset-Sanitization"

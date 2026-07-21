@@ -22,7 +22,7 @@ import { RecordStatus } from "../model/dataset-get-query-params";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
-import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest, SelfMergeRequest } from "../model/request-interfaces";
 import { TagQualityMetricResponse, TagQualityMetricRequest } from "../model/tag-quality-metric";
 import oswSchema from "../assets/opensidewalks_0.2.schema.json";
 import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
@@ -466,6 +466,58 @@ class OswService implements IOswService {
                 tdei_dataset_id_two: requestService.tdei_dataset_id_two
             }
             //Trigger the workflow
+            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
+            return job_id.toString();
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Processes a self merge request for a single OSW dataset.
+     *
+     * @param user_id - The ID of the user making the request.
+     * @param requestService - The self merge request.
+     * @returns The job_id of the self merge request.
+     */
+    async processSelfMergeRequest(user_id: string, requestService: SelfMergeRequest): Promise<string> {
+        try {
+            const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(requestService.tdei_dataset_id);
+
+            if (dataset.data_type !== TDEIDataType.osw)
+                throw new InputException(`${requestService.tdei_dataset_id} is not a osw dataset.`);
+
+            const job = CreateJobDTO.from({
+                data_type: TDEIDataType.osw,
+                job_type: JobType["Dataset-Self-Merge"],
+                status: JobStatus["IN-PROGRESS"],
+                message: 'Job started',
+                request_input: {
+                    tdei_dataset_id: requestService.tdei_dataset_id,
+                    proximity: requestService.proximity,
+                },
+                tdei_project_group_id: '',
+                user_id: user_id,
+            });
+
+            const job_id = await this.jobServiceInstance.createJob(job);
+
+            const workflowParameters = {
+                tdei_dataset_id: requestService.tdei_dataset_id,
+                proximity: requestService.proximity,
+            };
+
+            const workflow_start = WorkflowName.osw_self_merge_dataset;
+            const workflow_input = {
+                job_id: job_id.toString(),
+                service: "self_merge_dataset",
+                parameters: workflowParameters,
+                user_id: user_id,
+                tdei_dataset_id: requestService.tdei_dataset_id
+            };
+
             await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
 
             return job_id.toString();
