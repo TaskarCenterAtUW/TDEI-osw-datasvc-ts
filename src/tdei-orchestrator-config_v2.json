@@ -3074,7 +3074,7 @@
                     "task_reference_name": "osw_self_merge",
                     "description": "Performing the self merge on the osw dataset",
                     "type": "Event",
-                    "topic": "temp-request",
+                    "topic": "backend-request",
                     "input_params": {
                         "service": "<%=workflow_input.service%>",
                         "user_id": "<%=workflow_input.user_id%>",
