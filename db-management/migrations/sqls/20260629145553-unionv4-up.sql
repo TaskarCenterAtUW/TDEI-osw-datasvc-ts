@@ -1,6 +1,6 @@
 -- =============================================================================
 -- content.tdei_union_dataset
--- Version: v4
+-- Version: v5
 --
 -- STRATEGY:
 --   DS1 (src_one) is the immutable source of truth.
@@ -147,30 +147,30 @@ BEGIN
            n.feature,
            n.point_id,
            n.point_loc       AS geom,
-           -- Point type from OSW identifying fields (key=value). Two points
-           -- merge only when this matches — a pole never merges with a bench.
-           -- Per OSW v0.3 Points schema:
-           --   power=pole, emergency=fire_hydrant, amenity=bench/waste_basket,
-           --   barrier=bollard, man_made=manhole, highway=street_lamp, natural=tree
-           CASE
-               WHEN (n.feature::jsonb->'properties'->>'power') = 'pole'
-                    THEN 'power_pole'
-               WHEN (n.feature::jsonb->'properties'->>'emergency') = 'fire_hydrant'
-                    THEN 'fire_hydrant'
-               WHEN (n.feature::jsonb->'properties'->>'amenity') = 'bench'
-                    THEN 'bench'
-               WHEN (n.feature::jsonb->'properties'->>'amenity') = 'waste_basket'
-                    THEN 'waste_basket'
-               WHEN (n.feature::jsonb->'properties'->>'barrier') = 'bollard'
-                    THEN 'bollard'
-               WHEN (n.feature::jsonb->'properties'->>'man_made') = 'manhole'
-                    THEN 'manhole'
-               WHEN (n.feature::jsonb->'properties'->>'highway') = 'street_lamp'
-                    THEN 'street_lamp'
-               WHEN (n.feature::jsonb->'properties'->>'natural') = 'tree'
-                    THEN 'tree'
-               ELSE 'other'
-           END               AS point_type
+           -- Point type SIGNATURE — fully derived from the data, nothing pinned.
+           --
+           -- Per the OSW schema an extension Point carries ONE standard
+           -- identifying key=value (power=pole, amenity=bench, natural=tree, …);
+           -- everything else describing it is ext:* prefixed and is explicitly
+           -- NON-identifying. So the signature is simply every property that is
+           -- neither the internal _id nor an ext:* tag — taken as-is.
+           --
+           -- Same rule already applied to edges: ext:* never drives typing.
+           --
+           -- Nothing is enumerated, so a point type absent from any list here
+           -- (e.g. amenity=drinking_fountain) types itself correctly with no
+           -- code change: it signs as 'amenity=drinking_fountain' and merges
+           -- only with another of its own kind.
+           --
+           -- No identifying key present → 'other' → untyped → guard falls back
+           -- to allow, consistent with how untyped edges are handled.
+           COALESCE(
+               (SELECT string_agg(kv.key || '=' || kv.value, ',' ORDER BY kv.key)
+                FROM jsonb_each_text(n.feature::jsonb->'properties') kv
+                WHERE kv.key <> '_id'
+                  AND kv.key NOT LIKE 'ext:%'),
+               'other'
+           )                 AS point_type
     FROM content.extension_point n
     WHERE n.tdei_dataset_id IN (src_one_tdei_dataset_id, src_two_tdei_dataset_id);
     CREATE INDEX ON ext_points (element_id, source);
@@ -277,9 +277,14 @@ BEGIN
             WHEN (feature::jsonb->'properties'->>'highway') = 'footway'
              AND (feature::jsonb->'properties'->>'footway') IN ('crossing','traffic_island')
                 THEN 'crossing'
-            -- Pedestrian: highway in footway/pedestrian/steps/living_street
+            -- Bike: highway=living_street is an isolated 'bike' group. It merges
+            -- only with another living_street — never with sidewalks, roads, or
+            -- crossings (different group → guard blocks it everywhere).
+            WHEN (feature::jsonb->'properties'->>'highway') = 'living_street'
+                THEN 'bike'
+            -- Pedestrian: highway in footway/pedestrian/steps
             WHEN (feature::jsonb->'properties'->>'highway')
-                 IN ('footway','pedestrian','steps','living_street')
+                 IN ('footway','pedestrian','steps')
                 THEN 'pedestrian'
             -- Road: highway in the road classes
             WHEN (feature::jsonb->'properties'->>'highway')
@@ -305,9 +310,14 @@ BEGIN
             WHEN (feature::jsonb->'properties'->>'highway') = 'footway'
              AND (feature::jsonb->'properties'->>'footway') IN ('crossing','traffic_island')
                 THEN 'crossing'
-            -- Pedestrian: highway in footway/pedestrian/steps/living_street
+            -- Bike: highway=living_street is an isolated 'bike' group. It merges
+            -- only with another living_street — never with sidewalks, roads, or
+            -- crossings (different group → guard blocks it everywhere).
+            WHEN (feature::jsonb->'properties'->>'highway') = 'living_street'
+                THEN 'bike'
+            -- Pedestrian: highway in footway/pedestrian/steps
             WHEN (feature::jsonb->'properties'->>'highway')
-                 IN ('footway','pedestrian','steps','living_street')
+                 IN ('footway','pedestrian','steps')
                 THEN 'pedestrian'
             -- Road: highway in the road classes
             WHEN (feature::jsonb->'properties'->>'highway')
@@ -1988,13 +1998,42 @@ BEGIN
     CREATE INDEX ON pt_matched (ds2_id);
 
     -- Step 2: aggregate all DS2-only props per DS1 point (many DS2 → one DS1)
+    -- Step A: per (DS1 point, key) — representative DS2 value + audit string.
+    -- Mirrors the node audit pattern so that DS2 property values which are NOT
+    -- merged (because DS1 already has that key and DS1 is authoritative) are
+    -- still TRACKED rather than silently discarded. e.g. two poles differing
+    -- only in height: DS1 keeps height=9, ext:union_audit_height records the
+    -- DS2 contribution "<ds2_id>-9.1".
+    DROP TABLE IF EXISTS pt_props_per_key;
+    CREATE TEMP TABLE pt_props_per_key ON COMMIT DROP AS
+    SELECT
+        pm.ds1_id,
+        kv.key                                      AS prop_key,
+        -- representative value for merge (last by ds2 id ordering)
+        (ARRAY_AGG(kv.value ORDER BY pm.ds2_id))[
+            array_upper(ARRAY_AGG(kv.value ORDER BY pm.ds2_id), 1)
+        ]                                           AS prop_value,
+        -- audit string: "<ds2_id>-<value>" across all contributing DS2 points
+        STRING_AGG(
+            pm.ds2_id || '-' || (kv.value #>> '{}'),
+            ',' ORDER BY pm.ds2_id
+        )                                           AS audit_str
+    FROM pt_matched pm,
+         jsonb_each(pm.ds2_props) kv
+    GROUP BY pm.ds1_id, kv.key;
+
+    CREATE INDEX ON pt_props_per_key (ds1_id);
+
+    -- Step B: collapse per-key rows into per-point JSONB objects.
+    --   new_props   : { key: value }            (for merge of DS2-only keys)
+    --   audit_props : { key: "<id>-<val>,..." } (for ext:union_audit_)
     DROP TABLE IF EXISTS pt_ds2_agg;
     CREATE TEMP TABLE pt_ds2_agg ON COMMIT DROP AS
     SELECT
         ds1_id,
-        jsonb_object_agg(kv.key, kv.value) AS new_props
-    FROM pt_matched,
-         jsonb_each(ds2_props) kv
+        jsonb_object_agg(prop_key, prop_value)          AS new_props,
+        jsonb_object_agg(prop_key, to_jsonb(audit_str)) AS audit_props
+    FROM pt_props_per_key
     GROUP BY ds1_id;
 
     CREATE INDEX ON pt_ds2_agg (ds1_id);
@@ -2016,6 +2055,17 @@ BEGIN
                     (SELECT jsonb_object_agg(kv.key, kv.value)
                      FROM jsonb_each(agg.new_props) kv
                      WHERE NOT (p1.feature::jsonb->'properties') ? kv.key),
+                    '{}'::jsonb
+                ) ||
+                -- Audit tags: ext:union_audit_<key> = "<ds2_id>-<value>".
+                -- Full snapshot of every DS2 property that contributed, INCLUDING
+                -- values DS1 overrode. Without this, a DS2 pole's height=9.1
+                -- would vanish when DS1 already has height=9.
+                COALESCE(
+                    (SELECT jsonb_object_agg(
+                                'ext:union_audit_' || regexp_replace(kv.key, '^ext:', ''),
+                                kv.value)
+                     FROM jsonb_each(agg.audit_props) kv),
                     '{}'::jsonb
                 )
         ) AS feature
