@@ -361,27 +361,6 @@
             },
             "tasks": [
                 {
-                    "name": "osw_upload_dataset_sanitization",
-                    "task_reference_name": "osw_upload_dataset_sanitization",
-                    "description": "Sanitizing the uploaded osw file",
-                    "type": "Event",
-                    "topic": "osw-sanitization-request",
-                    "input_params": {
-                        "file_upload_path": "<%=workflow_input.dataset_url%>",
-                        "user_id": "<%=workflow_input.user_id%>",
-                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>"
-                    },
-                    "message_application_properties": {
-                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
-                    },
-                    "output_params": {
-                        "success": "<%=data.success%>",
-                        "message": "<%=data.message%>",
-                        "metadata_url": "<%=data.metadata_url%>",
-                        "sanitization_dataset_url": "<%=data.sanitization_dataset_url%>"
-                    }
-                },
-                {
                     "name": "osw_validation",
                     "task_reference_name": "osw_validation",
                     "description": "Validating the uploaded osw file",
