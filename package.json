@@ -47,7 +47,6 @@
   },
   "dependencies": {
     "@azure/service-bus": "7.9.4",
-    "@azure/core-amqp": "4.2.1",
     "@azure/storage-blob": "12.18.0",
     "@faker-js/faker": "^8.0.1",
     "@jest-mock/express": "^2.0.1",
@@ -67,6 +66,7 @@
     "lodash": "^4.17.21",
     "multer": "2.0.1",
     "node-fetch": "^2.6.7",
+    "node-sql-parser": "^5.4.0",
     "nodets-ms-core": "0.0.19",
     "pg": "^8.8.0",
     "reflect-metadata": "^0.1.13",

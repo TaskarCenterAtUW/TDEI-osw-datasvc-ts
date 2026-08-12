@@ -1,7 +1,149 @@
 import { QueryCriteria } from "../../src/database/dynamic-update-query";
 import { Utility } from "../../src/utility/utility"
+import { validateSqlExpression } from "../../src/utility/sql-validation";
+import { InputException } from "../../src/exceptions/http/http-exceptions";
 import AdmZip from 'adm-zip';
 import { Express } from 'express';
+
+describe('checkForSqlInjection', () => {
+    it('allows valid spatial join SQL fragments', () => {
+        expect(() => Utility.checkForSqlInjection({
+            join_condition: 'ST_Contains(geometry_target, geometry_source)',
+            join_filter_target: 'highway = \'primary\'',
+            join_filter_source: 'surface IS NOT NULL',
+            aggregate: ['array_agg(highway) as highways'],
+        })).not.toThrow();
+    });
+
+    it('allows full SELECT join_condition with CTEs and trailing semicolon', () => {
+        expect(() => Utility.checkForSqlInjection({
+            join_condition: `WITH candidates AS (
+  SELECT s.id AS line_id, p.id AS pole_id
+  FROM sidewalks s
+  JOIN poles p ON ST_DWithin(s.geom, p.geom, 2)
+  WHERE (p.tags->>'amenity') = 'light_pole'
+)
+SELECT * FROM candidates;`,
+            aggregate: ['ARRAY_AGG(ext:unit_id) as SDOT_pole_unit_id'],
+        })).not.toThrow();
+    });
+
+    it('allows the SDOT pole spatial join payload', () => {
+        expect(() => Utility.checkForSqlInjection({
+            target_dataset_id: '52945d79-a0df-4440-8363-73bea8e1882a',
+            target_dimension: 'edge',
+            source_dataset_id: 'fbec2c7b-5196-4c83-b7f6-0e24a146f53d',
+            source_dimension: 'node',
+            join_condition: `WITH candidates AS (
+  SELECT
+    s.id   AS line_id,
+    p.id   AS pole_id,
+    ST_LineMerge(s.geom) AS line_geom,
+    p.geom AS pole_geom
+  FROM sidewalks s
+  JOIN poles p
+    ON ST_DWithin(s.geom, p.geom, 2)
+  WHERE (p.tags->>'amenity') = 'light_pole'
+),
+located AS (
+  SELECT
+    line_id,
+    pole_id,
+    ST_LineLocatePoint(line_geom, pole_geom) AS frac,
+    ST_LineInterpolatePoint(line_geom,
+                             ST_LineLocatePoint(line_geom, pole_geom)) AS proj_pt
+  FROM candidates
+)
+SELECT *
+FROM located
+WHERE frac BETWEEN 0.2 AND 0.8;`,
+            join_filter_target: '',
+            join_filter_source: '',
+            aggregate: [
+                'ARRAY_AGG(ext:unit_id) as SDOT_pole_unit_id',
+                'ARRAY_AGG(ext:subtypecd) as SDOT_subtypecd',
+                'ARRAY_AGG(ext:pole_height) as SDOT_pole_height',
+                'ARRAY_AGG(ext:pole_asset_id) as SDOT_pole_asset_id',
+                'ARRAY_AGG(ext:pole_HasStreetlight) as SDOT_pole_HasStreetlight',
+            ],
+        })).not.toThrow();
+    });
+
+    it('allows column names that contain reserved words', () => {
+        expect(() => Utility.checkForSqlInjection({
+            join_filter_source: 'truncate = \'yes\'',
+        })).not.toThrow();
+    });
+
+    it('rejects stacked statements in join_condition', () => {
+        expect(() => Utility.checkForSqlInjection({
+            join_condition: 'SELECT 1; DROP TABLE users',
+        })).toThrow(InputException);
+    });
+
+    it('rejects DML statements in join_condition', () => {
+        expect(() => Utility.checkForSqlInjection({
+            join_condition: 'DROP TABLE users',
+        })).toThrow(InputException);
+    });
+
+    it('rejects dangerous functions in aggregate', () => {
+        expect(() => Utility.checkForSqlInjection({
+            aggregate: ['pg_sleep(5)'],
+        })).toThrow(InputException);
+    });
+
+    it('rejects comment tokens in non-SQL fields', () => {
+        expect(() => Utility.checkForSqlInjection({
+            feedback_text: 'test -- comment',
+        })).toThrow(/Harmful token found in input/);
+    });
+
+    it('allows feedback text containing reserved words as plain text', () => {
+        expect(() => Utility.checkForSqlInjection({
+            feedback_text: 'please update the map',
+        })).not.toThrow();
+    });
+
+    it('allows tag quality metric payloads with reserved-word tag names', () => {
+        expect(() => Utility.checkForSqlInjection([{
+            entity_type: 'Footway',
+            tags: [
+                'surface',
+                'width',
+                'incline',
+                'length',
+                'description',
+                'name',
+                'foot',
+                'update',
+            ],
+        }])).not.toThrow();
+    });
+
+    it('recursively validates nested arrays', () => {
+        expect(() => Utility.checkForSqlInjection([
+            { entity_type: 'edge', tags: ['highway'] },
+            { entity_type: 'node', tags: ['--comment'] },
+        ])).toThrow(/\[1\]\.tags\[0\]/);
+    });
+});
+
+describe('validateSqlExpression', () => {
+    it('accepts PostGIS and aggregate functions', () => {
+        expect(() => validateSqlExpression('ST_Contains(geometry_target, geometry_source)', 'condition', 'join_condition')).not.toThrow();
+        expect(() => validateSqlExpression('array_agg(highway) as highways', 'expression', 'aggregate')).not.toThrow();
+    });
+
+    it('rejects stacked statements and comments', () => {
+        expect(() => validateSqlExpression('1=1; DROP TABLE t', 'condition', 'join_condition')).toThrow(InputException);
+        expect(() => validateSqlExpression('1=1 -- comment', 'condition', 'join_condition')).toThrow(InputException);
+    });
+
+    it('allows empty fragments', () => {
+        expect(() => validateSqlExpression('', 'condition', 'join_filter_target')).not.toThrow();
+    });
+});
 
 describe('buildUpdateQuery', () => {
     it('should build an update query with set and where clauses', () => {
