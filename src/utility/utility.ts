@@ -8,34 +8,61 @@ import _ from "lodash";
 import { InputException } from "../exceptions/http/http-exceptions";
 import AdmZip from "adm-zip";
 import path from "path";
+import {
+    assertSafePlainText,
+    assertSafeSqlIdentifier,
+    SQL_CONDITION_FIELDS,
+    SQL_EXPRESSION_ARRAY_FIELDS,
+    SQL_IDENTIFIER_ARRAY_FIELDS,
+    validateSqlExpression,
+} from "./sql-validation";
 
 
 export class Utility {
 
     /**
-     * Basic SQL injection check
-     * @param obj
+     * Validates request input for SQL injection. User-controlled SQL fragments
+     * are checked via AST/text allowlisting; other strings get a lightweight scan.
      */
-    public static checkForSqlInjection(obj: any) {
-        const harmfulKeywords = [';', 'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE', '--'];
+    public static checkForSqlInjection(obj: any, prefix = ''): void {
+        if (obj === null || obj === undefined) return;
 
-        for (let key in obj) {
-            if (typeof obj[key] === 'string') {
-                for (let keyword of harmfulKeywords) {
-                    if (obj[key].toUpperCase().includes(keyword)) {
-                        throw new InputException(`Harmful keyword found in input : ${key}`);
-                    }
+        if (Array.isArray(obj)) {
+            obj.forEach((item, index) => {
+                const itemField = prefix ? `${prefix}[${index}]` : `[${index}]`;
+                if (typeof item === 'string') {
+                    assertSafePlainText(item, itemField);
+                } else {
+                    Utility.checkForSqlInjection(item, itemField);
                 }
-            } else if (Array.isArray(obj[key])) {
-                for (let item of obj[key]) {
+            });
+            return;
+        }
+
+        if (typeof obj !== 'object') return;
+
+        for (const key of Object.keys(obj)) {
+            const fieldName = prefix ? `${prefix}.${key}` : key;
+            const value = obj[key];
+
+            if (SQL_CONDITION_FIELDS.has(key) && typeof value === 'string') {
+                validateSqlExpression(value, 'condition', fieldName);
+            } else if (SQL_EXPRESSION_ARRAY_FIELDS.has(key) && Array.isArray(value)) {
+                value.forEach((item, index) => {
                     if (typeof item === 'string') {
-                        for (let keyword of harmfulKeywords) {
-                            if (item.toUpperCase().includes(keyword)) {
-                                throw new InputException(`Harmful keyword found in input : ${key}`);
-                            }
-                        }
+                        validateSqlExpression(item, 'expression', `${fieldName}[${index}]`);
                     }
-                }
+                });
+            } else if (SQL_IDENTIFIER_ARRAY_FIELDS.has(key) && Array.isArray(value)) {
+                value.forEach((item, index) => {
+                    if (typeof item === 'string') {
+                        assertSafeSqlIdentifier(item, `${fieldName}[${index}]`);
+                    }
+                });
+            } else if (typeof value === 'string') {
+                assertSafePlainText(value, fieldName);
+            } else if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+                Utility.checkForSqlInjection(value, fieldName);
             }
         }
     }
