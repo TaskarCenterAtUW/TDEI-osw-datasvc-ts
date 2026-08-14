@@ -1126,6 +1126,103 @@ describe("OSW Controller Test", () => {
         });
     });
 
+    describe("processSelfMergeRequest", () => {
+        test("When request body is empty, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq();
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processDatasetSelfMergeRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When request body proximity param is string, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "proximity": "string"
+                }
+            });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processDatasetSelfMergeRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When request body is valid, Expect to process the request and return 202 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
+                }
+            });
+            const job_id = "mock-job-id";
+            const { res, next } = getMockRes();
+
+            jest.spyOn(oswService, "processSelfMergeRequest").mockResolvedValueOnce(job_id);
+            // Act
+            await oswController.processDatasetSelfMergeRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
+        });
+
+        test("When request body is valid with proximity, Expect to process the request and return 202 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "proximity": 10
+                }
+            });
+            const job_id = "mock-job-id";
+            const { res, next } = getMockRes();
+
+            jest.spyOn(oswService, "processSelfMergeRequest").mockResolvedValueOnce(job_id);
+            // Act
+            await oswController.processDatasetSelfMergeRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(res.send).toHaveBeenCalledWith(job_id);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
+        });
+
+        test("When an error occurs, Expect to call next with HttpException and return 500 status code", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
+                }
+            });
+            const { res, next } = getMockRes();
+            const error = new Error("Some error message");
+
+            jest.spyOn(oswService, "processSelfMergeRequest").mockRejectedValue(error);
+
+            // Act
+            await oswController.processDatasetSelfMergeRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(HttpException));
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith("Error while processing the self merge dataset request");
+        });
+    });
+
 
     describe("downloadFeedbacks", () => {
         test("When project group id is missing, Expect to return HTTP status 500", async () => {

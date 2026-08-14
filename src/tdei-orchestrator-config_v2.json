@@ -361,27 +361,6 @@
             },
             "tasks": [
                 {
-                    "name": "osw_upload_dataset_sanitization",
-                    "task_reference_name": "osw_upload_dataset_sanitization",
-                    "description": "Sanitizing the uploaded osw file",
-                    "type": "Event",
-                    "topic": "osw-sanitization-request",
-                    "input_params": {
-                        "file_upload_path": "<%=workflow_input.dataset_url%>",
-                        "user_id": "<%=workflow_input.user_id%>",
-                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>"
-                    },
-                    "message_application_properties": {
-                        "file_size_mb": "<%=workflow_input.upload_file_size_mb%>"
-                    },
-                    "output_params": {
-                        "success": "<%=data.success%>",
-                        "message": "<%=data.message%>",
-                        "metadata_url": "<%=data.metadata_url%>",
-                        "sanitization_dataset_url": "<%=data.sanitization_dataset_url%>"
-                    }
-                },
-                {
                     "name": "osw_validation",
                     "task_reference_name": "osw_validation",
                     "description": "Validating the uploaded osw file",
@@ -393,7 +372,7 @@
                     "input_params": {
                         "user_id": "<%=workflow_input.user_id%>",
                         "tdei_project_group_id": "<%=workflow_input.tdei_project_group_id%>",
-                        "file_upload_path": "<%=tasks.osw_upload_dataset_sanitization.output.sanitization_dataset_url%>"
+                        "file_upload_path": "<%=workflow_input.dataset_url%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
@@ -406,7 +385,7 @@
                     "description": "Getting the blob folder path for zip upload",
                     "type": "Utility",
                     "input_params": {
-                        "blobUrl": "<%=tasks.osw_upload_dataset_sanitization.output.sanitization_dataset_url%>",
+                        "blobUrl": "<%=workflow_input.dataset_url%>",
                         "identifier": "<%=workflow_input.tdei_dataset_id%>"
                     },
                     "output_params": {
@@ -424,7 +403,7 @@
                     "topic": "dataset-zip-request",
                     "input_params": {
                         "isOsm": false,
-                        "input_urls": "<%= JSON.stringify([tasks.osw_upload_dataset_sanitization.output.sanitization_dataset_url, workflow_input.metadata_url, workflow_input.changeset_url]) %>",
+                        "input_urls": "<%= JSON.stringify([workflow_input.dataset_url, workflow_input.metadata_url, workflow_input.changeset_url]) %>",
                         "output_path": "<%=tasks.get_blob_folder_path_wo_ext.output.folder_path%>.osw.zip"
                     },
                     "output_params": {
@@ -461,7 +440,7 @@
                     "topic": "extract-load-request",
                     "input_params": {
                         "tdei_dataset_id": "<%=workflow_input.tdei_dataset_id%>",
-                        "file_upload_path": "<%=tasks.osw_upload_dataset_sanitization.output.sanitization_dataset_url%>",
+                        "file_upload_path": "<%=workflow_input.dataset_url%>",
                         "data_type": "osw"
                     },
                     "output_params": {
@@ -556,7 +535,7 @@
                         },
                         "data": {
                             "status": "Pre-Release",
-                            "latest_dataset_url": "<%=tasks.osw_upload_dataset_sanitization.output.sanitization_dataset_url%>"
+                            "latest_dataset_url": "<%=workflow_input.dataset_url%>"
                         }
                     },
                     "output_params": {
@@ -3048,6 +3027,101 @@
                             "status": "FAILED",
                             "updated_at": "CURRENT_TIMESTAMP",
                             "message": "Union between datasets <%=workflow_input.tdei_dataset_id_one%> and <%=workflow_input.tdei_dataset_id_two%> failed"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
+        },
+        {
+            "name": "osw_self_merge_dataset",
+            "description": "Performs self merge on the osw dataset",
+            "workflow_input": {
+                "service": "<%=service %>",
+                "user_id": "<%=user_id%>",
+                "parameters": "<%= JSON.stringify(parameters) %>",
+                "job_id": "<%=job_id%>",
+                "tdei_dataset_id": "<%=tdei_dataset_id%>"
+            },
+            "tasks": [
+                {
+                    "name": "osw_self_merge",
+                    "task_reference_name": "osw_self_merge",
+                    "description": "Performing the self merge on the osw dataset",
+                    "type": "Event",
+                    "topic": "backend-request",
+                    "input_params": {
+                        "service": "<%=workflow_input.service%>",
+                        "user_id": "<%=workflow_input.user_id%>",
+                        "parameters": "<%= JSON.stringify(workflow_input.parameters) %>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "file_upload_path": "<%=data.file_upload_path%>"
+                    }
+                },
+                {
+                    "name": "osw_self_merge_response_validation",
+                    "task_reference_name": "osw_self_merge_response_validation",
+                    "description": "Validating the self merge response",
+                    "type": "Utility",
+                    "input_params": {
+                        "service": "self_merge_dataset",
+                        "job_id": "<%=workflow_input.job_id%>",
+                        "success": "<%=tasks.osw_self_merge.output.success%>",
+                        "message": "<%=tasks.osw_self_merge.output.message%>",
+                        "file_upload_path": "<%=tasks.osw_self_merge.output.file_upload_path%>"
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "backed_service_response_validation"
+                },
+                {
+                    "name": "osm_self_merge_join_job_db",
+                    "task_reference_name": "osm_self_merge_join_job_db",
+                    "description": "Job success. Updating the job details",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "download_url": "<%=decodeURIComponent(tasks.osw_self_merge.output.file_upload_path)%>",
+                            "status": "COMPLETED",
+                            "message": "Self merge dataset <%=workflow_input.tdei_dataset_id%> completed successfully",
+                            "updated_at": "CURRENT_TIMESTAMP"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Job failed. Updating the job details",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP",
+                            "message": "Self merge dataset <%=workflow_input.tdei_dataset_id%> failed"
                         }
                     },
                     "output_params": {
