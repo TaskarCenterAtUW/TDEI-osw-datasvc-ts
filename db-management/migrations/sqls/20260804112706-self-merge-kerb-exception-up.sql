@@ -58,6 +58,12 @@ DECLARE
     result_cursor      REFCURSOR;
     fname              TEXT;
     proximity_degrees  REAL;
+    -- snap_tolerance is used ONLY for node-on-EDGE-LINE containment (type-group
+    -- tagging in Phase 1b), where a node may sit on an edge's INTERIOR and its
+    -- coordinate legitimately won't equal any stored vertex. It is NOT used for
+    -- vertex↔node identity: edge/zone vertices bind to nodes by EXACT coordinate
+    -- equality (geom_key), no tolerance, no snapping — per the source-of-truth
+    -- rule that emitted vertex lat/lon must exactly match the node's.
     snap_tolerance     FLOAT8 := 1e-8;
     sm_label           TEXT;
     v_round            INT := 0;
@@ -85,15 +91,24 @@ BEGIN
            -- → NULL → labelled 'min_node_id'), even though kerb priority
            -- correctly won the election.
            COALESCE((n.feature::jsonb->'properties'->>'barrier') = 'kerb', FALSE) AS is_kerb,
-           -- The kerb rule is value-independent: ANY two barrier=kerb nodes within
+           -- kerb=* value (raised/lowered/flush/…), NULL when absent. Carried
+           -- for provenance/inspection only — it does NOT affect matching. The
+           -- kerb rule is value-independent: ANY two barrier=kerb nodes within
            -- proximity are kept separate (see the kerb exception in Phase 3).
            (n.feature::jsonb->'properties'->>'kerb') AS kerb_value,
            CASE WHEN n.id::TEXT ~ '^[0-9]+$'
-                THEN LPAD(n.id::TEXT, 20, '0') ELSE n.id::TEXT END AS sort_key
+                THEN LPAD(n.id::TEXT, 20, '0') ELSE n.id::TEXT END AS sort_key,
+           -- Exact coordinate key for EQUALITY association (no tolerance, no
+           -- snapping). ST_AsBinary is the full-precision byte image of the
+           -- coordinate, so an edge/zone vertex binds to a node ONLY when their
+           -- lat/lon are byte-identical — the source-of-truth rule. Btree
+           -- equality on this is faster than ST_Equals and needs no GIST.
+           ST_AsBinary(n.node_loc) AS geom_key
     FROM content.node n
     WHERE n.tdei_dataset_id = src_tdei_dataset_id;
     CREATE INDEX ON self_nodes (element_id);
     CREATE INDEX ON self_nodes USING GIST (geom);
+    CREATE INDEX ON self_nodes (geom_key);
     ANALYZE self_nodes;
 
     DROP TABLE IF EXISTS self_edges;
@@ -102,7 +117,9 @@ BEGIN
            e.edge_loc  AS geom,
            e.feature,
            ST_StartPoint(e.edge_loc) AS start_pt,   -- computed once, not per join
-           ST_EndPoint(e.edge_loc)   AS end_pt
+           ST_EndPoint(e.edge_loc)   AS end_pt,
+           ST_AsBinary(ST_StartPoint(e.edge_loc)) AS start_key,  -- exact-equality keys
+           ST_AsBinary(ST_EndPoint(e.edge_loc))   AS end_key
     FROM content.edge e
     WHERE e.tdei_dataset_id = src_tdei_dataset_id;
     CREATE INDEX ON self_edges (element_id);
@@ -128,9 +145,11 @@ BEGIN
     SELECT z.element_id,
            p.path[1] AS element_sub_id,
            p.path[2] AS element_sub_sub_id,
-           p.geom
+           p.geom,
+           ST_AsBinary(p.geom) AS geom_key
     FROM self_zones z, LATERAL ST_DumpPoints(z.geom) p;
     CREATE INDEX ON self_zonepoints (element_id);
+    CREATE INDEX ON self_zonepoints (geom_key);
     CREATE INDEX ON self_zonepoints USING GIST (geom);
     ANALYZE self_zonepoints;
 
@@ -247,17 +266,21 @@ BEGIN
     RAISE NOTICE 'Phase 1b complete: edge types + node groups classified';
 
     -- =========================================================================
-    -- PHASE 2: Endpoint identification
-    --   Nearest node to each edge start/end. DISTINCT ON over a flat spatial
-    --   join — no LATERAL LIMIT 1 probe per edge.
+    -- PHASE 2: Endpoint identification — EXACT coordinate equality, no tolerance.
+    --   An edge endpoint binds to the node with the byte-identical lat/lon.
+    --   Rule: edge vertex lat/lon must EXACTLY equal its node's — so the match
+    --   is equality, not ST_DWithin. Clean data has exactly one such node; a
+    --   btree join on the WKB key, no GIST distance scan, no ORDER BY distance.
+    --   (DISTINCT ON kept only to stay single-valued if the source ever holds
+    --   two coincident nodes; tie-break by sort_key is then deterministic.)
     -- =========================================================================
     DROP TABLE IF EXISTS sm_edge_u;
     CREATE TEMP TABLE sm_edge_u ON COMMIT DROP AS
     SELECT DISTINCT ON (e.element_id)
            e.element_id AS edge_id, n.element_id AS u_node_id
     FROM self_edges e
-    JOIN self_nodes n ON ST_DWithin(n.geom, e.start_pt, proximity_degrees)
-    ORDER BY e.element_id, ST_Distance(n.geom, e.start_pt) ASC, n.sort_key;
+    JOIN self_nodes n ON n.geom_key = e.start_key       -- exact equality (btree)
+    ORDER BY e.element_id, n.sort_key;
     CREATE INDEX ON sm_edge_u (edge_id);
     ANALYZE sm_edge_u;
 
@@ -266,8 +289,8 @@ BEGIN
     SELECT DISTINCT ON (e.element_id)
            e.element_id AS edge_id, n.element_id AS v_node_id
     FROM self_edges e
-    JOIN self_nodes n ON ST_DWithin(n.geom, e.end_pt, proximity_degrees)
-    ORDER BY e.element_id, ST_Distance(n.geom, e.end_pt) ASC, n.sort_key;
+    JOIN self_nodes n ON n.geom_key = e.end_key         -- exact equality (btree)
+    ORDER BY e.element_id, n.sort_key;
     CREATE INDEX ON sm_edge_v (edge_id);
     ANALYZE sm_edge_v;
 
@@ -766,16 +789,19 @@ BEGIN
     -- =========================================================================
     -- PHASE 5a: Zones — ring node remap, then ≥70% area-overlap self-dedup
     -- =========================================================================
-    -- Resolve each ring vertex to its source node (flat join + DISTINCT ON)
+    -- Resolve each ring vertex to its source node by EXACT equality (no
+    -- tolerance). A ring vertex that coincides with a node binds to it; one
+    -- that doesn't (a shape vertex that was never a node) keeps its own
+    -- coordinate verbatim downstream. No snapping either way.
     DROP TABLE IF EXISTS sm_zone_ring_nodes;
     CREATE TEMP TABLE sm_zone_ring_nodes ON COMMIT DROP AS
     SELECT DISTINCT ON (zp.element_id, zp.element_sub_id, zp.element_sub_sub_id)
            zp.element_id, zp.element_sub_id, zp.element_sub_sub_id,
            zp.geom AS src_geom, n.element_id AS src_node_id
     FROM self_zonepoints zp
-    LEFT JOIN self_nodes n ON ST_DWithin(n.geom, zp.geom, snap_tolerance)
+    LEFT JOIN self_nodes n ON n.geom_key = zp.geom_key   -- exact equality (btree)
     ORDER BY zp.element_id, zp.element_sub_id, zp.element_sub_sub_id,
-             ST_Distance(n.geom, zp.geom) ASC NULLS LAST;
+             n.sort_key NULLS LAST;
     CREATE INDEX ON sm_zone_ring_nodes (src_node_id);
     ANALYZE sm_zone_ring_nodes;
 
