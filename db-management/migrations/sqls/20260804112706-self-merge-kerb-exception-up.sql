@@ -397,8 +397,9 @@ BEGIN
     -- blocks the two sanctioned cross-type pairs above — e.g. a footway=crossing
     -- endpoint would refuse to merge with an adjacent footway=sidewalk endpoint,
     -- leaving the network unrouted at exactly the junctions that matter most.
-    -- Nodes carry SETS of groups, so compatibility = "∃ ga∈a, gb∈b that is an
-    -- allowed combination", i.e. everything except road×pedestrian alone.
+    -- Nodes carry SETS of groups. Compatibility rule: a road-bearing node
+    -- merges ONLY with another road-bearing node; otherwise same-network, or a
+    -- crossing↔pedestrian bridge, or untyped/other. (See the guard CASE below.)
     DROP TABLE IF EXISTS sm_cand_pairs;
     CREATE TEMP TABLE sm_cand_pairs ON COMMIT DROP AS
     SELECT
@@ -425,20 +426,35 @@ BEGIN
        -- real kerbs into one through logic that can't be right on the ground.
        -- (A kerb vs a bare node is unaffected — only kerb-vs-kerb is excluded.)
        AND NOT (a.is_kerb AND b.is_kerb)
+       -- ROAD IS IMMUTABLE REFERENCE GEOMETRY. A road-bearing node (any node
+       -- whose group set contains 'road', including a road×crossing intersection)
+       -- NEVER participates in self-merge: it is never absorbed and never moves,
+       -- and two road nodes never collapse. Self-merge repairs the PEDESTRIAN
+       -- network; road topology is authoritative upstream data and is passed
+       -- through untouched.
+       --
+       -- This also degrades safely on malformed input: if one physical road is
+       -- (incorrectly) authored as several overlapping roads, self-merge leaves
+       -- them exactly as-is rather than bending intersections together — the
+       -- data defect stays visible upstream instead of being smeared into wrong
+       -- geometry. We deliberately do NOT detect or repair that here; road
+       -- conflation is a separate upstream concern, not self-merge's job.
+       --   {road}, {road,crossing}  → excluded from all pairing (either side)
+       --   {crossing} ~ {pedestrian} → merge   (crossing bridges to sidewalk)
+       --   {pedestrian} ~ {pedestrian}, {crossing} ~ {crossing} → merge
+       AND NOT ('road' = ANY(a.groups))
+       AND NOT ('road' = ANY(b.groups))
        AND (
-             -- untyped / other → allow (pre-type baseline)
-             COALESCE(array_length(a.groups,1),0)=0
+             -- neither side is road-bearing here (road excluded above)
+             COALESCE(array_length(a.groups,1),0)=0                -- untyped → allow
           OR COALESCE(array_length(b.groups,1),0)=0
           OR 'other' = ANY(a.groups)
           OR 'other' = ANY(b.groups)
-             -- same network
-          OR a.groups && b.groups
-             -- SANCTIONED cross-type: a crossing bridges road and pedestrian
-          OR (a.groups && ARRAY['crossing']::TEXT[]
-              AND b.groups && ARRAY['road','pedestrian']::TEXT[])
+          OR a.groups && b.groups                                  -- same network
+          OR (a.groups && ARRAY['crossing']::TEXT[]                -- crossing ↔ pedestrian
+              AND b.groups && ARRAY['pedestrian']::TEXT[])
           OR (b.groups && ARRAY['crossing']::TEXT[]
-              AND a.groups && ARRAY['road','pedestrian']::TEXT[])
-             -- (road × pedestrian with no crossing involved falls through → blocked)
+              AND a.groups && ARRAY['pedestrian']::TEXT[])
        )
     -- anti-join replaces NOT EXISTS: exclude an edge's own two endpoints
     LEFT JOIN sm_same_edge_pairs sep
