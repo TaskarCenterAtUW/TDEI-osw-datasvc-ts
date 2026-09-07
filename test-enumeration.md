@@ -113,6 +113,8 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 | OSW Service Test -> processUnionRequest | When tdei_dataset_id_one dataset is not a osw dataset, Expect to throw InputException | passed |
 | OSW Service Test -> processUnionRequest | When tdei_dataset_id_two dataset is not a osw dataset, Expect to throw InputException | passed |
 | OSW Service Test -> processUnionRequest | When all conditions are met, Expect to create job, start workflow, and return job_id | passed |
+| OSW Service Test -> processSelfMergeRequest | When tdei_dataset_id dataset is not a osw dataset, Expect to throw InputException | passed |
+| OSW Service Test -> processSelfMergeRequest | When all conditions are met, Expect to create job, start workflow, and return job_id | passed |
 | OSW Service Test -> OSW Service - calculateInclination | When dataset is not in Pre-Release state, Expect to throw InputException | passed |
 | OSW Service Test -> OSW Service - calculateInclination | When dataset is non-OSW, Expect to throw InputException | passed |
 | OSW Service Test -> OSW Service - calculateInclination | When dataset is in Pre-Release state, Expect to create job and trigger workflow | passed |

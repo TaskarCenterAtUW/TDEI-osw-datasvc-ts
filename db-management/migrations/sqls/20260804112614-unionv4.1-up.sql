@@ -78,7 +78,14 @@ DECLARE
     polygon_mixed_type_keys JSONB;
     proximity_degrees       REAL;
     snap_tolerance          FLOAT8 := 1e-8;
+    -- System coordinate precision: all dataset coordinates are authored and
+    -- validated at 7 decimal places upstream. Any node MINTED by this function
+    -- (road×crossing intersection nodes) must be emitted at the same precision,
+    -- otherwise it can never compare equal to a source node and the exact-match
+    -- reuse test below would never fire.
+    coord_grid              FLOAT8 := 1e-7;
     union_label             TEXT;
+
 
 BEGIN
     -- 1° latitude ≈ 111,111 m
@@ -455,6 +462,16 @@ BEGIN
         FROM ds1_nodes d1
         LEFT JOIN ds1_node_groups g1 ON g1.element_id = d1.element_id
         WHERE ST_DWithin(n2.geom, d1.geom, proximity_degrees)
+          -- KERB×KERB EXCEPTION: two kerb nodes within proximity are left
+          -- alone (not snapped/merged). Two distinct kerbs can legitimately sit
+          -- 2-3 m apart (e.g. opposite corners of a ramp); merging them would
+          -- collapse valid separate kerbs and create ambiguity. A kerb node is
+          -- barrier=kerb. If BOTH the DS2 node and the DS1 candidate are kerbs,
+          -- this candidate is not offered → the DS2 kerb stays as its own node.
+          AND NOT (
+                (n2.feature::jsonb->'properties'->>'barrier') = 'kerb'
+            AND (d1.feature::jsonb->'properties'->>'barrier') = 'kerb'
+          )
           AND (
                 COALESCE(array_length(g2.groups, 1), 0) = 0   -- DS2 untyped → allow
              OR COALESCE(array_length(g1.groups, 1), 0) = 0   -- DS1 untyped → allow
@@ -645,29 +662,65 @@ BEGIN
 
     DROP TABLE IF EXISTS crossing_shared_nodes;
     CREATE TEMP TABLE crossing_shared_nodes ON COMMIT DROP AS
-    SELECT DISTINCT ON (ST_AsText(ST_SnapToGrid(ipoint, snap_tolerance)))
-        -- reuse existing node id if one is within tolerance, else mint ixn-
-        COALESCE(nn.node_id, 'ixn-' || road_id || '-' || crossing_id) AS node_id,
-        -- reuse existing node's EXACT position if reusing, else the intersection point
-        COALESCE(nn.geom, ipoint)                                     AS geom,
+    -- Dedup key is the EXACT intersection point — untrimmed. The coordinate grid
+    -- is NEVER applied to a comparison, only when minting (below).
+    SELECT DISTINCT ON (ST_AsText(rcp.ipoint))
+        -- Reuse an existing node id if one is within tolerance, else mint a NEW
+        -- ixn id. The minted id MUST be unique per INTERSECTION POINT, not per
+        -- road×crossing pair: a road and a crossing can intersect at more than
+        -- one location (curved/multi-touch geometry), and an id of only
+        -- 'ixn-<road>-<crossing>' would then be reused for two different points
+        -- → two distinct nodes sharing one id at different coordinates → edges
+        -- referencing that id can't resolve to a consistent position
+        -- (_u_id/_v_id coordinate mismatch). Appending a point discriminator
+        -- (the snapped-coordinate text) keeps each intersection point's id
+        -- unique, while the same point computed twice still collapses to one id.
+        COALESCE(
+            nn.node_id,
+            'ixn-' || road_id || '-' || crossing_id || '-' ||
+                md5(ST_AsText(rcp.ipoint))
+        )                                                             AS node_id,
+        -- Reused node keeps its own exact position; a newly minted node is placed
+        -- at the intersection point SNAPPED TO 7dp (system coordinate precision).
+        COALESCE(nn.geom, ST_SnapToGrid(rcp.ipoint, coord_grid))      AS geom,
+        -- Raw intersection point retained as the JOIN KEY for the split steps.
+        -- They must match this row by IDENTITY, not by geometric proximity:
+        -- `geom` above is snapped to the 7dp grid and can differ from ipoint,
+        -- so a proximity join would silently fail and the split would be lost.
+        rcp.ipoint                                                    AS ipoint_raw,
         (nn.node_id IS NULL)                                          AS is_new,
         road_id,
         road_src,
         crossing_id,
         crossing_src
     FROM road_crossing_points rcp
-    -- nearest existing node within reuse tolerance (0.1 m ≈ 0.1/111111 degrees)
+    -- EXACT-MATCH REUSE (no tolerance, no grid applied to the comparison).
+    -- Reuse an existing node ONLY when it is exactly the intersection point;
+    -- otherwise mint a new ixn node. A tolerance window is not used: it would
+    -- adopt a node lying off the edge line, and since the split fraction
+    -- projects back onto the line, the emitted endpoint could never equal the
+    -- node's coordinate (this was the sole source of _u_id/_v_id mismatches).
+    --
+    -- The comparison uses the RAW intersection point — the coordinate grid is
+    -- never applied here. Two reasons:
+    --   • Where a crossing endpoint genuinely lies on the road, ST_Intersection
+    --     returns that vertex's own coordinates, so the raw point already equals
+    --     the stored node exactly and the node is reused.
+    --   • Snapping before comparing would be unsound: a mid-segment intersection
+    --     rounded to the grid could land on a nearby node's coordinate and
+    --     trigger a FALSE reuse of a node that is not actually there.
+    -- A true mid-line crossing has no existing node at that point, so it mints.
     LEFT JOIN LATERAL (
         SELECT aen.node_id, aen.geom
         FROM all_existing_nodes aen
-        WHERE ST_DWithin(aen.geom, rcp.ipoint, 0.1 / 111111.0)
-        ORDER BY ST_Distance(aen.geom, rcp.ipoint) ASC
+        WHERE ST_Equals(aen.geom, rcp.ipoint)
         LIMIT 1
     ) nn ON TRUE
-    ORDER BY ST_AsText(ST_SnapToGrid(ipoint, snap_tolerance));
+    ORDER BY ST_AsText(rcp.ipoint);
 
     CREATE INDEX ON crossing_shared_nodes (node_id);
     CREATE INDEX ON crossing_shared_nodes USING GIST (geom);
+    CREATE INDEX ON crossing_shared_nodes USING GIST (ipoint_raw);
 
     -- DS2 edge crossing splits — fed into Phase 4 split fractions.
     -- For every DS2 edge (road or crossing) that participates in an intersection,
@@ -684,7 +737,7 @@ BEGIN
             ST_LineLocatePoint(e.geom, csn.geom)     AS fraction
         FROM road_crossing_points rcp
         JOIN crossing_shared_nodes csn
-            ON ST_DWithin(csn.geom, rcp.ipoint, snap_tolerance)
+            ON ST_Equals(csn.ipoint_raw, rcp.ipoint)   -- identity, not proximity
         JOIN ds2_edges e ON e.element_id = rcp.road_id
         WHERE rcp.road_src = 'ds2'
 
@@ -698,7 +751,7 @@ BEGIN
             ST_LineLocatePoint(e.geom, csn.geom)     AS fraction
         FROM road_crossing_points rcp
         JOIN crossing_shared_nodes csn
-            ON ST_DWithin(csn.geom, rcp.ipoint, snap_tolerance)
+            ON ST_Equals(csn.ipoint_raw, rcp.ipoint)   -- identity, not proximity
         JOIN ds2_edges e ON e.element_id = rcp.crossing_id
         WHERE rcp.crossing_src = 'ds2'
     ) splits
@@ -722,7 +775,7 @@ BEGIN
             ST_LineLocatePoint(e.geom, csn.geom)     AS fraction
         FROM road_crossing_points rcp
         JOIN crossing_shared_nodes csn
-            ON ST_DWithin(csn.geom, rcp.ipoint, snap_tolerance)
+            ON ST_Equals(csn.ipoint_raw, rcp.ipoint)   -- identity, not proximity
         JOIN ds1_edges e ON e.element_id = rcp.road_id
         WHERE rcp.road_src = 'ds1'
 
@@ -736,7 +789,7 @@ BEGIN
             ST_LineLocatePoint(e.geom, csn.geom)     AS fraction
         FROM road_crossing_points rcp
         JOIN crossing_shared_nodes csn
-            ON ST_DWithin(csn.geom, rcp.ipoint, snap_tolerance)
+            ON ST_Equals(csn.ipoint_raw, rcp.ipoint)   -- identity, not proximity
         JOIN ds1_edges e ON e.element_id = rcp.crossing_id
         WHERE rcp.crossing_src = 'ds1'
     ) splits
@@ -872,11 +925,13 @@ BEGIN
         ORDER BY e.element_id, ST_Distance(ne.geom, ST_EndPoint(e.geom))
     ) fb_end;
 
-    -- Deduplicate near-identical fractions (within 7 decimal places)
-    -- Prefer rows that have a known DS1 node id
+    -- Deduplicate split points by NODE IDENTITY — no numeric rounding.
+    -- Two rows describing a split at the SAME node are the same split, so the
+    -- node id is the correct dedup key. Rows without a resolved node (rare)
+    -- fall back to their EXACT fraction, so no precision is trimmed.
     DROP TABLE IF EXISTS dedup_ds2_fractions;
     CREATE TEMP TABLE dedup_ds2_fractions ON COMMIT DROP AS
-    SELECT DISTINCT ON (edge_id, ROUND(fraction::NUMERIC, 7))
+    SELECT DISTINCT ON (edge_id, COALESCE(split_node_id, 'frac:' || fraction::TEXT))
         edge_id,
         split_node_id,
         split_geom,
@@ -884,7 +939,7 @@ BEGIN
     FROM ds2_split_fractions
     ORDER BY
         edge_id,
-        ROUND(fraction::NUMERIC, 7),
+        COALESCE(split_node_id, 'frac:' || fraction::TEXT),
         CASE WHEN split_node_id IS NOT NULL THEN 0 ELSE 1 END,
         fraction;
 
@@ -957,9 +1012,11 @@ BEGIN
         fp.frac_start,
         fp.frac_end,
         e.feature,
+        -- Exact fractions in the id: rounding could map two distinct sub-edges
+        -- of the same edge onto one id now that dedup is exact.
         e.element_id || '_' ||
-            ROUND(fp.frac_start::NUMERIC, 7)::TEXT || '_' ||
-            ROUND(fp.frac_end::NUMERIC,   7)::TEXT  AS sub_edge_id,
+            fp.frac_start::TEXT || '_' ||
+            fp.frac_end::TEXT                       AS sub_edge_id,
         ST_LineSubstring(e.geom, fp.frac_start, fp.frac_end) AS sub_geom
     FROM ds2_frac_pairs fp
     JOIN ds2_edges e ON e.element_id = fp.edge_id
@@ -1346,6 +1403,7 @@ BEGIN
     CREATE TEMP TABLE ds1_out ON COMMIT DROP AS
     SELECT
         e.edge_id           AS sub_edge_id,
+        e.edge_id           AS orig_edge_id,   -- true id for type lookup (never parsed)
         e.loc,
         nu.element_id::TEXT AS u_id,
         nv.element_id::TEXT AS v_id,
@@ -1373,46 +1431,57 @@ BEGIN
     DROP TABLE IF EXISTS ds1_split_fractions;
     CREATE TEMP TABLE ds1_split_fractions ON COMMIT DROP AS
     -- start sentinel
+    --
+    -- pt_geom MUST be the resolved NODE's geometry, not the edge's own start
+    -- point. The sub-edge endpoint is forced to pt_geom downstream, and the
+    -- sub-edge references this node as its _u_id — so if pt_geom were the edge
+    -- point while node_id pointed at a node sitting elsewhere, the exported
+    -- endpoint would not match its node (_u_id/_v_id coordinate mismatch).
+    -- Taking the node's own geom makes endpoint == node by construction.
+    -- (The DS2 path already does this: its sentinels use node_map.out_geom and
+    -- its interior splits use the shared node's geom.)
     SELECT
         e.edge_id,
         nu.element_id::TEXT AS node_id,
-        e.start_pt          AS pt_geom,
+        nu.geom             AS pt_geom,
         0.0::FLOAT8         AS fraction
     FROM ds1_edge_endpoints e
     JOIN LATERAL (
-        SELECT element_id FROM ds1_nodes n
+        SELECT element_id, geom FROM ds1_nodes n
         WHERE ST_DWithin(n.geom, e.start_pt, proximity_degrees)
         ORDER BY ST_Distance(n.geom, e.start_pt) LIMIT 1
     ) nu ON TRUE
     WHERE EXISTS (SELECT 1 FROM ds1_edge_splits s WHERE s.edge_id = e.edge_id)
     UNION ALL
-    -- end sentinel
+    -- end sentinel (node geometry, same reasoning as the start sentinel)
     SELECT
         e.edge_id,
         nv.element_id::TEXT,
-        e.end_pt,
+        nv.geom,
         1.0::FLOAT8
     FROM ds1_edge_endpoints e
     JOIN LATERAL (
-        SELECT element_id FROM ds1_nodes n
+        SELECT element_id, geom FROM ds1_nodes n
         WHERE ST_DWithin(n.geom, e.end_pt, proximity_degrees)
         ORDER BY ST_Distance(n.geom, e.end_pt) LIMIT 1
     ) nv ON TRUE
     WHERE EXISTS (SELECT 1 FROM ds1_edge_splits s WHERE s.edge_id = e.edge_id)
     UNION ALL
-    -- interior split points (shared crossing nodes)
+    -- interior split points (shared crossing nodes — already the node's geom,
+    -- including the reused-node case where the node sits off the edge line)
     SELECT edge_id, node_id, split_geom, fraction
     FROM ds1_edge_splits;
 
     CREATE INDEX ON ds1_split_fractions (edge_id);
 
     -- Dedup fractions per edge, order them
+    -- Dedup by NODE IDENTITY (see dedup_ds2_fractions) — no numeric rounding.
     DROP TABLE IF EXISTS ds1_split_dedup;
     CREATE TEMP TABLE ds1_split_dedup ON COMMIT DROP AS
-    SELECT DISTINCT ON (edge_id, ROUND(fraction::NUMERIC, 7))
+    SELECT DISTINCT ON (edge_id, COALESCE(node_id, 'frac:' || fraction::TEXT))
         edge_id, node_id, pt_geom, fraction
     FROM ds1_split_fractions
-    ORDER BY edge_id, ROUND(fraction::NUMERIC, 7),
+    ORDER BY edge_id, COALESCE(node_id, 'frac:' || fraction::TEXT),
              CASE WHEN node_id IS NOT NULL THEN 0 ELSE 1 END;
 
     CREATE INDEX ON ds1_split_dedup (edge_id);
@@ -1460,8 +1529,9 @@ BEGIN
     CREATE TEMP TABLE ds1_split_out ON COMMIT DROP AS
     SELECT
         edge_id || '_' ||
-            ROUND(frac_start::NUMERIC,7)::TEXT || '_' ||
-            ROUND(frac_end::NUMERIC,7)::TEXT    AS sub_edge_id,
+            frac_start::TEXT || '_' ||
+            frac_end::TEXT                      AS sub_edge_id,
+        edge_id                                 AS orig_edge_id,  -- true id, unparsed
         -- Override first/last vertex of the (already-computed) substring with
         -- the exact split-node geometry so edge endpoints == node coords.
         -- sub_geom is computed once above; ST_NPoints reads it, no recompute.
@@ -1481,8 +1551,8 @@ BEGIN
     FROM ds1_split_substrings;
 
     -- Append split DS1 sub-edges to ds1_out
-    INSERT INTO ds1_out (sub_edge_id, loc, u_id, v_id, feature)
-    SELECT sub_edge_id, loc, u_id, v_id, feature
+    INSERT INTO ds1_out (sub_edge_id, orig_edge_id, loc, u_id, v_id, feature)
+    SELECT sub_edge_id, orig_edge_id, loc, u_id, v_id, feature
     FROM ds1_split_out
     WHERE ST_NPoints(loc) >= 2 AND ST_Length(loc) > 0;
 
@@ -1503,6 +1573,7 @@ BEGIN
     CREATE TEMP TABLE ds2_resolved ON COMMIT DROP AS
     SELECT
         se.sub_edge_id,
+        se.edge_id                                          AS orig_edge_id,
         se.geom                                             AS loc,
         se.feature,
         COALESCE(se.u_node_id, lu.out_node_id, lcu.element_id) AS u_out,
@@ -1518,11 +1589,16 @@ BEGIN
     ) lu ON TRUE
     -- u_out fallback: road×crossing shared node coincident with the start
     -- (Rule 3). Empty when no road×crossing intersections exist.
+    -- EXACT match only. This adopts a node ID for an endpoint WITHOUT moving the
+    -- endpoint's geometry, so a proximity window here directly produces
+    -- _u_id/_v_id coordinate mismatches: the edge keeps its own coordinate while
+    -- claiming a node up to the tolerance away. Only claim the node when the
+    -- endpoint genuinely IS that node.
     LEFT JOIN LATERAL (
         SELECT cn.element_id
         FROM crossing_new_nodes cn
         WHERE se.u_node_id IS NULL AND lu.out_node_id IS NULL
-          AND ST_DWithin(cn.geom, se.start_geom, snap_tolerance * 100)
+          AND ST_Equals(cn.geom, se.start_geom)
         LIMIT 1
     ) lcu ON TRUE
     -- v_out: nearest node_map entry to end_geom (only when v_node_id unknown)
@@ -1534,23 +1610,61 @@ BEGIN
         ORDER BY ST_Distance(nm.out_geom, se.end_geom) LIMIT 1
     ) lv ON TRUE
     -- v_out fallback: crossing node at end
+    -- EXACT match only (see the u_out fallback above).
     LEFT JOIN LATERAL (
         SELECT cn.element_id
         FROM crossing_new_nodes cn
         WHERE se.v_node_id IS NULL AND lv.out_node_id IS NULL
-          AND ST_DWithin(cn.geom, se.end_geom, snap_tolerance * 100)
+          AND ST_Equals(cn.geom, se.end_geom)
         LIMIT 1
     ) lcv ON TRUE;
 
     CREATE INDEX ON ds2_resolved (sub_edge_id);
     CREATE INDEX ON ds2_resolved USING GIST (loc);
+    CREATE INDEX ON ds2_resolved (u_out);
+    CREATE INDEX ON ds2_resolved (v_out);
+
+    -- ── Endpoint alignment: an edge must SIT on the node it references ───────
+    -- u_out/v_out above are resolved by nearest-node lookups within
+    -- proximity_degrees. That assigns a node ID but does NOT move the endpoint,
+    -- so a sub-edge could claim a node up to `proximity` away while keeping its
+    -- own coordinate — producing _u_id/_v_id coordinate mismatches (and two
+    -- sub-edges meeting at the "same" node could even disagree with each other).
+    --
+    -- Force each sub-edge's first/last vertex to the exact geometry of the node
+    -- it resolved to. new_export_nodes is already built and is the single source
+    -- of truth for node positions, so endpoint == node holds by construction for
+    -- every DS2 sub-edge regardless of which resolution path supplied the id.
+    -- Interior vertices are untouched, so edge shape is preserved.
+    DROP TABLE IF EXISTS ds2_resolved_aligned;
+    CREATE TEMP TABLE ds2_resolved_aligned ON COMMIT DROP AS
+    SELECT
+        r.sub_edge_id,
+        r.orig_edge_id,
+        CASE
+            WHEN un.loc IS NOT NULL AND vn.loc IS NOT NULL THEN
+                ST_SetPoint(ST_SetPoint(r.loc, 0, un.loc),
+                            ST_NPoints(r.loc) - 1, vn.loc)
+            WHEN un.loc IS NOT NULL THEN ST_SetPoint(r.loc, 0, un.loc)
+            WHEN vn.loc IS NOT NULL THEN ST_SetPoint(r.loc, ST_NPoints(r.loc) - 1, vn.loc)
+            ELSE r.loc
+        END                                                 AS loc,
+        r.u_out,
+        r.v_out,
+        r.feature
+    FROM ds2_resolved r
+    LEFT JOIN new_export_nodes un ON un.id = r.u_out
+    LEFT JOIN new_export_nodes vn ON vn.id = r.v_out;
+
+    CREATE INDEX ON ds2_resolved_aligned (sub_edge_id);
+    CREATE INDEX ON ds2_resolved_aligned USING GIST (loc);
 
     -- ── Pass 1: node-pair dedup — drop DS2 edges duplicating DS1 (u,v) pairs ─
     DROP TABLE IF EXISTS ds2_out;
     CREATE TEMP TABLE ds2_out ON COMMIT DROP AS
     SELECT DISTINCT ON (LEAST(u_out, v_out), GREATEST(u_out, v_out))
-        sub_edge_id, loc, u_out, v_out, feature
-    FROM ds2_resolved
+        sub_edge_id, orig_edge_id, loc, u_out, v_out, feature
+    FROM ds2_resolved_aligned
     WHERE u_out IS NOT NULL
       AND v_out IS NOT NULL
       AND u_out != v_out
@@ -1598,8 +1712,11 @@ BEGIN
     FROM ds1_out o
     LEFT JOIN edge_type_groups etg
         ON etg.src = 'ds1'
-        -- sub_edge_id is either the raw DS1 edge id, or '<id>_<f1>_<f2>' for splits.
-        AND etg.element_id = split_part(o.sub_edge_id, '_', 1);
+        -- Join on the carried original edge id — NEVER parse sub_edge_id, because
+        -- edge ids legitimately contain '_' (e.g. '3563525_split_1'), so
+        -- split_part(sub_edge_id,'_',1) would return the wrong token → NULL type
+        -- → mis-typed 'other' → wrong coverage bucket → edges wrongly dropped.
+        AND etg.element_id = o.orig_edge_id;
     CREATE INDEX ON ds1_edge_buffers USING GIST (buf);
     CREATE INDEX ON ds1_edge_buffers (type_group);
 
@@ -1636,7 +1753,8 @@ BEGIN
     FROM ds2_out d
     LEFT JOIN edge_type_groups dt
         ON dt.src = 'ds2'
-        AND dt.element_id = split_part(d.sub_edge_id, '_', 1);
+        -- Join on carried original edge id, not split_part (ids contain '_').
+        AND dt.element_id = d.orig_edge_id;
 
     CREATE INDEX ON ds2_coverage_ratio (sub_edge_id);
 

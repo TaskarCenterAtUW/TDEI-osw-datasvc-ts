@@ -17,7 +17,7 @@ import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
-import { SpatialJoinRequest, UnionRequest } from "../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest, SelfMergeRequest } from "../model/request-interfaces";
 import { apiTracker } from "../middleware/api-tracker";
 import { DataType, JOBS_API_PATH } from "../constants/app-constants";
 import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../constants/system-capabilities";
@@ -156,6 +156,7 @@ class OSWController implements IController {
         this.router.post(`${this.path}/quality-report/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator", "member"]), this.createQualityReportJob);
         this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, apiTracker, authenticate, this.createInclineRequest);
         this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
+        this.router.post(`${this.path}/self-merge`, apiTracker, authenticate, this.processDatasetSelfMergeRequest);
         //TODO:: Domain check authorization
         this.router.post(`${this.path}/dataset-viewer/feedbacks/:project_id/:tdei_dataset_id`, apiTracker, authenticate, this.addFeedbackRequest);
         this.router.get(`${this.path}/dataset-viewer/feedbacks`, apiTracker, authenticate, listRequestValidation, this.getFeedbackRequests);
@@ -220,12 +221,13 @@ class OSWController implements IController {
             const feedbackStatusReport = await oswService.updateFeedbackStatus(tdei_project_group_id, tdei_dataset_id, user_id, feedbackStatusUpdates);
             response.status(200).send(feedbackStatusReport);
         } catch (error) {
-            console.error("Error while updating the feedback status", error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
                 return next(error);
             }
+            console.error("Error while updating the feedback status", error);
             response.status(500).send("Error while updating the feedback status");
+            next(new HttpException(500, "Error while updating the feedback status"));
         }
     }
 
@@ -455,6 +457,36 @@ class OSWController implements IController {
             }
             response.status(500).send("Error while processing the union dataset request");
             next(new HttpException(500, "Error while processing the union dataset request"));
+        }
+    }
+
+    /**
+     * Processes the self merge request.
+     * @param request
+     * @param response
+     * @param next
+     * @returns
+     */
+    processDatasetSelfMergeRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            if (!request.body) {
+                return next(new InputException('request body is empty', response));
+            }
+
+            const requestService = SelfMergeRequest.from(request.body);
+            await requestService.validateRequestInput();
+            Utility.checkForSqlInjection(request.body);
+            const job_id = await oswService.processSelfMergeRequest(request.body.user_id, requestService);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+        } catch (error) {
+            console.error("Error while processing the self merge dataset request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the self merge dataset request");
+            next(new HttpException(500, "Error while processing the self merge dataset request"));
         }
     }
 
