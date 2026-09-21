@@ -1101,6 +1101,125 @@ describe("OSW Controller Test", () => {
             expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
         });
 
+        test("When request body has valid entity_filters, Expect to forward them to the service and return 202 status code", async () => {
+            // Arrange
+            const entity_filters = {
+                edge: {
+                    filters: [
+                        { highway: "footway", footway: "sidewalk" },
+                        { highway: "footway", footway: "crossing" }
+                    ]
+                },
+                point: { filters: [{ power: "pole" }] }
+            };
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "entity_filters": entity_filters
+                }
+            });
+            let job_id = "mock-job-id";
+            const { res, next } = getMockRes();
+
+            const serviceSpy = jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce(job_id);
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(serviceSpy).toHaveBeenCalledWith(
+                "mock-user-id",
+                expect.objectContaining({ entity_filters })
+            );
+        });
+
+        test("When entity_filters names an unsupported file type, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "entity_filters": { sidewalk: { filters: [{ highway: "footway" }] } }
+                }
+            });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When entity_filters carries duplicate detection settings, Expect to forward them to the service", async () => {
+            // Arrange
+            const entity_filters = {
+                edge: { duplicate_buffer_width: 3, duplicate_overlap_percentage: 70 },
+                polygon: { duplicate_overlap_percentage: 80 }
+            };
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "entity_filters": entity_filters
+                }
+            });
+            const { res, next } = getMockRes();
+
+            const serviceSpy = jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce("mock-job-id");
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(serviceSpy).toHaveBeenCalledWith(
+                "mock-user-id",
+                expect.objectContaining({ entity_filters })
+            );
+        });
+
+        test("When a duplicate setting is used on a file type that cannot take it, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "entity_filters": { polygon: { duplicate_buffer_width: 3 } }
+                }
+            });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        test("When entity_filters is malformed, Expect to call next with InputException", async () => {
+            // Arrange
+            const req = getMockReq({
+                body: {
+                    user_id: "mock-user-id",
+                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+                    "entity_filters": { edge: { filters: "highway=footway" } }
+                }
+            });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
         test("When an error occurs, Expect to call next with HttpException and return 500 status code", async () => {
             // Arrange
             const req = getMockReq({

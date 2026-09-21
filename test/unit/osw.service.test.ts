@@ -1346,6 +1346,81 @@ describe("OSW Service Test", () => {
                 user_id
             );
         });
+
+        test("When entity_filters are supplied, Expect them to be recorded on the job and passed to the workflow", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const entity_filters = {
+                edge: {
+                    filters: [
+                        { highway: "footway", footway: "sidewalk" },
+                        { highway: "footway", footway: "crossing" }
+                    ]
+                },
+                line: { filters: [{ highway: "path" }] }
+            };
+            const requestService = UnionRequest.from({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id",
+                proximity: 1.5,
+                entity_filters
+            });
+
+            const job_id = 404;
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
+                .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any)
+                .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValueOnce(job_id);
+            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
+
+            // Act
+            const result = await oswService.processUnionRequest(user_id, requestService);
+
+            // Assert
+            expect(result).toBe(job_id.toString());
+            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    request_input: expect.objectContaining({
+                        tdei_dataset_id_one: "mock-source-dataset-id",
+                        tdei_dataset_id_two: "mock-target-dataset-id",
+                        proximity: 1.5,
+                        entity_filters
+                    })
+                })
+            );
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                job_id.toString(),
+                WorkflowName.osw_union_dataset,
+                expect.objectContaining({
+                    parameters: expect.objectContaining({ entity_filters })
+                }),
+                user_id
+            );
+        });
+
+        test("When entity_filters are omitted, Expect the job request_input to leave them undefined", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = UnionRequest.from({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id"
+            });
+
+            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
+                .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any)
+                .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValueOnce(505);
+            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
+
+            // Act
+            await oswService.processUnionRequest(user_id, requestService);
+
+            // Assert
+            const createdJob = (jobService.createJob as jest.Mock).mock.calls[0][0];
+            expect(createdJob.request_input.entity_filters).toBeUndefined();
+        });
     });
 
     describe("processSelfMergeRequest", () => {
