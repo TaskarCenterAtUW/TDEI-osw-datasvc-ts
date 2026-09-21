@@ -449,6 +449,7 @@ class OswService implements IOswService {
                     tdei_dataset_id_one: requestService.tdei_dataset_id_one,
                     tdei_dataset_id_two: requestService.tdei_dataset_id_two,
                     proximity: requestService.proximity,
+                    entity_filters: requestService.entity_filters,
                 },
                 tdei_project_group_id: '',
                 user_id: user_id,
