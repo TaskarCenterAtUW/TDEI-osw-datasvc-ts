@@ -1,5 +1,4 @@
 import { IsIn, IsNotEmpty, IsNumber, IsOptional, ValidationError, validate } from "class-validator";
-import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 import { InputException } from "../exceptions/http/http-exceptions";
 
@@ -10,17 +9,6 @@ export interface IDatasetCloneRequest {
     tdei_service_id: string;
     user_id: string;
     metafile: any;
-}
-
-export interface CloneContext {
-    db_clone_dataset_updated: boolean;
-    blob_clone_uploaded: boolean;
-    osw_dataset_elements_cloned: boolean;
-    dest_changeset_upload_entity?: FileEntity;
-    dest_dataset_upload_entity?: FileEntity;
-    dest_metadata_upload_entity?: string;
-    dest_osm_upload_entity?: FileEntity;
-    new_tdei_dataset_id: string;
 }
 
 export class SpatialJoinRequest extends AbstractDomainEntity {
