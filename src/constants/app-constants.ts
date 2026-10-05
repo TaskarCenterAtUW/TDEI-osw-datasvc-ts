@@ -28,6 +28,8 @@ export enum WorkflowName {
     "osw_quality_on_demand" = "osw_quality_metric_on_demand",
     "build_dataset_download" = "build_dataset_download",
     "build_osw_osm_dataset_download" = "build_osw_osm_dataset_download",
+    "clone_dataset" = "clone_dataset",
+    "clone_osw_dataset" = "clone_osw_dataset",
     "osw_dataset_incline_tag" = "osw_dataset_incline_tag",
     "osw_union_dataset" = "osw_union_dataset",
     "osw_self_merge_dataset" = "osw_self_merge_dataset",
