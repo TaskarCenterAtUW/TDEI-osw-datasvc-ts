@@ -1,6 +1,6 @@
 -- =============================================================================
 -- content.tdei_union_dataset
--- Version: v5 (clean rewrite)
+-- Version: v5
 --
 -- STRATEGY:
 --   DS1 (src_one) is the immutable source of truth.
@@ -550,6 +550,23 @@ BEGIN
     CREATE INDEX ON edge_type_groups (type_group);
     CREATE INDEX ON edge_type_groups (filter_ok);
 
+    -- Edge ends: one row per END of every edge (both datasets), with the edge's
+    -- far end alongside. "Which edges end at this node" is then an indexed
+    -- point lookup (end_pt && node, then exact ST_Equals) instead of computing
+    -- ST_StartPoint/ST_EndPoint over the whole edge table, which no index can
+    -- serve. Used by the crossing <-> sidewalk "nearer end only" checks.
+    DROP TABLE IF EXISTS ds_edge_ends;
+    CREATE TEMP TABLE ds_edge_ends ON COMMIT DROP AS
+    SELECT src, element_id, type_group, is_sidewalk,
+           ST_StartPoint(geom) AS end_pt, ST_EndPoint(geom) AS far_pt
+    FROM edge_type_groups
+    UNION ALL
+    SELECT src, element_id, type_group, is_sidewalk,
+           ST_EndPoint(geom), ST_StartPoint(geom)
+    FROM edge_type_groups;
+    CREATE INDEX ON ds_edge_ends USING GIST (end_pt);
+    ANALYZE ds_edge_ends;
+
     -- Node type-groups: each node carries the SET of type groups of every edge
     -- it lies ON — at an endpoint OR an interior vertex.
     --
@@ -801,11 +818,12 @@ BEGIN
                           -- node never splits a crossing.
                           AND NOT EXISTS (
                               SELECT 1
-                              FROM edge_type_groups e2
-                              WHERE e2.src = 'ds2'
-                                AND (ST_Equals(ST_StartPoint(e2.geom), n2.geom)
-                                  OR ST_Equals(ST_EndPoint(e2.geom),   n2.geom))
-                                AND e2.is_sidewalk AND g1.crossing_end
+                              FROM ds_edge_ends ee
+                              JOIN edge_type_groups e2
+                                ON e2.element_id = ee.element_id AND e2.src = ee.src
+                              WHERE ee.src = 'ds2'
+                                AND ee.end_pt && n2.geom AND ST_Equals(ee.end_pt, n2.geom)
+                                AND ee.is_sidewalk AND g1.crossing_end
                                 AND ST_DWithin(e2.geom, d1.geom, proximity_degrees)
                                 AND SQRT(POWER((ST_X(ST_ClosestPoint(e2.geom, d1.geom)) - ST_X(d1.geom)) * m_per_deg_lon, 2)
                                        + POWER((ST_Y(ST_ClosestPoint(e2.geom, d1.geom)) - ST_Y(d1.geom)) * m_per_deg_lat, 2)) <= proximity
@@ -835,13 +853,12 @@ BEGIN
                           -- already ends on).
                           AND NOT EXISTS (
                               SELECT 1
-                              FROM edge_type_groups e2
-                              WHERE e2.src = 'ds2'
-                                AND (ST_Equals(ST_StartPoint(e2.geom), n2.geom)
-                                  OR ST_Equals(ST_EndPoint(e2.geom),   n2.geom))
-                                AND (   (e2.type_group = 'crossing' AND g1.on_sidewalk)
-                                     OR (e2.is_sidewalk AND g1.crossing_end))
-                                AND SQRT(POWER((ST_X((CASE WHEN ST_Equals(ST_StartPoint(e2.geom), n2.geom) THEN ST_EndPoint(e2.geom) ELSE ST_StartPoint(e2.geom) END)) - ST_X(d1.geom)) * m_per_deg_lon, 2) + POWER((ST_Y((CASE WHEN ST_Equals(ST_StartPoint(e2.geom), n2.geom) THEN ST_EndPoint(e2.geom) ELSE ST_StartPoint(e2.geom) END)) - ST_Y(d1.geom)) * m_per_deg_lat, 2))
+                              FROM ds_edge_ends ee
+                              WHERE ee.src = 'ds2'
+                                AND ee.end_pt && n2.geom AND ST_Equals(ee.end_pt, n2.geom)
+                                AND (   (ee.type_group = 'crossing' AND g1.on_sidewalk)
+                                     OR (ee.is_sidewalk AND g1.crossing_end))
+                                AND SQRT(POWER((ST_X(ee.far_pt) - ST_X(d1.geom)) * m_per_deg_lon, 2) + POWER((ST_Y(ee.far_pt) - ST_Y(d1.geom)) * m_per_deg_lat, 2))
                                   < SQRT(POWER((ST_X(n2.geom) - ST_X(d1.geom)) * m_per_deg_lon, 2) + POWER((ST_Y(n2.geom) - ST_Y(d1.geom)) * m_per_deg_lat, 2))
                           )
                      )
@@ -955,12 +972,11 @@ BEGIN
                  -- other end nearer to the sidewalk (that end joins instead)
                  AND NOT EXISTS (
                      SELECT 1
-                     FROM edge_type_groups o
+                     FROM ds_edge_ends o
                      WHERE o.src = 'ds1'
-                       AND (ST_Equals(ST_StartPoint(o.geom), n.geom)
-                         OR ST_Equals(ST_EndPoint(o.geom),   n.geom))
+                       AND o.end_pt && n.geom AND ST_Equals(o.end_pt, n.geom)
                        AND o.type_group = 'crossing'
-                       AND SQRT(POWER((ST_X(ST_ClosestPoint(e.geom, (CASE WHEN ST_Equals(ST_StartPoint(o.geom), n.geom) THEN ST_EndPoint(o.geom) ELSE ST_StartPoint(o.geom) END))) - ST_X((CASE WHEN ST_Equals(ST_StartPoint(o.geom), n.geom) THEN ST_EndPoint(o.geom) ELSE ST_StartPoint(o.geom) END))) * m_per_deg_lon, 2) + POWER((ST_Y(ST_ClosestPoint(e.geom, (CASE WHEN ST_Equals(ST_StartPoint(o.geom), n.geom) THEN ST_EndPoint(o.geom) ELSE ST_StartPoint(o.geom) END))) - ST_Y((CASE WHEN ST_Equals(ST_StartPoint(o.geom), n.geom) THEN ST_EndPoint(o.geom) ELSE ST_StartPoint(o.geom) END))) * m_per_deg_lat, 2)) < SQRT(POWER((ST_X(ST_ClosestPoint(e.geom, n.geom)) - ST_X(n.geom)) * m_per_deg_lon, 2) + POWER((ST_Y(ST_ClosestPoint(e.geom, n.geom)) - ST_Y(n.geom)) * m_per_deg_lat, 2))
+                       AND SQRT(POWER((ST_X(ST_ClosestPoint(e.geom, o.far_pt)) - ST_X(o.far_pt)) * m_per_deg_lon, 2) + POWER((ST_Y(ST_ClosestPoint(e.geom, o.far_pt)) - ST_Y(o.far_pt)) * m_per_deg_lat, 2)) < SQRT(POWER((ST_X(ST_ClosestPoint(e.geom, n.geom)) - ST_X(n.geom)) * m_per_deg_lon, 2) + POWER((ST_Y(ST_ClosestPoint(e.geom, n.geom)) - ST_Y(n.geom)) * m_per_deg_lat, 2))
                  )
             )
         )
@@ -1282,12 +1298,11 @@ BEGIN
                 -- nearer end only (see node_map)
                 AND NOT EXISTS (
                     SELECT 1
-                    FROM edge_type_groups o
+                    FROM ds_edge_ends o
                     WHERE o.src = 'ds2'
-                      AND (ST_Equals(ST_StartPoint(o.geom), nm.ds2_geom)
-                        OR ST_Equals(ST_EndPoint(o.geom),   nm.ds2_geom))
+                      AND o.end_pt && nm.ds2_geom AND ST_Equals(o.end_pt, nm.ds2_geom)
                       AND o.type_group = 'crossing'
-                      AND SQRT(POWER((ST_X(ST_ClosestPoint(e.geom, (CASE WHEN ST_Equals(ST_StartPoint(o.geom), nm.ds2_geom) THEN ST_EndPoint(o.geom) ELSE ST_StartPoint(o.geom) END))) - ST_X((CASE WHEN ST_Equals(ST_StartPoint(o.geom), nm.ds2_geom) THEN ST_EndPoint(o.geom) ELSE ST_StartPoint(o.geom) END))) * m_per_deg_lon, 2) + POWER((ST_Y(ST_ClosestPoint(e.geom, (CASE WHEN ST_Equals(ST_StartPoint(o.geom), nm.ds2_geom) THEN ST_EndPoint(o.geom) ELSE ST_StartPoint(o.geom) END))) - ST_Y((CASE WHEN ST_Equals(ST_StartPoint(o.geom), nm.ds2_geom) THEN ST_EndPoint(o.geom) ELSE ST_StartPoint(o.geom) END))) * m_per_deg_lat, 2)) < SQRT(POWER((ST_X(ST_ClosestPoint(e.geom, nm.ds2_geom)) - ST_X(nm.ds2_geom)) * m_per_deg_lon, 2) + POWER((ST_Y(ST_ClosestPoint(e.geom, nm.ds2_geom)) - ST_Y(nm.ds2_geom)) * m_per_deg_lat, 2))
+                      AND SQRT(POWER((ST_X(ST_ClosestPoint(e.geom, o.far_pt)) - ST_X(o.far_pt)) * m_per_deg_lon, 2) + POWER((ST_Y(ST_ClosestPoint(e.geom, o.far_pt)) - ST_Y(o.far_pt)) * m_per_deg_lat, 2)) < SQRT(POWER((ST_X(ST_ClosestPoint(e.geom, nm.ds2_geom)) - ST_X(nm.ds2_geom)) * m_per_deg_lon, 2) + POWER((ST_Y(ST_ClosestPoint(e.geom, nm.ds2_geom)) - ST_Y(nm.ds2_geom)) * m_per_deg_lat, 2))
                 )
            ))
 
@@ -2246,34 +2261,31 @@ BEGIN
     -- piece that shares both end nodes with a crossing (a sidewalk split where a
     -- crossing meets it) is not a duplicate of that crossing. 'other' (untyped)
     -- matches anything, as in the type guards.
-    SELECT DISTINCT ON (LEAST(u_out, v_out), GREATEST(u_out, v_out),
-                        COALESCE((SELECT t.type_group FROM edge_type_groups t
-                                  WHERE t.src = 'ds2' AND t.element_id = orig_edge_id), 'other'))
-        sub_edge_id, orig_edge_id, loc, u_out, v_out, feature
-    FROM ds2_resolved_aligned
-    WHERE u_out IS NOT NULL
-      AND v_out IS NOT NULL
-      AND u_out != v_out
+    SELECT DISTINCT ON (LEAST(r.u_out, r.v_out), GREATEST(r.u_out, r.v_out),
+                        COALESCE(t.type_group, 'other'))
+        r.sub_edge_id, r.orig_edge_id, r.loc, r.u_out, r.v_out, r.feature
+    FROM ds2_resolved_aligned r
+    -- the DS2 edge's type and filter eligibility, joined once (indexed)
+    LEFT JOIN edge_type_groups t
+        ON t.src = 'ds2' AND t.element_id = r.orig_edge_id
+    WHERE r.u_out IS NOT NULL
+      AND r.v_out IS NOT NULL
+      AND r.u_out != r.v_out
       -- Node-pair duplicate check applies only to filter-eligible DS2 edges.
       -- An excluded edge is kept even if its endpoints coincide with a DS1 pair.
       AND (
-            NOT COALESCE(
-                (SELECT det.filter_ok FROM edge_type_groups det
-                 WHERE det.src = 'ds2' AND det.element_id = orig_edge_id), TRUE)
+            NOT COALESCE(t.filter_ok, TRUE)
          OR NOT EXISTS (
                 SELECT 1 FROM ds1_edge_pairs p
-                WHERE p.pair_a = LEAST(u_out, v_out)
-                  AND p.pair_b = GREATEST(u_out, v_out)
+                WHERE p.pair_a = LEAST(r.u_out, r.v_out)
+                  AND p.pair_b = GREATEST(r.u_out, r.v_out)
                   AND (p.type_group = 'other'
-                    OR COALESCE((SELECT t.type_group FROM edge_type_groups t
-                                 WHERE t.src = 'ds2' AND t.element_id = orig_edge_id), 'other')
-                       IN ('other', p.type_group))
+                    OR COALESCE(t.type_group, 'other') IN ('other', p.type_group))
             )
       )
-    ORDER BY LEAST(u_out, v_out), GREATEST(u_out, v_out),
-             COALESCE((SELECT t.type_group FROM edge_type_groups t
-                       WHERE t.src = 'ds2' AND t.element_id = orig_edge_id), 'other'),
-             sub_edge_id;
+    ORDER BY LEAST(r.u_out, r.v_out), GREATEST(r.u_out, r.v_out),
+             COALESCE(t.type_group, 'other'),
+             r.sub_edge_id;
 
     CREATE INDEX ON ds2_out (sub_edge_id);
     CREATE INDEX ON ds2_out USING GIST (loc);
@@ -2438,6 +2450,9 @@ BEGIN
     CREATE INDEX ON ds2_keep (sub_edge_id);
     CREATE INDEX ON ds2_keep (u_out);
     CREATE INDEX ON ds2_keep (v_out);
+    -- statistics, so the guard below plans index probes instead of rescanning
+    -- ds2_keep for every candidate row
+    ANALYZE ds2_keep;
 
     -- STRANDING GUARD (routability). Removing a duplicate is only safe where its
     -- endpoints are on the DS1 network — the DS1 edge then carries the
@@ -2451,10 +2466,14 @@ BEGIN
         FROM ds2_out d
         WHERE NOT EXISTS (SELECT 1 FROM ds2_keep k WHERE k.sub_edge_id = d.sub_edge_id)
           AND (
+                -- one indexed probe per column (an OR across two columns in a
+                -- single EXISTS cannot use either index)
                 (    NOT EXISTS (SELECT 1 FROM shared_out_nodes s WHERE s.node_id = d.u_out)
-                 AND EXISTS (SELECT 1 FROM ds2_keep k WHERE k.u_out = d.u_out OR k.v_out = d.u_out))
+                 AND (   EXISTS (SELECT 1 FROM ds2_keep k WHERE k.u_out = d.u_out)
+                      OR EXISTS (SELECT 1 FROM ds2_keep k WHERE k.v_out = d.u_out)))
              OR (    NOT EXISTS (SELECT 1 FROM shared_out_nodes s WHERE s.node_id = d.v_out)
-                 AND EXISTS (SELECT 1 FROM ds2_keep k WHERE k.u_out = d.v_out OR k.v_out = d.v_out))
+                 AND (   EXISTS (SELECT 1 FROM ds2_keep k WHERE k.u_out = d.v_out)
+                      OR EXISTS (SELECT 1 FROM ds2_keep k WHERE k.v_out = d.v_out)))
           );
         GET DIAGNOSTICS keep_added = ROW_COUNT;
         EXIT WHEN keep_added = 0;
