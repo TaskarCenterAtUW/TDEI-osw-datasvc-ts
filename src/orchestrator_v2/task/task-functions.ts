@@ -1,6 +1,9 @@
 import { QueryConfig } from "pg";
+import { Readable } from "stream";
 import dbClient from "../../database/data-source";
 import { QueryCriteria } from "../../database/dynamic-update-query";
+import { DatasetEntity } from "../../database/entity/dataset-entity";
+import storageService from "../../service/storage-service";
 import path from "path";
 
 export class OrchestratorFunctions {
@@ -157,6 +160,270 @@ export class OrchestratorFunctions {
                 folder_path: ""
             });
         }
+    }
+
+    /**
+     * Copy dataset blobs onto the new draft dataset and record the destination URLs.
+     * Runs inside the clone workflow so the HTTP request can return a job id first.
+     */
+    public static async clone_dataset_blobs(input: any): Promise<any> {
+        const uploaded_urls: string[] = [];
+        console.log(`Clone dataset blobs started. source_tdei_dataset_id: ${input.source_tdei_dataset_id}, new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+        try {
+            const source = await dbClient.query({
+                text: `SELECT data_type, latest_dataset_url, changeset_url, latest_osm_url, upload_file_size_bytes
+                       FROM content.dataset WHERE tdei_dataset_id = $1`,
+                values: [input.source_tdei_dataset_id]
+            });
+            if (!source.rowCount) {
+                console.error(`Clone dataset blobs failed. source_tdei_dataset_id: ${input.source_tdei_dataset_id} not found`);
+                return { success: false, message: "Source dataset not found", uploaded_urls };
+            }
+
+            const dataset = source.rows[0];
+            const containerName = OrchestratorFunctions.containerForDataType(dataset.data_type);
+            if (!containerName) {
+                console.error(`Clone dataset blobs failed. unsupported data_type: ${dataset.data_type}, new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+                return { success: false, message: `Unsupported dataset type ${dataset.data_type}`, uploaded_urls };
+            }
+            if (!input.metadata_content_base64) {
+                console.error(`Clone dataset blobs failed. metadata content missing, new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+                return { success: false, message: "Clone metadata content is missing", uploaded_urls };
+            }
+
+            const storageFolderPath = storageService.getFolderPath(input.tdei_project_group_id, input.new_tdei_dataset_id);
+            console.log(`Clone dataset blobs copying files. new_tdei_dataset_id: ${input.new_tdei_dataset_id}, data_type: ${dataset.data_type}, container: ${containerName}, upload_file_size_bytes: ${dataset.upload_file_size_bytes}`);
+
+            const datasetFileName = storageService.getStorageFileNameFromUrl(dataset.latest_dataset_url);
+            console.log(`Clone dataset file started. new_tdei_dataset_id: ${input.new_tdei_dataset_id}, file: ${datasetFileName}`);
+            const datasetUpload = await storageService.cloneFile(
+                dataset.latest_dataset_url,
+                containerName,
+                path.join(storageFolderPath, datasetFileName)
+            );
+            if (!datasetUpload?.remoteUrl) {
+                console.error(`Clone dataset file failed. new_tdei_dataset_id: ${input.new_tdei_dataset_id}, file: ${datasetFileName}`);
+                return { success: false, message: "Failed to clone the dataset file", uploaded_urls };
+            }
+            const dataset_url = decodeURIComponent(datasetUpload.remoteUrl);
+            uploaded_urls.push(dataset_url);
+            console.log(`Clone dataset file completed. new_tdei_dataset_id: ${input.new_tdei_dataset_id}, file: ${datasetFileName}`);
+
+            console.log(`Clone metadata file started. new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+            const metadata_url = decodeURIComponent(await storageService.uploadFile(
+                path.join(storageFolderPath, "metadata.json"),
+                "text/json",
+                Readable.from(Buffer.from(input.metadata_content_base64, "base64")),
+                containerName
+            ));
+            uploaded_urls.push(metadata_url);
+            console.log(`Clone metadata file completed. new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+
+            let changeset_url = "";
+            if (dataset.changeset_url) {
+                console.log(`Clone changeset file started. new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+                const changesetUpload = await storageService.cloneFile(
+                    dataset.changeset_url,
+                    containerName,
+                    path.join(storageFolderPath, "changeset.zip")
+                );
+                if (!changesetUpload?.remoteUrl) {
+                    console.error(`Clone changeset file failed. new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+                    return { success: false, message: "Failed to clone the changeset file", uploaded_urls, dataset_url, metadata_url, changeset_url, dataset_osm_url: "" };
+                }
+                changeset_url = decodeURIComponent(changesetUpload.remoteUrl);
+                uploaded_urls.push(changeset_url);
+                console.log(`Clone changeset file completed. new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+            }
+
+            let dataset_osm_url = "";
+            if (dataset.latest_osm_url) {
+                const osmFileName = storageService.getStorageFileNameFromUrl(dataset.latest_osm_url);
+                console.log(`Clone osm file started. new_tdei_dataset_id: ${input.new_tdei_dataset_id}, file: ${osmFileName}`);
+                const osmUpload = await storageService.cloneFile(
+                    dataset.latest_osm_url,
+                    containerName,
+                    path.join(storageFolderPath, osmFileName)
+                );
+                if (!osmUpload?.remoteUrl) {
+                    console.error(`Clone osm file failed. new_tdei_dataset_id: ${input.new_tdei_dataset_id}, file: ${osmFileName}`);
+                    return { success: false, message: "Failed to clone the osm file", uploaded_urls, dataset_url, metadata_url, changeset_url, dataset_osm_url };
+                }
+                dataset_osm_url = decodeURIComponent(osmUpload.remoteUrl);
+                uploaded_urls.push(dataset_osm_url);
+                console.log(`Clone osm file completed. new_tdei_dataset_id: ${input.new_tdei_dataset_id}, file: ${osmFileName}`);
+            }
+
+            const condition = new Map<string, string>();
+            condition.set("tdei_dataset_id", input.new_tdei_dataset_id);
+            const updateFields = new DatasetEntity({
+                dataset_url: dataset_url,
+                latest_dataset_url: dataset_url,
+                metadata_url: metadata_url,
+                changeset_url: changeset_url || undefined,
+                osm_url: dataset_osm_url || undefined,
+                latest_osm_url: dataset_osm_url || undefined,
+                upload_file_size_bytes: dataset.upload_file_size_bytes,
+            });
+            await dbClient.query(DatasetEntity.getUpdateQuery(condition, updateFields));
+
+            console.log(`Clone dataset blobs completed. new_tdei_dataset_id: ${input.new_tdei_dataset_id}, files_copied: ${uploaded_urls.length}`);
+            return {
+                success: true,
+                message: "Dataset blobs cloned",
+                dataset_url,
+                metadata_url,
+                changeset_url,
+                dataset_osm_url,
+                uploaded_urls
+            };
+        } catch (error) {
+            console.error(`Clone dataset blobs failed. source_tdei_dataset_id: ${input.source_tdei_dataset_id}, new_tdei_dataset_id: ${input.new_tdei_dataset_id}, files_copied: ${uploaded_urls.length}`, error);
+            return {
+                success: false,
+                message: "Error while cloning dataset blobs",
+                uploaded_urls
+            };
+        }
+    }
+
+    /**
+     * Copy OSW element rows from the source dataset onto the new dataset.
+     */
+    public static async clone_osw_dataset_elements(input: any): Promise<any> {
+        console.log(`Clone OSW dataset elements started. source_tdei_dataset_id: ${input.source_tdei_dataset_id}, new_tdei_dataset_id: ${input.new_tdei_dataset_id}, user_id: ${input.user_id}`);
+        try {
+            await dbClient.query({
+                text: `SELECT content.tdei_clone_osw_dataset_elements($1, $2, $3)`,
+                values: [input.source_tdei_dataset_id, input.new_tdei_dataset_id, input.user_id]
+            });
+            console.log(`Clone OSW dataset elements completed. source_tdei_dataset_id: ${input.source_tdei_dataset_id}, new_tdei_dataset_id: ${input.new_tdei_dataset_id}`);
+            return {
+                success: true,
+                message: "OSW dataset elements cloned"
+            };
+        } catch (error) {
+            console.error(`Clone OSW dataset elements failed. source_tdei_dataset_id: ${input.source_tdei_dataset_id}, new_tdei_dataset_id: ${input.new_tdei_dataset_id}`, error);
+            return {
+                success: false,
+                message: "Error while cloning OSW dataset elements"
+            };
+        }
+    }
+
+    /**
+     * Drop a failed clone while it is still Draft: destination blobs, OSW elements, then the draft row.
+     * A dataset already marked Pre-Release is left in place so a later zip failure does not delete a finished clone.
+     */
+    public static async cleanup_failed_clone(input: any): Promise<any> {
+        const newId = input.new_tdei_dataset_id;
+        console.log(`Cleanup failed clone started. new_tdei_dataset_id: ${newId}`);
+        try {
+            const result = await dbClient.query({
+                text: `SELECT status, data_type, dataset_url, latest_dataset_url, metadata_url, changeset_url, osm_url, latest_osm_url
+                       FROM content.dataset WHERE tdei_dataset_id = $1`,
+                values: [newId]
+            });
+            if (!result.rowCount) {
+                console.log(`Cleanup failed clone completed. new_tdei_dataset_id: ${newId} already removed`);
+                return { success: true, message: "Clone dataset already removed" };
+            }
+
+            const row = result.rows[0];
+            if (row.status !== "Draft") {
+                console.log(`Cleanup failed clone skipped. new_tdei_dataset_id: ${newId}, status: ${row.status}`);
+                return { success: true, message: "Clone dataset is no longer draft; skipping cleanup" };
+            }
+
+            const urls = new Set<string>();
+            const remember = (fileUrl?: string) => {
+                if (fileUrl && OrchestratorFunctions.isCloneDestinationUrl(fileUrl, newId)) {
+                    urls.add(fileUrl);
+                }
+            };
+            remember(row.dataset_url);
+            remember(row.latest_dataset_url);
+            remember(row.metadata_url);
+            remember(row.changeset_url);
+            remember(row.osm_url);
+            remember(row.latest_osm_url);
+            for (const fileUrl of OrchestratorFunctions.asUrlList(input.uploaded_urls)) {
+                remember(fileUrl);
+            }
+
+            for (const fileUrl of urls) {
+                try {
+                    await storageService.deleteFile(fileUrl);
+                } catch (error) {
+                    console.error(`Error deleting cloned blob ${fileUrl}`, error);
+                }
+            }
+
+            if (row.data_type === "osw") {
+                await dbClient.query({
+                    text: `SELECT content.tdei_delete_osw_dataset_elements($1)`,
+                    values: [newId]
+                });
+            }
+
+            await dbClient.query({
+                text: `DELETE FROM content.dataset WHERE tdei_dataset_id = $1 AND status = 'Draft'`,
+                values: [newId]
+            });
+
+            console.log(`Cleanup failed clone completed. new_tdei_dataset_id: ${newId}, data_type: ${row.data_type}, blobs_deleted: ${urls.size}`);
+            return { success: true, message: "Failed clone cleaned up" };
+        } catch (error) {
+            console.error(`Cleanup failed clone failed. new_tdei_dataset_id: ${newId}`, error);
+            return {
+                success: false,
+                message: "Error while cleaning up failed clone"
+            };
+        }
+    }
+
+    private static containerForDataType(dataType: string): string {
+        switch (dataType) {
+            case "osw":
+                return "osw";
+            case "flex":
+                return "gtfsflex";
+            case "pathways":
+                return "gtfspathways";
+            default:
+                return "";
+        }
+    }
+
+    /** Destination copies live under a path segment equal to the new dataset id. Source URLs copied onto the draft do not. */
+    private static isCloneDestinationUrl(fileUrl: string, datasetId: string): boolean {
+        const candidates = [fileUrl];
+        try {
+            candidates.push(decodeURIComponent(fileUrl));
+        } catch {
+            // Keep the raw value when it is not percent-encoded.
+        }
+        try {
+            candidates.push(decodeURIComponent(new URL(fileUrl).pathname));
+        } catch {
+            // Not an absolute URL.
+        }
+        return candidates.some((value) => value.split("/").includes(datasetId));
+    }
+
+    private static asUrlList(value: any): string[] {
+        if (Array.isArray(value)) {
+            return value.filter((item) => typeof item === "string" && item.length > 0);
+        }
+        if (typeof value === "string" && value.trim().startsWith("[")) {
+            try {
+                const parsed = JSON.parse(value);
+                return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string" && item.length > 0) : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
     }
 
     /**
