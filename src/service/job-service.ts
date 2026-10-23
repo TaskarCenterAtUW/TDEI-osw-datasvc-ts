@@ -120,11 +120,14 @@ class JobService implements IJobService {
     /**
      * Retrieves the FileEntity associated with the given job ID.
      * @param job_id The ID of the job.
+     * @param file Optional path of another file the job stored, relative to its download's folder
+     *             (e.g. `beacon_hill/reference/platform.geojson`). See fileBesideDownload.
      * @returns A Promise that resolves to the FileEntity.
      * @throws HttpException if the file is not found.
+     * @throws InputException if `file` isn't an allowed path for this job.
      * @throws Error if the storage is not configured.
      */
-    async getJobFileEntity(job_id: string): Promise<FileEntity> {
+    async getJobFileEntity(job_id: string, file?: string): Promise<FileEntity> {
 
         if (Number.isNaN(Number(job_id)))
             throw new InputException("Invalid job id");
@@ -138,6 +141,8 @@ class JobService implements IJobService {
             throw new HttpException(404, "Download not available for this job.");
 
         let url = decodeURIComponent(result.rows[0].download_url);
+        if (file !== undefined)
+            url = JobService.fileBesideDownload(url, job_id, file);
 
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
@@ -145,13 +150,47 @@ class JobService implements IJobService {
         let fileEntity = await storageClient.getFileFromUrl(url);
         const extension = url.split('.').pop();
         // Check if the extension is one of the expected types
-        if (['txt', 'json', 'zip', 'xml'].includes(extension!)) {
+        if (['txt', 'json', 'zip', 'xml', 'geojson', 'md'].includes(extension!)) {
             const mimeType = Utility.getMimeType(extension!);
             fileEntity.mimeType = mimeType;
         } else {
             console.log('Unexpected file type');
         }
         return fileEntity;
+    }
+
+    /**
+     * The URL of another file a job stored beside its download, for jobs that write several files
+     * (e.g. the pathways converter's per-level reference data).
+     *
+     * Only reaches inside the job's own folder: the download must sit in a folder named for the job
+     * (a path segment equal to job_id), and `file` must be a plain relative path of letters, digits,
+     * `.`, `_` and `-` segments, so no `..`, no leading `/`, no encoded or backslashed tricks. The
+     * result is the download's folder with those segments appended, so the scheme, host and container
+     * can't change. Only the download's file types are served.
+     */
+    static fileBesideDownload(download_url: string, job_id: string, file: string): string {
+        const segments = file.split('/');
+        const safe = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
+        if (file.length === 0 || file.length > 512 || segments.some(s => !safe.test(s) || s === '.' || s === '..'))
+            throw new InputException("Invalid file path");
+        const extension = (file.split('.').pop() ?? '').toLowerCase();
+        if (!['txt', 'json', 'zip', 'xml', 'geojson', 'md'].includes(extension))
+            throw new InputException("This file type can't be downloaded");
+
+        let parsed: URL;
+        try {
+            parsed = new URL(download_url);
+        } catch {
+            throw new HttpException(404, "This job's files can't be downloaded separately.");
+        }
+        const path = parsed.pathname.split('/');
+        path.pop(); // the download itself
+        if (!path.includes(String(job_id)))
+            throw new HttpException(404, "This job's files can't be downloaded separately.");
+        parsed.pathname = [...path, ...segments.map(encodeURIComponent)].join('/');
+        parsed.search = '';  // a SAS signature is for the download blob only
+        return parsed.toString();
     }
 
     /**

@@ -33,7 +33,7 @@ export interface IJobService {
     * @throws HttpException if the file is not found.
     * @throws Error if the storage is not configured.
     */
-    getJobFileEntity(job_id: string): Promise<FileEntity>;
+    getJobFileEntity(job_id: string, file?: string): Promise<FileEntity>;
 
     /**
      * Creates a job in the database.

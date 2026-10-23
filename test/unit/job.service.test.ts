@@ -7,7 +7,7 @@ import { InputException } from "../../src/exceptions/http/http-exceptions";
 import { CreateJobDTO, UpdateJobDTO, JobDTO } from "../../src/model/job-dto";
 import { JobStatus, JobType, JobsQueryParams } from "../../src/model/jobs-get-query-params";
 import jobService from "../../src/service/job-service";
-import { mockCore } from "../common/mock-utils";
+import { getMockFileEntity, mockCore } from "../common/mock-utils";
 
 
 describe('JobService', () => {
@@ -112,6 +112,58 @@ describe('JobService', () => {
 
             // Act & Assert
             await expect(jobService.getJobFileEntity(job_id)).rejects.toThrow(Error);
+        });
+    });
+
+    describe('getJobFileEntity with a file beside the download', () => {
+        const job_id = '101';
+        const download = 'https://acct.blob.core.windows.net/pathways-converter/101/pathways-converter-output.zip?sv=2024&sig=abc';
+
+        function withDownload(url: string) {
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce(<any>{ rowCount: 1, rows: [{ download_url: url }] });
+            const storage = { getFileFromUrl: jest.fn().mockResolvedValue(getMockFileEntity()) };
+            jest.spyOn(Core, "getStorageClient").mockReturnValue(<any>storage);
+            return storage;
+        }
+
+        it('should fetch the file from the job\'s own folder', async () => {
+            const storage = withDownload(download);
+            const result = await jobService.getJobFileEntity(job_id, 'beacon_hill/reference/platform.geojson');
+            expect(storage.getFileFromUrl).toHaveBeenCalledWith(
+                'https://acct.blob.core.windows.net/pathways-converter/101/beacon_hill/reference/platform.geojson');
+            expect(result.mimeType).toBe('application/geo+json');
+        });
+
+        it.each([
+            ['../other-job/secret.json'],
+            ['beacon_hill/../../other/x.json'],
+            ['/etc/passwd.txt'],
+            ['beacon_hill//x.json'],
+            ['beacon_hill/./x.json'],
+            ['..%2Fx.json'],
+            ['beacon_hill\\x.json'],
+            ['https://evil.example.com/x.json'],
+            [''],
+        ])('should refuse the path %p', async (file) => {
+            const storage = withDownload(download);
+            await expect(jobService.getJobFileEntity(job_id, file)).rejects.toThrow(InputException);
+            expect(storage.getFileFromUrl).not.toHaveBeenCalled();
+        });
+
+        it('should refuse file types a download doesn\'t serve', async () => {
+            withDownload(download);
+            await expect(jobService.getJobFileEntity(job_id, 'beacon_hill/run.sh')).rejects.toThrow(InputException);
+        });
+
+        it('should refuse when the download isn\'t in a folder named for the job', async () => {
+            const storage = withDownload('https://acct.blob.core.windows.net/pathways-converter/output.zip');
+            await expect(jobService.getJobFileEntity(job_id, 'report.md')).rejects.toThrow(HttpException);
+            expect(storage.getFileFromUrl).not.toHaveBeenCalled();
+        });
+
+        it('should refuse a folder named for another job', async () => {
+            withDownload('https://acct.blob.core.windows.net/pathways-converter/1010/output.zip');
+            await expect(jobService.getJobFileEntity(job_id, 'report.md')).rejects.toThrow(HttpException);
         });
     });
 

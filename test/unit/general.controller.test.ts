@@ -311,6 +311,41 @@ describe("General Controller Test", () => {
             expect(res.setHeader).toHaveBeenCalledWith("Content-Disposition", `attachment; filename=${file.fileName}`);
         });
 
+        test("When a file is asked for, Expect to stream that file, even for a Quality-Report job", async () => {
+            // Arrange
+            const req = getMockReq({ params: { job_id: "123" }, query: { file: "beacon_hill/reference/platform.geojson" } });
+            const { res, next } = getMockRes();
+            let file = getMockFileEntity();
+            file.mimeType = "application/geo+json";
+            jest.spyOn(jobService, "getJobDownloadInfo").mockResolvedValueOnce({
+                job_type: JobType["Quality-Report"],
+                download_url: "https://storage.example.com/123/report.zip",
+            });
+            jest.spyOn(jobService, "getJobFileEntity").mockResolvedValueOnce(file);
+
+            // Act
+            await generalController.getJobDownloadFile(req, res, next);
+
+            // Assert
+            expect(res.redirect).not.toHaveBeenCalled();
+            expect(jobService.getJobFileEntity).toHaveBeenCalledWith("123", "beacon_hill/reference/platform.geojson");
+            expect(res.setHeader).toHaveBeenCalledWith("Content-Type", "application/geo+json");
+        });
+
+        test("When file is given more than once, Expect to call next with an InputException", async () => {
+            // Arrange
+            const req = getMockReq({ params: { job_id: "123" }, query: { file: ["a.json", "b.json"] } });
+            const { res, next } = getMockRes();
+            const spy = jest.spyOn(jobService, "getJobFileEntity");
+
+            // Act
+            await generalController.getJobDownloadFile(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+            expect(spy).not.toHaveBeenCalled();
+        });
+
         test("When invalid job_id is provided, Expect to call next with error", async () => {
             // Arrange
             const req = getMockReq({ params: { job_id: "mock-job-id" } });
