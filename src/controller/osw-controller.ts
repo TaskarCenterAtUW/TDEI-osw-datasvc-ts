@@ -209,7 +209,7 @@ class OSWController implements IController {
                 return response.status(400).send("Request body must be an array of Feedback status objects");
             }
             //Accept array of feedback status updates
-            let feedbackStatusUpdates: FeedbackStatusRequestDto[] = [];
+            const feedbackStatusUpdates: FeedbackStatusRequestDto[] = [];
             for (const value of request.body) {
                 const feedbackStatusUpdate = FeedbackStatusRequestDto.from(value);
                 const isValid = await feedbackStatusUpdate.validateRequestInput();
@@ -239,9 +239,9 @@ class OSWController implements IController {
      */
     async generatePMtiles(req: Request, res: express.Response, next: NextFunction) {
         try {
-            let tdei_dataset_id = req.params["tdei_dataset_id"];
+            const tdei_dataset_id = req.params["tdei_dataset_id"];
             // Call the service to generate PM tiles
-            let job_id = await oswService.generatePMTiles(req.body.user_id, tdei_dataset_id);
+            const job_id = await oswService.generatePMTiles(req.body.user_id, tdei_dataset_id);
             res.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return res.status(202).send(job_id);
         } catch (error) {
@@ -262,7 +262,7 @@ class OSWController implements IController {
      */
     async retrievePmTiles(req: Request, res: express.Response, next: NextFunction) {
         try {
-            let pmTilesUrl = await oswService.getDownloadableOSWPmTilesUrl(req.params["tdei_dataset_id"]);
+            const pmTilesUrl = await oswService.getDownloadableOSWPmTilesUrl(req.params["tdei_dataset_id"]);
             res.status(200).send(pmTilesUrl);
         } catch (error) {
             console.error("Error while retriving the PM tiles", error);
@@ -501,7 +501,7 @@ class OSWController implements IController {
         try {
             const tagFile = request.file;
 
-            let result = await oswService.calculateTagQualityMetric(request.params["tdei_dataset_id"], tagFile, request.body.user_id);
+            const result = await oswService.calculateTagQualityMetric(request.params["tdei_dataset_id"], tagFile, request.body.user_id);
             return response.status(200).send(result);
         } catch (error) {
             console.error("Error calculating the quality metric for a given osw entity tags", error);
@@ -566,20 +566,20 @@ class OSWController implements IController {
                 return next(new InputException('required input is empty', response));
             }
 
-            let apiKey = request.headers['x-api-key'];
+            const apiKey = request.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
                 return next(new ForbiddenAccess());
             }
 
             //Authorize
-            let osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
-            var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
+            const osw = await tdeiCoreService.getDatasetDetailsById(requestService.target_dataset_id);
+            const authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
             if (!authorized) {
                 return next(new ForbiddenAccess());
             }
 
-            let backendRequest: TagRoadServiceRequest = {
+            const backendRequest: TagRoadServiceRequest = {
                 user_id: request.body.user_id,
                 service: "dataset_tag_road",
                 parameters: {
@@ -588,7 +588,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.processDatasetTagRoadRequest(backendRequest);
+            const job_id = await oswService.processDatasetTagRoadRequest(backendRequest);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
@@ -610,7 +610,7 @@ class OSWController implements IController {
      * @param next - The next middleware function.
      */
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
-        let versionsList = new Versions([{
+        const versionsList = new Versions([{
             documentation: environment.schemaDocumentationUrl as string ?? '',
             specification: environment.schemaUrl as string ?? '',
             version: "0.3"
@@ -629,8 +629,8 @@ class OSWController implements IController {
     getOswById = async (request: Request, response: express.Response, next: NextFunction) => {
 
         try {
-            let format = request.query.format as string ?? 'osw';
-            let file_version = request.query.file_version as string ?? 'latest';
+            const format = request.query.format as string ?? 'osw';
+            const file_version = request.query.file_version as string ?? 'latest';
 
             if (!["osw", "osm"].includes(format)) {
                 throw new InputException("Invalid file format value");
@@ -680,7 +680,7 @@ class OSWController implements IController {
             }
 
 
-            let job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
+            const job_id = await oswService.processValidationOnlyRequest(request.body.user_id, datasetFile);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -704,8 +704,8 @@ class OSWController implements IController {
     */
     processPublishRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let job_id = await oswService.processPublishRequest(request.body.user_id, tdei_dataset_id);
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            const job_id = await oswService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
@@ -747,7 +747,7 @@ class OSWController implements IController {
                 }
             }
 
-            let backendRequest: BboxServiceRequest = {
+            const backendRequest: BboxServiceRequest = {
                 user_id: request.body.user_id,
                 service: "bbox_intersect",
                 parameters: {
@@ -756,7 +756,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.processBboxRequest(backendRequest, requestService.file_type);
+            const job_id = await oswService.processBboxRequest(backendRequest, requestService.file_type);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {
@@ -781,7 +781,7 @@ class OSWController implements IController {
     processUploadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received upload request');
-            let uploadRequest: IUploadRequest = {
+            const uploadRequest: IUploadRequest = {
                 user_id: request.body.user_id,
                 tdei_project_group_id: request.params["tdei_project_group_id"],
                 tdei_service_id: request.params['tdei_service_id'],
@@ -809,7 +809,7 @@ class OSWController implements IController {
                 return next(new InputException("metadata file input upload missing"));
             }
 
-            let job_id = await oswService.processUploadRequest(uploadRequest);
+            const job_id = await oswService.processUploadRequest(uploadRequest);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -834,7 +834,7 @@ class OSWController implements IController {
     calculateConfidence = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             const subRegionFile = request.file;
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
             if (tdei_dataset_id == undefined) {
                 response.status(400).send('Please add tdei_dataset_id in payload')
                 return next()
@@ -855,7 +855,7 @@ class OSWController implements IController {
             }
 
 
-            let job_id = await oswService.calculateConfidence(tdei_dataset_id, subRegionFile, request.body.user_id);
+            const job_id = await oswService.calculateConfidence(tdei_dataset_id, subRegionFile, request.body.user_id);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -890,8 +890,8 @@ class OSWController implements IController {
                 throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.osw));
             }
 
-            let source = request.body['source_format']; //TODO: Validate the input enums 
-            let target = request.body['target_format'];
+            const source = request.body['source_format']; //TODO: Validate the input enums 
+            const target = request.body['target_format'];
 
             if (!["osw", "osm"].includes(target) || !["osw", "osm"].includes(source)) {
                 throw new InputException("Invalid source/target value");
@@ -905,7 +905,7 @@ class OSWController implements IController {
                 throw new InputException("Source and Target value cannot be same");
             }
 
-            let job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id);
+            const job_id = await oswService.processFormatRequest(source, target, uploadedFile, request.body.user_id);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -922,10 +922,10 @@ class OSWController implements IController {
 
     createIXNQualityOnDemandRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
             const subRegionFile = request.file;
             // Algorithm is ixn
-            let algorithms = 'ixn';
+            const algorithms = 'ixn';
             // let persist = request.body.persist;
             if (tdei_dataset_id == undefined) {
                 throw new InputException("Missing tdei_dataset_id input")
@@ -933,7 +933,7 @@ class OSWController implements IController {
             // if (tdei_dataset_id == undefined || algorithms == undefined) {
             //     throw new InputException("Please add tdei_dataset_id, algorithm in payload")
             // }
-            let job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, subRegionFile, request.body.user_id);
+            const job_id = await oswService.calculateQualityMetric(tdei_dataset_id, algorithms, subRegionFile, request.body.user_id);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -995,20 +995,20 @@ class OSWController implements IController {
                 throw new InputException("Missing tdei_dataset_id input")
             }
 
-            let apiKey = request.headers['x-api-key'];
+            const apiKey = request.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
                 return next(new ForbiddenAccess());
             }
 
             //Authorize
-            let osw = await tdeiCoreService.getDatasetDetailsById(tdei_dataset_id);
-            var authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
+            const osw = await tdeiCoreService.getDatasetDetailsById(tdei_dataset_id);
+            const authorized = await Utility.authorizeRoles(request.body.user_id, osw.tdei_project_group_id, ["tdei_admin", "poc", "osw_data_generator"]);
             if (!authorized) {
                 return next(new ForbiddenAccess());
             }
 
-            let backendRequest: InclinationServiceRequest = {
+            const backendRequest: InclinationServiceRequest = {
                 user_id: request.body.user_id,
                 service: "add_inclination",
                 parameters: {
@@ -1016,7 +1016,7 @@ class OSWController implements IController {
                 }
             }
 
-            let job_id = await oswService.calculateInclination(backendRequest);
+            const job_id = await oswService.calculateInclination(backendRequest);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {

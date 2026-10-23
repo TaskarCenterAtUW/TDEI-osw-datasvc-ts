@@ -38,13 +38,13 @@ export class SpatialJoinRequest extends AbstractDomainEntity {
     aggregate!: string[];
     @Prop()
     @IsIn(['default', 'exclusive', 'shared'])
-    assignment_method: string = 'default';
+    assignment_method = 'default';
 
     async validateRequestInput() {
-        let errors = await validate(this);
+        const errors = await validate(this);
         if (errors.length > 0) {
             console.log('Input validation failed');
-            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
             throw new InputException(`Required fields are missing or invalid: ${message}`);
         }
         return true;
@@ -200,17 +200,17 @@ export class UnionRequest extends AbstractDomainEntity {
     tdei_dataset_id_two!: string;
     @Prop()
     @IsNumber()
-    proximity: number = 0.5;
+    proximity = 0.5;
     /** Omitted means every feature is eligible to merge. */
     @Prop()
     @IsOptional()
     entity_filters?: EntityFilters;
 
     async validateRequestInput() {
-        let errors = await validate(this);
+        const errors = await validate(this);
         if (errors.length > 0) {
             console.log('Input validation failed');
-            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
             throw new InputException(`Required fields are missing or invalid: ${message}`);
         }
         validateEntityFilters(this.entity_filters);
@@ -226,13 +226,13 @@ export class SelfMergeRequest extends AbstractDomainEntity {
 
     @Prop()
     @IsNumber()
-    proximity: number = 0.5;
+    proximity = 0.5;
 
     async validateRequestInput() {
-        let errors = await validate(this);
+        const errors = await validate(this);
         if (errors.length > 0) {
             console.log('Input validation failed');
-            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
             throw new InputException(`Required fields are missing or invalid: ${message}`);
         }
         return true;

@@ -26,7 +26,7 @@ export function buildQuery(
     sortOrder?: 'ASC' | 'DESC',
     limit?: number,
     offset?: number,
-    excludeLimit: boolean = false
+    excludeLimit = false
 ): PgQueryObject {
     const whereClauseValues: any[] = [];
     let whereClause = '';

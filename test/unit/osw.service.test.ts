@@ -115,7 +115,7 @@ describe("OSW Service Test", () => {
                     metadata_url: 'metadata_url',
                     changeset_url: 'changeset_url',
                 }));
-            let dbSpy = jest.spyOn(dbClient, "query")
+            const dbSpy = jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ rows: [] });
 
             // Assert
@@ -148,7 +148,7 @@ describe("OSW Service Test", () => {
                     metadata_url: 'metadata_url',
                     changeset_url: 'changeset_url',
                 }));
-            let dbSpy = jest.spyOn(dbClient, "query")
+            const dbSpy = jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ rows: [] });
 
             // Assert
@@ -172,7 +172,7 @@ describe("OSW Service Test", () => {
                     metadata_url: 'metadata_url',
                     changeset_url: 'changeset_url',
                 }));
-            let dbSpy = jest.spyOn(dbClient, "query")
+            const dbSpy = jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ rows: [] });
             // Act & Assert
             await expect(
@@ -204,7 +204,7 @@ describe("OSW Service Test", () => {
                     metadata_url: 'metadata_url',
                     changeset_url: 'changeset_url',
                 }));
-            let dbSpy = jest.spyOn(dbClient, "query")
+            const dbSpy = jest.spyOn(dbClient, "query")
                 .mockResolvedValue(<any>{ rows: [] });
             // Act & Assert
             await expect(
@@ -232,7 +232,7 @@ describe("OSW Service Test", () => {
                 aggregate: ["array_agg(highway)"],
                 attributes: ["highway"]
             });
-            let job_id = 303;
+            const job_id = 303;
             jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({
                 data_type: TDEIDataType.flex
             } as any);
@@ -896,7 +896,7 @@ describe("OSW Service Test", () => {
             // jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
 
             // Call the function
-            let result = await oswService.processPublishRequest(userId, tdeiRecordId);
+            const result = await oswService.processPublishRequest(userId, tdeiRecordId);
 
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result
@@ -1266,7 +1266,7 @@ describe("OSW Service Test", () => {
                 tdei_dataset_id_one: "mock-source-dataset-id",
                 tdei_dataset_id_two: "mock-target-dataset-id"
             });
-            let job_id = 303;
+            const job_id = 303;
             jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById").mockResolvedValue({
                 data_type: TDEIDataType.flex
             } as any);

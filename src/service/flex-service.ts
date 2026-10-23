@@ -38,71 +38,67 @@ class FlexService implements IFlexService {
      * @throws {Error} If an error occurs during the processing of the publish request.
      */
     async processPublishRequest(user_id: string, tdei_dataset_id: string): Promise<string> {
-        try {
-            let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+        const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
 
-            if (dataset.data_type && dataset.data_type !== TDEIDataType.flex)
-                throw new InputException(`${tdei_dataset_id} is not a flex dataset.`);
+        if (dataset.data_type && dataset.data_type !== TDEIDataType.flex)
+            throw new InputException(`${tdei_dataset_id} is not a flex dataset.`);
 
-            if (dataset.status === 'Publish')
-                throw new InputException(`${tdei_dataset_id} already publised.`);
+        if (dataset.status === 'Publish')
+            throw new InputException(`${tdei_dataset_id} already publised.`);
 
-            // Check if there is a record with the same date
-            // const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.flex, dataset.tdei_project_group_id, dataset.tdei_service_id));
-            // if (queryResult.rowCount && queryResult.rowCount > 0) {
-            //     const recordId = queryResult.rows[0]["tdei_dataset_id"];
-            //     throw new OverlapException(recordId);
-            // }
-            //Validate the metadata dates
-            tdeiCoreService.validateDatasetDates(dataset);
+        // Check if there is a record with the same date
+        // const queryResult = await dbClient.query(dataset.getOverlapQuery(TDEIDataType.flex, dataset.tdei_project_group_id, dataset.tdei_service_id));
+        // if (queryResult.rowCount && queryResult.rowCount > 0) {
+        //     const recordId = queryResult.rows[0]["tdei_dataset_id"];
+        //     throw new OverlapException(recordId);
+        // }
+        //Validate the metadata dates
+        tdeiCoreService.validateDatasetDates(dataset);
 
-            let job = CreateJobDTO.from({
-                data_type: TDEIDataType.flex,
-                job_type: JobType["Dataset-Publish"],
-                status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
-                request_input: {
-                    tdei_dataset_id: tdei_dataset_id
-                },
-                tdei_project_group_id: dataset.tdei_project_group_id,
-                user_id: user_id,
-            });
+        const job = CreateJobDTO.from({
+            data_type: TDEIDataType.flex,
+            job_type: JobType["Dataset-Publish"],
+            status: JobStatus["IN-PROGRESS"],
+            message: 'Job started',
+            request_input: {
+                tdei_dataset_id: tdei_dataset_id
+            },
+            tdei_project_group_id: dataset.tdei_project_group_id,
+            user_id: user_id,
+        });
 
-            const job_id = await this.jobServiceInstance.createJob(job);
+        const job_id = await this.jobServiceInstance.createJob(job);
 
-            //Compose the meessage
-            // let workflow_identifier = "FLEX_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
-            // let queueMessage = QueueMessage.from({
-            //     messageId: job_id.toString(),
-            //     messageType: workflow_identifier,
-            //     data: {
-            //         user_id: user_id, // Required field for message authorization
-            //         tdei_project_group_id: dataset.tdei_project_group_id,// Required field for message authorization
-            //         file_upload_path: dataset.dataset_url
-            //     }
-            // });
-            // //Delete exisitng workflow if exists
-            // let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
-            // workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_dataset_id, trigger_workflow?.group!);
-            // //Trigger the workflow
-            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+        //Compose the meessage
+        // let workflow_identifier = "FLEX_PUBLISH_VALIDATION_REQUEST_WORKFLOW";
+        // let queueMessage = QueueMessage.from({
+        //     messageId: job_id.toString(),
+        //     messageType: workflow_identifier,
+        //     data: {
+        //         user_id: user_id, // Required field for message authorization
+        //         tdei_project_group_id: dataset.tdei_project_group_id,// Required field for message authorization
+        //         file_upload_path: dataset.dataset_url
+        //     }
+        // });
+        // //Delete exisitng workflow if exists
+        // let trigger_workflow = appContext.orchestratorServiceInstance!.getWorkflowByIdentifier(workflow_identifier);
+        // workflowDatabaseService.obseleteAnyExistingWorkflowHistory(tdei_dataset_id, trigger_workflow?.group!);
+        // //Trigger the workflow
+        // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
 
-            let workflow_start = WorkflowName.flex_publish;
-            let workflow_input = {
-                job_id: job_id.toString(),
-                user_id: user_id,
-                tdei_project_group_id: dataset.tdei_project_group_id,
-                dataset_url: dataset.latest_dataset_url,
-                tdei_dataset_id: tdei_dataset_id,
-            };
-            //Trigger the workflow
-            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+        const workflow_start = WorkflowName.flex_publish;
+        const workflow_input = {
+            job_id: job_id.toString(),
+            user_id: user_id,
+            tdei_project_group_id: dataset.tdei_project_group_id,
+            dataset_url: dataset.latest_dataset_url,
+            tdei_dataset_id: tdei_dataset_id,
+        };
+        //Trigger the workflow
+        await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
 
 
-            return Promise.resolve(job_id.toString());
-        } catch (error) {
-            throw error;
-        }
+        return Promise.resolve(job_id.toString());
     }
 
     /**
@@ -114,54 +110,49 @@ class FlexService implements IFlexService {
      * @throws Throws an error if an error occurs during processing.
      */
     async processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string> {
-        try {
+        //Upload the files to the storage
+        const uid = storageService.generateRandomUUID();
+        const storageFolderPath = storageService.getValidationJobPath(uid);
+        // Upload dataset file
+        const uploadStoragePath = path.join(storageFolderPath, datasetFile.originalname)
+        const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer), "gtfsflex");
 
-            //Upload the files to the storage
-            const uid = storageService.generateRandomUUID();
-            const storageFolderPath = storageService.getValidationJobPath(uid);
-            // Upload dataset file
-            const uploadStoragePath = path.join(storageFolderPath, datasetFile.originalname)
-            const datasetUploadUrl = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer), "gtfsflex");
-
-            let job = CreateJobDTO.from({
-                data_type: TDEIDataType.flex,
-                job_type: JobType["Dataset-Validate"],
-                status: JobStatus["IN-PROGRESS"],
-                message: 'Job started',
-                request_input: {
-                    file_upload_name: datasetFile.originalname
-                },
-                tdei_project_group_id: '',
-                user_id: user_id,
-            });
-
-            const job_id = await this.jobServiceInstance.createJob(job);
-            //Compose the meessage
-            // let workflow_identifier = "FLEX_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";
-            // let queueMessage = QueueMessage.from({
-            //     messageId: job_id.toString(),
-            //     messageType: workflow_identifier,
-            //     data: {
-            //         user_id: user_id, // Required field for message authorization
-            //         file_upload_path: datasetUploadUrl
-            //     }
-            // });
-            // //Trigger the workflow
-            // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
-            let workflow_start = WorkflowName.flex_validation_only;
-            let workflow_input = {
-                job_id: job_id.toString(),
-                user_id: user_id,
-                dataset_url: datasetUploadUrl,
+        const job = CreateJobDTO.from({
+            data_type: TDEIDataType.flex,
+            job_type: JobType["Dataset-Validate"],
+            status: JobStatus["IN-PROGRESS"],
+            message: 'Job started',
+            request_input: {
                 file_upload_name: datasetFile.originalname
-            };
-            //Trigger the workflow
-            await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+            },
+            tdei_project_group_id: '',
+            user_id: user_id,
+        });
 
-            return Promise.resolve(job_id.toString());
-        } catch (error) {
-            throw error;
-        }
+        const job_id = await this.jobServiceInstance.createJob(job);
+        //Compose the meessage
+        // let workflow_identifier = "FLEX_VALIDATION_ONLY_VALIDATION_REQUEST_WORKFLOW";
+        // let queueMessage = QueueMessage.from({
+        //     messageId: job_id.toString(),
+        //     messageType: workflow_identifier,
+        //     data: {
+        //         user_id: user_id, // Required field for message authorization
+        //         file_upload_path: datasetUploadUrl
+        //     }
+        // });
+        // //Trigger the workflow
+        // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
+        const workflow_start = WorkflowName.flex_validation_only;
+        const workflow_input = {
+            job_id: job_id.toString(),
+            user_id: user_id,
+            dataset_url: datasetUploadUrl,
+            file_upload_name: datasetFile.originalname
+        };
+        //Trigger the workflow
+        await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
+
+        return Promise.resolve(job_id.toString());
     }
 
     /**
@@ -266,7 +257,7 @@ class FlexService implements IFlexService {
             datasetEntity.metadata_json = metadata;
             await this.tdeiCoreServiceInstance.createDataset(datasetEntity);
 
-            let job = CreateJobDTO.from({
+            const job = CreateJobDTO.from({
                 data_type: TDEIDataType.flex,
                 job_type: JobType["Dataset-Upload"],
                 status: JobStatus["IN-PROGRESS"],
@@ -301,8 +292,8 @@ class FlexService implements IFlexService {
             // });
             // //Trigger the workflow
             // await appContext.orchestratorServiceInstance!.triggerWorkflow(workflow_identifier, queueMessage);
-            let workflow_start = WorkflowName.flex_upload;
-            let workflow_input = {
+            const workflow_start = WorkflowName.flex_upload;
+            const workflow_input = {
                 job_id: job_id.toString(),
                 user_id: uploadRequestObject.user_id,
                 tdei_project_group_id: uploadRequestObject.tdei_project_group_id,
@@ -332,8 +323,8 @@ class FlexService implements IFlexService {
      * @throws Error if the storage is not configured.
      */
     async getFlexStreamById(tdei_dataset_id: string): Promise<FileEntity[]> {
-        let fileEntities: FileEntity[] = [];
-        let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+        const fileEntities: FileEntity[] = [];
+        const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
 
         if (dataset.data_type && dataset.data_type !== TDEIDataType.flex)
             throw new InputException(`${tdei_dataset_id} is not a flex dataset.`);
@@ -349,13 +340,13 @@ class FlexService implements IFlexService {
         return fileEntities;
     }
 
-    async processZipRequest(tdei_dataset_id: string): Promise<String> {
+    async processZipRequest(tdei_dataset_id: string): Promise<string> {
 
         try {
 
 
-            let workflow_identifier = "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW";
-            let queueMessage = QueueMessage.from({
+            const workflow_identifier = "FLEX_UPLOAD_COMPRESSION_REQUEST_WORKFLOW";
+            const queueMessage = QueueMessage.from({
                 messageId: tdei_dataset_id,
                 messageType: workflow_identifier,
                 data: {
@@ -373,7 +364,7 @@ class FlexService implements IFlexService {
     }
 
     async getFlexDownloadUrl(tdei_dataset_id: string, user_id: string): Promise<string> {
-        let dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
+        const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
         if (dataset.data_type && dataset.data_type !== TDEIDataType.flex)
             throw new InputException(`${tdei_dataset_id} is not a flex dataset.`);
 
@@ -383,12 +374,12 @@ class FlexService implements IFlexService {
         if (download_url == undefined || download_url == null || download_url == "") {
             throw new InputException(`${tdei_dataset_id} is not archived yet.`);
         }
-        let dlUrl = new URL(download_url);
-        let relative_path = dlUrl.pathname;
-        let container = relative_path.split('/')[1];
+        const dlUrl = new URL(download_url);
+        const relative_path = dlUrl.pathname;
+        const container = relative_path.split('/')[1];
         // let file_path = relative_path.split('/').
-        let file_path_in_container = relative_path.split('/').slice(2).join('/');
-        let sasUrl = storageClient.getSASUrl(container, file_path_in_container, 12); // 12 hours expiry
+        const file_path_in_container = relative_path.split('/').slice(2).join('/');
+        const sasUrl = storageClient.getSASUrl(container, file_path_in_container, 12); // 12 hours expiry
 
         const downloadStatsEntity = new DownloadStatsEntity();
         downloadStatsEntity.blob_url = download_url;

@@ -40,11 +40,11 @@ export class WorkflowDetailsEntity extends BaseDto {
             values: [execution_id]
         }
 
-        let result = await dbClient.query(queryObject);
+        const result = await dbClient.query(queryObject);
 
         if (result.rows.length == 0) return Promise.resolve(null);
 
-        let entity = WorkflowDetailsEntity.from(result.rows[0]);
+        const entity = WorkflowDetailsEntity.from(result.rows[0]);
         entity.workflow_context = WorkflowContext.from(entity.workflow_context);
 
         return entity;
@@ -69,7 +69,7 @@ export class WorkflowDetailsEntity extends BaseDto {
             values: [workflow.job_id, workflow.workflow_name, workflow.workflow_context, workflow.triggered_by, TdeiDate.UTC()]
         }
 
-        let result = await dbClient.query(queryObject);
+        const result = await dbClient.query(queryObject);
         workflow.execution_id = result.rows[0].execution_id;
     }
 
@@ -94,7 +94,7 @@ export class WorkflowDetailsEntity extends BaseDto {
             values: [workflow_execution_id]
         }
 
-        let result = await dbClient.query(queryObject);
+        const result = await dbClient.query(queryObject);
 
         if (result.rows.length == 0) return Promise.resolve(null);
 
