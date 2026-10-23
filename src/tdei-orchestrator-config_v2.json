@@ -2920,6 +2920,110 @@
             ]
         },
         {
+            "name": "pathways_convert",
+            "description": "Convert station drawings (DXF or an ArcGIS service) into GTFS Pathways in POSM GeoJSON, for editing in Workspaces",
+            "workflow_input": {
+                "job_id": "<%=job_id%>",
+                "user_id": "<%=user_id%>",
+                "arcgis_url": "<%=arcgis_url%>",
+                "dxf_file_upload_path": "<%=dxf_file_upload_path%>",
+                "layers": "<%=layers%>",
+                "crs": "<%=crs%>",
+                "control": "<%=control%>",
+                "station": "<%=station%>",
+                "level_pattern": "<%=level_pattern%>",
+                "levels": "<%=levels%>",
+                "exclude_levels": "<%=exclude_levels%>",
+                "agency_gtfs_dataset_id": "<%=agency_gtfs_dataset_id%>",
+                "parent_station": "<%=parent_station%>",
+                "platforms": "<%=platforms%>",
+                "tdei_auth_token": "<%=tdei_auth_token%>",
+                "tdei_api_key": "<%=tdei_api_key%>"
+            },
+            "tasks": [
+                {
+                    "name": "pathways_convert",
+                    "task_reference_name": "pathways_convert",
+                    "description": "Converting the station drawings to pathways",
+                    "type": "Event",
+                    "topic": "pathways-converter-request",
+                    "input_params": {
+                        "jobId": "<%=JSON.stringify(workflow_input.job_id)%>",
+                        "user_id": "<%=JSON.stringify(workflow_input.user_id)%>",
+                        "arcgis_url": "<%=JSON.stringify(workflow_input.arcgis_url)%>",
+                        "dxf_file_upload_path": "<%=JSON.stringify(workflow_input.dxf_file_upload_path)%>",
+                        "layers": "<%=JSON.stringify(workflow_input.layers)%>",
+                        "crs": "<%=JSON.stringify(workflow_input.crs)%>",
+                        "control": "<%=JSON.stringify(workflow_input.control)%>",
+                        "station": "<%=JSON.stringify(workflow_input.station)%>",
+                        "level_pattern": "<%=JSON.stringify(workflow_input.level_pattern)%>",
+                        "levels": "<%=JSON.stringify(workflow_input.levels)%>",
+                        "exclude_levels": "<%=JSON.stringify(workflow_input.exclude_levels)%>",
+                        "agency_gtfs_dataset_id": "<%=JSON.stringify(workflow_input.agency_gtfs_dataset_id)%>",
+                        "parent_station": "<%=JSON.stringify(workflow_input.parent_station)%>",
+                        "platforms": "<%=JSON.stringify(workflow_input.platforms)%>",
+                        "tdei_auth_token": "<%=JSON.stringify(workflow_input.tdei_auth_token)%>",
+                        "tdei_api_key": "<%=JSON.stringify(workflow_input.tdei_api_key)%>"
+                    },
+                    "output_params": {
+                        "success": "<%=data.success%>",
+                        "message": "<%=data.message%>",
+                        "file_upload_path": "<%=data.file_upload_path%>",
+                        "files": "<%=JSON.stringify(data.files)%>",
+                        "job_metadata": "<%=JSON.stringify(data.job_metadata)%>"
+                    }
+                },
+                {
+                    "name": "update_pathways_convert_job_db",
+                    "task_reference_name": "update_pathways_convert_job_db",
+                    "description": "Updating the job with the converted files",
+                    "type": "Utility",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "response_props": "<%=JSON.stringify({ files: tasks.pathways_convert.output.files, job_metadata: tasks.pathways_convert.output.job_metadata })%>",
+                            "download_url": "<%=tasks.pathways_convert.output.file_upload_path%>",
+                            "updated_at": "CURRENT_TIMESTAMP",
+                            "status": "COMPLETED",
+                            "message": "<%=tasks.pathways_convert.output.message%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ],
+            "exception_task": [
+                {
+                    "name": "job_failure_db",
+                    "task_reference_name": "job_failure_db",
+                    "description": "Updating the job details on failure",
+                    "type": "Exception",
+                    "input_params": {
+                        "table": "content.job",
+                        "where": {
+                            "job_id": "<%=workflow_input.job_id%>"
+                        },
+                        "data": {
+                            "status": "FAILED",
+                            "updated_at": "CURRENT_TIMESTAMP",
+                            "message": "<%=(tasks.pathways_convert && tasks.pathways_convert.output && tasks.pathways_convert.output.message) || 'Pathways conversion failed'%>"
+                        }
+                    },
+                    "output_params": {
+                        "success": "<%=success%>",
+                        "message": "<%=message%>"
+                    },
+                    "function": "update_table"
+                }
+            ]
+        },
+        {
             "name": "osw_quality_metric_on_demand",
             "description": "Calculate the quality metric of dataset and persist optionally",
             "workflow_input": {
@@ -3591,6 +3695,11 @@
             "description": "Subscription for osw dataset sanitization completion",
             "topic": "osw-sanitization-response",
             "subscription": "res-handler"
+        },
+        {
+            "description": "Subscription for pathways converter completion",
+            "topic": "pathways-converter-response",
+            "subscription": "res-handler"
         }
     ],
     "dlq_subscriptions": [
@@ -3790,6 +3899,13 @@
                 "2.5GB-2.7GB",
                 "2.7GB-2.9GB",
                 "2.9GB-3GB",
+                "request-handler"
+            ]
+        },
+        {
+            "description": "Subscription for pathways converter request",
+            "topic": "pathways-converter-request",
+            "subscription": [
                 "request-handler"
             ]
         }
