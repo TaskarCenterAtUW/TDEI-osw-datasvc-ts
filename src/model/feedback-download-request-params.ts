@@ -15,7 +15,7 @@ export class FeedbackDownloadRequestParams extends feedbackRequestParams {
 
     @IsOptional()
     @IsIn(['csv', 'CSV', 'geojson', 'geoJSON', 'GeoJSON', 'GEOJSON'], { message: 'format must be csv or geojson' })
-    format: string = 'csv';
+    format = 'csv';
 
     @IsOptional()
     @IsIn(['created_at', 'due_date'], { message: "due_date must be either 'created_at' or 'due_date'" })

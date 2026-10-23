@@ -15,7 +15,7 @@ export class DataQueryDatabaseWorkflow extends WorkflowBase {
     async handleWorkflow(message: QueueMessage, params: any): Promise<void> {
         console.log(`Triggered ${this.eventName} :`, message.messageType);
         try {
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: "Request Processed Successfully",
                 status: JobStatus.COMPLETED,

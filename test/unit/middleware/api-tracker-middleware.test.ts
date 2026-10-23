@@ -35,7 +35,7 @@ describe('API Tracker Middleware Test', () => {
     it('should handle errors in the API Tracker Middleware gracefully', async () => {
         const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
         const req = getMockReq()
-        let { res, next } = getMockRes();
+        const { res, next } = getMockRes();
         
         jest.spyOn(APITrackerService, 'saveAPIUsageSummary').mockRejectedValueOnce(new Error('unknown error'))
         jest.spyOn(APITrackerService, 'saveAPIUsageDetails').mockRejectedValueOnce(new Error('unknown error'))
@@ -178,7 +178,7 @@ describe('API Tracker Middleware Test', () => {
         jest.spyOn(APITrackerService, 'saveAPIUsageSummary').mockRejectedValueOnce(new Error('Unexpected Error in Summary'));
         jest.spyOn(APITrackerService, 'saveAPIUsageDetails').mockRejectedValueOnce(new Error('Unexpected Error in Details'));
     
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { /* silence */ });
     
         req.body.user_id = 'testUserId';
     

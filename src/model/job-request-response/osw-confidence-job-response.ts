@@ -31,11 +31,11 @@ export class ConfidenceJobResponse extends AbstractDomainEntity {
     status!: string
 
     @Prop()
-    message: string = '';
+    message = '';
 
     @Prop()
     @IsNotEmpty()
-    success: boolean = false;
+    success = false;
 
     constructor(init?: Partial<ConfidenceJobResponse>) {
         super();

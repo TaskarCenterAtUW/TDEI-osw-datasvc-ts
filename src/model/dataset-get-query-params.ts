@@ -172,12 +172,12 @@ export class DatasetQueryParams {
     @IsOptional()
     excluded_data_reason: string | undefined;
     @IsOptional()
-    sort_field: string = "uploaded_timestamp";
+    sort_field = "uploaded_timestamp";
     @IsOptional()
     sort_order: SqlORder = SqlORder.DESC;
     @IsOptional()
     @IsBoolean()
-    include_my_groups: boolean = false;
+    include_my_groups = false;
 
     @ValidateIf(() => false) //Skips the validation for internal property
     isAdmin = false;

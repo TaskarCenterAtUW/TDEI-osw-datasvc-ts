@@ -27,7 +27,7 @@ export class MetadataEntity extends BaseDto {
 
     @Prop()
     @IsOptional()
-    custom_metadata!: Object;
+    custom_metadata!: object;
 
     @Prop()
     @IsNotEmpty()

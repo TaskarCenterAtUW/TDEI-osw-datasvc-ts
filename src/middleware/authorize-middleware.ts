@@ -25,7 +25,7 @@ export const authorize = (approvedRoles: string[]) => {
             if (bearerHeader === '' || bearerHeader === undefined)
                 return next(new ForbiddenAccess());
 
-            let apiKey = req.headers['x-api-key'];
+            const apiKey = req.headers['x-api-key'];
             //Reject authorization for API key users
             if (apiKey && apiKey !== '') {
                 return next(new ForbiddenAccess());
@@ -44,7 +44,7 @@ export const authorize = (approvedRoles: string[]) => {
             }
             else if (req.params["tdei_dataset_id"]) {
                 //Fetch tdei_project_group_id from tdei_dataset_id
-                let osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
+                const osw = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
                 req.body.tdei_project_group_id = osw.tdei_project_group_id;
             }
             else {
@@ -57,7 +57,7 @@ export const authorize = (approvedRoles: string[]) => {
             if (!approvedRoles.length)
                 return next();
 
-            var authorized = await Utility.authorizeRoles(req.body.user_id, req.body.tdei_project_group_id, approvedRoles);
+            const authorized = await Utility.authorizeRoles(req.body.user_id, req.body.tdei_project_group_id, approvedRoles);
             if (authorized) {
                 next();
             }

@@ -2,8 +2,6 @@ import _ from "lodash";
 import { TdeiDate } from "../utility/tdei-date";
 
 export class OrchestratorUtility {
-    constructor() { }
-
     private static renderTemplate(template: any, data: any) {
         const compiledTemplate: any = {};
         for (const key in template) {

@@ -59,7 +59,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
         console.log("Registering the orchestration v2 workflow handlers");
         const uniqueArray = [...new Set(workflows)];
         uniqueArray.forEach((x: any) => {
-            let handler = new x(this.workflowEvent, this);
+            const handler = new x(this.workflowEvent, this);
         });
     }
 
@@ -95,9 +95,9 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * Initializes the workflows
      */
     private initializeOrchestrator() {
-        let duplicateResult = this.verifyWorkflowTaskUnique(this.orchestratorConfigContext.workflows);
+        const duplicateResult = this.verifyWorkflowTaskUnique(this.orchestratorConfigContext.workflows);
         if (duplicateResult.length > 0) {
-            let error = duplicateResult.map((x: any) => x.workflow + " : " + x.task).join(",");
+            const error = duplicateResult.map((x: any) => x.workflow + " : " + x.task).join(",");
             console.error("Workflow task names are not unique");
             throw new Error("Workflow task names are not unique :" + error);
         }
@@ -114,17 +114,17 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * @returns 
      */
     private verifyWorkflowTaskUnique(workflow: WorkflowConfig[]) {
-        let duplicates: any = [];
+        const duplicates: any = [];
         workflow.forEach(workflow => {
-            let taskNames: string[] = [];
+            const taskNames: string[] = [];
             workflow.tasks.forEach(task => {
                 taskNames.push(task.task_reference_name);
             });
 
-            let uniqueTaskNames = _.uniq(taskNames);
+            const uniqueTaskNames = _.uniq(taskNames);
             if (taskNames.length !== uniqueTaskNames.length) {
                 uniqueTaskNames.forEach(uniqueName => {
-                    let count = taskNames.filter(name => name === uniqueName).length;
+                    const count = taskNames.filter(name => name === uniqueName).length;
                     if (count > 1) {
                         duplicates.push({ workflow: workflow.name, task: uniqueName });
                     }
@@ -203,7 +203,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     public async startWorkflow(job_id: string, workflowName: string, workflow_input: any, user_id: string) {
 
         //New workflow
-        let workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflowName);
+        const workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflowName);
         if (!workflowConfig) {
             console.error("Workflow not found", workflowName);
             throw new Error("Workflow not found");
@@ -212,12 +212,12 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
             console.error("Invalid/Missing input for workflow", workflowName);
             throw new Error("Invalid/Missing input for workflow");
         }
-        let workflowContext = WorkflowContext.from({
+        const workflowContext = WorkflowContext.from({
             workflow_input: workflow_input,
             total_workflow_tasks: workflowConfig.tasks.length
         });
         WorkflowContext.start(workflowContext);
-        let workflow_db_details = WorkflowDetailsEntity.from({
+        const workflow_db_details = WorkflowDetailsEntity.from({
             job_id: job_id,
             workflow_name: workflowName,
             workflow_context: workflowContext,
@@ -240,9 +240,9 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
 
         try {
             //Extract the output parameters
-            let outputParams = task.output_params;
+            const outputParams = task.output_params;
 
-            let messageOutput: any = OrchestratorUtility.map_props(outputParams, message);
+            const messageOutput: any = OrchestratorUtility.map_props(outputParams, message);
             if (messageOutput == null) {
                 const message = `Unresolved input parameter for task : ${task.name}`;
                 console.error(message);
@@ -300,7 +300,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * @returns 
      */
     private getNextTask(workflow: WorkflowConfig, task: TaskConfig): TaskConfig | undefined {
-        let nextTask = workflow.tasks.findIndex(x => x.task_reference_name.toLowerCase() == task.task_reference_name.toLowerCase());
+        const nextTask = workflow.tasks.findIndex(x => x.task_reference_name.toLowerCase() == task.task_reference_name.toLowerCase());
         if ((nextTask + 1) > workflow.tasks.length) {
             console.log("No more tasks in the workflow");
             return undefined;
@@ -317,7 +317,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * @returns
      */
     async executeNextTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext) {
-        let nextTask = this.getNextTask(workflow, task);
+        const nextTask = this.getNextTask(workflow, task);
         if (nextTask) {
             await this.executeTask(workflow, nextTask, workflow_context);
         }
@@ -335,7 +335,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     * @returns 
     */
     private getNextExceptionTask(workflow: WorkflowConfig, task: TaskConfig): TaskConfig | undefined {
-        let nextTask = workflow.exception_task.findIndex(x => x.task_reference_name.toLowerCase() == task.task_reference_name.toLowerCase());
+        const nextTask = workflow.exception_task.findIndex(x => x.task_reference_name.toLowerCase() == task.task_reference_name.toLowerCase());
         if ((nextTask + 1) > workflow.exception_task.length) {
             console.log("No more exception tasks in the workflow");
             return undefined;
@@ -369,7 +369,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     * @returns
     */
     async executeNextExceptionTask(workflow: WorkflowConfig, task: TaskConfig, workflow_context: WorkflowContext) {
-        let nextTask = this.getNextExceptionTask(workflow, task);
+        const nextTask = this.getNextExceptionTask(workflow, task);
         if (nextTask) {
             await this.executeTask(workflow, nextTask, workflow_context);
         }
@@ -414,15 +414,15 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
         try {
             console.log("Received message", message.messageType);
 
-            let messageType = message.messageType.split("|");
+            const messageType = message.messageType.split("|");
             if (messageType.length == 2) {
-                let workflow_name = messageType[0];
-                let task_name = messageType[1];
-                let workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
+                const workflow_name = messageType[0];
+                const task_name = messageType[1];
+                const workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
                 if (workflowConfig) {
-                    let taskConfig = workflowConfig.tasks.find(x => x.task_reference_name.toLowerCase() == task_name.toLowerCase());
+                    const taskConfig = workflowConfig.tasks.find(x => x.task_reference_name.toLowerCase() == task_name.toLowerCase());
                     if (taskConfig) {
-                        let wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
+                        const wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
                         await this.handleEventResponse(workflowConfig, taskConfig, wokflow_details!.workflow_context, message);
                     }
                     else {
@@ -445,17 +445,17 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
     private handleDLQMessage = async (message: QueueMessage) => {
         try {
             console.log("Received DLQ message", message.messageType);
-            let messageType = message.messageType.split("|");
+            const messageType = message.messageType.split("|");
             if (messageType.length == 2) {
-                let workflow_name = messageType[0];
-                let task_name = messageType[1];
-                let workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
+                const workflow_name = messageType[0];
+                const task_name = messageType[1];
+                const workflowConfig = this.orchestratorConfigContext.getWorkflowByName(workflow_name);
                 if (workflowConfig) {
 
-                    let taskConfig = workflowConfig.tasks.find(x => x.task_reference_name.toLowerCase() == task_name.toLowerCase());
+                    const taskConfig = workflowConfig.tasks.find(x => x.task_reference_name.toLowerCase() == task_name.toLowerCase());
                     if (taskConfig) {
                         // Prepare response for the abandoned task
-                        let wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
+                        const wokflow_details = await WorkflowDetailsEntity.getWorkflowByExecutionId(message.messageId);
                         message.data['success'] = false;
                         message.data['message'] = `Abandoned during ${taskConfig.description} task`;
                         message.data['abandoned'] = true;
@@ -482,7 +482,7 @@ export class OrchestratorService_v2 implements IOrchestratorService_v2 {
      * @param applicationProperties Optional application properties to set on the service bus message
      */
     publishMessage = async (topic: string, message: QueueMessage, applicationProperties?: ApplicationProperties): Promise<void> => {
-        let topicInstance = this.getTopicInstance(topic);
+        const topicInstance = this.getTopicInstance(topic);
         await topicInstance.publish(message, applicationProperties);
     }
 

@@ -8,7 +8,7 @@ import { InputException } from "../../../src/exceptions/http/http-exceptions"
 
 
 describe('Metadata JSON Validator', () => {
-    let reqDataUpload: any = {
+    const reqDataUpload: any = {
         files: {
             metadata: [
                 {
@@ -119,7 +119,7 @@ describe('Metadata JSON Validator', () => {
         },
     };
 
-    let reqDataEdit: any = {
+    const reqDataEdit: any = {
         file:
         {
             buffer: Buffer.from(`{
@@ -253,7 +253,7 @@ describe('Metadata JSON Validator', () => {
     });
 
     it('should throw InputException if metadata file contains invalid JSON', async () => {
-        let localObj = { ...reqDataUpload };
+        const localObj = { ...reqDataUpload };
         localObj.files.metadata[0].buffer = Buffer.from('invalid-json');
         const req = getMockReq({ body: localObj });
         const { res, next } = getMockRes();
@@ -277,7 +277,7 @@ describe('Metadata JSON Validator', () => {
     });
 
     it('should throw InputException if metadata file contains invalid version v2', async () => {
-        let localObj = { ...reqDataUpload };
+        const localObj = { ...reqDataUpload };
         localObj.files.metadata[0].buffer = Buffer.from(`{
                       "dataset_detail": {
                           "name": "test-flex",
@@ -300,7 +300,7 @@ describe('Metadata JSON Validator', () => {
     });
 
     it('should throw InputException if metadata file contains invalid version interger 2', async () => {
-        let localObj = { ...reqDataUpload };
+        const localObj = { ...reqDataUpload };
         localObj.files.metadata[0].buffer = Buffer.from(`{
                       "dataset_detail": {
                           "name": "test-flex",
@@ -323,7 +323,7 @@ describe('Metadata JSON Validator', () => {
     });
 
     it('should throw InputException if metadata file contains invalid version  2.0.0', async () => {
-        let localObj = { ...reqDataUpload };
+        const localObj = { ...reqDataUpload };
         localObj.files.metadata[0].buffer = Buffer.from(`{
                       "dataset_detail": {
                           "name": "test-flex",
