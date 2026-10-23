@@ -315,7 +315,7 @@ describe("General Controller Test", () => {
             // Arrange
             const req = getMockReq({ params: { job_id: "123" }, query: { file: "beacon_hill/reference/platform.geojson" } });
             const { res, next } = getMockRes();
-            let file = getMockFileEntity();
+            const file = getMockFileEntity();
             file.mimeType = "application/geo+json";
             jest.spyOn(jobService, "getJobDownloadInfo").mockResolvedValueOnce({
                 job_type: JobType["Quality-Report"],
@@ -330,6 +330,20 @@ describe("General Controller Test", () => {
             expect(res.redirect).not.toHaveBeenCalled();
             expect(jobService.getJobFileEntity).toHaveBeenCalledWith("123", "beacon_hill/reference/platform.geojson");
             expect(res.setHeader).toHaveBeenCalledWith("Content-Type", "application/geo+json");
+        });
+
+        test("When file is an object (?file[x]=), Expect to call next with an InputException", async () => {
+            // Arrange
+            const req = getMockReq({ params: { job_id: "123" }, query: { file: <any>{ x: "a.json" } } });
+            const { res, next } = getMockRes();
+            const spy = jest.spyOn(jobService, "getJobFileEntity");
+
+            // Act
+            await generalController.getJobDownloadFile(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+            expect(spy).not.toHaveBeenCalled();
         });
 
         test("When file is given more than once, Expect to call next with an InputException", async () => {

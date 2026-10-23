@@ -446,8 +446,12 @@ class GeneralController implements IController {
     getJobDownloadFile = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             const job_id = request.params['job_id'];
-            const file = request.query['file'];
-            if (file !== undefined && typeof file !== 'string')
+            // ?file= must be one string: Express gives an array for ?file=a&file=b, or an object for ?file[x]=
+            const fileParam: unknown = request.query['file'];
+            let file: string | undefined;
+            if (typeof fileParam === 'string')
+                file = fileParam;
+            else if (fileParam !== undefined)
                 throw new InputException("Invalid file path");
 
             const downloadInfo = await jobService.getJobDownloadInfo(job_id);

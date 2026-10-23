@@ -150,6 +150,14 @@ describe('JobService', () => {
             expect(storage.getFileFromUrl).not.toHaveBeenCalled();
         });
 
+        it('should refuse a file parameter that isn\'t a string', async () => {
+            for (const file of [['a.json', 'b.json'], { toString: () => 'a.json' }]) {
+                const storage = withDownload(download);
+                await expect(jobService.getJobFileEntity(job_id, <any>file)).rejects.toThrow(InputException);
+                expect(storage.getFileFromUrl).not.toHaveBeenCalled();
+            }
+        });
+
         it('should refuse file types a download doesn\'t serve', async () => {
             withDownload(download);
             await expect(jobService.getJobFileEntity(job_id, 'beacon_hill/run.sh')).rejects.toThrow(InputException);

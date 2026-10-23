@@ -169,7 +169,9 @@ class JobService implements IJobService {
      * result is the download's folder with those segments appended, so the scheme, host and container
      * can't change. Only the download's file types are served.
      */
-    static fileBesideDownload(download_url: string, job_id: string, file: string): string {
+    static fileBesideDownload(download_url: string, job_id: string, file: unknown): string {
+        if (typeof file !== 'string')  // a query parameter can arrive as an array or object
+            throw new InputException("Invalid file path");
         const segments = file.split('/');
         const safe = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
         if (file.length === 0 || file.length > 512 || segments.some(s => !safe.test(s) || s === '.' || s === '..'))
