@@ -1,5 +1,6 @@
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { IUploadRequest } from "./upload-request-interface";
+import { IConvertRequest } from "./convert-request-interface";
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
 
@@ -57,4 +58,13 @@ export interface IPathwaysService {
      * @throws Throws an error if an error occurs during processing.
      */
     processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
+
+    /**
+     * Processes a request to convert station drawings (a DXF zip or an ArcGIS service) into GTFS Pathways.
+     *
+     * @param convertRequest - The drawings and the conversion options.
+     * @returns A Promise that resolves to the job ID.
+     * @throws {InputException} If the request names no drawings or both kinds, or an option is malformed.
+     */
+    processConvertRequest(convertRequest: IConvertRequest): Promise<string>;
 }
