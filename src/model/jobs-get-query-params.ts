@@ -40,7 +40,8 @@ export enum JobType {
     "Dataset-Self-Merge" = "Dataset-Self-Merge",
     "Dataset-PMTiles" = "Dataset-PMTiles",
     "Quality-Report" = "Quality-Report",
-    "Dataset-Sanitization" = "Dataset-Sanitization"
+    "Dataset-Sanitization" = "Dataset-Sanitization",
+    "Pathways-Convert" = "Pathways-Convert"
 }
 export class JobsQueryParams {
     @IsOptional()
