@@ -133,7 +133,7 @@ describe("Flex Service Test", () => {
             // jest.spyOn(workflowDatabaseService, 'obseleteAnyExistingWorkflowHistory').mockResolvedValue(true);
 
             // Call the function
-            let result = await flexService.processPublishRequest(userId, tdeiRecordId);
+            const result = await flexService.processPublishRequest(userId, tdeiRecordId);
 
             // Assertions
             expect(result).toBe(mockJobId.toString()); // Adjust based on your expected result

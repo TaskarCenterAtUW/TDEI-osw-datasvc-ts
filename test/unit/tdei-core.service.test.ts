@@ -546,7 +546,7 @@ describe("TDEI core Service Test", () => {
 
     describe('validateDatasetDates', () => {
         it('should throw an error if valid_from or valid_to is missing', () => {
-            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            const dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
             dataset.valid_from = undefined as any;
             dataset.valid_to = undefined as any;
 
@@ -555,7 +555,7 @@ describe("TDEI core Service Test", () => {
         });
 
         it('should throw an error if valid_from date is invalid', () => {
-            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            const dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
             dataset.valid_from = 'invalid-date' as any;
             dataset.valid_to = '2023-12-31' as any;
 
@@ -565,7 +565,7 @@ describe("TDEI core Service Test", () => {
         });
 
         it('should throw an error if valid_to date is invalid', () => {
-            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            const dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
             dataset.valid_from = '2023-12-31' as any;
             dataset.valid_to = 'invalid-date' as any;
 
@@ -575,7 +575,7 @@ describe("TDEI core Service Test", () => {
         });
 
         it('should throw an error if valid_from is greater than valid_to', () => {
-            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            const dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
             dataset.valid_from = '2023-12-31' as any;
             dataset.valid_to = '2023-01-01' as any;
             jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);
@@ -585,7 +585,7 @@ describe("TDEI core Service Test", () => {
         });
 
         it('should throw an error if valid_to is less than valid_from', () => {
-            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            const dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
             dataset.valid_from = '2023-01-01' as any;
             dataset.valid_to = '2022-12-31' as any;
             jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);
@@ -594,7 +594,7 @@ describe("TDEI core Service Test", () => {
         });
 
         it('should not throw an error for valid dates', () => {
-            let dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
+            const dataset = DatasetEntity.from(TdeiObjectFaker.getDatasetVersion());
             dataset.valid_from = '2023-01-01' as any;
             dataset.valid_to = '2023-12-31' as any;
             jest.spyOn(TdeiDate, 'isValid').mockReturnValue(true);

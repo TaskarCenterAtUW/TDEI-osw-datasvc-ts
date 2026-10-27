@@ -79,7 +79,7 @@ class PathwaysController implements IController {
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
-        let versionsList = new Versions([{
+        const versionsList = new Versions([{
             documentation: environment.gatewayUrl as string,
             specification: "https://gtfs.org/schedule/examples/pathways/",
             version: "v1.0"
@@ -138,7 +138,7 @@ class PathwaysController implements IController {
                 throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.pathways));
             }
 
-            let job_id = await pathwaysService.processValidationOnlyRequest(request.body.user_id, datasetFile);
+            const job_id = await pathwaysService.processValidationOnlyRequest(request.body.user_id, datasetFile);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
@@ -162,8 +162,8 @@ class PathwaysController implements IController {
     */
     processPublishRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let job_id = await pathwaysService.processPublishRequest(request.body.user_id, tdei_dataset_id);
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            const job_id = await pathwaysService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
@@ -189,7 +189,7 @@ class PathwaysController implements IController {
     processUploadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received upload request');
-            let uploadRequest: IUploadRequest = {
+            const uploadRequest: IUploadRequest = {
                 user_id: request.body.user_id,
                 tdei_project_group_id: request.params["tdei_project_group_id"],
                 tdei_service_id: request.params['tdei_service_id'],
@@ -217,7 +217,7 @@ class PathwaysController implements IController {
                 return next(new InputException("metadata file input upload missing"));
             }
 
-            let job_id = await pathwaysService.processUploadRequest(uploadRequest);
+            const job_id = await pathwaysService.processUploadRequest(uploadRequest);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 

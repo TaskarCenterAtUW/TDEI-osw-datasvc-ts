@@ -119,7 +119,7 @@ describe("OSW Controller Test", () => {
                     "attributes": ["highway"]
                 }
             });
-            let job_id = "mock-job-id";
+            const job_id = "mock-job-id";
             const { res, next } = getMockRes();
 
             jest.spyOn(oswService, "processSpatialQueryRequest").mockResolvedValueOnce(job_id);
@@ -410,7 +410,7 @@ describe("OSW Controller Test", () => {
 
             test("When requested version info, Expect to return HTTP status 200", async () => {
                 //Arrange
-                let req = getMockReq();
+                const req = getMockReq();
                 const { res, next } = getMockRes();
                 //Act
                 await oswController.getVersions(req, res, next);
@@ -1064,7 +1064,7 @@ describe("OSW Controller Test", () => {
                     "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
                 }
             });
-            let job_id = "mock-job-id";
+            const job_id = "mock-job-id";
             const { res, next } = getMockRes();
 
             jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce(job_id);
@@ -1088,7 +1088,7 @@ describe("OSW Controller Test", () => {
                     "proximity": 10
                 }
             });
-            let job_id = "mock-job-id";
+            const job_id = "mock-job-id";
             const { res, next } = getMockRes();
 
             jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce(job_id);
@@ -1120,7 +1120,7 @@ describe("OSW Controller Test", () => {
                     "entity_filters": entity_filters
                 }
             });
-            let job_id = "mock-job-id";
+            const job_id = "mock-job-id";
             const { res, next } = getMockRes();
 
             const serviceSpy = jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce(job_id);
