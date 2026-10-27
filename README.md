@@ -112,6 +112,10 @@ node generate-test-enumeration.js
 
 * Please review and update the script when OSW schema version changes.
 
+## Adding a job
+
+To add a new job type (a worker, its Azure resources, and the workflow, endpoint and gateway route that start it), see [docs/adding-a-job.md](docs/adding-a-job.md).
+
 ## System flow
 ---
 
