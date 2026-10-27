@@ -351,4 +351,78 @@ describe("Pathways Controller Test", () => {
             expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
         });
     });
+
+    describe('process convert request', () => {
+        let mockRequest: any;
+        let mockResponse: any;
+        let mockNext: jest.Mock;
+
+        beforeEach(() => {
+            mockRequest = {
+                headers: { authorization: 'Bearer mock-token' },
+                body: {
+                    user_id: 'mock-user-id',
+                    arcgis_url: 'https://example.com/arcgis/rest/services/x/MapServer',
+                    levels: '{"Platform": -1}'
+                },
+            };
+
+            mockResponse = {
+                status: jest.fn().mockReturnThis(),
+                send: jest.fn(),
+                setHeader: jest.fn(),
+            };
+
+            mockNext = jest.fn();
+        });
+
+        it('should start the conversion and return job_id', async () => {
+            const mockJobId = 'mock-job-id';
+            jest.spyOn(pathwaysService, "processConvertRequest").mockResolvedValueOnce(mockJobId);
+
+            await pathwaysController.processConvertRequest(mockRequest, mockResponse, mockNext);
+
+            expect(pathwaysService.processConvertRequest).toHaveBeenCalledWith(expect.objectContaining({
+                user_id: 'mock-user-id',
+                arcgis_url: 'https://example.com/arcgis/rest/services/x/MapServer',
+                levels: '{"Platform": -1}',
+                tdei_auth_token: 'mock-token'
+            }));
+            expect(mockResponse.status).toHaveBeenCalledWith(202);
+            expect(mockResponse.send).toHaveBeenCalledWith(mockJobId);
+            expect(mockResponse.setHeader).toHaveBeenCalledWith('Location', `${JOBS_API_PATH}?job_id=${mockJobId}`);
+            expect(mockNext).not.toHaveBeenCalled();
+        });
+
+        it('should answer 400 when the request is invalid', async () => {
+            jest.spyOn(pathwaysService, "processConvertRequest").mockRejectedValueOnce(new InputException("arcgis_url must be an https ArcGIS MapServer or FeatureServer URL"));
+
+            await pathwaysController.processConvertRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+        });
+
+        it('should handle internal server error', async () => {
+            jest.spyOn(pathwaysService, "processConvertRequest").mockRejectedValueOnce(new Error('Internal Server Error'));
+
+            await pathwaysController.processConvertRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.send).toHaveBeenCalledWith('Error while processing the convert request');
+            expect(mockNext).toHaveBeenCalledWith(expect.any(HttpException));
+        });
+
+        it('should handle file size restriction error', async () => {
+            mockRequest.file = { originalname: 'drawings.zip', buffer: Buffer.from('content') };
+            jest.spyOn(Utility, "calculateTotalSize").mockReturnValue(getDatasetUploadLimitBytes(DataType.pathways) + 1);
+            jest.spyOn(pathwaysService, "processConvertRequest");
+
+            await pathwaysController.processConvertRequest(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith(getDatasetUploadLimitErrorMessage(DataType.pathways));
+            expect(pathwaysService.processConvertRequest).not.toHaveBeenCalled();
+        });
+    });
 });
