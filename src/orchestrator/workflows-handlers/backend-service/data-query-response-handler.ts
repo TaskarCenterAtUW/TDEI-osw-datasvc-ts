@@ -51,7 +51,7 @@ export class DataQueryResponseHandler extends WorkflowHandlerBase {
                 this.delegateWorkflowIfAny(delegate_worflow, message);
             }
             else {
-                let updateJobDTO = UpdateJobDTO.from({
+                const updateJobDTO = UpdateJobDTO.from({
                     job_id: message.messageId,
                     message: message.data.message,
                     status: JobStatus.COMPLETED,

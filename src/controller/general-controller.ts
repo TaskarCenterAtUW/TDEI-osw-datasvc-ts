@@ -50,7 +50,7 @@ class GeneralController implements IController {
         this.router.put(`${this.path}/metadata/:tdei_dataset_id`, metadataUpload.single('file'), metajsonValidator("edit_metadata"), apiTracker, authenticate,
             async (req, res, next) => {
                 try {
-                    let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
+                    const datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
                     req.params["tdei_data_type"] = datasetRecord.data_type;
                     if (datasetRecord.data_type === TDEIDataType.osw) {
                         authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
@@ -65,7 +65,7 @@ class GeneralController implements IController {
             }, this.editMetadata); // edit Metadata request
         this.router.post(`${this.path}/dataset/clone/:tdei_dataset_id/:tdei_project_group_id/:tdei_service_id`, metadataUpload.single('file'), apiTracker, authenticate, async (req, res, next) => {
             try {
-                let datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
+                const datasetRecord = await tdeiCoreService.getDatasetDetailsById(req.params["tdei_dataset_id"]);
                 req.params["tdei_data_type"] = datasetRecord.data_type;
                 if (datasetRecord.data_type === TDEIDataType.osw) {
                     await authorize([TDEIRole["tdei-admin"], TDEIRole.poc, TDEIRole.osw_data_generator])(req, res, next);
@@ -131,7 +131,7 @@ class GeneralController implements IController {
             const new_api_key = await tdeiCoreService.regenerateApiKey(request.body.username);
             return response.status(200).send(new_api_key);
         } catch (error) {
-            let message = "Error regenerating the API key";
+            const message = "Error regenerating the API key";
             console.error(message, error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
@@ -156,7 +156,7 @@ class GeneralController implements IController {
             await tdeiCoreService.verifyEmail(request.body.replace(/['"]+/g, ''));
             return response.status(200).send();
         } catch (error) {
-            let message = "Error sending the verification link to provided email.";
+            const message = "Error sending the verification link to provided email.";
             console.error(message, error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
@@ -181,7 +181,7 @@ class GeneralController implements IController {
             await tdeiCoreService.recoverPassword(request.body.replace(/['"]+/g, ''));
             return response.status(200).send();
         } catch (error) {
-            let message = "Error sending the password recovery link to provided email.";
+            const message = "Error sending the password recovery link to provided email.";
             console.error(message, error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
@@ -200,10 +200,10 @@ class GeneralController implements IController {
      */
     public getDataMetrics = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            var result = await tdeiCoreService.getDataMetrics();
+            const result = await tdeiCoreService.getDataMetrics();
             return response.status(200).send(result);
         } catch (error) {
-            let errorMessage = "Error fetching the data metrics";
+            const errorMessage = "Error fetching the data metrics";
             console.error(errorMessage, error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
@@ -243,11 +243,11 @@ class GeneralController implements IController {
     */
     public getSystemMetrics = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            var result = await tdeiCoreService.getSystemMetrics();
+            const result = await tdeiCoreService.getSystemMetrics();
             return response.status(200).send(result);
 
         } catch (error) {
-            let errorMessage = "Error fetching the system metrics";
+            const errorMessage = "Error fetching the system metrics";
             console.error(errorMessage, error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
@@ -271,10 +271,10 @@ class GeneralController implements IController {
             if (!isUuid(projectGroupId)) {
                 throw new HttpException(400, "Invalid UUID format for project_group_id");
             }
-            var result = await tdeiCoreService.getServiceMetrics(projectGroupId);
+            const result = await tdeiCoreService.getServiceMetrics(projectGroupId);
             return response.status(200).send(result);
         } catch (error: any) {
-            let errorMessage = "Error fetching the service metrics";
+            const errorMessage = "Error fetching the service metrics";
             // console.error(errorMessage, error);
             if (error instanceof HttpException) {
                 response.status(error.status).send(error.message);
@@ -295,7 +295,7 @@ class GeneralController implements IController {
         try {
             const metafile = request.file;
 
-            let datasetCloneRequestObject: IDatasetCloneRequest = {
+            const datasetCloneRequestObject: IDatasetCloneRequest = {
                 tdei_dataset_id: request.params["tdei_dataset_id"],
                 tdei_project_group_id: request.params["tdei_project_group_id"],
                 tdei_service_id: request.params["tdei_service_id"],
@@ -304,7 +304,7 @@ class GeneralController implements IController {
                 metafile: metafile
             };
 
-            let clone_result = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
+            const clone_result = await tdeiCoreService.cloneDataset(datasetCloneRequestObject);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${clone_result.job_id}`);
             return response.status(200).send(clone_result.new_tdei_dataset_id);
 
@@ -329,7 +329,7 @@ class GeneralController implements IController {
         try {
             const metafile = request.file;
 
-            let job_id = await tdeiCoreService.editMetadata(request.params["tdei_dataset_id"], metafile, request.body.user_id, request.params["tdei_data_type"] as TDEIDataType);
+            const job_id = await tdeiCoreService.editMetadata(request.params["tdei_dataset_id"], metafile, request.body.user_id, request.params["tdei_data_type"] as TDEIDataType);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(200).send();
         } catch (error) {
@@ -380,7 +380,7 @@ class GeneralController implements IController {
    */
     invalidateRecordRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
             await tdeiCoreService.invalidateRecordRequest(request.body.user_id, tdei_dataset_id);
 
             return response.status(200).send(true);

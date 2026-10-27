@@ -9,7 +9,7 @@ export class OrchestratorConfigContext {
     subscriptions: Subscription[] = [];
 
     getWorkflowByIdentifier(identifier: string): Workflow | undefined {
-        var wokflow = this.workflows.find(x => x.identifier == identifier);
+        const wokflow = this.workflows.find(x => x.identifier == identifier);
         if (!wokflow)
             console.error("getWorkflowByIdentifier : workflow not found ", identifier);
 

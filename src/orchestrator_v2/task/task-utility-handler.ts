@@ -21,9 +21,9 @@ export class UtilityHandler extends workflowBase_v2 {
             description: task.description
         });
         try {
-            let inputParams = task.input_params;
+            const inputParams = task.input_params;
 
-            let messageInput: any = OrchestratorUtility.map_props(inputParams, workflow_context);
+            const messageInput: any = OrchestratorUtility.map_props(inputParams, workflow_context);
             if (messageInput == null) {
                 const message = `Unresolved input parameter for task : ${task.name}`;
                 console.error(message);
@@ -40,7 +40,7 @@ export class UtilityHandler extends workflowBase_v2 {
             //Save the workflow context
             await this.saveWorkflowContext(workflow_context);
 
-            let output = await OrchestratorFunctions.invokeMethod(task.function!, messageInput);
+            const output = await OrchestratorFunctions.invokeMethod(task.function!, messageInput);
 
             workflow_context.tasks[task.name].output = output;
 

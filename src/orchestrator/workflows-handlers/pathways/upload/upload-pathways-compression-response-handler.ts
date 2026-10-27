@@ -37,7 +37,7 @@ export class PathwaysUploadCompressionResponseHandler extends WorkflowHandlerBas
             }
 
 
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: message.data.message,
                 status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,

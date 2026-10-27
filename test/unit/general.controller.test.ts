@@ -138,7 +138,7 @@ describe("General Controller Test", () => {
                     isAdmin: false
                 }
             });
-            let callParams = {
+            const callParams = {
                 page_size: 10,
                 page_no: 1,
                 isAdmin: false,
@@ -148,7 +148,7 @@ describe("General Controller Test", () => {
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
-            let jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
+            const jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
 
             // Act
             await generalController.getJobs(req, res, next);
@@ -175,7 +175,7 @@ describe("General Controller Test", () => {
                     isAdmin: false
                 }
             });
-            let callParams = {
+            const callParams = {
                 job_id: "mock-job-id",
                 page_size: "10",
                 page_no: "1",
@@ -187,7 +187,7 @@ describe("General Controller Test", () => {
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
-            let jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
+            const jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
 
             // Act
             await generalController.getJobs(req, res, next);
@@ -293,7 +293,7 @@ describe("General Controller Test", () => {
             // Arrange
             const req = getMockReq({ params: { job_id: "123" } });
             const { res, next } = getMockRes();
-            let file = getMockFileEntity();
+            const file = getMockFileEntity();
             file.mimeType = "application/zip";
             jest.spyOn(jobService, "getJobDownloadInfo").mockResolvedValueOnce({
                 job_type: "Dataset-Publish",
@@ -492,7 +492,7 @@ describe("General Controller Test", () => {
                 .mockResolvedValueOnce(systemMetrics);
 
             // Act
-            let resp = await generalController.getSystemMetrics(req, res, next);
+            const resp = await generalController.getSystemMetrics(req, res, next);
 
             // Assert
             expect(getSystemMetricsSpy).toHaveBeenCalledTimes(1);
@@ -529,7 +529,7 @@ describe("General Controller Test", () => {
                 .mockResolvedValueOnce(dataMetrics);
 
             // Act
-            let resp = await generalController.getDataMetrics(req, res, next);
+            const resp = await generalController.getDataMetrics(req, res, next);
 
             // Assert
             expect(getDataMetricsSpy).toHaveBeenCalledTimes(1);
@@ -565,7 +565,7 @@ describe("General Controller Test", () => {
                 .mockResolvedValueOnce("newapikey");
 
             // Act
-            let resp = await generalController.regenerateApiKey(req, res, next);
+            const resp = await generalController.regenerateApiKey(req, res, next);
 
             // Assert
             expect(regenerateApiKeySpy).toHaveBeenCalledTimes(1);
