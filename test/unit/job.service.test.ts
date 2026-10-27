@@ -169,6 +169,20 @@ describe('JobService', () => {
             expect(storage.getFileFromUrl).not.toHaveBeenCalled();
         });
 
+        it('should answer 404 when the job has no such file', async () => {
+            const storage = withDownload(download);
+            storage.getFileFromUrl.mockRejectedValueOnce(Object.assign(new Error('BlobNotFound'), { status: 404 }));
+            await expect(jobService.getJobFileEntity(job_id, 'beacon_hill/missing.geojson'))
+                .rejects.toMatchObject({ status: 404, message: "This job has no such file." });
+        });
+
+        it('should pass other storage errors through', async () => {
+            const storage = withDownload(download);
+            const failure = Object.assign(new Error('AuthorizationFailure'), { status: 403 });
+            storage.getFileFromUrl.mockRejectedValueOnce(failure);
+            await expect(jobService.getJobFileEntity(job_id, 'report.md')).rejects.toBe(failure);
+        });
+
         it('should refuse a folder named for another job', async () => {
             withDownload('https://acct.blob.core.windows.net/pathways-converter/1010/output.zip');
             await expect(jobService.getJobFileEntity(job_id, 'report.md')).rejects.toThrow(HttpException);

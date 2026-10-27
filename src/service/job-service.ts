@@ -145,7 +145,15 @@ class JobService implements IJobService {
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
 
-        const fileEntity = await storageClient.getFileFromUrl(url);
+        let fileEntity: FileEntity;
+        try {
+            fileEntity = await storageClient.getFileFromUrl(url);
+        } catch (error: any) {
+            // storage's not-found error isn't an HttpException, so it would otherwise surface as a 500
+            if (file !== undefined && error?.status === 404)
+                throw new HttpException(404, "This job has no such file.");
+            throw error;
+        }
         const extension = url.split('.').pop();
         // Check if the extension is one of the expected types
         if (['txt', 'json', 'zip', 'xml', 'geojson', 'md'].includes(extension!)) {
