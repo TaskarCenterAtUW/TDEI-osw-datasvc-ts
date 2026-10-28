@@ -115,7 +115,9 @@ export class Utility {
             'txt': 'text/plain',
             'json': 'application/json',
             'zip': 'application/zip',
-            'xml': 'application/xml'
+            'xml': 'application/xml',
+            'geojson': 'application/geo+json',
+            'md': 'text/markdown'
         };
 
         return mimeTypes[extension];

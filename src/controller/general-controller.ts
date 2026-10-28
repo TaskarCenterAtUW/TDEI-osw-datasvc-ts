@@ -436,6 +436,8 @@ class GeneralController implements IController {
     /**
      * Gives the downloadable stream for the job.
      * If job type is Quality-Report, redirects to the external download URL.
+     * With `?file=<path>`, streams another file the job stored beside its download instead
+     * (only inside the job's own folder; see JobService.fileBesideDownload).
      * @param request 
      * @param response 
      * @param next 
@@ -444,14 +446,22 @@ class GeneralController implements IController {
     getJobDownloadFile = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             const job_id = request.params['job_id'];
+            // ?file= must be one string: Express gives an array for ?file=a&file=b, or an object for ?file[x]=
+            const fileParam: unknown = request.query['file'];
+            let file: string | undefined;
+            if (typeof fileParam === 'string')
+                file = fileParam;
+            else if (fileParam !== undefined)
+                throw new InputException("Invalid file path");
 
             const downloadInfo = await jobService.getJobDownloadInfo(job_id);
 
-            if (downloadInfo.job_type === JobType["Quality-Report"]) {
+            if (file === undefined && downloadInfo.job_type === JobType["Quality-Report"]) {
                 return response.redirect(downloadInfo.download_url);
             }
 
-            const fileEntity = await jobService.getJobFileEntity(job_id);
+            const fileEntity = file === undefined ? await jobService.getJobFileEntity(job_id)
+                : await jobService.getJobFileEntity(job_id, file);
             response.setHeader('Content-Type', fileEntity.mimeType);
             response.setHeader('Content-Disposition', `attachment; filename=${fileEntity.fileName}`);
             (await fileEntity.getStream()).pipe(response);
