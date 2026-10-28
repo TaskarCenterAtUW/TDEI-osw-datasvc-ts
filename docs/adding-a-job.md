@@ -1,11 +1,12 @@
 # Adding a job to TDEI
 
-This guide covers how to add a new job type end to end: a worker that does the work, the Azure resources it needs, and the changes here and in the gateway that let users start it through the TDEI API. For how workflows are structured, see [orchestrator_v2.md](../src/orchestrator_v2/orchestrator_v2.md).
+This guide covers how to add a new job type end to end: a worker that does the work, the Azure resources it needs, the changes here and in the gateway that let users start it through the TDEI API, and the portal changes that let them start and find it there. For how workflows are structured, see [orchestrator_v2.md](../src/orchestrator_v2/orchestrator_v2.md).
 
 The Pathways-Convert job is a worked example of every step:
 - the worker: [TDEI-python-pathways-converter](https://github.com/TaskarCenterAtUW/TDEI-python-pathways-converter)
 - this repo: #402
 - the gateway: TDEI-gateway #170
+- the portal: TDEI-user-management-front-end #346
 
 ## How a job runs
 
@@ -93,9 +94,20 @@ TDEI-gateway routes only the endpoints it lists. Add yours to `config/settings/<
 
 Query strings are forwarded on every route.
 
-## 5. Deploy and check
+## 5. The portal
 
-1. Merge this repo's PR, then the gateway's, into `dev`. Each deploys on merge.
+The TDEI portal ([TDEI-user-management-front-end](https://github.com/TaskarCenterAtUW/TDEI-user-management-front-end)) lists job types by hand, so a new job doesn't appear there until you add it. All of these are under `tdei-ui/src`, on the `dev` branch:
+- **The Jobs page filter:** add the `JobType` value to `jobTypeOptions` in `routes/Jobs/Jobs.js`. Without it, users can't filter to the new job.
+- **The Download button:** add the job type to the list in `components/JobListItem/JobListItem.js` that shows *Download Result* for a completed job. Without it, users can't download the result from the portal.
+- **Create Job** (`routes/Jobs/CreateJob.js`), if users should start the job from the portal:
+  - add it to `jobTypeOptions`, and its fields to `formConfig`, or a form component of its own for anything `formConfig` can't express
+  - add its endpoint to `getPathFromJobType` and `urlPath`, and its validation to `handleCreate`
+  - add a `case` for the endpoint to `postCreateJob` in `services/apiServices.js`, building the request body
+  - give it a description. `getDescription` reads it from the copy of the API spec in `assets/api_spec.json`, so either update that copy or return the text directly.
+
+## 6. Deploy and check
+
+1. Merge this repo's PR, then the gateway's, then the portal's, into `dev`. Each deploys on merge.
 2. Start a job through `https://api-dev.tdei.us`.
 3. Watch it in `GET /api/v1/jobs?job_id=…`.
 4. Download the result with `GET /api/v1/job/download/{job_id}`.

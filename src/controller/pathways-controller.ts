@@ -8,6 +8,7 @@ import { environment } from "../environment/environment";
 import multer, { memoryStorage } from "multer";
 import path from "path";
 import { IUploadRequest } from "../service/interface/upload-request-interface";
+import { IConvertRequest } from "../service/interface/convert-request-interface";
 import { metajsonValidator } from "../middleware/metadata-json-validation-middleware";
 import { authorize } from "../middleware/authorize-middleware";
 import { authenticate } from "../middleware/authenticate-middleware";
@@ -59,6 +60,19 @@ const upload = multer({
     }
 });
 
+const convert = multer({
+    dest: 'convert/',
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const allowedFileTypes = ['.zip'];
+        const ext = path.extname(file.originalname);
+        if (!allowedFileTypes.includes(ext)) {
+            cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
+
 class PathwaysController implements IController {
     public path = '/api/v1/gtfs-pathways';
     public router = express.Router();
@@ -69,6 +83,7 @@ class PathwaysController implements IController {
     public intializeRoutes() {
         this.router.get(`${this.path}/:id`, apiTracker, authenticate, this.getPathwaysById);
         this.router.post(`${this.path}/validate`, validate.single('dataset'), apiTracker, authenticate, this.processValidationOnlyRequest);
+        this.router.post(`${this.path}/convert`, convert.single('dataset'), apiTracker, authenticate, this.processConvertRequest);
         this.router.post(`${this.path}/upload/:tdei_project_group_id/:tdei_service_id`, upload.fields([
             { name: "dataset", maxCount: 1 },
             { name: "metadata", maxCount: 1 },
@@ -150,6 +165,62 @@ class PathwaysController implements IController {
             }
             response.status(500).send("Error while processing the validation request");
             next(new HttpException(500, "Error while processing the validation request"));
+        }
+    }
+
+    /**
+    * Processes a request to convert station drawings into GTFS Pathways: either a dataset file
+    * (a zip of DXF drawings) or an arcgis_url, with optional conversion settings as form fields.
+    * @param request 
+    * @param response 
+    * @param next 
+    * @returns 
+    */
+    processConvertRequest = async (request: Request, response: express.Response, next: NextFunction) => {
+        try {
+            console.log('Received convert request');
+            const datasetFile = request.file;
+            if (datasetFile) {
+                const file_size_in_bytes = Utility.calculateTotalSize([datasetFile] as any);
+                if (file_size_in_bytes > getDatasetUploadLimitBytes(DataType.pathways)) {
+                    throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.pathways));
+                }
+            }
+
+            // The caller's own access, for the converter to read an agency GTFS dataset with
+            const authorization = request.headers['authorization'] as string | undefined;
+            const apiKey = request.headers['x-api-key'] as string | undefined;
+            const body = request.body ?? {};
+            const convertRequest: IConvertRequest = {
+                user_id: body.user_id,
+                datasetFile: datasetFile,
+                arcgis_url: body.arcgis_url,
+                layers: body.layers,
+                crs: body.crs,
+                control: body.control,
+                station: body.station,
+                level_pattern: body.level_pattern,
+                levels: body.levels,
+                exclude_levels: body.exclude_levels,
+                agency_gtfs_dataset_id: body.agency_gtfs_dataset_id,
+                parent_station: body.parent_station,
+                platforms: body.platforms,
+                tdei_auth_token: authorization ? authorization.replace('Bearer ', '') : undefined,
+                tdei_api_key: apiKey
+            };
+
+            const job_id = await pathwaysService.processConvertRequest(convertRequest);
+            response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
+            return response.status(202).send(job_id);
+
+        } catch (error) {
+            console.error("Error while processing the convert request", error);
+            if (error instanceof HttpException) {
+                response.status(error.status).send(error.message);
+                return next(error);
+            }
+            response.status(500).send("Error while processing the convert request");
+            next(new HttpException(500, "Error while processing the convert request"));
         }
     }
 

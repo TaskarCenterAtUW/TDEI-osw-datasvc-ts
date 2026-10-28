@@ -74,6 +74,13 @@ class StorageService {
         return 'jobs/validation/' + year + '/' + month + '/' + uid;
     }
 
+    getConverterJobPath(uid: string): string {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        return 'jobs/converter/' + year + '/' + month + '/' + uid;
+    }
+
     /**
      * Upload the file to storage
      * @param filePath File path of the file

@@ -288,5 +288,108 @@ describe("Pathways Service Test", () => {
         });
 
     });
-});
 
+    describe('process convert request', () => {
+        const userId = 'user-id';
+        const arcgisUrl = 'https://rtamaps2.soundtransit.org/arcgis/rest/services/Link_IndividualStations_Central/MapServer';
+        const datasetFile = {
+            originalname: 'drawings.zip',
+            buffer: Buffer.from('file-content'),
+        };
+        const mockJobId = 101;
+
+        function mockJob() {
+            jest.spyOn(jobService, "createJob").mockResolvedValue(mockJobId);
+            mockAppContext();
+        }
+
+        function workflowInput(): any {
+            return (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
+        }
+
+        it('should start the conversion of an ArcGIS service', async () => {
+            mockJob();
+
+            const result = await pathwaysService.processConvertRequest({
+                user_id: userId, arcgis_url: arcgisUrl, layers: '7-19', levels: '{"Platform": -1}'
+            });
+
+            expect(result).toBe(mockJobId.toString());
+            expect(jobService.createJob).toHaveBeenCalledWith(expect.objectContaining({
+                job_type: 'Pathways-Convert',
+                data_type: 'pathways',
+                request_input: { arcgis_url: arcgisUrl, layers: '7-19', levels: { Platform: -1 } }
+            }));
+            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
+                mockJobId.toString(), 'pathways_convert', expect.anything(), userId);
+            expect(workflowInput()).toEqual(expect.objectContaining({
+                job_id: mockJobId.toString(),
+                arcgis_url: arcgisUrl,
+                dxf_file_upload_path: '',
+                layers: '7-19',
+                levels: { Platform: -1 },
+                control: null,
+                tdei_auth_token: ''
+            }));
+        });
+
+        it('should upload a DXF zip to the converter container and pass its URL on', async () => {
+            jest.spyOn(storageService, "generateRandomUUID").mockReturnValue('uuid');
+            jest.spyOn(storageService, "getConverterJobPath").mockReturnValue('converter-job-path');
+            jest.spyOn(storageService, "uploadFile").mockResolvedValue('dxf-upload-url');
+            mockJob();
+
+            await pathwaysService.processConvertRequest({
+                user_id: userId, datasetFile: datasetFile, crs: 'EPSG:2926', level_pattern: '_(\\w+)$'
+            });
+
+            expect(storageService.getConverterJobPath).toHaveBeenCalledWith('uuid');
+            expect(storageService.uploadFile).toHaveBeenCalledWith('converter-job-path/drawings.zip', 'application/zip', expect.anything(), 'pathways-converter');
+            expect(workflowInput()).toEqual(expect.objectContaining({
+                arcgis_url: '', dxf_file_upload_path: 'dxf-upload-url', crs: 'EPSG:2926', level_pattern: '_(\\w+)$'
+            }));
+        });
+
+        it('should pass the caller\'s token on only with an agency GTFS dataset, and never store it on the job', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById").mockResolvedValue(<any>{ tdei_dataset_id: 'gtfs-id' });
+            mockJob();
+
+            await pathwaysService.processConvertRequest({
+                user_id: userId, arcgis_url: arcgisUrl, agency_gtfs_dataset_id: 'gtfs-id', tdei_auth_token: 'token'
+            });
+
+            expect(tdeiCoreService.getDatasetDetailsById).toHaveBeenCalledWith('gtfs-id');
+            expect(workflowInput()).toEqual(expect.objectContaining({ agency_gtfs_dataset_id: 'gtfs-id', tdei_auth_token: 'token' }));
+            const job = (jobService.createJob as jest.Mock).mock.calls[0][0];
+            expect(job.request_input).toEqual({ arcgis_url: arcgisUrl, agency_gtfs_dataset_id: 'gtfs-id' });
+        });
+
+        it('should not pass the caller\'s token on without an agency GTFS dataset', async () => {
+            mockJob();
+
+            await pathwaysService.processConvertRequest({ user_id: userId, arcgis_url: arcgisUrl, tdei_auth_token: 'token' });
+
+            expect(workflowInput()).toEqual(expect.objectContaining({ tdei_auth_token: '', tdei_api_key: '' }));
+        });
+
+        it.each([
+            ['neither drawings', {}],
+            ['both kinds of drawings', { datasetFile: datasetFile, arcgis_url: arcgisUrl }],
+            ['an http URL', { arcgis_url: 'http://example.com/arcgis/rest/services/x/MapServer' }],
+            ['a URL that is not a map service', { arcgis_url: 'https://example.com/arcgis/rest/services/x' }],
+            ['an IP address', { arcgis_url: 'https://10.0.0.1/arcgis/rest/services/x/MapServer' }],
+            ['localhost', { arcgis_url: 'https://localhost/arcgis/rest/services/x/MapServer' }],
+            ['credentials in the URL', { arcgis_url: 'https://user:pass@example.com/arcgis/rest/services/x/MapServer' }],
+            ['levels that are not JSON', { arcgis_url: arcgisUrl, levels: '{Platform: -1}' }],
+            ['levels that are not integers', { arcgis_url: arcgisUrl, levels: '{"Platform": "low"}' }],
+            ['control that is not a list of text', { arcgis_url: arcgisUrl, control: '[1, 2]' }],
+            ['an agency GTFS dataset without the caller\'s access', { arcgis_url: arcgisUrl, agency_gtfs_dataset_id: 'gtfs-id' }],
+        ])('should reject a request with %s', async (_name, request: any) => {
+            mockJob();
+
+            await expect(pathwaysService.processConvertRequest({ user_id: userId, ...request }))
+                .rejects.toBeInstanceOf(InputException);
+            expect(jobService.createJob).not.toHaveBeenCalled();
+        });
+    });
+});

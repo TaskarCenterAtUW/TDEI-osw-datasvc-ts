@@ -4,6 +4,7 @@ import dbClient from "../database/data-source";
 import { DatasetEntity } from "../database/entity/dataset-entity";
 import { InputException, OverlapException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
 import { IUploadRequest } from "./interface/upload-request-interface";
+import { IConvertRequest } from "./interface/convert-request-interface";
 import path from "path";
 import { Readable } from "stream";
 import storageService from "./storage-service";
@@ -22,6 +23,11 @@ import { Utility } from "../utility/utility";
 import AdmZip from "adm-zip";
 import HttpException from "../exceptions/http/http-base-exception";
 import { DownloadStatsEntity } from "../database/entity/download-stats";
+import { isIP } from "net";
+import _ from "lodash";
+
+/** The blob container the pathways-converter job reads its input from and writes its output to */
+const PATHWAYS_CONVERTER_CONTAINER = "pathways-converter";
 
 class PathwaysService implements IPathwaysService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -358,6 +364,141 @@ class PathwaysService implements IPathwaysService {
         await this.tdeiCoreServiceInstance.createDownloadStats(downloadStatsEntity);
 
         return sasUrl;
+    }
+
+    /**
+     * Processes a request to convert station drawings (a DXF zip or an ArcGIS service) into GTFS Pathways.
+     * The drawings go to the pathways-converter job, which stores its output under the job's folder in the
+     * pathways-converter container; the job's download_url is the zip of all of it.
+     *
+     * @param convertRequest - The drawings and the conversion options.
+     * @returns A Promise that resolves to the job ID.
+     * @throws {InputException} If the request names no drawings or both kinds, or an option is malformed.
+     */
+    async processConvertRequest(convertRequest: IConvertRequest): Promise<string> {
+        const datasetFile = convertRequest.datasetFile;
+        const arcgis_url = PathwaysService.textOption("arcgis_url", convertRequest.arcgis_url);
+        if (!!datasetFile === !!arcgis_url) {
+            throw new InputException("Provide either a dataset file (a zip of DXF drawings) or arcgis_url, but not both");
+        }
+        if (arcgis_url) {
+            PathwaysService.checkArcgisUrl(arcgis_url);
+        }
+
+        const levels = PathwaysService.jsonOption("levels", convertRequest.levels,
+            (v) => _.isPlainObject(v) && Object.values(v).every((i) => Number.isInteger(i)),
+            'an object of level name to level_index, e.g. {"Platform": -1}');
+        const control = PathwaysService.jsonOption("control", convertRequest.control, PathwaysService.isStringList,
+            'a list of "x,y,lon,lat" strings');
+        const exclude_levels = PathwaysService.jsonOption("exclude_levels", convertRequest.exclude_levels,
+            PathwaysService.isStringList, "a list of level names");
+        const platforms = PathwaysService.jsonOption("platforms", convertRequest.platforms, PathwaysService.isStringList,
+            "a list of stop_ids");
+
+        const agency_gtfs_dataset_id = PathwaysService.textOption("agency_gtfs_dataset_id", convertRequest.agency_gtfs_dataset_id);
+        if (agency_gtfs_dataset_id) {
+            // The converter downloads the agency's GTFS with the caller's own access
+            if (!convertRequest.tdei_auth_token && !convertRequest.tdei_api_key) {
+                throw new InputException("agency_gtfs_dataset_id needs the caller's access token or API key");
+            }
+            await this.tdeiCoreServiceInstance.getDatasetDetailsById(agency_gtfs_dataset_id);
+        }
+
+        let dxf_file_upload_path = "";
+        if (datasetFile) {
+            const uid = storageService.generateRandomUUID();
+            const uploadStoragePath = path.join(storageService.getConverterJobPath(uid), datasetFile.originalname);
+            dxf_file_upload_path = await storageService.uploadFile(uploadStoragePath, 'application/zip', Readable.from(datasetFile.buffer), PATHWAYS_CONVERTER_CONTAINER);
+        }
+
+        const options = {
+            layers: PathwaysService.textOption("layers", convertRequest.layers),
+            crs: PathwaysService.textOption("crs", convertRequest.crs),
+            station: PathwaysService.textOption("station", convertRequest.station),
+            level_pattern: PathwaysService.textOption("level_pattern", convertRequest.level_pattern),
+            parent_station: PathwaysService.textOption("parent_station", convertRequest.parent_station),
+            levels: levels,
+            control: control,
+            exclude_levels: exclude_levels,
+            platforms: platforms,
+            agency_gtfs_dataset_id: agency_gtfs_dataset_id
+        };
+
+        const job = CreateJobDTO.from({
+            data_type: TDEIDataType.pathways,
+            job_type: JobType["Pathways-Convert"],
+            status: JobStatus["IN-PROGRESS"],
+            message: 'Job started',
+            // The request as given, without the caller's credentials
+            request_input: _.pickBy({
+                arcgis_url: arcgis_url,
+                file_upload_name: datasetFile ? datasetFile.originalname : "",
+                ...options
+            }, (v) => v !== "" && v !== null),
+            tdei_project_group_id: '',
+            user_id: convertRequest.user_id,
+        });
+        const job_id = await this.jobServiceInstance.createJob(job);
+
+        const workflow_start = WorkflowName.pathways_convert;
+        const workflow_input = {
+            job_id: job_id.toString(),
+            user_id: convertRequest.user_id,
+            arcgis_url: arcgis_url,
+            dxf_file_upload_path: dxf_file_upload_path,
+            ...options,
+            tdei_auth_token: agency_gtfs_dataset_id ? convertRequest.tdei_auth_token ?? "" : "",
+            tdei_api_key: agency_gtfs_dataset_id ? convertRequest.tdei_api_key ?? "" : ""
+        };
+        await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, convertRequest.user_id);
+
+        return job_id.toString();
+    }
+
+    /** An option given as text (form fields are text; a number is accepted as its text). "" when not given. */
+    private static textOption(name: string, value: unknown): string {
+        if (value === undefined || value === null) return "";
+        if (typeof value === "number") return String(value);
+        if (typeof value !== "string") throw new InputException(`${name} must be text`);
+        return value.trim();
+    }
+
+    /** An option given as JSON, or as JSON text (from a form field). null when not given. */
+    private static jsonOption(name: string, value: unknown, valid: (v: any) => boolean, expected: string): any {
+        if (value === undefined || value === null || (typeof value === "string" && value.trim() === "")) return null;
+        let parsed: any = value;
+        if (typeof value === "string") {
+            try {
+                parsed = JSON.parse(value);
+            } catch (e) {
+                throw new InputException(`${name} must be JSON: ${expected}`);
+            }
+        }
+        if (!valid(parsed)) throw new InputException(`${name} must be ${expected}`);
+        return parsed;
+    }
+
+    private static isStringList(value: any): boolean {
+        return Array.isArray(value) && value.every((s) => typeof s === "string");
+    }
+
+    /**
+     * The converter fetches the service itself, so take only a public https ArcGIS MapServer or
+     * FeatureServer URL: no credentials in it, and a host name rather than an IP address or localhost.
+     */
+    private static checkArcgisUrl(arcgis_url: string): void {
+        const expected = "arcgis_url must be an https ArcGIS MapServer or FeatureServer URL, e.g. https://<host>/arcgis/rest/services/<name>/MapServer";
+        let url: URL;
+        try {
+            url = new URL(arcgis_url);
+        } catch (e) {
+            throw new InputException(expected);
+        }
+        const host = url.hostname.replace(/^\[|\]$/g, "");
+        if (url.protocol !== "https:" || url.username || url.password || isIP(host) || host === "localhost"
+            || !/\/(MapServer|FeatureServer)\/?$/i.test(url.pathname)) {
+            throw new InputException(expected);
+        }
     }
 }
 
