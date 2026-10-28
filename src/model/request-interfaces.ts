@@ -38,7 +38,7 @@ export class SpatialJoinRequest extends AbstractDomainEntity {
     aggregate!: string[];
     @Prop()
     @IsIn(['default', 'exclusive', 'shared'])
-    assignment_method = 'default';
+    assignment_method: string = 'default';
 
     async validateRequestInput() {
         const errors = await validate(this);
@@ -200,7 +200,7 @@ export class UnionRequest extends AbstractDomainEntity {
     tdei_dataset_id_two!: string;
     @Prop()
     @IsNumber()
-    proximity = 0.5;
+    proximity: number = 0.5;
     /** Omitted means every feature is eligible to merge. */
     @Prop()
     @IsOptional()
@@ -226,7 +226,7 @@ export class SelfMergeRequest extends AbstractDomainEntity {
 
     @Prop()
     @IsNumber()
-    proximity = 0.5;
+    proximity: number = 0.5;
 
     async validateRequestInput() {
         const errors = await validate(this);

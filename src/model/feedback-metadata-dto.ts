@@ -3,9 +3,9 @@ import { AbstractDomainEntity, Prop } from "nodets-ms-core/lib/models";
 
 export class FeedbackMetadataDTO extends AbstractDomainEntity {
     @Prop()
-    total_count = 0;
+    total_count: number = 0;
     @Prop()
-    total_overdues = 0;
+    total_overdues: number = 0;
     @Prop()
-    total_open = 0;
+    total_open: number = 0;
 }
