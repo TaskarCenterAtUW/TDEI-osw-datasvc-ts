@@ -1329,7 +1329,7 @@ class OswService implements IOswService {
      * @throws HttpException if the OswStream is not found or if the request record is deleted.
      * @throws Error if the storage is not configured.
      */
-    async getOswStreamById(tdei_dataset_id: string, format = "osw", file_version = "latest"): Promise<FileEntity[]> {
+    async getOswStreamById(tdei_dataset_id: string, format: string = "osw", file_version = "latest"): Promise<FileEntity[]> {
         const fileEntities: FileEntity[] = [];
 
         const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(tdei_dataset_id);
@@ -1340,7 +1340,7 @@ class OswService implements IOswService {
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
 
-        let url = '';
+        let url: string = '';
         if (format == "osm") {
             //if file_version is latest, get the latest version of the file
             if (file_version == "latest") {
@@ -1379,7 +1379,7 @@ class OswService implements IOswService {
         return fileEntities;
     }
 
-    async getDownloadableOSWUrl(id: string, user_id: string, format = "osw", file_version = "latest"): Promise<string> {
+    async getDownloadableOSWUrl(id: string, user_id: string, format: string = "osw", file_version = "latest"): Promise<string> {
 
         const dataset = await this.tdeiCoreServiceInstance.getDatasetDetailsById(id);
         if (file_version != "latest") {

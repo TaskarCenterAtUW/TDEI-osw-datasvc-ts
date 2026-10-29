@@ -8,39 +8,39 @@ import { IsValidPolygon } from "../validators/polygon-validator";
 export class DataProvenance extends AbstractDomainEntity {
     @Prop()
     @IsNotEmpty()
-    full_dataset_name = "";
+    full_dataset_name: string = "";
     @Prop()
     @IsOptional()
-    other_published_locations = "";
+    other_published_locations: string = "";
     @Prop()
     @IsOptional()
-    dataset_update_frequency_months = 0;
+    dataset_update_frequency_months: number = 0;
     @Prop()
     @IsOptional()
-    schema_validation_run = false;
+    schema_validation_run: boolean = false;
     @Prop()
     @IsOptional()
-    schema_validation_run_description = "";
+    schema_validation_run_description: string = "";
     @Prop()
     @IsOptional()
-    allow_crowd_contributions = false;
+    allow_crowd_contributions: boolean = false;
     @Prop()
     @IsOptional()
-    location_inaccuracy_factors = "";
+    location_inaccuracy_factors: string = "";
 }
 
 export class DatasetDetail extends AbstractDomainEntity {
     @Prop()
     @IsNotEmpty()
-    name = "";
+    name: string = "";
 
     @Prop()
     @IsOptional()
-    description = "";
+    description: string = "";
 
     @Prop()
     @IsNotEmpty()
-    version = "";
+    version: string = "";
 
     @Prop()
     @IsOptional()
@@ -48,7 +48,7 @@ export class DatasetDetail extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    collected_by = "";
+    collected_by: string = "";
 
     @Prop()
     @IsISO8601()
@@ -68,7 +68,7 @@ export class DatasetDetail extends AbstractDomainEntity {
     @Prop()
     @IsOptional()
     @IsIn(['manual', 'transform', 'generated', 'AV', 'others'])
-    collection_method = "";
+    collection_method: string = "";
 
     @Prop()
     @IsNotEmpty()
@@ -84,34 +84,34 @@ export class DatasetDetail extends AbstractDomainEntity {
 
     @Prop()
     @IsNotEmpty()
-    schema_version = "";
+    schema_version: string = "";
 }
 
 export class DatasetSummary extends AbstractDomainEntity {
     @Prop()
     @IsOptional()
-    collection_name = "";
+    collection_name: string = "";
     @Prop()
     @IsOptional()
-    department_name = "";
+    department_name: string = "";
     @Prop()
     @IsOptional()
-    city = "";
+    city: string = "";
     @Prop()
     @IsOptional()
-    region = "";
+    region: string = "";
     @Prop()
     @IsOptional()
-    county = "";
+    county: string = "";
     @Prop()
     @IsOptional()
-    key_limitations = "";
+    key_limitations: string = "";
     @Prop()
     @IsOptional()
-    release_notes = "";
+    release_notes: string = "";
     @Prop()
     @IsOptional()
-    challenges = "";
+    challenges: string = "";
 }
 
 export class Maintenance extends AbstractDomainEntity {
@@ -120,76 +120,76 @@ export class Maintenance extends AbstractDomainEntity {
     official_maintainer: string[] = [];
     @Prop()
     @IsOptional()
-    last_updated = "";
+    last_updated: string = "";
     @Prop()
     @IsOptional()
-    update_frequency = "";
+    update_frequency: string = "";
     @Prop()
     @IsOptional()
-    authorization_chain = "";
+    authorization_chain: string = "";
     @Prop()
     @IsOptional()
-    maintenance_funded = false;
+    maintenance_funded: boolean = false;
     @Prop()
     @IsOptional()
-    funding_details = "";
+    funding_details: string = "";
 }
 
 export class Methodology extends AbstractDomainEntity {
     @Prop()
     @IsOptional()
-    point_data_collection_device = "";
+    point_data_collection_device: string = "";
     @Prop()
     @IsOptional()
-    node_locations_and_attributes_editing_software = "";
+    node_locations_and_attributes_editing_software: string = "";
     @Prop()
     @IsOptional()
-    data_collected_by_people = false;
+    data_collected_by_people: boolean = false;
     @Prop()
     @IsOptional()
-    data_collectors = "";
+    data_collectors: string = "";
     @Prop()
     @IsOptional()
-    data_captured_automatically = false;
+    data_captured_automatically: boolean = false;
     @Prop()
     @IsOptional()
-    automated_collection = "";
+    automated_collection: string = "";
     @Prop()
     @IsOptional()
-    data_collectors_organization = "";
+    data_collectors_organization: string = "";
     @Prop()
     @IsOptional()
-    data_collector_compensation = "";
+    data_collector_compensation: string = "";
     @Prop()
     @IsOptional()
-    preprocessing_location = "";
+    preprocessing_location: string = "";
     @Prop()
     @IsOptional()
-    preprocessing_by = "";
+    preprocessing_by: string = "";
     @Prop()
     @IsOptional()
-    preprocessing_steps = "";
+    preprocessing_steps: string = "";
     @Prop()
     @IsOptional()
-    data_collection_preprocessing_documentation = false;
+    data_collection_preprocessing_documentation: boolean = false;
     @Prop()
     @IsOptional()
-    documentation_uri = "";
+    documentation_uri: string = "";
     @Prop()
     @IsOptional()
-    validation_process_exists = false;
+    validation_process_exists: boolean = false;
     @Prop()
     @IsOptional()
-    validation_process_description = "";
+    validation_process_description: string = "";
     @Prop()
     @IsOptional()
-    validation_conducted_by = "";
+    validation_conducted_by: string = "";
     @Prop()
     @IsOptional()
-    excluded_data = "";
+    excluded_data: string = "";
     @Prop()
     @IsOptional()
-    excluded_data_reason = "";
+    excluded_data_reason: string = "";
 }
 
 export class MetadataModel extends AbstractDomainEntity {

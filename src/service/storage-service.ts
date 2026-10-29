@@ -88,7 +88,7 @@ class StorageService {
      * @param body Readable stream of the body
      * @param containerName Name of the container. defaults to gtfs-osw
      */
-    async uploadFile(filePath: string, type = 'application/zip', body: NodeJS.ReadableStream, containerName = 'osw') {
+    async uploadFile(filePath: string, type: string = 'application/zip', body: NodeJS.ReadableStream, containerName = 'osw') {
         const container = await this.getStorageClient()?.getContainer(containerName);
         const file = container?.createFile(filePath, type);
         const uploadedEntity = await file?.upload(body);
