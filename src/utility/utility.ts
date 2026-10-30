@@ -82,7 +82,7 @@ export class Utility {
      * @param approvedRoles - An array of approved roles.
      * @returns A Promise that resolves to a boolean indicating whether the user is authorized or not.
      */
-    public static async authorizeRoles(user_id: string, tdei_project_group_id: string, approvedRoles: string[]): Promise<Boolean> {
+    public static async authorizeRoles(user_id: string, tdei_project_group_id: string, approvedRoles: string[]): Promise<boolean> {
         const authProvider = Core.getAuthorizer({ provider: "Hosted", apiUrl: environment.authPermissionUrl });
         const permissionRequest = new PermissionRequest({
             userId: user_id as string,
@@ -115,7 +115,9 @@ export class Utility {
             'txt': 'text/plain',
             'json': 'application/json',
             'zip': 'application/zip',
-            'xml': 'application/xml'
+            'xml': 'application/xml',
+            'geojson': 'application/geo+json',
+            'md': 'text/markdown'
         };
 
         return mimeTypes[extension];

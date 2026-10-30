@@ -24,7 +24,7 @@ export class UploadFormattingRequestWorkflow extends WorkflowBase {
             const dataset = await tdeiCoreService.getDatasetDetailsById(job.response_props.tdei_dataset_id);
 
             //Compose the meessage
-            let queueMessage = QueueMessage.from({
+            const queueMessage = QueueMessage.from({
                 messageId: message.messageId,
                 messageType: `${this.eventName}`, //will be set by the publish handler with params defined in config
                 data: {

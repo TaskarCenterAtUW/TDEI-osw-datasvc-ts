@@ -41,10 +41,10 @@ export class SpatialJoinRequest extends AbstractDomainEntity {
     assignment_method: string = 'default';
 
     async validateRequestInput() {
-        let errors = await validate(this);
+        const errors = await validate(this);
         if (errors.length > 0) {
             console.log('Input validation failed');
-            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
             throw new InputException(`Required fields are missing or invalid: ${message}`);
         }
         return true;
@@ -207,10 +207,10 @@ export class UnionRequest extends AbstractDomainEntity {
     entity_filters?: EntityFilters;
 
     async validateRequestInput() {
-        let errors = await validate(this);
+        const errors = await validate(this);
         if (errors.length > 0) {
             console.log('Input validation failed');
-            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
             throw new InputException(`Required fields are missing or invalid: ${message}`);
         }
         validateEntityFilters(this.entity_filters);
@@ -229,10 +229,10 @@ export class SelfMergeRequest extends AbstractDomainEntity {
     proximity: number = 0.5;
 
     async validateRequestInput() {
-        let errors = await validate(this);
+        const errors = await validate(this);
         if (errors.length > 0) {
             console.log('Input validation failed');
-            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
             throw new InputException(`Required fields are missing or invalid: ${message}`);
         }
         return true;

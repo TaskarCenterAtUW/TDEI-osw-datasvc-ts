@@ -5,9 +5,6 @@ import { DatasetQueryParams } from '../../../src/model/dataset-get-query-params'
 
 describe('validateQueryDto Middleware', () => {
 
-    beforeEach(() => {
-    });
-
     it('Passing valid pram, should call next without errors if validation passes', async () => {
         const mockRequest = getMockReq({
             query: { name: 'test' },

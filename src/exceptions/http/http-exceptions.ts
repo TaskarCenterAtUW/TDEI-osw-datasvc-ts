@@ -59,7 +59,7 @@ export class InputException extends HttpException {
 
 export class JobIdNotFoundException extends HttpException {
     constructor(jobId: string, response?: Response) {
-        let message = `JobId with ID ${jobId} not found`;
+        const message = `JobId with ID ${jobId} not found`;
         response?.status(404).send(message);
         super(404, message);
     }
@@ -74,7 +74,7 @@ export class ServiceNotFoundException extends HttpException {
 
 export class JobIncompleteException extends HttpException {
     constructor(jobId: string, response?: Response) {
-        let message = `Job with ID ${jobId} is not completed yet`;
+        const message = `Job with ID ${jobId} is not completed yet`;
         response?.status(400).send(message);
         super(404, message);
     }
@@ -82,7 +82,7 @@ export class JobIncompleteException extends HttpException {
 
 export class JobFailedException extends HttpException {
     constructor(jobId: string, response?: Response) {
-        let message = `Job with ID ${jobId} is failed`;
+        const message = `Job with ID ${jobId} is failed`;
         response?.status(400).send(message);
         super(404, message);
     }

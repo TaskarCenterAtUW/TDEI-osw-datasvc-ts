@@ -11,8 +11,6 @@ import { Utility } from "../utility/utility";
 import { InputException } from "../exceptions/http/http-exceptions";
 
 class JobService implements IJobService {
-    constructor() { }
-
     /**
      * Retrieves a list of jobs based on the provided query parameters.
      * @param user_id user_id.
@@ -120,11 +118,14 @@ class JobService implements IJobService {
     /**
      * Retrieves the FileEntity associated with the given job ID.
      * @param job_id The ID of the job.
+     * @param file Optional path of another file the job stored, relative to its download's folder
+     *             (e.g. `beacon_hill/reference/platform.geojson`). See fileBesideDownload.
      * @returns A Promise that resolves to the FileEntity.
      * @throws HttpException if the file is not found.
+     * @throws InputException if `file` isn't an allowed path for this job.
      * @throws Error if the storage is not configured.
      */
-    async getJobFileEntity(job_id: string): Promise<FileEntity> {
+    async getJobFileEntity(job_id: string, file?: string): Promise<FileEntity> {
 
         if (Number.isNaN(Number(job_id)))
             throw new InputException("Invalid job id");
@@ -138,14 +139,24 @@ class JobService implements IJobService {
             throw new HttpException(404, "Download not available for this job.");
 
         let url = decodeURIComponent(result.rows[0].download_url);
+        if (file !== undefined)
+            url = JobService.fileBesideDownload(url, job_id, file);
 
         const storageClient = Core.getStorageClient();
         if (storageClient == null) throw new Error("Storage not configured");
 
-        let fileEntity = await storageClient.getFileFromUrl(url);
+        let fileEntity: FileEntity;
+        try {
+            fileEntity = await storageClient.getFileFromUrl(url);
+        } catch (error: any) {
+            // storage's not-found error isn't an HttpException, so it would otherwise surface as a 500
+            if (file !== undefined && error?.status === 404)
+                throw new HttpException(404, "This job has no such file.");
+            throw error;
+        }
         const extension = url.split('.').pop();
         // Check if the extension is one of the expected types
-        if (['txt', 'json', 'zip', 'xml'].includes(extension!)) {
+        if (['txt', 'json', 'zip', 'xml', 'geojson', 'md'].includes(extension!)) {
             const mimeType = Utility.getMimeType(extension!);
             fileEntity.mimeType = mimeType;
         } else {
@@ -155,11 +166,47 @@ class JobService implements IJobService {
     }
 
     /**
+     * The URL of another file a job stored beside its download, for jobs that write several files
+     * (e.g. the pathways converter's per-level reference data).
+     *
+     * Only reaches inside the job's own folder: the download must sit in a folder named for the job
+     * (a path segment equal to job_id), and `file` must be a plain relative path of letters, digits,
+     * `.`, `_` and `-` segments, so no `..`, no leading `/`, no encoded or backslashed tricks. The
+     * result is the download's folder with those segments appended, so the scheme, host and container
+     * can't change. Only the download's file types are served.
+     */
+    static fileBesideDownload(download_url: string, job_id: string, file: unknown): string {
+        if (typeof file !== 'string')  // a query parameter can arrive as an array or object
+            throw new InputException("Invalid file path");
+        const segments = file.split('/');
+        const safe = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
+        if (file.length === 0 || file.length > 512 || segments.some(s => !safe.test(s) || s === '.' || s === '..'))
+            throw new InputException("Invalid file path");
+        const extension = (file.split('.').pop() ?? '').toLowerCase();
+        if (!['txt', 'json', 'zip', 'xml', 'geojson', 'md'].includes(extension))
+            throw new InputException("This file type can't be downloaded");
+
+        let parsed: URL;
+        try {
+            parsed = new URL(download_url);
+        } catch {
+            throw new HttpException(404, "This job's files can't be downloaded separately.");
+        }
+        const path = parsed.pathname.split('/');
+        path.pop(); // the download itself
+        if (!path.includes(String(job_id)))
+            throw new HttpException(404, "This job's files can't be downloaded separately.");
+        parsed.pathname = [...path, ...segments.map(encodeURIComponent)].join('/');
+        parsed.search = '';  // a SAS signature is for the download blob only
+        return parsed.toString();
+    }
+
+    /**
      * Creates a job in the database.
      * @param job - The job object containing the job details.
      * @returns A Promise that resolves to the job ID of the created job.
      */
-    async createJob(job: CreateJobDTO): Promise<Number> {
+    async createJob(job: CreateJobDTO): Promise<number> {
         const result = await dbClient.query(JobEntity.getCreateJobQuery(job));
         return result.rows[0].job_id;
     }
@@ -175,17 +222,17 @@ class JobService implements IJobService {
      * @returns A promise that resolves to updated job object.
      */
     async updateJob(updateJobDTO: UpdateJobDTO): Promise<JobDTO> {
-        var response_exists = updateJobDTO.response_props && Object.keys(updateJobDTO.response_props).length > 0 ? true : false;
-        var download_exists = updateJobDTO.download_url && updateJobDTO.download_url != "" ? true : false;
-        let jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(updateJobDTO.job_id.toString()));
+        const response_exists = updateJobDTO.response_props && Object.keys(updateJobDTO.response_props).length > 0 ? true : false;
+        const download_exists = updateJobDTO.download_url && updateJobDTO.download_url != "" ? true : false;
+        const jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(updateJobDTO.job_id.toString()));
         if (jobDetail.rows.length) {
             // update the response_props with the existing response_props
             updateJobDTO.response_props = response_exists ? { ...jobDetail.rows[0].response_props, ...updateJobDTO.response_props } : jobDetail.rows[0].response_props;
             updateJobDTO.download_url = download_exists ? updateJobDTO.download_url : jobDetail.rows[0].download_url;
         }
 
-        let result = await dbClient.query(JobEntity.getUpdateJobQuery(updateJobDTO));
-        let updatedJob = JobDTO.from(result.rows[0]);
+        const result = await dbClient.query(JobEntity.getUpdateJobQuery(updateJobDTO));
+        const updatedJob = JobDTO.from(result.rows[0]);
         return updatedJob;
     }
 
@@ -197,9 +244,9 @@ class JobService implements IJobService {
      * @returns A Promise that resolves to void.
      */
     async updateJobResponseProps(job_id: string, response_props: any): Promise<void> {
-        var response_exists = response_props && Object.keys(response_props).length > 0 ? true : false;
+        const response_exists = response_props && Object.keys(response_props).length > 0 ? true : false;
         if (response_exists) {
-            let jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
+            const jobDetail = await dbClient.query(JobEntity.getJobByIdQuery(job_id));
             if (jobDetail.rows.length) {
                 // update the response_props with the existing response_props
                 response_props = { ...jobDetail.rows[0].response_props, ...response_props };

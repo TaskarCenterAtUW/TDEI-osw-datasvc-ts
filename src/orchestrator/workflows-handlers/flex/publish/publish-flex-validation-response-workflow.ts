@@ -20,7 +20,7 @@ export class FlexPublishValidationResponseWorkflow extends WorkflowBase {
             this.delegateWorkflowHandlers(message);
         }
         else {
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: message.data.message,
                 status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,

@@ -15,7 +15,7 @@ export function getMockFileEntity() {
         remoteUrl: "",
         getStream: function (): Promise<Readable> {
             const mockedStream = new Readable();
-            mockedStream._read = function () { };
+            mockedStream._read = function () { /* no-op */ };
             return Promise.resolve(mockedStream);
         },
         getBodyText: function (): Promise<string> {

@@ -215,7 +215,7 @@ export class DatasetEntity extends BaseDto {
         const dataToUpdate: any = {};
 
         for (const key in fields) {
-            if (fields.hasOwnProperty(key) && fields[key] !== undefined) {
+            if (Object.prototype.hasOwnProperty.call(fields, key) && fields[key] !== undefined) {
                 dataToUpdate[key] = fields[key];
             }
         }
