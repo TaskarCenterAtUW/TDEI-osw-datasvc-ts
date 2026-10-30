@@ -2633,7 +2633,9 @@
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
-                        "message": "<%=data.message%>"
+                        "message": "<%=data.message%>",
+                        "report_url": "<%=data.report_url%>",
+                        "report_summary": "<%=JSON.stringify(data.report_summary)%>"
                     }
                 },
                 {
@@ -2701,6 +2703,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
+                            "response_props": "<%=JSON.stringify({ tdei_dataset_id: workflow_input.tdei_dataset_id, report_summary: tasks.pathways_upload_validation.output.report_summary })%>",
+                            "download_url": "<%=tasks.pathways_upload_validation.output.report_url%>",
                             "status": "COMPLETED",
                             "message": "Pathways file <%=workflow_input.dataset_file_upload_name%> successfully accepted by TDEI system",
                             "updated_at": "CURRENT_TIMESTAMP"
@@ -2739,6 +2743,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
+                            "response_props": "<%=JSON.stringify({ tdei_dataset_id: workflow_input.tdei_dataset_id, report_summary: ((tasks.pathways_upload_validation && tasks.pathways_upload_validation.output) || {}).report_summary })%>",
+                            "download_url": "<%=((tasks.pathways_upload_validation && tasks.pathways_upload_validation.output) || {}).report_url%>",
                             "status": "FAILED",
                             "updated_at": "CURRENT_TIMESTAMP",
                             "message": "Pathways file <%=workflow_input.dataset_file_upload_name%> upload failed"
@@ -2776,7 +2782,9 @@
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
-                        "message": "<%=data.message%>"
+                        "message": "<%=data.message%>",
+                        "report_url": "<%=data.report_url%>",
+                        "report_summary": "<%=JSON.stringify(data.report_summary)%>"
                     }
                 },
                 {
@@ -2810,6 +2818,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
+                            "response_props": "<%=JSON.stringify({ report_summary: tasks.pathways_publish_validation.output.report_summary })%>",
+                            "download_url": "<%=tasks.pathways_publish_validation.output.report_url%>",
                             "status": "COMPLETED",
                             "message": "Job Completed Successfully",
                             "updated_at": "CURRENT_TIMESTAMP"
@@ -2834,6 +2844,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
+                            "response_props": "<%=JSON.stringify({ report_summary: ((tasks.pathways_publish_validation && tasks.pathways_publish_validation.output) || {}).report_summary })%>",
+                            "download_url": "<%=((tasks.pathways_publish_validation && tasks.pathways_publish_validation.output) || {}).report_url%>",
                             "status": "FAILED",
                             "updated_at": "CURRENT_TIMESTAMP"
                         }
@@ -2868,7 +2880,9 @@
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
-                        "message": "<%=data.message%>"
+                        "message": "<%=data.message%>",
+                        "report_url": "<%=data.report_url%>",
+                        "report_summary": "<%=JSON.stringify(data.report_summary)%>"
                     }
                 },
                 {
@@ -2882,6 +2896,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
+                            "response_props": "<%=JSON.stringify({ report_summary: tasks.pathways_validation_only.output.report_summary })%>",
+                            "download_url": "<%=tasks.pathways_validation_only.output.report_url%>",
                             "status": "COMPLETED",
                             "message": "Validation of Pathways file <%=workflow_input.file_upload_name%> successful - no issues found",
                             "updated_at": "CURRENT_TIMESTAMP"
@@ -2906,6 +2922,8 @@
                             "job_id": "<%=workflow_input.job_id%>"
                         },
                         "data": {
+                            "response_props": "<%=JSON.stringify({ report_summary: ((tasks.pathways_validation_only && tasks.pathways_validation_only.output) || {}).report_summary })%>",
+                            "download_url": "<%=((tasks.pathways_validation_only && tasks.pathways_validation_only.output) || {}).report_url%>",
                             "status": "FAILED",
                             "updated_at": "CURRENT_TIMESTAMP",
                             "message": "Pathways file <%=workflow_input.file_upload_name%> upload failed"
