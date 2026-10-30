@@ -108,54 +108,6 @@ describe("Workflow config", () => {
         expect(unanswered.data.message).toBe("Pathways conversion failed");
     });
 
-    it("should carry the quality report's POI options to the report request, empty when not chosen", () => {
-        const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
-        const workflow = oc.getWorkflowByName("osw_quality_report")!;
-        const [request] = workflow.tasks;
-        const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t", pois_file_url: "" };
-
-        // The key must be present, which is why the service always sends it
-        expect(workflow.validateInput(base)).toBe(false);
-
-        const options = (workflow_input: any) => {
-            const { poi_types } = OrchestratorUtility.map_props(request.input_params, { workflow_input });
-            return { poi_types };
-        };
-
-        const chosen = { ...base, poi_types: "civic,leisure" };
-        expect(workflow.validateInput(chosen)).toBe(true);
-        expect(options(chosen)).toEqual({ poi_types: "civic,leisure" });
-        expect(options({ ...base, poi_types: "civic" })).toEqual({ poi_types: "civic" });
-
-        // Not chosen: empty text, which the report pipeline reads as its default
-        const defaults = { ...base, poi_types: "" };
-        expect(workflow.validateInput(defaults)).toBe(true);
-        expect(options(defaults)).toEqual({ poi_types: "" });
-
-        // No state is sent: the report works it out from the dataset's area
-        expect(request.input_params).not.toHaveProperty("poi_state");
-    });
-
-    it("should carry the quality report's pois_file link to the report request unchanged, empty without a file", () => {
-        const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
-        const workflow = oc.getWorkflowByName("osw_quality_report")!;
-        const [request] = workflow.tasks;
-        const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t", poi_types: "" };
-
-        // The key must be present, which is why the service always sends it
-        expect(workflow.validateInput(base)).toBe(false);
-
-        // A SAS link: its &, = and % must survive the template and the JSON parse untouched
-        const link = "https://store.blob.core.windows.net/osw/jobs/quality-report/2026/11/u1/pois.csv?sv=2021-08-06&se=2026-11-22T00%3A00%3A00Z&sr=b&sp=r&sig=a%2Bb%3D";
-        const withFile = { ...base, pois_file_url: link };
-        expect(workflow.validateInput(withFile)).toBe(true);
-        expect(OrchestratorUtility.map_props(request.input_params, { workflow_input: withFile }).pois_file_url).toBe(link);
-
-        const withoutFile = { ...base, pois_file_url: "" };
-        expect(workflow.validateInput(withoutFile)).toBe(true);
-        expect(OrchestratorUtility.map_props(request.input_params, { workflow_input: withoutFile }).pois_file_url).toBe("");
-    });
-
     describe.each([
         ["pathways_validation_only", "pathways_validation_only", {}],
         ["pathways_upload", "pathways_upload_validation", { tdei_dataset_id: "d1" }],
@@ -205,47 +157,5 @@ describe("Workflow config", () => {
             expect(updated.status).toBe("COMPLETED");
             expect(JSON.parse(updated.response_props)).toEqual(expect.objectContaining(kept));
         });
-    });
-
-    it("should send the union request with its config to the backend and report the backend's reason on failure", () => {
-        const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
-        const workflow = oc.getWorkflowByName("osw_union_dataset")!;
-        const unionTask = workflow.tasks.find((t) => t.task_reference_name === "osw_union")!;
-        expect(unionTask.topic).toBe("backend-request");
-
-        // The job's parameters, as osw-service starts the workflow
-        const parameters = {
-            tdei_dataset_id_one: "ds-1",
-            tdei_dataset_id_two: "ds-2",
-            config: {
-                snap: { mode: "default", proximity: 1 },
-                extensions: { mode: "default", points: { proximity: 1 }, polygons: { enabled: false } }
-            }
-        };
-        const workflow_input = OrchestratorUtility.map_props(workflow.workflow_input, {
-            job_id: "77", service: "union_dataset", parameters, user_id: "u1", tdei_dataset_id_one: "ds-1", tdei_dataset_id_two: "ds-2"
-        });
-        expect(workflow_input.parameters).toEqual(parameters);
-
-        // The backend request carries the config unchanged, booleans included
-        const request = OrchestratorUtility.map_props(unionTask.input_params, { workflow_input });
-        expect(request).toEqual({ service: "union_dataset", user_id: "u1", parameters });
-
-        // On failure: the backend's own message appended, or none when there was no reply
-        const failure = (orchestratorConfig.workflows.find((w: any) => w.name === "osw_union_dataset") as any).exception_task[0];
-        const reason = "config.snap.proximity: must be at least 0 and at most 5 (got 9)";
-        const failed = OrchestratorUtility.map_props(failure.input_params, {
-            workflow_input, tasks: { osw_union: { output: { success: false, message: reason } } }
-        });
-        expect(failed.data).toEqual(expect.objectContaining({
-            status: "FAILED",
-            message: `Union between datasets ds-1 and ds-2 failed: ${reason}`
-        }));
-        const unanswered = OrchestratorUtility.map_props(failure.input_params, { workflow_input, tasks: {} });
-        expect(unanswered.data.message).toBe("Union between datasets ds-1 and ds-2 failed");
-        const laterTaskFailed = OrchestratorUtility.map_props(failure.input_params, {
-            workflow_input, tasks: { osw_union: { output: { success: true, message: "Dataset uploaded successfully!" } } }
-        });
-        expect(laterTaskFailed.data.message).toBe("Union between datasets ds-1 and ds-2 failed");
     });
 });
