@@ -3523,7 +3523,7 @@
                         "data": {
                             "status": "FAILED",
                             "updated_at": "CURRENT_TIMESTAMP",
-                            "message": "Union between datasets <%=workflow_input.tdei_dataset_id_one%> and <%=workflow_input.tdei_dataset_id_two%> failed"
+                            "message": "Union between datasets <%=workflow_input.tdei_dataset_id_one%> and <%=workflow_input.tdei_dataset_id_two%> failed<%=(tasks.osw_union && tasks.osw_union.output && !tasks.osw_union.output.success && tasks.osw_union.output.message) ? ': ' + tasks.osw_union.output.message : ''%>"
                         }
                     },
                     "output_params": {

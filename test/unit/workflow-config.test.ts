@@ -107,4 +107,46 @@ describe("Workflow config", () => {
         const unanswered = OrchestratorUtility.map_props(failure.input_params, { workflow_input, tasks: {} });
         expect(unanswered.data.message).toBe("Pathways conversion failed");
     });
+
+    it("should send the union request with its config to the backend and report the backend's reason on failure", () => {
+        const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
+        const workflow = oc.getWorkflowByName("osw_union_dataset")!;
+        const unionTask = workflow.tasks.find((t) => t.task_reference_name === "osw_union")!;
+        expect(unionTask.topic).toBe("backend-request");
+
+        // The job's parameters, as osw-service starts the workflow
+        const parameters = {
+            tdei_dataset_id_one: "ds-1",
+            tdei_dataset_id_two: "ds-2",
+            config: {
+                snap: { mode: "default", proximity: 1 },
+                extensions: { mode: "default", points: { proximity: 1 }, polygons: { enabled: false } }
+            }
+        };
+        const workflow_input = OrchestratorUtility.map_props(workflow.workflow_input, {
+            job_id: "77", service: "union_dataset", parameters, user_id: "u1", tdei_dataset_id_one: "ds-1", tdei_dataset_id_two: "ds-2"
+        });
+        expect(workflow_input.parameters).toEqual(parameters);
+
+        // The backend request carries the config unchanged, booleans included
+        const request = OrchestratorUtility.map_props(unionTask.input_params, { workflow_input });
+        expect(request).toEqual({ service: "union_dataset", user_id: "u1", parameters });
+
+        // On failure: the backend's own message appended, or none when there was no reply
+        const failure = (orchestratorConfig.workflows.find((w: any) => w.name === "osw_union_dataset") as any).exception_task[0];
+        const reason = "config.snap.proximity: must be at least 0 and at most 5 (got 9)";
+        const failed = OrchestratorUtility.map_props(failure.input_params, {
+            workflow_input, tasks: { osw_union: { output: { success: false, message: reason } } }
+        });
+        expect(failed.data).toEqual(expect.objectContaining({
+            status: "FAILED",
+            message: `Union between datasets ds-1 and ds-2 failed: ${reason}`
+        }));
+        const unanswered = OrchestratorUtility.map_props(failure.input_params, { workflow_input, tasks: {} });
+        expect(unanswered.data.message).toBe("Union between datasets ds-1 and ds-2 failed");
+        const laterTaskFailed = OrchestratorUtility.map_props(failure.input_params, {
+            workflow_input, tasks: { osw_union: { output: { success: true, message: "Dataset uploaded successfully!" } } }
+        });
+        expect(laterTaskFailed.data.message).toBe("Union between datasets ds-1 and ds-2 failed");
+    });
 });
