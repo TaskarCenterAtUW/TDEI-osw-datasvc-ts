@@ -1258,6 +1258,19 @@ describe("OSW Service Test", () => {
     });
 
     describe("processUnionRequest", () => {
+        const config = {
+            snap: { mode: "default", proximity: 1 },
+            connect: {
+                mode: "custom",
+                rules: [{ name: "kerbed-crossing", from: "crossing", to: "sidewalk", operation: "geometry", proximity: 1, node_tags: { barrier: "kerb" } }]
+            },
+            extensions: { mode: "default", points: { proximity: 1 }, lines: { proximity: 2.5 } }
+        };
+
+        const mockOswDatasets = () => jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
+            .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any)
+            .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any);
+
         test("When tdei_dataset_id_one dataset is not a osw dataset, Expect to throw InputException", async () => {
             mockAppContext();
             // Arrange
@@ -1301,14 +1314,13 @@ describe("OSW Service Test", () => {
             const user_id = "mock-user-id";
             const requestService = UnionRequest.from({
                 tdei_dataset_id_one: "mock-source-dataset-id",
-                tdei_dataset_id_two: "mock-target-dataset-id"
+                tdei_dataset_id_two: "mock-target-dataset-id",
+                config
             });
-
-            const sourceDataset = {
-                data_type: TDEIDataType.osw
-            };
-            const targetDataset = {
-                data_type: TDEIDataType.osw
+            const parameters = {
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id",
+                config
             };
 
             const job_id = 303;
@@ -1317,14 +1329,13 @@ describe("OSW Service Test", () => {
                 job_type: JobType["Dataset-Union"],
                 status: JobStatus["IN-PROGRESS"],
                 message: 'Job started',
-                request_input: requestService,
+                request_input: parameters,
                 tdei_project_group_id: '',
                 user_id: user_id,
             });
 
-            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
-                .mockResolvedValueOnce(sourceDataset as any)
-                .mockResolvedValueOnce(targetDataset as any);
+            mockOswDatasets();
+            const dbSpy = jest.spyOn(dbClient, "query").mockResolvedValueOnce({ rows: [{}] } as any);
             jest.spyOn(jobService, "createJob").mockResolvedValueOnce(job_id);
             jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
 
@@ -1333,73 +1344,27 @@ describe("OSW Service Test", () => {
 
             // Assert
             expect(result).toBe(job_id.toString());
+            expect(dbSpy).toHaveBeenCalledWith({
+                text: 'SELECT content.union5_validate_config($1::jsonb)',
+                values: [JSON.stringify(config)],
+            });
             expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(createJobDTO);
             expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
                 job_id.toString(),
                 WorkflowName.osw_union_dataset,
-                expect.objectContaining({
+                {
                     job_id: job_id.toString(),
                     service: "union_dataset",
-                    parameters: requestService,
+                    parameters: parameters,
                     user_id: user_id,
-                }),
-                user_id
-            );
-        });
-
-        test("When entity_filters are supplied, Expect them to be recorded on the job and passed to the workflow", async () => {
-            // Arrange
-            mockAppContext();
-            const user_id = "mock-user-id";
-            const entity_filters = {
-                edge: {
-                    filters: [
-                        { highway: "footway", footway: "sidewalk" },
-                        { highway: "footway", footway: "crossing" }
-                    ]
+                    tdei_dataset_id_one: "mock-source-dataset-id",
+                    tdei_dataset_id_two: "mock-target-dataset-id"
                 },
-                line: { filters: [{ highway: "path" }] }
-            };
-            const requestService = UnionRequest.from({
-                tdei_dataset_id_one: "mock-source-dataset-id",
-                tdei_dataset_id_two: "mock-target-dataset-id",
-                proximity: 1.5,
-                entity_filters
-            });
-
-            const job_id = 404;
-            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
-                .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any)
-                .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any);
-            jest.spyOn(jobService, "createJob").mockResolvedValueOnce(job_id);
-            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
-
-            // Act
-            const result = await oswService.processUnionRequest(user_id, requestService);
-
-            // Assert
-            expect(result).toBe(job_id.toString());
-            expect(oswService.jobServiceInstance.createJob).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    request_input: expect.objectContaining({
-                        tdei_dataset_id_one: "mock-source-dataset-id",
-                        tdei_dataset_id_two: "mock-target-dataset-id",
-                        proximity: 1.5,
-                        entity_filters
-                    })
-                })
-            );
-            expect(appContext.orchestratorService_v2_Instance!.startWorkflow).toHaveBeenCalledWith(
-                job_id.toString(),
-                WorkflowName.osw_union_dataset,
-                expect.objectContaining({
-                    parameters: expect.objectContaining({ entity_filters })
-                }),
                 user_id
             );
         });
 
-        test("When entity_filters are omitted, Expect the job request_input to leave them undefined", async () => {
+        test("When config is omitted, Expect an empty config to be checked, recorded and sent", async () => {
             // Arrange
             mockAppContext();
             const user_id = "mock-user-id";
@@ -1408,9 +1373,8 @@ describe("OSW Service Test", () => {
                 tdei_dataset_id_two: "mock-target-dataset-id"
             });
 
-            jest.spyOn(oswService.tdeiCoreServiceInstance, "getDatasetDetailsById")
-                .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any)
-                .mockResolvedValueOnce({ data_type: TDEIDataType.osw } as any);
+            mockOswDatasets();
+            const dbSpy = jest.spyOn(dbClient, "query").mockResolvedValueOnce({ rows: [{}] } as any);
             jest.spyOn(jobService, "createJob").mockResolvedValueOnce(505);
             jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
 
@@ -1418,8 +1382,83 @@ describe("OSW Service Test", () => {
             await oswService.processUnionRequest(user_id, requestService);
 
             // Assert
+            expect(dbSpy).toHaveBeenCalledWith(expect.objectContaining({ values: ["{}"] }));
             const createdJob = (jobService.createJob as jest.Mock).mock.calls[0][0];
-            expect(createdJob.request_input.entity_filters).toBeUndefined();
+            expect(createdJob.request_input).toEqual({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id",
+                config: {}
+            });
+            const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
+            expect(workflowInput.parameters.config).toEqual({});
+        });
+
+        test("When config is a JSON string, Expect it to be sent to the workflow as an object", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = UnionRequest.from({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id",
+                config: JSON.stringify(config)
+            });
+
+            mockOswDatasets();
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce({ rows: [{}] } as any);
+            jest.spyOn(jobService, "createJob").mockResolvedValueOnce(606);
+            jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow").mockResolvedValueOnce();
+
+            // Act
+            await oswService.processUnionRequest(user_id, requestService);
+
+            // Assert
+            const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
+            expect(workflowInput.parameters.config).toEqual(config);
+        });
+
+        test("When the database rejects the config, Expect InputException with its message and no job", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = UnionRequest.from({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id",
+                config: { snap: { mode: "default", proximity: 9 } }
+            });
+            const dbError: any = new Error("config.snap.proximity: must be at least 0 and at most 5 (got 9)");
+            dbError.code = "22023";
+
+            mockOswDatasets();
+            jest.spyOn(dbClient, "query").mockRejectedValueOnce(dbError);
+            const createJobSpy = jest.spyOn(jobService, "createJob");
+            const workflowSpy = jest.spyOn(appContext.orchestratorService_v2_Instance!, "startWorkflow");
+
+            // Act & Assert
+            await expect(oswService.processUnionRequest(user_id, requestService)).rejects.toThrow(
+                new InputException("config.snap.proximity: must be at least 0 and at most 5 (got 9)")
+            );
+            expect(createJobSpy).not.toHaveBeenCalled();
+            expect(workflowSpy).not.toHaveBeenCalled();
+        });
+
+        test("When checking the config fails for another reason, Expect the error to propagate", async () => {
+            // Arrange
+            mockAppContext();
+            const user_id = "mock-user-id";
+            const requestService = UnionRequest.from({
+                tdei_dataset_id_one: "mock-source-dataset-id",
+                tdei_dataset_id_two: "mock-target-dataset-id"
+            });
+            const dbError: any = new Error("function content.union5_validate_config(jsonb) does not exist");
+            dbError.code = "42883";
+
+            mockOswDatasets();
+            jest.spyOn(dbClient, "query").mockRejectedValueOnce(dbError);
+            const createJobSpy = jest.spyOn(jobService, "createJob");
+
+            // Act & Assert
+            await expect(oswService.processUnionRequest(user_id, requestService)).rejects.toBe(dbError);
+            expect(createJobSpy).not.toHaveBeenCalled();
         });
     });
 

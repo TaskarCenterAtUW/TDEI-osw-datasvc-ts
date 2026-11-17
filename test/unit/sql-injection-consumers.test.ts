@@ -92,12 +92,17 @@ describe("checkForSqlInjection consumers", () => {
 
     describe("processDatasetUnionRequest (request.body)", () => {
 
+        const unionConfig = {
+            snap: { mode: "default", proximity: 1 },
+            connect: { mode: "custom", rules: [{ name: "kerbed-crossing", from: "crossing", to: "sidewalk", operation: "geometry", node_tags: { barrier: "kerb" } }] },
+        };
+
         it("accepts a valid union request body", () => {
             expect(check({
                 user_id: "6f0e2b7a-1c2d-4a3b-8f9e-0a1b2c3d4e5f",
                 tdei_dataset_id_one: "52945d79-a0df-4440-8363-73bea8e1882a",
                 tdei_dataset_id_two: "fbec2c7b-5196-4c83-b7f6-0e24a146f53d",
-                proximity: 0.5,
+                config: unionConfig,
             })).not.toThrow();
         });
 
@@ -105,7 +110,7 @@ describe("checkForSqlInjection consumers", () => {
             expect(check(UnionRequest.from({
                 tdei_dataset_id_one: "52945d79-a0df-4440-8363-73bea8e1882a",
                 tdei_dataset_id_two: "fbec2c7b-5196-4c83-b7f6-0e24a146f53d",
-                proximity: 0.5,
+                config: unionConfig,
             }))).not.toThrow();
         });
 
@@ -113,7 +118,14 @@ describe("checkForSqlInjection consumers", () => {
             expect(check({
                 tdei_dataset_id_one: "abc'; TRUNCATE TABLE content.edge; --",
                 tdei_dataset_id_two: "fbec2c7b-5196-4c83-b7f6-0e24a146f53d",
-                proximity: 0.5,
+            })).toThrow(InputException);
+        });
+
+        it("rejects a commented out fragment inside the config", () => {
+            expect(check({
+                tdei_dataset_id_one: "52945d79-a0df-4440-8363-73bea8e1882a",
+                tdei_dataset_id_two: "fbec2c7b-5196-4c83-b7f6-0e24a146f53d",
+                config: { connect: { mode: "custom", rules: [{ name: "x", from: "crossing", to: "sidewalk", node_tags: { barrier: "kerb' --" } }] } },
             })).toThrow(InputException);
         });
     });

@@ -26,6 +26,7 @@ import { feedbackRequestParams } from "../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../model/feedback-download-request-params";
 import { listRequestValidation } from "../middleware/list-request-validation-middleware";
 import { FeedbackStatusRequestDto } from "../model/feedback-status-dto";
+import { assertNoRemovedUnionParameters } from "../utility/union-config";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -430,7 +431,8 @@ class OSWController implements IController {
 
 
     /**
-    * Processes the union request 
+    * Processes the union request: tdei_dataset_id_one, tdei_dataset_id_two and
+    * an optional union 5.0 `config`. Responds 202 with the job id.
     * @param request 
     * @param response 
     * @param next 
@@ -442,6 +444,7 @@ class OSWController implements IController {
                 return next(new InputException('request body is empty', response));
             }
 
+            assertNoRemovedUnionParameters(request.body);
             const requestService = UnionRequest.from(request.body);
             await requestService.validateRequestInput();
             Utility.checkForSqlInjection(request.body);

@@ -37,6 +37,8 @@ import { FeedbackMetadataDTO } from "../model/feedback-metadata-dto";
 import { IProjectDataviewerConfig } from "./interface/project-dataviewer-config-interface";
 import { FeedbackStatusRequestDto, FeedbackStatusUpdateResponseDto } from "../model/feedback-status-dto";
 import UniqueKeyDbException from "../exceptions/db/database-exceptions";
+import { PostgresError } from "../constants/pg-error-constants";
+import { parseUnionConfig } from "../utility/union-config";
 
 class OswService implements IOswService {
     constructor(public jobServiceInstance: IJobService, public tdeiCoreServiceInstance: ITdeiCoreService) { }
@@ -404,9 +406,13 @@ class OswService implements IOswService {
 
     /**
     * Processes a union join request.
-    * 
+    *
+    * The config is checked against the deployed union
+    * (content.union5_validate_config) before the job is created, so an invalid
+    * setting is reported to the caller instead of failing the job later.
+    *
     * @param user_id - The ID of the user making the request.
-    * @param requestService - The union join request.
+    * @param requestService - The validated union request; its config is an object.
     * @returns The job_id of the union join request.
     */
     async processUnionRequest(user_id: string, requestService: UnionRequest): Promise<string> {
@@ -418,17 +424,19 @@ class OswService implements IOswService {
         if (targetDataset.data_type !== TDEIDataType.osw)
             throw new InputException(`${requestService.tdei_dataset_id_two} is not a osw dataset.`);
 
+        const parameters = {
+            tdei_dataset_id_one: requestService.tdei_dataset_id_one,
+            tdei_dataset_id_two: requestService.tdei_dataset_id_two,
+            config: parseUnionConfig(requestService.config),
+        };
+        await this.validateUnionConfig(parameters.config);
+
         const job = CreateJobDTO.from({
             data_type: TDEIDataType.osw,
             job_type: JobType["Dataset-Union"],
             status: JobStatus["IN-PROGRESS"],
             message: 'Job started',
-            request_input: {
-                tdei_dataset_id_one: requestService.tdei_dataset_id_one,
-                tdei_dataset_id_two: requestService.tdei_dataset_id_two,
-                proximity: requestService.proximity,
-                entity_filters: requestService.entity_filters,
-            },
+            request_input: parameters,
             tdei_project_group_id: '',
             user_id: user_id,
         });
@@ -439,7 +447,7 @@ class OswService implements IOswService {
         const workflow_input = {
             job_id: job_id.toString(),
             service: "union_dataset",
-            parameters: requestService,
+            parameters: parameters,
             user_id: user_id,
             tdei_dataset_id_one: requestService.tdei_dataset_id_one,
             tdei_dataset_id_two: requestService.tdei_dataset_id_two
@@ -448,6 +456,27 @@ class OswService implements IOswService {
         await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);
 
         return job_id.toString();
+    }
+
+    /**
+     * Checks a union config with the database's own validator, which rejects an
+     * invalid setting with SQLSTATE 22023 and a message naming the stage, rule
+     * and field, e.g. "config.connect.rules[2].operation: is required — one of point, geometry".
+     *
+     * @throws InputException with that message when the config is invalid
+     */
+    private async validateUnionConfig(config: Record<string, unknown>): Promise<void> {
+        try {
+            await dbClient.query({
+                text: 'SELECT content.union5_validate_config($1::jsonb)',
+                values: [JSON.stringify(config)],
+            });
+        } catch (error: any) {
+            if (error?.code === PostgresError.INVALID_PARAMETER_VALUE && error?.message) {
+                throw new InputException(error.message);
+            }
+            throw error;
+        }
     }
 
     /**

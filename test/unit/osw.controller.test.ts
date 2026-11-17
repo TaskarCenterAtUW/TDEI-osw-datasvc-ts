@@ -1024,6 +1024,16 @@ describe("OSW Controller Test", () => {
     });
 
     describe("processUnionQueryRequest", () => {
+        const datasetIds = {
+            "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
+            "tdei_dataset_id_two": "0b12b2d6-3b7f-4e2f-9b0e-9f0e6f8b1a11"
+        };
+        const config = {
+            dedup: { mode: "custom", rules: [{ name: "dedup_edge_sidewalk", from: "sidewalk", to: "sidewalk", proximity: 1 }] },
+            connect: { mode: "custom", rules: [{ name: "connect_crossing_road", from: "crossing", to: "road", operation: "point", proximity: 1 }] },
+            extensions: { mode: "default", points: { proximity: 1 }, lines: { proximity: 1 } }
+        };
+
         test("When request body is empty, Expect to call next with InputException", async () => {
             // Arrange
             const req = getMockReq();
@@ -1036,15 +1046,28 @@ describe("OSW Controller Test", () => {
             expect(next).toHaveBeenCalledWith(expect.any(InputException));
         });
 
-        test("When request body proximity param is string, Expect to call next with InputException", async () => {
+        test("When request body has the removed proximity param, Expect 400 naming it", async () => {
+            // Arrange
+            const req = getMockReq({ body: { user_id: "mock-user-id", ...datasetIds, "proximity": 0.5 } });
+            const { res, next } = getMockRes();
+            const serviceSpy = jest.spyOn(oswService, "processUnionRequest");
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith(
+                "'proximity' is no longer supported: union 5.0 takes its settings in 'config' (sections snap, dedup, connect, extensions)"
+            );
+            expect(serviceSpy).not.toHaveBeenCalled();
+        });
+
+        test("When request body has the removed entity_filters param, Expect 400 naming it", async () => {
             // Arrange
             const req = getMockReq({
-                body: {
-                    user_id: "mock-user-id",
-                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "proximity": "string"
-                }
+                body: { user_id: "mock-user-id", ...datasetIds, "entity_filters": { edge: { filters: [{ highway: "footway" }] } } }
             });
             const { res, next } = getMockRes();
 
@@ -1053,73 +1076,12 @@ describe("OSW Controller Test", () => {
 
             // Assert
             expect(next).toHaveBeenCalledWith(expect.any(InputException));
+            expect(res.send).toHaveBeenCalledWith(expect.stringContaining("'entity_filters' is no longer supported"));
         });
 
         test("When request body is valid, Expect to process the request and return 202 status code", async () => {
             // Arrange
-            const req = getMockReq({
-                body: {
-                    user_id: "mock-user-id",
-                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
-                }
-            });
-            const job_id = "mock-job-id";
-            const { res, next } = getMockRes();
-
-            jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce(job_id);
-            // Act
-            await oswController.processDatasetUnionRequest(req, res, next);
-
-            // Assert
-            expect(res.status).toHaveBeenCalledWith(202);
-            expect(res.send).toHaveBeenCalledWith(job_id);
-            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
-        });
-
-
-        test("When request body is valid with proximity, Expect to process the request and return 202 status code", async () => {
-            // Arrange
-            const req = getMockReq({
-                body: {
-                    user_id: "mock-user-id",
-                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "proximity": 10
-                }
-            });
-            const job_id = "mock-job-id";
-            const { res, next } = getMockRes();
-
-            jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce(job_id);
-            // Act
-            await oswController.processDatasetUnionRequest(req, res, next);
-
-            // Assert
-            expect(res.status).toHaveBeenCalledWith(202);
-            expect(res.send).toHaveBeenCalledWith(job_id);
-            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
-        });
-
-        test("When request body has valid entity_filters, Expect to forward them to the service and return 202 status code", async () => {
-            // Arrange
-            const entity_filters = {
-                edge: {
-                    filters: [
-                        { highway: "footway", footway: "sidewalk" },
-                        { highway: "footway", footway: "crossing" }
-                    ]
-                },
-                point: { filters: [{ power: "pole" }] }
-            };
-            const req = getMockReq({
-                body: {
-                    user_id: "mock-user-id",
-                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "entity_filters": entity_filters
-                }
-            });
+            const req = getMockReq({ body: { user_id: "mock-user-id", ...datasetIds } });
             const job_id = "mock-job-id";
             const { res, next } = getMockRes();
 
@@ -1129,45 +1091,14 @@ describe("OSW Controller Test", () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(202);
-            expect(serviceSpy).toHaveBeenCalledWith(
-                "mock-user-id",
-                expect.objectContaining({ entity_filters })
-            );
+            expect(res.send).toHaveBeenCalledWith(job_id);
+            expect(res.setHeader).toHaveBeenCalledWith("Location", expect.any(String));
+            expect(serviceSpy).toHaveBeenCalledWith("mock-user-id", expect.objectContaining({ ...datasetIds, config: {} }));
         });
 
-        test("When entity_filters names an unsupported file type, Expect to call next with InputException", async () => {
+        test("When request body has a config, Expect to forward it to the service and return 202 status code", async () => {
             // Arrange
-            const req = getMockReq({
-                body: {
-                    user_id: "mock-user-id",
-                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "entity_filters": { sidewalk: { filters: [{ highway: "footway" }] } }
-                }
-            });
-            const { res, next } = getMockRes();
-
-            // Act
-            await oswController.processDatasetUnionRequest(req, res, next);
-
-            // Assert
-            expect(next).toHaveBeenCalledWith(expect.any(InputException));
-        });
-
-        test("When entity_filters carries duplicate detection settings, Expect to forward them to the service", async () => {
-            // Arrange
-            const entity_filters = {
-                edge: { duplicate_buffer_width: 3, duplicate_overlap_percentage: 70 },
-                polygon: { duplicate_overlap_percentage: 80 }
-            };
-            const req = getMockReq({
-                body: {
-                    user_id: "mock-user-id",
-                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "entity_filters": entity_filters
-                }
-            });
+            const req = getMockReq({ body: { user_id: "mock-user-id", ...datasetIds, config } });
             const { res, next } = getMockRes();
 
             const serviceSpy = jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce("mock-job-id");
@@ -1176,51 +1107,42 @@ describe("OSW Controller Test", () => {
 
             // Assert
             expect(res.status).toHaveBeenCalledWith(202);
-            expect(serviceSpy).toHaveBeenCalledWith(
-                "mock-user-id",
-                expect.objectContaining({ entity_filters })
+            expect(serviceSpy).toHaveBeenCalledWith("mock-user-id", expect.objectContaining({ config }));
+        });
+
+        test("When request body has the config as a JSON string, Expect the service to receive it as an object", async () => {
+            // Arrange
+            const req = getMockReq({ body: { user_id: "mock-user-id", ...datasetIds, config: JSON.stringify(config) } });
+            const { res, next } = getMockRes();
+
+            const serviceSpy = jest.spyOn(oswService, "processUnionRequest").mockResolvedValueOnce("mock-job-id");
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(202);
+            expect(serviceSpy).toHaveBeenCalledWith("mock-user-id", expect.objectContaining({ config }));
+        });
+
+        test("When config has an unknown section, Expect 400 and no job", async () => {
+            // Arrange
+            const req = getMockReq({ body: { user_id: "mock-user-id", ...datasetIds, config: { merge: { mode: "default" } } } });
+            const { res, next } = getMockRes();
+            const serviceSpy = jest.spyOn(oswService, "processUnionRequest");
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith(
+                "Invalid config: unknown section 'merge'. Allowed sections: snap, dedup, connect, extensions"
             );
+            expect(serviceSpy).not.toHaveBeenCalled();
         });
 
-        test("When a duplicate setting is used on a file type that cannot take it, Expect to call next with InputException", async () => {
-            // Arrange
-            const req = getMockReq({
-                body: {
-                    user_id: "mock-user-id",
-                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "entity_filters": { polygon: { duplicate_buffer_width: 3 } }
-                }
-            });
-            const { res, next } = getMockRes();
-
-            // Act
-            await oswController.processDatasetUnionRequest(req, res, next);
-
-            // Assert
-            expect(next).toHaveBeenCalledWith(expect.any(InputException));
-        });
-
-        test("When entity_filters is malformed, Expect to call next with InputException", async () => {
-            // Arrange
-            const req = getMockReq({
-                body: {
-                    user_id: "mock-user-id",
-                    "tdei_dataset_id_one": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b",
-                    "entity_filters": { edge: { filters: "highway=footway" } }
-                }
-            });
-            const { res, next } = getMockRes();
-
-            // Act
-            await oswController.processDatasetUnionRequest(req, res, next);
-
-            // Assert
-            expect(next).toHaveBeenCalledWith(expect.any(InputException));
-        });
-
-        test("When an error occurs, Expect to call next with HttpException and return 500 status code", async () => {
+        test("When both dataset ids are the same, Expect to call next with InputException", async () => {
             // Arrange
             const req = getMockReq({
                 body: {
@@ -1229,6 +1151,35 @@ describe("OSW Controller Test", () => {
                     "tdei_dataset_id_two": "fa8e12ea-6b0c-4d3e-8b38-5b87b268e76b"
                 }
             });
+            const { res, next } = getMockRes();
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(next).toHaveBeenCalledWith(expect.any(InputException));
+            expect(res.status).toHaveBeenCalledWith(400);
+        });
+
+        test("When the service rejects the config, Expect 400 with the reason", async () => {
+            // Arrange
+            const req = getMockReq({ body: { user_id: "mock-user-id", ...datasetIds, config: { snap: { mode: "default", proximity: 9 } } } });
+            const { res, next } = getMockRes();
+            jest.spyOn(oswService, "processUnionRequest").mockRejectedValueOnce(
+                new InputException("config.snap.proximity: must be at least 0 and at most 5 (got 9)")
+            );
+
+            // Act
+            await oswController.processDatasetUnionRequest(req, res, next);
+
+            // Assert
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.send).toHaveBeenCalledWith("config.snap.proximity: must be at least 0 and at most 5 (got 9)");
+        });
+
+        test("When an error occurs, Expect to call next with HttpException and return 500 status code", async () => {
+            // Arrange
+            const req = getMockReq({ body: { user_id: "mock-user-id", ...datasetIds } });
             const { res, next } = getMockRes();
             const error = new Error("Some error message");
 
