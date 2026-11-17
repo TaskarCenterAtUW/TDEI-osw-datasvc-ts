@@ -104,6 +104,7 @@ describe("Flex Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -196,6 +197,7 @@ describe("Flex Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -248,6 +250,7 @@ describe("Flex Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
