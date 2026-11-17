@@ -17,7 +17,7 @@ import tdeiCoreService from "../service/tdei-core-service";
 import { Utility } from "../utility/utility";
 import Ajv, { ErrorObject } from "ajv";
 import polygonSchema from "../../schema/polygon.geojson.schema.json";
-import { SpatialJoinRequest, UnionRequest, SelfMergeRequest } from "../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest, SelfMergeRequest, QualityReportRequest } from "../model/request-interfaces";
 import { apiTracker } from "../middleware/api-tracker";
 import { DataType, JOBS_API_PATH } from "../constants/app-constants";
 import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../constants/system-capabilities";
@@ -954,6 +954,7 @@ class OSWController implements IController {
     /**
      * Creates a quality report job for a single dataset.
      * POST /api/v1/osw/quality-report/:tdei_dataset_id
+     * Optional JSON body: { poi_types: ["civic", ...], poi_state: "WA" } (see QualityReportRequest).
      */
     createQualityReportJob = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
@@ -969,7 +970,9 @@ class OSWController implements IController {
                 tdei_auth_token = tdei_auth_token.replace('Bearer ', '');
             }
             const username = request.body.username as string | undefined;
-            const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, username, tdei_auth_token);
+            const options = QualityReportRequest.from(request.body);
+            await options.validateRequestInput();
+            const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, username, tdei_auth_token, options);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {

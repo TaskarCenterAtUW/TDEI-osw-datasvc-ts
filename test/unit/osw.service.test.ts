@@ -19,7 +19,7 @@ import { RecordStatus } from "../../src/model/dataset-get-query-params";
 import { CreateJobDTO } from "../../src/model/job-dto";
 import { TDEIDataType, JobType, JobStatus } from "../../src/model/jobs-get-query-params";
 import { WorkflowName } from "../../src/constants/app-constants";
-import { SpatialJoinRequest, UnionRequest, SelfMergeRequest } from "../../src/model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest, SelfMergeRequest, QualityReportRequest } from "../../src/model/request-interfaces";
 import { Utility } from "../../src/utility/utility";
 import { feedbackRequestParams } from "../../src/model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../../src/model/feedback-download-request-params";
@@ -731,6 +731,28 @@ describe("OSW Service Test", () => {
             const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
             expect(workflowInput.tdei_api_key).toBeTruthy();
             expect(workflowInput.tdei_auth_token).toBeTruthy();
+            // No POI options chosen: the workflow still gets both keys, empty (the report's defaults)
+            expect(workflowInput.poi_types).toBe("");
+            expect(workflowInput.poi_state).toBe("");
+        });
+
+        it('should record the POI options on the job and send them to the workflow', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{ data_type: 'osw' }));
+            jest.spyOn(jobService, "createJob").mockResolvedValue(mockJobId);
+            mockAppContext();
+            jest.spyOn(tdeiCoreService, "getUserDetails")
+                .mockResolvedValue(Promise.resolve({ apiKey: 'fetched-api-key' }));
+
+            const options = QualityReportRequest.from({ poi_types: ['civic', 'leisure'], poi_state: 'OR' });
+            await oswService.createQualityReportJob(tdei_dataset_id, user_id, "username", 'Bearer mock-token', options);
+
+            expect(jobService.createJob).toHaveBeenCalledWith(expect.objectContaining({
+                request_input: { tdei_dataset_id, poi_types: ['civic', 'leisure'], poi_state: 'OR' },
+            }));
+            const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
+            expect(workflowInput.poi_types).toBe("civic,leisure");
+            expect(workflowInput.poi_state).toBe("OR");
         });
 
         it('should throw InputException when tdei_auth_token is missing', async () => {

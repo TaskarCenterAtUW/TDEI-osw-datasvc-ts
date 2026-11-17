@@ -3,7 +3,7 @@ import { IUploadRequest } from "./upload-request-interface";
 import { BboxServiceRequest, TagRoadServiceRequest, InclinationServiceRequest } from "../../model/backend-request-interface";
 import { IJobService } from "./job-service-interface";
 import { ITdeiCoreService } from "./tdei-core-service-interface";
-import { SpatialJoinRequest, UnionRequest, SelfMergeRequest } from "../../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest, SelfMergeRequest, QualityReportRequest } from "../../model/request-interfaces";
 import { FeedbackRequestDto, FeedbackResponseDTO } from "../../model/feedback-dto";
 import { feedbackRequestParams } from "../../model/feedback-request-params";
 import { FeedbackDownloadRequestParams } from "../../model/feedback-download-request-params";
@@ -201,7 +201,7 @@ export interface IOswService {
      * @param tdei_auth_token - Optional Authorization header value (e.g. "Bearer <token>") to pass in the queue message.
      * @returns A Promise that resolves to the job ID.
      */
-    createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string): Promise<string>;
+    createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string, options?: QualityReportRequest): Promise<string>;
 
     /**
      * Retrieves the OswStream by its ID.

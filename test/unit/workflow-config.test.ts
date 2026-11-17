@@ -108,6 +108,31 @@ describe("Workflow config", () => {
         expect(unanswered.data.message).toBe("Pathways conversion failed");
     });
 
+    it("should carry the quality report's POI options to the report request, empty when not chosen", () => {
+        const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
+        const workflow = oc.getWorkflowByName("osw_quality_report")!;
+        const [request] = workflow.tasks;
+        const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t" };
+
+        // Both keys must be present, which is why the service always sends them
+        expect(workflow.validateInput(base)).toBe(false);
+
+        const options = (workflow_input: any) => {
+            const { poi_types, poi_state } = OrchestratorUtility.map_props(request.input_params, { workflow_input });
+            return { poi_types, poi_state };
+        };
+
+        const chosen = { ...base, poi_types: "civic,leisure", poi_state: "OR" };
+        expect(workflow.validateInput(chosen)).toBe(true);
+        expect(options(chosen)).toEqual({ poi_types: "civic,leisure", poi_state: "OR" });
+        expect(options({ ...base, poi_types: "civic", poi_state: "WA" })).toEqual({ poi_types: "civic", poi_state: "WA" });
+
+        // Not chosen: empty text, which the report pipeline reads as its defaults
+        const defaults = { ...base, poi_types: "", poi_state: "" };
+        expect(workflow.validateInput(defaults)).toBe(true);
+        expect(options(defaults)).toEqual({ poi_types: "", poi_state: "" });
+    });
+
     it("should send the union request with its config to the backend and report the backend's reason on failure", () => {
         const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
         const workflow = oc.getWorkflowByName("osw_union_dataset")!;

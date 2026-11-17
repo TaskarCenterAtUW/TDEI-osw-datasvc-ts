@@ -22,7 +22,7 @@ import { RecordStatus } from "../model/dataset-get-query-params";
 import { MetadataModel } from "../model/metadata.model";
 import { TdeiDate } from "../utility/tdei-date";
 import { WorkflowName } from "../constants/app-constants";
-import { SpatialJoinRequest, UnionRequest, SelfMergeRequest } from "../model/request-interfaces";
+import { SpatialJoinRequest, UnionRequest, SelfMergeRequest, QualityReportRequest } from "../model/request-interfaces";
 import { TagQualityMetricResponse, TagQualityMetricRequest } from "../model/tag-quality-metric";
 import oswSchema from "../assets/opensidewalks_0.2.schema.json";
 import osw_identifying_fields from "../assets/opensidewalks_0.2.identifying.fields.json";
@@ -1557,14 +1557,16 @@ class OswService implements IOswService {
 
     /**
      * Creates a quality report job for a single dataset.
-     * Both api key and tdei_auth_token are mandatory. Workflow receives: { jobId, tdei_dataset_ids, tdei_api_key, tdei_auth_token }.
+     * Both api key and tdei_auth_token are mandatory. Workflow receives: { jobId, tdei_dataset_ids, tdei_api_key, tdei_auth_token, poi_types, poi_state }.
      * @param tdei_dataset_id - The ID of the TDEI dataset.
      * @param user_id - The ID of the user making the request.
      * @param username - Optional username; used to fetch apiKey from AUTH_HOST getUserByUsername when tdei_api_key is missing.
      * @param tdei_auth_token - Optional Authorization header (e.g. "Bearer <token>") to include in the queue message.
+     * @param options - Optional, already validated POI options. The workflow always gets both as text, empty
+     *   when not chosen: its template fails on a missing key, and the report pipeline reads empty as its default.
      * @returns A Promise that resolves to the job ID.
      */
-    async createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string): Promise<string> {
+    async createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string, options?: QualityReportRequest): Promise<string> {
         if (!tdei_auth_token || tdei_auth_token.trim() === '') {
             throw new InputException("tdei_auth_token is required");
         }
@@ -1590,6 +1592,8 @@ class OswService implements IOswService {
             message: 'Job started',
             request_input: {
                 tdei_dataset_id: tdei_dataset_id,
+                ...(options?.poi_types ? { poi_types: options.poi_types } : {}),
+                ...(options?.poi_state ? { poi_state: options.poi_state } : {}),
             },
             tdei_project_group_id: '',
             user_id: user_id,
@@ -1611,6 +1615,7 @@ class OswService implements IOswService {
             tdei_dataset_ids: tdei_dataset_id,
             tdei_api_key: api_key,
             tdei_auth_token: tdei_auth_token,
+            ...(options ?? new QualityReportRequest()).toWorkflowInput(),
         };
 
         await appContext.orchestratorService_v2_Instance!.startWorkflow(job_id.toString(), workflow_start, workflow_input, user_id);

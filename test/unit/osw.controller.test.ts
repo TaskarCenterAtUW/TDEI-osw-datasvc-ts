@@ -9,6 +9,7 @@ import { DataType, JOBS_API_PATH } from "../../src/constants/app-constants";
 import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../../src/constants/system-capabilities";
 import { PassThrough } from "stream";
 import { FeedbackStatusRequestDto } from "../../src/model/feedback-status-dto";
+import { QualityReportRequest } from "../../src/model/request-interfaces";
 
 // group test using describe
 describe("OSW Controller Test", () => {
@@ -964,9 +965,42 @@ describe("OSW Controller Test", () => {
                 'mock-tdei_dataset_id',
                 'mock-user-id',
                 'test_user',
-                mockRequest.headers['authorization']
+                mockRequest.headers['authorization'],
+                expect.any(QualityReportRequest)
             );
+            const options = (oswService.createQualityReportJob as jest.Mock).mock.calls[0][4];
+            expect(options.toWorkflowInput()).toEqual({ poi_types: "", poi_state: "" });
             expect(mockNext).not.toHaveBeenCalled();
+        });
+
+        it('should pass the POI options in the body to the service', async () => {
+            mockRequest.body.poi_types = ['civic', 'leisure'];
+            mockRequest.body.poi_state = 'OR';
+            jest.spyOn(oswService, "createQualityReportJob").mockResolvedValueOnce('mock-job-id');
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(202);
+            const options = (oswService.createQualityReportJob as jest.Mock).mock.calls[0][4];
+            expect(options.toWorkflowInput()).toEqual({ poi_types: "civic,leisure", poi_state: "OR" });
+        });
+
+        it.each([
+            ['an unknown state', { poi_state: 'Washington' }, 'poi_state must be a two-letter US state code such as WA'],
+            ['a lower-case state', { poi_state: 'wa' }, 'poi_state must be a two-letter US state code such as WA'],
+            ['an empty type list', { poi_types: [] }, 'poi_types must name at least one POI type'],
+            ['a type list given as text', { poi_types: 'civic' }, 'poi_types must be an array of POI type names'],
+            ['a type name that is not a plain lower-case name', { poi_types: ["civic'; drop"] }, 'poi_types must be lowercase names'],
+        ])('should reject %s with 400 without creating a job', async (_label, body, message) => {
+            Object.assign(mockRequest.body, body);
+            const create = jest.spyOn(oswService, "createQualityReportJob");
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith(expect.stringContaining(message));
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+            expect(create).not.toHaveBeenCalled();
         });
 
         it('should handle missing tdei_auth_token (Authorization header required)', async () => {
