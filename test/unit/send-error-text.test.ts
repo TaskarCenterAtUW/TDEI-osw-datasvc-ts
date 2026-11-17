@@ -41,14 +41,15 @@ describe("sendErrorText", () => {
     it("reaches the client as text/plain, where a plain send would be text/html", async () => {
         const app = express();
         app.get("/plain/:id", (req, res) => sendErrorText(res, 400, `${req.params.id} is not a flex dataset.`));
-        app.get("/default/:id", (req, res) => res.status(400).send(`${req.params.id} is not a flex dataset.`));
+        // For contrast, a plain send of the same text. A fixed string, so no request input reaches it.
+        app.get("/default", (req, res) => res.status(400).send("<script>alert(1)</script> is not a flex dataset."));
         const server = app.listen(0);
         const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
         const id = encodeURIComponent("<script>alert(1)</script>");
 
         try {
             const plain = await get(`${base}/plain/${id}`);
-            const unchanged = await get(`${base}/default/${id}`);
+            const unchanged = await get(`${base}/default`);
 
             expect(plain.status).toBe(400);
             expect(plain.contentType).toBe("text/plain; charset=utf-8");
