@@ -1,5 +1,6 @@
 import HttpException from "./http-base-exception";
 import { Response } from "express";
+import { sendErrorText } from "./send-error-text";
 
 export class DuplicateException extends HttpException {
     constructor(name: string) {
@@ -21,7 +22,7 @@ export class ForbiddenAccess extends HttpException {
 
 export class ForbiddenRequest extends HttpException {
     constructor(message: string, response?: Response) {
-        response?.status(403).send(message);
+        if (response) sendErrorText(response, 403, message);
         super(403, message);
     }
 }
@@ -52,7 +53,7 @@ export class UserNotFoundException extends HttpException {
 
 export class InputException extends HttpException {
     constructor(message: string, response?: Response) {
-        response?.status(400).send(message);
+        if (response) sendErrorText(response, 400, message);
         super(400, message);
     }
 }
@@ -60,7 +61,7 @@ export class InputException extends HttpException {
 export class JobIdNotFoundException extends HttpException {
     constructor(jobId: string, response?: Response) {
         const message = `JobId with ID ${jobId} not found`;
-        response?.status(404).send(message);
+        if (response) sendErrorText(response, 404, message);
         super(404, message);
     }
 }
@@ -75,7 +76,7 @@ export class ServiceNotFoundException extends HttpException {
 export class JobIncompleteException extends HttpException {
     constructor(jobId: string, response?: Response) {
         const message = `Job with ID ${jobId} is not completed yet`;
-        response?.status(400).send(message);
+        if (response) sendErrorText(response, 400, message);
         super(404, message);
     }
 }
@@ -83,7 +84,7 @@ export class JobIncompleteException extends HttpException {
 export class JobFailedException extends HttpException {
     constructor(jobId: string, response?: Response) {
         const message = `Job with ID ${jobId} is failed`;
-        response?.status(400).send(message);
+        if (response) sendErrorText(response, 400, message);
         super(404, message);
     }
 }
