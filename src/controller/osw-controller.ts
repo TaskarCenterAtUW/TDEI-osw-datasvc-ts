@@ -27,6 +27,7 @@ import { FeedbackDownloadRequestParams } from "../model/feedback-download-reques
 import { listRequestValidation } from "../middleware/list-request-validation-middleware";
 import { FeedbackStatusRequestDto } from "../model/feedback-status-dto";
 import { assertNoRemovedUnionParameters } from "../utility/union-config";
+import { sendErrorText } from "../exceptions/http/send-error-text";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -192,7 +193,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing dataset sanitization job", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing dataset sanitization job");
@@ -223,7 +224,7 @@ class OSWController implements IController {
             response.status(200).send(feedbackStatusReport);
         } catch (error) {
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             console.error("Error while updating the feedback status", error);
@@ -248,7 +249,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while generating PM tiles", error);
             if (error instanceof HttpException) {
-                res.status(error.status).send(error.message);
+                sendErrorText(res, error.status, error.message);
                 return next(error);
             }
             res.status(500).send("Error while generating PM tiles");
@@ -268,7 +269,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while retriving the PM tiles", error);
             if (error instanceof HttpException) {
-                res.status(error.status).send(error.message);
+                sendErrorText(res, error.status, error.message);
                 return next(error);
             }
             res.status(500).send("Error while retriving the PM tiles");
@@ -301,7 +302,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while updating the dataset visibility", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while updating the dataset visibility");
@@ -325,7 +326,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 next(error);
             }
             else {
@@ -352,7 +353,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 next(error);
             }
             else {
@@ -385,7 +386,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 next(error);
             }
             else {
@@ -421,7 +422,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the feedback request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the feedback request");
@@ -455,7 +456,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the union dataset request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the union dataset request");
@@ -485,7 +486,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the self merge dataset request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the self merge dataset request");
@@ -509,7 +510,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error calculating the quality metric for a given osw entity tags", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error calculating the quality metric for a given osw entity tags");
@@ -541,7 +542,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the spatial join request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the spatial join request");
@@ -597,7 +598,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the dataset bbox request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the dataset bbox request");
@@ -649,7 +650,7 @@ class OSWController implements IController {
             console.error('Error while getting the file stream');
             console.error(error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while getting the file stream");
@@ -690,7 +691,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the validation request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the validation request");
@@ -716,7 +717,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the publish request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the publish request");
@@ -765,7 +766,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the dataset bbox request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the dataset bbox request");
@@ -819,7 +820,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the upload request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the upload request");
@@ -865,7 +866,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the calculate Confidence request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the calculate Confidence request");
@@ -915,7 +916,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the format request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the format request");
@@ -943,7 +944,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the quality metric request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the quality metric");
@@ -975,7 +976,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while creating quality report job", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while creating quality report job");
@@ -1025,7 +1026,7 @@ class OSWController implements IController {
         } catch (error) {
             console.error("Error while processing the incline dataset request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the incline dataset request");

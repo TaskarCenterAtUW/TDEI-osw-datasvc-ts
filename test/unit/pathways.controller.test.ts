@@ -152,6 +152,7 @@ describe("Pathways Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -244,6 +245,7 @@ describe("Pathways Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -296,6 +298,7 @@ describe("Pathways Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -371,6 +374,7 @@ describe("Pathways Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();

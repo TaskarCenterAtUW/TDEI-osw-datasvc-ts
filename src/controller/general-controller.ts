@@ -19,6 +19,7 @@ import { validate as isUuid } from "uuid";
 import validateQueryDto from "../middleware/dto-validation-middleware";
 import { JOBS_API_PATH } from "../constants/app-constants";
 import { getSystemCapabilities } from "../constants/system-capabilities";
+import { sendErrorText } from "../exceptions/http/send-error-text";
 
 
 const acceptedFileFormatsForMetadata = ['.json'];
@@ -109,7 +110,7 @@ class GeneralController implements IController {
         } catch (error) {
             console.error("Error exporting download stats", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error exporting download stats");
@@ -134,7 +135,7 @@ class GeneralController implements IController {
             const message = "Error regenerating the API key";
             console.error(message, error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send(message);
@@ -159,7 +160,7 @@ class GeneralController implements IController {
             const message = "Error sending the verification link to provided email.";
             console.error(message, error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send(message);
@@ -184,7 +185,7 @@ class GeneralController implements IController {
             const message = "Error sending the password recovery link to provided email.";
             console.error(message, error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send(message);
@@ -206,7 +207,7 @@ class GeneralController implements IController {
             const errorMessage = "Error fetching the data metrics";
             console.error(errorMessage, error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send(errorMessage);
@@ -227,7 +228,7 @@ class GeneralController implements IController {
             const errorMessage = "Error fetching system capabilities";
             console.error(errorMessage, error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send(errorMessage);
@@ -250,7 +251,7 @@ class GeneralController implements IController {
             const errorMessage = "Error fetching the system metrics";
             console.error(errorMessage, error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send(errorMessage);
@@ -277,10 +278,10 @@ class GeneralController implements IController {
             const errorMessage = "Error fetching the service metrics";
             // console.error(errorMessage, error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
-            response.status(500).send(error.message);
+            sendErrorText(response, 500, error.message);
             next(new HttpException(500, error.message));
         }
     }
@@ -311,7 +312,7 @@ class GeneralController implements IController {
         } catch (error) {
             console.error("Error cloning the dataset request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error cloning the dataset request");
@@ -335,7 +336,7 @@ class GeneralController implements IController {
         } catch (error) {
             console.error("Error editing the metadata request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error editing the metadata request");
@@ -361,7 +362,7 @@ class GeneralController implements IController {
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 next(error);
             }
             else {
@@ -388,7 +389,7 @@ class GeneralController implements IController {
         } catch (error) {
             console.error("Error while processing the invalidate request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the invalidate request");
@@ -425,7 +426,7 @@ class GeneralController implements IController {
         } catch (error) {
             console.error("Error while gettting the jobs", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while gettting the jobs");
