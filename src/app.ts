@@ -13,6 +13,7 @@ import orchestratorConfig_v2 from "./tdei-orchestrator-config_v2.json";
 import workflows_v2_register from "./orchestrator_v2/index";
 import appContext from "./app-context";
 import { IOrchestratorService_v2, OrchestratorService_v2 } from "./orchestrator_v2/orchestrator-service-v2";
+import { sendErrorText } from "./exceptions/http/send-error-text";
 
 class App {
     private app: express.Application;
@@ -37,7 +38,7 @@ class App {
         this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
             console.log(err);
             if (err instanceof HttpException) {
-                res.status(err.status).send(err.message);
+                sendErrorText(res, err.status, err.message);
             }
             else {
                 res.status(500).send('Application error occured');

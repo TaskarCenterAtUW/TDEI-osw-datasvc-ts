@@ -17,6 +17,7 @@ import { apiTracker } from "../middleware/api-tracker";
 import { Utility } from "../utility/utility";
 import { DataType, JOBS_API_PATH } from "../constants/app-constants";
 import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../constants/system-capabilities";
+import { sendErrorText } from "../exceptions/http/send-error-text";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -120,7 +121,7 @@ class PathwaysController implements IController {
             console.error('Error while getting the file download URL');
             console.error(error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while getting download URL");
@@ -160,7 +161,7 @@ class PathwaysController implements IController {
         } catch (error) {
             console.error("Error while processing the validation request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the validation request");
@@ -216,7 +217,7 @@ class PathwaysController implements IController {
         } catch (error) {
             console.error("Error while processing the convert request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the convert request");
@@ -242,7 +243,7 @@ class PathwaysController implements IController {
         } catch (error) {
             console.error("Error while processing the publish request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the publish request");
@@ -295,7 +296,7 @@ class PathwaysController implements IController {
         } catch (error) {
             console.error("Error while processing the upload request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the upload request");

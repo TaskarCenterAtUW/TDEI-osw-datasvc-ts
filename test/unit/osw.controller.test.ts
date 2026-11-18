@@ -450,6 +450,7 @@ describe("OSW Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -542,6 +543,7 @@ describe("OSW Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -594,6 +596,7 @@ describe("OSW Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -670,6 +673,7 @@ describe("OSW Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -738,6 +742,7 @@ describe("OSW Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -803,6 +808,7 @@ describe("OSW Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -880,6 +886,7 @@ describe("OSW Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -947,6 +954,7 @@ describe("OSW Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
