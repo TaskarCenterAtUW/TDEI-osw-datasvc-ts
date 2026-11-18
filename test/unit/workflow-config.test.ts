@@ -133,6 +133,57 @@ describe("Workflow config", () => {
         expect(options(defaults)).toEqual({ poi_types: "", poi_state: "" });
     });
 
+    describe.each([
+        ["pathways_validation_only", "pathways_validation_only", {}],
+        ["pathways_upload", "pathways_upload_validation", { tdei_dataset_id: "d1" }],
+        ["pathways_publish", "pathways_publish_validation", {}],
+    ])("%s", (name, taskName, kept) => {
+        const workflow: any = orchestratorConfig.workflows.find((w: any) => w.name === name);
+        const validation = workflow.tasks.find((t: any) => t.task_reference_name === taskName);
+        const update = workflow.tasks[workflow.tasks.length - 1];
+        const failure = workflow.exception_task.find((t: any) => t.task_reference_name === "job_failure_db");
+        const workflow_input = { job_id: "399", tdei_dataset_id: "d1" };
+        const report_url = "https://x/pathways/feed-validation-report-1a2b3c4d.zip";
+        const report_summary = { valid: true, feed: "feed.zip", strict: false, codesByOutcome: { warning: 2 } };
+
+        const jobData = (template: any, output: any) =>
+            OrchestratorUtility.map_props(template.input_params, { workflow_input, tasks: output ? { [taskName]: { output } } : {} }).data;
+
+        it("should keep the validation report on the job", () => {
+            const output = OrchestratorUtility.map_props(validation.output_params, {
+                data: { success: true, message: "", report_url, report_summary }
+            });
+            expect(output).toEqual(expect.objectContaining({ report_url, report_summary }));
+
+            const updated = jobData(update, output);
+            expect(updated.download_url).toBe(report_url);
+            expect(JSON.parse(updated.response_props)).toEqual({ ...kept, report_summary });
+        });
+
+        it("should keep the report of a failed validation", () => {
+            const output = OrchestratorUtility.map_props(validation.output_params, {
+                data: { success: false, message: "errors", report_url, report_summary }
+            });
+            const failed = jobData(failure, output);
+            expect(failed.status).toBe("FAILED");
+            expect(failed.download_url).toBe(report_url);
+            expect(JSON.parse(failed.response_props)).toEqual({ ...kept, report_summary });
+        });
+
+        it("should fail cleanly with no report", () => {
+            // No reply, or a reply from a worker that sends no report
+            const failed = jobData(failure, undefined);
+            expect(failed.download_url).toBe("");
+            expect(JSON.parse(failed.response_props)).toEqual(kept);
+
+            const output = OrchestratorUtility.map_props(validation.output_params, { data: { success: true, message: "" } });
+            const updated = jobData(update, output);
+            expect(updated.download_url).toBe("");
+            expect(updated.status).toBe("COMPLETED");
+            expect(JSON.parse(updated.response_props)).toEqual(expect.objectContaining(kept));
+        });
+    });
+
     it("should send the union request with its config to the backend and report the backend's reason on failure", () => {
         const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
         const workflow = oc.getWorkflowByName("osw_union_dataset")!;
