@@ -731,9 +731,10 @@ describe("OSW Service Test", () => {
             const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
             expect(workflowInput.tdei_api_key).toBeTruthy();
             expect(workflowInput.tdei_auth_token).toBeTruthy();
-            // No POI options chosen: the workflow still gets both keys, empty (the report's defaults)
+            // No POI options chosen: the workflow still gets the key, empty (the report's default)
             expect(workflowInput.poi_types).toBe("");
-            expect(workflowInput.poi_state).toBe("");
+            // No state is sent: the report works it out from the dataset's area
+            expect(workflowInput).not.toHaveProperty("poi_state");
         });
 
         it('should record the POI options on the job and send them to the workflow', async () => {
@@ -744,15 +745,14 @@ describe("OSW Service Test", () => {
             jest.spyOn(tdeiCoreService, "getUserDetails")
                 .mockResolvedValue(Promise.resolve({ apiKey: 'fetched-api-key' }));
 
-            const options = QualityReportRequest.from({ poi_types: ['civic', 'leisure'], poi_state: 'OR' });
+            const options = QualityReportRequest.from({ poi_types: ['civic', 'leisure'] });
             await oswService.createQualityReportJob(tdei_dataset_id, user_id, "username", 'Bearer mock-token', options);
 
             expect(jobService.createJob).toHaveBeenCalledWith(expect.objectContaining({
-                request_input: { tdei_dataset_id, poi_types: ['civic', 'leisure'], poi_state: 'OR' },
+                request_input: { tdei_dataset_id, poi_types: ['civic', 'leisure'] },
             }));
             const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
             expect(workflowInput.poi_types).toBe("civic,leisure");
-            expect(workflowInput.poi_state).toBe("OR");
             expect(workflowInput.pois_file_url).toBe("");
         });
 
@@ -781,7 +781,6 @@ describe("OSW Service Test", () => {
             const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
             expect(workflowInput.pois_file_url).toBe(link);
             expect(workflowInput.poi_types).toBe("");
-            expect(workflowInput.poi_state).toBe("");
         });
 
         it('should not create a job when the pois_file cannot be stored', async () => {

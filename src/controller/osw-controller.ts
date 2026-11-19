@@ -966,7 +966,7 @@ class OSWController implements IController {
     /**
      * Creates a quality report job for a single dataset.
      * POST /api/v1/osw/quality-report/:tdei_dataset_id
-     * Optional JSON body: { poi_types: ["civic", ...], poi_state: "WA" } (see QualityReportRequest).
+     * Optional JSON body: { poi_types: ["civic", ...] } (see QualityReportRequest).
      */
     createQualityReportJob = async (request: Request, response: express.Response, next: NextFunction) => {
         try {

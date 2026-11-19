@@ -114,30 +114,33 @@ describe("Workflow config", () => {
         const [request] = workflow.tasks;
         const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t", pois_file_url: "" };
 
-        // Both keys must be present, which is why the service always sends them
+        // The key must be present, which is why the service always sends it
         expect(workflow.validateInput(base)).toBe(false);
 
         const options = (workflow_input: any) => {
-            const { poi_types, poi_state } = OrchestratorUtility.map_props(request.input_params, { workflow_input });
-            return { poi_types, poi_state };
+            const { poi_types } = OrchestratorUtility.map_props(request.input_params, { workflow_input });
+            return { poi_types };
         };
 
-        const chosen = { ...base, poi_types: "civic,leisure", poi_state: "OR" };
+        const chosen = { ...base, poi_types: "civic,leisure" };
         expect(workflow.validateInput(chosen)).toBe(true);
-        expect(options(chosen)).toEqual({ poi_types: "civic,leisure", poi_state: "OR" });
-        expect(options({ ...base, poi_types: "civic", poi_state: "WA" })).toEqual({ poi_types: "civic", poi_state: "WA" });
+        expect(options(chosen)).toEqual({ poi_types: "civic,leisure" });
+        expect(options({ ...base, poi_types: "civic" })).toEqual({ poi_types: "civic" });
 
-        // Not chosen: empty text, which the report pipeline reads as its defaults
-        const defaults = { ...base, poi_types: "", poi_state: "" };
+        // Not chosen: empty text, which the report pipeline reads as its default
+        const defaults = { ...base, poi_types: "" };
         expect(workflow.validateInput(defaults)).toBe(true);
-        expect(options(defaults)).toEqual({ poi_types: "", poi_state: "" });
+        expect(options(defaults)).toEqual({ poi_types: "" });
+
+        // No state is sent: the report works it out from the dataset's area
+        expect(request.input_params).not.toHaveProperty("poi_state");
     });
 
     it("should carry the quality report's pois_file link to the report request unchanged, empty without a file", () => {
         const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
         const workflow = oc.getWorkflowByName("osw_quality_report")!;
         const [request] = workflow.tasks;
-        const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t", poi_types: "", poi_state: "" };
+        const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t", poi_types: "" };
 
         // The key must be present, which is why the service always sends it
         expect(workflow.validateInput(base)).toBe(false);

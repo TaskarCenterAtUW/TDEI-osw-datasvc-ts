@@ -978,12 +978,23 @@ describe("OSW Controller Test", () => {
                 undefined
             );
             const options = (oswService.createQualityReportJob as jest.Mock).mock.calls[0][4];
-            expect(options.toWorkflowInput()).toEqual({ poi_types: "", poi_state: "" });
+            expect(options.toWorkflowInput()).toEqual({ poi_types: "" });
             expect(mockNext).not.toHaveBeenCalled();
         });
 
         it('should pass the POI options in the body to the service', async () => {
             mockRequest.body.poi_types = ['civic', 'leisure'];
+            jest.spyOn(oswService, "createQualityReportJob").mockResolvedValueOnce('mock-job-id');
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(202);
+            const options = (oswService.createQualityReportJob as jest.Mock).mock.calls[0][4];
+            expect(options.toWorkflowInput()).toEqual({ poi_types: "civic,leisure" });
+        });
+
+        it('should ignore a poi_state left in the body, as the report works out the state itself', async () => {
+            mockRequest.body.poi_types = ['civic'];
             mockRequest.body.poi_state = 'OR';
             jest.spyOn(oswService, "createQualityReportJob").mockResolvedValueOnce('mock-job-id');
 
@@ -991,12 +1002,11 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             const options = (oswService.createQualityReportJob as jest.Mock).mock.calls[0][4];
-            expect(options.toWorkflowInput()).toEqual({ poi_types: "civic,leisure", poi_state: "OR" });
+            expect(options).not.toHaveProperty('poi_state');
+            expect(options.toWorkflowInput()).toEqual({ poi_types: "civic" });
         });
 
         it.each([
-            ['an unknown state', { poi_state: 'Washington' }, 'poi_state must be a two-letter US state code such as WA'],
-            ['a lower-case state', { poi_state: 'wa' }, 'poi_state must be a two-letter US state code such as WA'],
             ['an empty type list', { poi_types: [] }, 'poi_types must name at least one POI type'],
             ['a type list given as text', { poi_types: 'civic' }, 'poi_types must be an array of POI type names'],
             ['a type name that is not a plain lower-case name', { poi_types: ["civic'; drop"] }, 'poi_types must be lowercase names'],
@@ -1026,13 +1036,12 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             const call = (oswService.createQualityReportJob as jest.Mock).mock.calls[0];
-            expect(call[4].toWorkflowInput()).toEqual({ poi_types: "", poi_state: "" });
+            expect(call[4].toWorkflowInput()).toEqual({ poi_types: "" });
             expect(call[5]).toBe(mockRequest.file);
         });
 
         it.each([
-            ['sent with poi_state', { poi_state: 'WA' }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types or poi_state"],
-            ['sent with poi_types', { poi_types: ['civic'] }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types or poi_state"],
+            ['sent with poi_types', { poi_types: ['civic'] }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types"],
             ['without a snapped column', {}, 'name,lat,lon,category,source\n', 'it has no snapped column'],
             ['that is empty', {}, '', 'it has no lat, lon, category, source, snapped column'],
         ])('should reject a pois_file %s with 400 without creating a job', async (_label, body, text, message) => {

@@ -1561,13 +1561,13 @@ class OswService implements IOswService {
 
     /**
      * Creates a quality report job for a single dataset.
-     * Both api key and tdei_auth_token are mandatory. Workflow receives: { jobId, tdei_dataset_ids, tdei_api_key, tdei_auth_token, poi_types, poi_state }.
+     * Both api key and tdei_auth_token are mandatory. Workflow receives: { jobId, tdei_dataset_ids, tdei_api_key, tdei_auth_token, poi_types, pois_file_url }.
      * @param tdei_dataset_id - The ID of the TDEI dataset.
      * @param user_id - The ID of the user making the request.
      * @param username - Optional username; used to fetch apiKey from AUTH_HOST getUserByUsername when tdei_api_key is missing.
      * @param tdei_auth_token - Optional Authorization header (e.g. "Bearer <token>") to include in the queue message.
-     * @param options - Optional, already validated POI options. The workflow always gets both as text, empty
-     *   when not chosen: its template fails on a missing key, and the report pipeline reads empty as its default.
+     * @param options - Optional, already validated POI options. The workflow always gets poi_types as text,
+     *   empty when not chosen: its template fails on a missing key, and the report pipeline reads empty as its default.
      * @returns A Promise that resolves to the job ID.
      */
     async createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string, options?: QualityReportRequest, pois_file?: Express.Multer.File): Promise<string> {
@@ -1610,7 +1610,6 @@ class OswService implements IOswService {
             request_input: {
                 tdei_dataset_id: tdei_dataset_id,
                 ...(options?.poi_types ? { poi_types: options.poi_types } : {}),
-                ...(options?.poi_state ? { poi_state: options.poi_state } : {}),
                 // The name only: the link grants read access to the file, and the job is visible to users.
                 ...(pois_file ? { pois_file: pois_file.originalname } : {}),
             },

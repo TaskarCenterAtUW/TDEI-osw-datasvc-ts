@@ -112,18 +112,12 @@ export class SelfMergeRequest extends AbstractDomainEntity {
     }
 }
 
-/** The values a quality report's poi_state may take: the 50 US states and DC. */
-export const US_STATE_CODES = [
-    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA",
-    "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM",
-    "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA",
-    "WV", "WI", "WY",
-];
-
 /**
  * The optional body of POST /api/v1/osw/quality-report/{tdei_dataset_id}: which kinds of points of
- * interest the report fetches, and the US state that Overture places must be in. Leaving either out
- * keeps the report's defaults (every type; WA).
+ * interest the report fetches. Leaving it out keeps the report's default (every type). There is no
+ * state option because the report works the state out itself: Overture places are fetched only in
+ * the US state(s) the dataset's area overlaps; for an area outside every state, they are fetched
+ * without a state filter.
  */
 export class QualityReportRequest extends AbstractDomainEntity {
 
@@ -136,11 +130,6 @@ export class QualityReportRequest extends AbstractDomainEntity {
     @IsString({ each: true, message: "poi_types must be an array of POI type names" })
     @Matches(/^[a-z][a-z0-9_]*$/, { each: true, message: "poi_types must be lowercase names such as civic or leisure" })
     poi_types?: string[];
-
-    @Prop()
-    @IsOptional()
-    @IsIn(US_STATE_CODES, { message: "poi_state must be a two-letter US state code such as WA" })
-    poi_state?: string;
 
     async validateRequestInput() {
         const errors = await validate(this);
@@ -159,12 +148,12 @@ export class QualityReportRequest extends AbstractDomainEntity {
 
     /**
      * Checks an uploaded pois_file before a job is made for it. The report uses the file as-is in place
-     * of the points of interest it would fetch, so the options that choose what to fetch can't come
+     * of the points of interest it would fetch, so poi_types, which chooses what to fetch, can't come
      * with it. Only the header is checked here; the report checks every row (e.g. that each is snapped).
      */
     validatePoisFile(file: { buffer: Buffer }) {
-        if (this.poi_types != null || this.poi_state != null) {
-            throw new InputException("pois_file is used instead of fetching points of interest, so it can't be sent with poi_types or poi_state, which choose what to fetch");
+        if (this.poi_types != null) {
+            throw new InputException("pois_file is used instead of fetching points of interest, so it can't be sent with poi_types, which chooses what to fetch");
         }
         const columns = QualityReportRequest.csvHeader(file.buffer);
         const missing = QualityReportRequest.POIS_FILE_COLUMNS.filter((column) => !columns.includes(column));
@@ -180,10 +169,9 @@ export class QualityReportRequest extends AbstractDomainEntity {
     }
 
     /** The options as the workflow carries them: text, and empty when not chosen (the report's default). */
-    toWorkflowInput(): { poi_types: string; poi_state: string } {
+    toWorkflowInput(): { poi_types: string } {
         return {
             poi_types: (this.poi_types ?? []).join(","),
-            poi_state: this.poi_state ?? "",
         };
     }
 }
