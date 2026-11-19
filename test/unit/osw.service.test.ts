@@ -753,6 +753,7 @@ describe("OSW Service Test", () => {
             }));
             const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
             expect(workflowInput.poi_types).toBe("civic,leisure");
+            expect(workflowInput.poi_state).toBe("OR");
             expect(workflowInput.pois_file_url).toBe("");
         });
 
@@ -781,6 +782,7 @@ describe("OSW Service Test", () => {
             const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
             expect(workflowInput.pois_file_url).toBe(link);
             expect(workflowInput.poi_types).toBe("");
+            expect(workflowInput.poi_state).toBe("");
         });
 
         it('should not create a job when the pois_file cannot be stored', async () => {

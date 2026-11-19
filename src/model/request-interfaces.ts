@@ -148,12 +148,12 @@ export class QualityReportRequest extends AbstractDomainEntity {
 
     /**
      * Checks an uploaded pois_file before a job is made for it. The report uses the file as-is in place
-     * of the points of interest it would fetch, so poi_types, which chooses what to fetch, can't come
+     * of the points of interest it would fetch, so the options that choose what to fetch can't come
      * with it. Only the header is checked here; the report checks every row (e.g. that each is snapped).
      */
     validatePoisFile(file: { buffer: Buffer }) {
-        if (this.poi_types != null) {
-            throw new InputException("pois_file is used instead of fetching points of interest, so it can't be sent with poi_types, which chooses what to fetch");
+        if (this.poi_types != null || this.poi_state != null) {
+            throw new InputException("pois_file is used instead of fetching points of interest, so it can't be sent with poi_types or poi_state, which choose what to fetch");
         }
         const columns = QualityReportRequest.csvHeader(file.buffer);
         const missing = QualityReportRequest.POIS_FILE_COLUMNS.filter((column) => !columns.includes(column));

@@ -976,6 +976,8 @@ describe("OSW Controller Test", () => {
                 mockRequest.headers['authorization'],
                 expect.any(QualityReportRequest),
                 undefined
+                expect.any(QualityReportRequest),
+                undefined
             );
             const options = (oswService.createQualityReportJob as jest.Mock).mock.calls[0][4];
             expect(options.toWorkflowInput()).toEqual({ poi_types: "" });
@@ -1036,12 +1038,13 @@ describe("OSW Controller Test", () => {
 
             expect(mockResponse.status).toHaveBeenCalledWith(202);
             const call = (oswService.createQualityReportJob as jest.Mock).mock.calls[0];
-            expect(call[4].toWorkflowInput()).toEqual({ poi_types: "" });
+            expect(call[4].toWorkflowInput()).toEqual({ poi_types: "", poi_state: "" });
             expect(call[5]).toBe(mockRequest.file);
         });
 
         it.each([
-            ['sent with poi_types', { poi_types: ['civic'] }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types"],
+            ['sent with poi_state', { poi_state: 'WA' }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types or poi_state"],
+            ['sent with poi_types', { poi_types: ['civic'] }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types or poi_state"],
             ['without a snapped column', {}, 'name,lat,lon,category,source\n', 'it has no snapped column'],
             ['that is empty', {}, '', 'it has no lat, lon, category, source, snapped column'],
         ])('should reject a pois_file %s with 400 without creating a job', async (_label, body, text, message) => {

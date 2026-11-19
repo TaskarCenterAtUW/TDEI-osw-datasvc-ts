@@ -199,10 +199,11 @@ export interface IOswService {
      * @param user_id - The ID of the user making the request.
      * @param username - Optional username (e.g. from username query param); used to fetch apiKey from auth when tdei_api_key is missing.
      * @param tdei_auth_token - Optional Authorization header value (e.g. "Bearer <token>") to pass in the queue message.
-     * @param options - Optional POI types for the report to fetch.
+     * @param options - Optional POI types and state for the report to fetch.
      * @param pois_file - Optional pois.csv the report uses as-is instead of fetching points of interest.
      * @returns A Promise that resolves to the job ID.
      */
+    createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string, options?: QualityReportRequest, pois_file?: Express.Multer.File): Promise<string>;
     createQualityReportJob(tdei_dataset_id: string, user_id: string, username?: string, tdei_auth_token?: string, options?: QualityReportRequest, pois_file?: Express.Multer.File): Promise<string>;
 
     /**

@@ -3138,6 +3138,7 @@
                 "tdei_api_key": "<%=tdei_api_key%>",
                 "tdei_auth_token": "<%=tdei_auth_token%>",
                 "poi_types": "<%=poi_types%>",
+                "poi_state": "<%=poi_state%>",
                 "pois_file_url": "<%=pois_file_url%>"
             },
             "tasks": [
@@ -3153,6 +3154,7 @@
                         "tdei_api_key": "<%=workflow_input.tdei_api_key%>",
                         "tdei_auth_token": "<%=workflow_input.tdei_auth_token%>",
                         "poi_types": "<%=workflow_input.poi_types%>",
+                        "poi_state": "<%=workflow_input.poi_state%>",
                         "pois_file_url": "<%=workflow_input.pois_file_url%>"
                     },
                     "output_params": {
