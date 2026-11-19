@@ -753,6 +753,48 @@ describe("OSW Service Test", () => {
             const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
             expect(workflowInput.poi_types).toBe("civic,leisure");
             expect(workflowInput.poi_state).toBe("OR");
+            expect(workflowInput.pois_file_url).toBe("");
+        });
+
+        it('should store an uploaded pois_file, record its name on the job and send the report a read-only link', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{ data_type: 'osw' }));
+            jest.spyOn(jobService, "createJob").mockResolvedValue(mockJobId);
+            mockAppContext();
+            jest.spyOn(tdeiCoreService, "getUserDetails")
+                .mockResolvedValue(Promise.resolve({ apiKey: 'fetched-api-key' }));
+            const stored = 'https://store.blob.core.windows.net/osw/jobs/quality-report/2026/11/u1/pois.csv';
+            const upload = jest.spyOn(storageService, "uploadFile").mockResolvedValueOnce(stored);
+            const link = 'https://store.blob.core.windows.net/osw/jobs/quality-report/2026/11/u1/pois.csv?sp=r&sig=s';
+            const getSASUrl = jest.fn().mockResolvedValue(link);
+            jest.spyOn(Core, "getStorageClient").mockReturnValue(<any>{ getSASUrl });
+
+            const pois_file = <any>{ originalname: 'my-pois.csv', buffer: Buffer.from('lat,lon,category,source,snapped\n') };
+            await oswService.createQualityReportJob(tdei_dataset_id, user_id, "username", 'Bearer mock-token', new QualityReportRequest(), pois_file);
+
+            expect(upload).toHaveBeenCalledWith(expect.stringMatching(/^jobs\/quality-report\/\d+\/\d+\/[^/]+\/pois\.csv$/), 'text/csv', expect.anything());
+            expect(getSASUrl).toHaveBeenCalledWith('osw', 'jobs/quality-report/2026/11/u1/pois.csv', 72);
+            // The job shows the file's name, never the link, which grants read access to it
+            expect(jobService.createJob).toHaveBeenCalledWith(expect.objectContaining({
+                request_input: { tdei_dataset_id, pois_file: 'my-pois.csv' },
+            }));
+            const workflowInput = (appContext.orchestratorService_v2_Instance!.startWorkflow as jest.Mock).mock.calls[0][2];
+            expect(workflowInput.pois_file_url).toBe(link);
+            expect(workflowInput.poi_types).toBe("");
+            expect(workflowInput.poi_state).toBe("");
+        });
+
+        it('should not create a job when the pois_file cannot be stored', async () => {
+            jest.spyOn(tdeiCoreService, "getDatasetDetailsById")
+                .mockResolvedValue(Promise.resolve(<any>{ data_type: 'osw' }));
+            const create = jest.spyOn(jobService, "createJob").mockResolvedValue(mockJobId);
+            jest.spyOn(Core, "getStorageClient").mockReturnValue(<any>{ getSASUrl: jest.fn() });
+            jest.spyOn(storageService, "uploadFile").mockRejectedValueOnce(new Error("storage unavailable"));
+
+            const pois_file = <any>{ originalname: 'my-pois.csv', buffer: Buffer.from('lat,lon,category,source,snapped\n') };
+            await expect(oswService.createQualityReportJob(tdei_dataset_id, user_id, undefined, 'Bearer mock-token', new QualityReportRequest(), pois_file))
+                .rejects.toThrow("storage unavailable");
+            expect(create).not.toHaveBeenCalled();
         });
 
         it('should throw InputException when tdei_auth_token is missing', async () => {

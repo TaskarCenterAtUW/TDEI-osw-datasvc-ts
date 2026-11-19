@@ -151,6 +151,34 @@ export class QualityReportRequest extends AbstractDomainEntity {
         return true;
     }
 
+    /**
+     * The columns the report requires of a cached pois.csv before it uses one (Task 1a's isValid in
+     * TDEI-quality-reports). An uploaded pois_file is used the same way, so it needs them too.
+     */
+    static readonly POIS_FILE_COLUMNS = ["lat", "lon", "category", "source", "snapped"];
+
+    /**
+     * Checks an uploaded pois_file before a job is made for it. The report uses the file as-is in place
+     * of the points of interest it would fetch, so the options that choose what to fetch can't come
+     * with it. Only the header is checked here; the report checks every row (e.g. that each is snapped).
+     */
+    validatePoisFile(file: { buffer: Buffer }) {
+        if (this.poi_types != null || this.poi_state != null) {
+            throw new InputException("pois_file is used instead of fetching points of interest, so it can't be sent with poi_types or poi_state, which choose what to fetch");
+        }
+        const columns = QualityReportRequest.csvHeader(file.buffer);
+        const missing = QualityReportRequest.POIS_FILE_COLUMNS.filter((column) => !columns.includes(column));
+        if (missing.length > 0) {
+            throw new InputException(`pois_file must be a CSV with ${QualityReportRequest.POIS_FILE_COLUMNS.join(", ")} columns; it has no ${missing.join(", ")} column`);
+        }
+    }
+
+    /** The column names on a CSV's first line, without a byte order mark or quotes. */
+    private static csvHeader(buffer: Buffer): string[] {
+        const start = buffer.toString("utf8", 0, Math.min(buffer.length, 64 * 1024)).replace(/^\uFEFF/, "");
+        return start.split(/\r?\n/, 1)[0].split(",").map((name) => name.trim().replace(/^"(.*)"$/, "$1"));
+    }
+
     /** The options as the workflow carries them: text, and empty when not chosen (the report's default). */
     toWorkflowInput(): { poi_types: string; poi_state: string } {
         return {

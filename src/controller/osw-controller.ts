@@ -129,6 +129,17 @@ const qualityUpload = multer({
     }
 });
 
+// A quality report's own points of interest (pois_file), used in place of the ones it would fetch.
+const qualityReportUpload = multer({
+    storage: memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        if (path.extname(file.originalname).toLowerCase() !== '.csv') {
+            return cb(new FileTypeException());
+        }
+        cb(null, true);
+    }
+});
+
 class OSWController implements IController {
     public path = '/api/v1/osw';
     public router = express.Router();
@@ -155,7 +166,7 @@ class OSWController implements IController {
         // Route for quality metric request
         this.router.post(`${this.path}/quality-metric/ixn/:tdei_dataset_id`, qualityUpload.single('file'), apiTracker, authenticate, this.createIXNQualityOnDemandRequest);
         this.router.post(`${this.path}/quality-metric/tag/:tdei_dataset_id`, tagQuality.single('file'), apiTracker, authenticate, this.tagQualityMetric);
-        this.router.post(`${this.path}/quality-report/:tdei_dataset_id`, apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator", "member"]), this.createQualityReportJob);
+        this.router.post(`${this.path}/quality-report/:tdei_dataset_id`, qualityReportUpload.single('pois_file'), apiTracker, authenticate, authorize(["tdei_admin", "poc", "osw_data_generator", "member"]), this.createQualityReportJob);
         this.router.post(`${this.path}/dataset-inclination/:tdei_dataset_id`, apiTracker, authenticate, this.createInclineRequest);
         this.router.post(`${this.path}/union`, apiTracker, authenticate, this.processDatasetUnionRequest);
         this.router.post(`${this.path}/self-merge`, apiTracker, authenticate, this.processDatasetSelfMergeRequest);
@@ -973,7 +984,11 @@ class OSWController implements IController {
             const username = request.body.username as string | undefined;
             const options = QualityReportRequest.from(request.body);
             await options.validateRequestInput();
-            const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, username, tdei_auth_token, options);
+            const pois_file = request.file;
+            if (pois_file) {
+                options.validatePoisFile(pois_file);
+            }
+            const job_id = await oswService.createQualityReportJob(tdei_dataset_id, request.body.user_id, username, tdei_auth_token, options, pois_file);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
         } catch (error) {

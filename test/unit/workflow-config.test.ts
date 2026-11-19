@@ -112,7 +112,7 @@ describe("Workflow config", () => {
         const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
         const workflow = oc.getWorkflowByName("osw_quality_report")!;
         const [request] = workflow.tasks;
-        const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t" };
+        const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t", pois_file_url: "" };
 
         // Both keys must be present, which is why the service always sends them
         expect(workflow.validateInput(base)).toBe(false);
@@ -131,6 +131,26 @@ describe("Workflow config", () => {
         const defaults = { ...base, poi_types: "", poi_state: "" };
         expect(workflow.validateInput(defaults)).toBe(true);
         expect(options(defaults)).toEqual({ poi_types: "", poi_state: "" });
+    });
+
+    it("should carry the quality report's pois_file link to the report request unchanged, empty without a file", () => {
+        const oc = new OrchestratorWorkflowConfig(orchestratorConfig as any);
+        const workflow = oc.getWorkflowByName("osw_quality_report")!;
+        const [request] = workflow.tasks;
+        const base = { jobId: "7", tdei_dataset_ids: "d1", tdei_api_key: "k", tdei_auth_token: "t", poi_types: "", poi_state: "" };
+
+        // The key must be present, which is why the service always sends it
+        expect(workflow.validateInput(base)).toBe(false);
+
+        // A SAS link: its &, = and % must survive the template and the JSON parse untouched
+        const link = "https://store.blob.core.windows.net/osw/jobs/quality-report/2026/11/u1/pois.csv?sv=2021-08-06&se=2026-11-22T00%3A00%3A00Z&sr=b&sp=r&sig=a%2Bb%3D";
+        const withFile = { ...base, pois_file_url: link };
+        expect(workflow.validateInput(withFile)).toBe(true);
+        expect(OrchestratorUtility.map_props(request.input_params, { workflow_input: withFile }).pois_file_url).toBe(link);
+
+        const withoutFile = { ...base, pois_file_url: "" };
+        expect(workflow.validateInput(withoutFile)).toBe(true);
+        expect(OrchestratorUtility.map_props(request.input_params, { workflow_input: withoutFile }).pois_file_url).toBe("");
     });
 
     describe.each([

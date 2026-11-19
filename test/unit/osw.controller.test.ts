@@ -974,7 +974,8 @@ describe("OSW Controller Test", () => {
                 'mock-user-id',
                 'test_user',
                 mockRequest.headers['authorization'],
-                expect.any(QualityReportRequest)
+                expect.any(QualityReportRequest),
+                undefined
             );
             const options = (oswService.createQualityReportJob as jest.Mock).mock.calls[0][4];
             expect(options.toWorkflowInput()).toEqual({ poi_types: "", poi_state: "" });
@@ -1001,6 +1002,42 @@ describe("OSW Controller Test", () => {
             ['a type name that is not a plain lower-case name', { poi_types: ["civic'; drop"] }, 'poi_types must be lowercase names'],
         ])('should reject %s with 400 without creating a job', async (_label, body, message) => {
             Object.assign(mockRequest.body, body);
+            const create = jest.spyOn(oswService, "createQualityReportJob");
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.send).toHaveBeenCalledWith(expect.stringContaining(message));
+            expect(mockNext).toHaveBeenCalledWith(expect.any(InputException));
+            expect(create).not.toHaveBeenCalled();
+        });
+
+        const poisCsv = (text: string) => ({ originalname: 'my-pois.csv', mimetype: 'text/csv', buffer: Buffer.from(text) });
+
+        it.each([
+            ['a plain header', 'name,lat,lon,category,source,snapped\nA,47.6,-122.3,food,osm,true\n'],
+            ['a byte order mark, quoted names and CRLF line ends', '\uFEFF"name","lat","lon","category","source","snapped"\r\n"A",47.6,-122.3,food,osm,true\r\n'],
+            ['only a header (a dataset with no POIs)', 'lat,lon,category,source,snapped\n'],
+        ])('should pass an uploaded pois_file with %s to the service', async (_label, text) => {
+            mockRequest.file = poisCsv(text);
+            jest.spyOn(oswService, "createQualityReportJob").mockResolvedValueOnce('mock-job-id');
+
+            await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(202);
+            const call = (oswService.createQualityReportJob as jest.Mock).mock.calls[0];
+            expect(call[4].toWorkflowInput()).toEqual({ poi_types: "", poi_state: "" });
+            expect(call[5]).toBe(mockRequest.file);
+        });
+
+        it.each([
+            ['sent with poi_state', { poi_state: 'WA' }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types or poi_state"],
+            ['sent with poi_types', { poi_types: ['civic'] }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types or poi_state"],
+            ['without a snapped column', {}, 'name,lat,lon,category,source\n', 'it has no snapped column'],
+            ['that is empty', {}, '', 'it has no lat, lon, category, source, snapped column'],
+        ])('should reject a pois_file %s with 400 without creating a job', async (_label, body, text, message) => {
+            Object.assign(mockRequest.body, body);
+            mockRequest.file = poisCsv(text);
             const create = jest.spyOn(oswService, "createQualityReportJob");
 
             await oswController.createQualityReportJob(mockRequest, mockResponse, mockNext);
