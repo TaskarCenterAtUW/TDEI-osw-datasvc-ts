@@ -141,15 +141,17 @@ export class QualityReportRequest extends AbstractDomainEntity {
     }
 
     /**
-     * The columns the report requires of a cached pois.csv before it uses one (Task 1a's isValid in
-     * TDEI-quality-reports). An uploaded pois_file is used the same way, so it needs them too.
+     * The columns the report requires of an uploaded pois_file (Task1a.UPLOADED_POI_COLUMNS in
+     * TDEI-quality-reports). Any others are optional: the report fills in snapped (true) and source
+     * ("uploaded") where the file leaves them out or empty, and reads nothing else but name.
      */
-    static readonly POIS_FILE_COLUMNS = ["lat", "lon", "category", "source", "snapped"];
+    static readonly POIS_FILE_COLUMNS = ["lat", "lon"];
 
     /**
      * Checks an uploaded pois_file before a job is made for it. The report uses the file as-is in place
      * of the points of interest it would fetch, so poi_types, which chooses what to fetch, can't come
-     * with it. Only the header is checked here; the report checks every row (e.g. that each is snapped).
+     * with it. Only the header is checked here; the report checks every row (e.g. valid coordinates,
+     * and snapped, where given, true).
      */
     validatePoisFile(file: { buffer: Buffer }) {
         if (this.poi_types != null) {
