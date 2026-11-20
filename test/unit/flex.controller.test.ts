@@ -65,7 +65,7 @@ describe("Flex Controller Test", () => {
 
             test("When requested version info, Expect to return HTTP status 200", async () => {
                 //Arrange
-                let req = getMockReq();
+                const req = getMockReq();
                 const { res, next } = getMockRes();
                 //Act
                 await flexController.getVersions(req, res, next);
@@ -104,6 +104,7 @@ describe("Flex Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -196,6 +197,7 @@ describe("Flex Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();
@@ -248,6 +250,7 @@ describe("Flex Controller Test", () => {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
                 setHeader: jest.fn(),
+                set: jest.fn().mockReturnThis(),
             };
 
             mockNext = jest.fn();

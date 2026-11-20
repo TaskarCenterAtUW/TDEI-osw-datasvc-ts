@@ -24,7 +24,7 @@ export class FlexPublishDatabaseWorkflow extends WorkflowBase {
             //This workflow triggers at the end of the workflow stages and marks complete of the workflow process
             await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.request_input.tdei_dataset_id, RecordStatus.Publish));
 
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: "Dataset Published Successfully",
                 status: JobStatus.COMPLETED,

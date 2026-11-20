@@ -24,7 +24,7 @@ export class OswOnDemandFormattingResponseHandler extends WorkflowHandlerBase {
 
         try {
             const response = OswFormatJobResponse.from(message.data);
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: response.message,
                 status: response.success ? JobStatus.COMPLETED : JobStatus.FAILED,

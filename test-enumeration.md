@@ -113,6 +113,10 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 | OSW Service Test -> processUnionRequest | When tdei_dataset_id_one dataset is not a osw dataset, Expect to throw InputException | passed |
 | OSW Service Test -> processUnionRequest | When tdei_dataset_id_two dataset is not a osw dataset, Expect to throw InputException | passed |
 | OSW Service Test -> processUnionRequest | When all conditions are met, Expect to create job, start workflow, and return job_id | passed |
+| OSW Service Test -> processUnionRequest | When config is omitted, Expect an empty config to be checked, recorded and sent | passed |
+| OSW Service Test -> processUnionRequest | When config is a JSON string, Expect it to be sent to the workflow as an object | passed |
+| OSW Service Test -> processUnionRequest | When the database rejects the config, Expect InputException with its message and no job | passed |
+| OSW Service Test -> processUnionRequest | When checking the config fails for another reason, Expect the error to propagate | passed |
 | OSW Service Test -> processSelfMergeRequest | When tdei_dataset_id dataset is not a osw dataset, Expect to throw InputException | passed |
 | OSW Service Test -> processSelfMergeRequest | When all conditions are met, Expect to create job, start workflow, and return job_id | passed |
 | OSW Service Test -> OSW Service - calculateInclination | When dataset is not in Pre-Release state, Expect to throw InputException | passed |
@@ -275,9 +279,14 @@ Unit test cases are to be written using [Jest](https://jestjs.io/ "Jest")
 | OSW Controller Test -> calculate quality metric | should handle missing tdei_dataset_id input | passed |
 | OSW Controller Test -> calculate quality metric | should handle error during quality metric calculation | passed |
 | OSW Controller Test -> processUnionQueryRequest | When request body is empty, Expect to call next with InputException | passed |
-| OSW Controller Test -> processUnionQueryRequest | When request body proximity param is string, Expect to call next with InputException | passed |
+| OSW Controller Test -> processUnionQueryRequest | When request body has the removed proximity param, Expect 400 naming it | passed |
+| OSW Controller Test -> processUnionQueryRequest | When request body has the removed entity_filters param, Expect 400 naming it | passed |
 | OSW Controller Test -> processUnionQueryRequest | When request body is valid, Expect to process the request and return 202 status code | passed |
-| OSW Controller Test -> processUnionQueryRequest | When request body is valid with proximity, Expect to process the request and return 202 status code | passed |
+| OSW Controller Test -> processUnionQueryRequest | When request body has a config, Expect to forward it to the service and return 202 status code | passed |
+| OSW Controller Test -> processUnionQueryRequest | When request body has the config as a JSON string, Expect the service to receive it as an object | passed |
+| OSW Controller Test -> processUnionQueryRequest | When config has an unknown section, Expect 400 and no job | passed |
+| OSW Controller Test -> processUnionQueryRequest | When both dataset ids are the same, Expect to call next with InputException | passed |
+| OSW Controller Test -> processUnionQueryRequest | When the service rejects the config, Expect 400 with the reason | passed |
 | OSW Controller Test -> processUnionQueryRequest | When an error occurs, Expect to call next with HttpException and return 500 status code | passed |
 | OSW Controller Test -> OSW Controller - createInclineRequest | When request body is empty, Expect to return HTTP status 400 | passed |
 | OSW Controller Test -> OSW Controller - createInclineRequest | When required input is empty, Expect to return HTTP status 400 | passed |

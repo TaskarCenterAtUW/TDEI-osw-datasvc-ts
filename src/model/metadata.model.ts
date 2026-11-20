@@ -44,7 +44,7 @@ export class DatasetDetail extends AbstractDomainEntity {
 
     @Prop()
     @IsOptional()
-    custom_metadata: Object = {};
+    custom_metadata: object = {};
 
     @Prop()
     @IsNotEmpty()

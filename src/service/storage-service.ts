@@ -7,9 +7,6 @@ import { FileEntity, StorageClient } from "nodets-ms-core/lib/core/storage";
 
 class StorageService {
     storageClient: StorageClient | null | undefined;
-    constructor() {
-    }
-
     /**
      * Initializes the storage client
      */
@@ -29,9 +26,9 @@ class StorageService {
      * @returns string with the file name
      */
     getStorageFileNameFromUrl(fullUrl: string): string {
-        let url = new URL(fullUrl);
-        let pathname = url.pathname;
-        let filenameWithExtension = pathname.split("/").pop();
+        const url = new URL(fullUrl);
+        const pathname = url.pathname;
+        const filenameWithExtension = pathname.split("/").pop();
         return filenameWithExtension!;
     }
 
@@ -77,6 +74,13 @@ class StorageService {
         return 'jobs/validation/' + year + '/' + month + '/' + uid;
     }
 
+    getConverterJobPath(uid: string): string {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        return 'jobs/converter/' + year + '/' + month + '/' + uid;
+    }
+
     /**
      * Upload the file to storage
      * @param filePath File path of the file
@@ -84,7 +88,7 @@ class StorageService {
      * @param body Readable stream of the body
      * @param containerName Name of the container. defaults to gtfs-osw
      */
-    async uploadFile(filePath: string, type: string = 'application/zip', body: NodeJS.ReadableStream, containerName: string = 'osw') {
+    async uploadFile(filePath: string, type: string = 'application/zip', body: NodeJS.ReadableStream, containerName = 'osw') {
         const container = await this.getStorageClient()?.getContainer(containerName);
         const file = container?.createFile(filePath, type);
         const uploadedEntity = await file?.upload(body);
@@ -99,7 +103,7 @@ class StorageService {
      * @returns a promise of the file entity
      */
     async cloneFile(fileUrl: string, destinationContainerName: string, destinationFilePath: string): Promise<FileEntity | undefined> {
-        let clonedFileEntity = this.getStorageClient()?.cloneFile(decodeURIComponent(fileUrl), destinationContainerName, decodeURI(destinationFilePath));
+        const clonedFileEntity = this.getStorageClient()?.cloneFile(decodeURIComponent(fileUrl), destinationContainerName, decodeURI(destinationFilePath));
         return clonedFileEntity;
     }
 
@@ -108,7 +112,7 @@ class StorageService {
      * @param fileUrl file url
      */
     async deleteFile(fileUrl: string) {
-        let fileEntity = await this.getStorageClient()?.getFileFromUrl(decodeURIComponent(fileUrl));
+        const fileEntity = await this.getStorageClient()?.getFileFromUrl(decodeURIComponent(fileUrl));
         await fileEntity?.deleteFile();
     }
 }

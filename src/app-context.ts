@@ -9,9 +9,7 @@ export interface IAppContext {
 class AppContext implements IAppContext {
     orchestratorServiceInstance!: IOrchestratorService;
     orchestratorService_v2_Instance!: IOrchestratorService_v2;
-    constructor() {
-    }
 }
 
-let appContext = new AppContext();
+const appContext = new AppContext();
 export default appContext;

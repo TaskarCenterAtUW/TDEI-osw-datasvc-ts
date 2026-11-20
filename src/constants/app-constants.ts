@@ -34,7 +34,8 @@ export enum WorkflowName {
     "osw_union_dataset" = "osw_union_dataset",
     "osw_self_merge_dataset" = "osw_self_merge_dataset",
     "osw_generate_pmtiles" = "osw_generate_pmtiles",
-    "osw_quality_report" = "osw_quality_report"
+    "osw_quality_report" = "osw_quality_report",
+    "pathways_convert" = "pathways_convert"
 }
 
 export const JOBS_API_PATH = "/api/v1/jobs";

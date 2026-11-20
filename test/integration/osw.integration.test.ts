@@ -23,7 +23,7 @@ describe("OSW Integration Test", () => {
         }
 
         //Arrange
-        var permissionRequest = new PermissionRequest({
+        const permissionRequest = new PermissionRequest({
             userId: "test_userId",
             projectGroupId: "test_project_group_id",
             permssions: ["tdei-admin", "poc", "osw_data_generator"],

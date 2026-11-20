@@ -19,7 +19,7 @@ export class OrchestratorWorkflowConfig {
     dlq_subscriptions: DlqSubscription[] = [];
 
     getWorkflowByName(name: string): WorkflowConfig | undefined {
-        var wokflow = this.workflows.find(x => x.name == name);
+        const wokflow = this.workflows.find(x => x.name == name);
         if (!wokflow) {
             console.error("getWorkflowByIdentifier : workflow not found ", name);
             return undefined;
@@ -41,7 +41,7 @@ export class WorkflowConfig {
 
     validateInput(input: any): boolean {
         let valid = true;
-        let input_keys = Object.keys(input);
+        const input_keys = Object.keys(input);
         Object.keys(this.workflow_input).forEach(key => {
             if (!input_keys.includes(key)) {
                 console.error(`Unresolved input parameter for workflow : ${this.name}, param : ${key} `);

@@ -40,7 +40,7 @@ describe('API Tracker Service Test', () => {
                 const mockQuery = jest.fn().mockRejectedValueOnce(new Error('Database error'));
                 dbClient.query = mockQuery;
     
-                const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+                const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { /* silence */ });
     
                 await APITrackerService.saveAPIUsageSummary(req);
     
@@ -158,7 +158,7 @@ describe('API Tracker Service Test', () => {
                 const mockQuery = jest.fn().mockRejectedValueOnce(new Error('Database error'));
                 dbClient.query = mockQuery;
     
-                const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+                const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { /* silence */ });
     
                 await APITrackerService.saveAPIUsageDetails(req, { responseStatus, responseTime });
     

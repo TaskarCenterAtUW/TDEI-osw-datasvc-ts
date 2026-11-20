@@ -22,7 +22,7 @@ export class DataQueryFormatterRequestWorkflow extends WorkflowBase {
             const result = await dbClient.query(JobEntity.getJobByIdQuery(message.messageId));
             const job = JobDTO.from(result.rows[0]);
 
-            var tdei_dataset_id;
+            let tdei_dataset_id;
             if (job.job_type == JobType["Dataset-Road-Tag"] || job.job_type == JobType["Dataset-BBox"]) {
                 //Tag road dataset service DB manipulation request
                 if (job.request_input.service == "dataset_tag_road") {
@@ -37,7 +37,7 @@ export class DataQueryFormatterRequestWorkflow extends WorkflowBase {
             const dataset = await tdeiCoreService.getDatasetDetailsById(tdei_dataset_id);
 
             //Compose the meessage
-            let queueMessage = QueueMessage.from({
+            const queueMessage = QueueMessage.from({
                 messageId: message.messageId,
                 messageType: `${this.eventName}`, // will be set by the publish handler with params defined in config
                 data: {

@@ -7,21 +7,18 @@ import storageService from "../../service/storage-service";
 import path from "path";
 
 export class OrchestratorFunctions {
-    constructor() { }
-
-
     public static async backed_service_response_validation(input: any): Promise<any> {
         try {
             if (input.success && input.file_upload_path.length == 0) {
                 //Terminate the workflow as no further processing is required
-                let where = new Map<string, string>();
+                const where = new Map<string, string>();
                 where.set("job_id", input.job_id);
-                let data = {
+                const data = {
                     "status": "COMPLETED",
                     "message": input.message
                 };
 
-                let query = new QueryCriteria()
+                const query = new QueryCriteria()
                     .setTable("content.job")
                     .setData(data)
                     .setWhere(where);
@@ -81,12 +78,12 @@ export class OrchestratorFunctions {
     public static async update_table(input: any): Promise<any> {
 
         try {
-            let where = new Map<string, string>();
-            for (let key in input.where) {
+            const where = new Map<string, string>();
+            for (const key in input.where) {
                 where.set(key, input.where[key]);
             }
 
-            let query = new QueryCriteria()
+            const query = new QueryCriteria()
                 .setTable(input.table)
                 .setData(input.data)
                 .setWhere(where);
@@ -113,12 +110,12 @@ export class OrchestratorFunctions {
      * @returns folder path
      */
     static async get_osw_osm_dataset_blob_folder_zip_path(input: any): Promise<any> {
-        let blobUrl: string = input.blobUrl;
-        let tdei_dataset_id: string = input.tdei_dataset_id;
+        const blobUrl: string = input.blobUrl;
+        const tdei_dataset_id: string = input.tdei_dataset_id;
         try {
-            let directory = path.dirname(blobUrl);
-            let osm_output_path = `${directory}/zip/${tdei_dataset_id}.osm.zip`;
-            let osw_output_path = `${directory}/zip/${tdei_dataset_id}.osw.zip`;
+            const directory = path.dirname(blobUrl);
+            const osm_output_path = `${directory}/zip/${tdei_dataset_id}.osm.zip`;
+            const osw_output_path = `${directory}/zip/${tdei_dataset_id}.osw.zip`;
             return Promise.resolve({
                 success: true,
                 message: "Folder path generated successfully",
@@ -142,11 +139,11 @@ export class OrchestratorFunctions {
      * @returns folder path
      */
     static async get_blob_folder_path_wo_ext(input: any): Promise<any> {
-        let blobUrl: string = input.blobUrl;
-        let identifier: string = input.identifier;
+        const blobUrl: string = input.blobUrl;
+        const identifier: string = input.identifier;
         try {
-            let directory = path.dirname(blobUrl);
-            let output_path = `${directory}/zip/${identifier}`;
+            const directory = path.dirname(blobUrl);
+            const output_path = `${directory}/zip/${identifier}`;
             return Promise.resolve({
                 success: true,
                 message: "Folder path generated successfully",

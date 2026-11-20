@@ -24,7 +24,7 @@ export class UploadDatabaseWorkflow extends WorkflowBase {
 
             await dbClient.query(DatasetEntity.getStatusUpdateQuery(job.response_props.tdei_dataset_id, RecordStatus["Pre-Release"]));
 
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: "Dataset Uploaded Successfully",
                 status: JobStatus.COMPLETED,

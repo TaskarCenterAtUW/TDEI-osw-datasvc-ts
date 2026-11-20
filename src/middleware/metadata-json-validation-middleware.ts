@@ -46,11 +46,11 @@ export const metajsonValidator = ((operation: string) => {
             }
             else {
 
-                let dataset_details: any = metadata.dataset_detail;
-                let dataset_version = dataset_details.version;
+                const dataset_details: any = metadata.dataset_detail;
+                const dataset_version = dataset_details.version;
 
                 if (!/^\d+(\.\d+)?$/.test(dataset_version)) {
-                    let error_message = `Metadata json validation error : \n Invalid property value : dataset_detail -> version, Dataset version must be a valid number in the format x or x.y (e.g. 1, 2.3)`;
+                    const error_message = `Metadata json validation error : \n Invalid property value : dataset_detail -> version, Dataset version must be a valid number in the format x or x.y (e.g. 1, 2.3)`;
                     console.error(error_message);
                     return next(new InputException(error_message));
                 }

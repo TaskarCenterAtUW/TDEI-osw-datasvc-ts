@@ -25,7 +25,7 @@ export class OswOnDemandConfidenceResponseHandler extends WorkflowHandlerBase {
 
         try {
             const confidenceResponse = ConfidenceJobResponse.from(message.data);
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: confidenceResponse.message,
                 status: confidenceResponse.success ? JobStatus.COMPLETED : JobStatus.FAILED,

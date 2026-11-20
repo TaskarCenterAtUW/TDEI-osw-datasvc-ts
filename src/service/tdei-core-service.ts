@@ -34,8 +34,6 @@ const ajv = new Ajv({ allErrors: true });
 const metadataValidator = ajv.compile(metaschema);
 class TdeiCoreService implements ITdeiCoreService {
 
-    constructor() { }
-
     /**
    * Exports download stats as CSV stream.
    * @param from_date - The start date for the report (optional).
@@ -51,7 +49,7 @@ class TdeiCoreService implements ITdeiCoreService {
             const result = await dbClient.query(queryConfig);
 
             const header = 'full_name,user_name,total_number_of_downloads,osw_file_downloads\n';
-            function* csvGenerator() {
+            const csvGenerator = function* () {
                 yield header;
                 for (const row of result.rows) {
                     const values = [
@@ -93,7 +91,7 @@ class TdeiCoreService implements ITdeiCoreService {
             if (result.status != undefined && result.status != 200)
                 throw new HttpException(result.status, result.statusText);
 
-            let new_api_key = await result.text()
+            const new_api_key = await result.text()
 
             return new_api_key;
         } catch (error: any) {
@@ -130,9 +128,9 @@ class TdeiCoreService implements ITdeiCoreService {
      Send the email to the user with the password recovery link
      *@param email - The email of the user
      */
-    async verifyEmail(email: string): Promise<Boolean> {
+    async verifyEmail(email: string): Promise<boolean> {
         try {
-            let requestBody = {
+            const requestBody = {
                 "username": email,
                 "email_actions": [
                     "VERIFY_EMAIL"
@@ -176,9 +174,9 @@ class TdeiCoreService implements ITdeiCoreService {
      Send the email to the user with the password recovery link
      *@param email - The email of the user
      */
-    async recoverPassword(email: string): Promise<Boolean> {
+    async recoverPassword(email: string): Promise<boolean> {
         try {
-            let requestBody = {
+            const requestBody = {
                 "username": email,
                 "email_actions": [
                     "UPDATE_PASSWORD"
@@ -228,7 +226,7 @@ class TdeiCoreService implements ITdeiCoreService {
      * @returns A Promise that resolves when the metadata is successfully edited.
      */
     async editMetadata(tdei_dataset_id: string, metadataFile: any, user_id: string, data_type: TDEIDataType): Promise<string> {
-        let dataset_to_be_edited = await this.getDatasetDetailsById(tdei_dataset_id);
+        const dataset_to_be_edited = await this.getDatasetDetailsById(tdei_dataset_id);
         const metadataBuffer = JSON.parse(metadataFile.buffer);
         const metadata = MetadataModel.from(metadataBuffer);
         await this.validateMetadata(metadata, data_type, tdei_dataset_id);
@@ -271,7 +269,7 @@ class TdeiCoreService implements ITdeiCoreService {
         await storageService.uploadFile(fileRelativePath, 'text/json', Readable.from(metadataFile.buffer), containerName);
 
         //Create job
-        let job = CreateJobDTO.from({
+        const job = CreateJobDTO.from({
             data_type: TDEIDataType.osw,
             job_type: JobType["Edit-Metadata"],
             status: JobStatus["IN-PROGRESS"],
@@ -287,8 +285,8 @@ class TdeiCoreService implements ITdeiCoreService {
         const job_id = await jobService.createJob(job);
 
         //Compose the meessage
-        let workflow_start = dataset_to_be_edited.data_type == TDEIDataType.osw ? WorkflowName.build_osw_osm_dataset_download : WorkflowName.build_dataset_download;
-        let workflow_input = {
+        const workflow_start = dataset_to_be_edited.data_type == TDEIDataType.osw ? WorkflowName.build_osw_osm_dataset_download : WorkflowName.build_dataset_download;
+        const workflow_input = {
             job_id: job_id.toString(),
             user_id: user_id,// Required field for message authorization
             tdei_dataset_id: tdei_dataset_id,
@@ -337,14 +335,14 @@ class TdeiCoreService implements ITdeiCoreService {
         //Check for unique name and version combination
         //Check for edit metadata flow
         if (tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version, tdei_dataset_id)) {
-            let latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
-            let latest_version_series = this.getVersionSeries(latest_version);
+            const latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
+            const latest_version_series = this.getVersionSeries(latest_version);
             throw new InputException(`Record already exists for Name and Version specified in metadata. Reminder: dataset name and version must be globally unique to the TDEI system. Suggest updating the name or version and request again. Latest version for name "${metadata.dataset_detail.name}" ${latest_version_series != '' ? 'in ' + latest_version_series + ' series' : ''} is ${latest_version}.`);
         }
         //upload flow
         if (!tdei_dataset_id && await this.checkMetaNameAndVersionUnique(metadata.dataset_detail.name, metadata.dataset_detail.version)) {
-            let latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
-            let latest_version_series = this.getVersionSeries(latest_version);
+            const latest_version = await this.getLatestDatasetVersion(metadata.dataset_detail.name, metadata.dataset_detail.version);
+            const latest_version_series = this.getVersionSeries(latest_version);
             throw new InputException(`Record already exists for Name and Version specified in metadata. Reminder: dataset name and version must be globally unique to the TDEI system. Suggest updating the name or version and request again. Latest version for name "${metadata.dataset_detail.name}" ${latest_version_series != '' ? 'in ' + latest_version_series + ' series' : ''} is ${latest_version}.`);
         }
 
@@ -371,7 +369,7 @@ class TdeiCoreService implements ITdeiCoreService {
        @param dataset - The dataset to validate.
        @throws {InputException}
        */
-    validateDatasetDates(dataset: DatasetEntity): Boolean {
+    validateDatasetDates(dataset: DatasetEntity): boolean {
         if (!dataset.valid_from || !dataset.valid_to)
             throw new InputException(`Valid from and valid to dates are required for publishing the dataset.`);
         if (!TdeiDate.isValid(dataset.valid_from))
@@ -479,7 +477,7 @@ class TdeiCoreService implements ITdeiCoreService {
      * @param tdei_dataset_id - The ID of the TDEI dataset. (Optional) Used for Edit Metadata.
      * @returns A promise that resolves to a boolean indicating whether the name and version are unique.
      */
-    async checkMetaNameAndVersionUnique(name: string, version: string, tdei_dataset_id?: string): Promise<Boolean> {
+    async checkMetaNameAndVersionUnique(name: string, version: string, tdei_dataset_id?: string): Promise<boolean> {
         try {
             let queryText: string;
             let values: (string | number)[];
@@ -497,7 +495,7 @@ class TdeiCoreService implements ITdeiCoreService {
                 values: values,
             };
 
-            let result = await dbClient.query(queryObject);
+            const result = await dbClient.query(queryObject);
 
             // If record exists then return true, else false
             return result.rowCount ? result.rowCount > 0 : false;
@@ -520,7 +518,7 @@ class TdeiCoreService implements ITdeiCoreService {
                 values: [name, version],
             };
 
-            let result = await dbClient.query(queryObject);
+            const result = await dbClient.query(queryObject);
 
             if (result.rowCount == 0)
                 return version;
@@ -597,7 +595,7 @@ class TdeiCoreService implements ITdeiCoreService {
             if (result.rowCount == 0)
                 return undefined;
 
-            let service = ServiceEntity.from(result.rows[0]);
+            const service = ServiceEntity.from(result.rows[0]);
 
             return service;
         } catch (error) {
@@ -663,7 +661,7 @@ class TdeiCoreService implements ITdeiCoreService {
      * @returns A promise that resolves to a boolean indicating whether the project group was found.
      * @throws HttpException with status 404 if the project group is not found.
      */
-    async checkProjectGroupExistsById(id: string): Promise<Boolean> {
+    async checkProjectGroupExistsById(id: string): Promise<boolean> {
         const query = {
             text: `Select 1 from public.project_group WHERE project_group_id = $1 LIMIT 1`,
             values: [id],
@@ -705,7 +703,7 @@ class TdeiCoreService implements ITdeiCoreService {
         console.log(`Clone dataset started. source_tdei_dataset_id: ${datasetCloneRequestObject.tdei_dataset_id}, tdei_project_group_id: ${datasetCloneRequestObject.tdei_project_group_id}, tdei_service_id: ${datasetCloneRequestObject.tdei_service_id}, user_id: ${datasetCloneRequestObject.user_id}`);
 
         try {
-            let dataset_to_be_clone = await this.getDatasetDetailsById(datasetCloneRequestObject.tdei_dataset_id);
+            const dataset_to_be_clone = await this.getDatasetDetailsById(datasetCloneRequestObject.tdei_dataset_id);
 
             const service = await this.getServiceById(datasetCloneRequestObject.tdei_service_id);
             if (!service) {
@@ -718,7 +716,7 @@ class TdeiCoreService implements ITdeiCoreService {
                 throw new InputException(`${datasetCloneRequestObject.tdei_project_group_id} id not associated with the tdei_service_id`);
             }
 
-            let metadata = JSON.parse(datasetCloneRequestObject.metafile!.buffer);
+            const metadata = JSON.parse(datasetCloneRequestObject.metafile!.buffer);
             const metaObj = MetadataModel.from(metadata);
             await this.validateMetadata(metaObj, dataset_to_be_clone.data_type as TDEIDataType);
 
@@ -730,9 +728,9 @@ class TdeiCoreService implements ITdeiCoreService {
             metadata.dataset_detail.valid_from = TdeiDate.UTC(metadata.dataset_detail.valid_from);
             metadata.dataset_detail.valid_to = TdeiDate.UTC(metadata.dataset_detail.valid_to);
             //Flatten metadata for persistence
-            let flat_meta = MetadataModel.flatten(metadata);
+            const flat_meta = MetadataModel.flatten(metadata);
 
-            let queryConfig: QueryConfig = {
+            const queryConfig: QueryConfig = {
                 text: `SELECT content.tdei_clone_dataset($1, $2, $3, $4, $5)`.replace(/\n/g, ""),
                 values: [
                     datasetCloneRequestObject.tdei_dataset_id,
@@ -742,13 +740,13 @@ class TdeiCoreService implements ITdeiCoreService {
                     datasetCloneRequestObject.user_id
                 ]
             };
-            let result = await dbClient.query(queryConfig);
+            const result = await dbClient.query(queryConfig);
             new_tdei_dataset_id = result.rows[0].tdei_clone_dataset;
             draftCreated = true;
             console.log(`Clone dataset draft created. source_tdei_dataset_id: ${datasetCloneRequestObject.tdei_dataset_id}, new_tdei_dataset_id: ${new_tdei_dataset_id}`);
 
             // Blob copy and OSW element copy run in the clone workflow so this request can return the job id.
-            let job_id = await this.triggerCloneWorkflow(dataset_to_be_clone, new_tdei_dataset_id, datasetCloneRequestObject.user_id, datasetCloneRequestObject);
+            const job_id = await this.triggerCloneWorkflow(dataset_to_be_clone, new_tdei_dataset_id, datasetCloneRequestObject.user_id, datasetCloneRequestObject);
 
             console.log(`Clone dataset request completed. source_tdei_dataset_id: ${datasetCloneRequestObject.tdei_dataset_id}, new_tdei_dataset_id: ${new_tdei_dataset_id}, job_id: ${job_id}`);
             return { new_tdei_dataset_id: new_tdei_dataset_id, job_id: job_id.toString() };
@@ -778,7 +776,7 @@ class TdeiCoreService implements ITdeiCoreService {
      */
     async triggerCloneWorkflow(dataset_to_be_clone: DatasetEntity, new_tdei_dataset_id: string, user_id: string, datasetCloneRequestObject: IDatasetCloneRequest) {
         //Create job
-        let job = CreateJobDTO.from({
+        const job = CreateJobDTO.from({
             data_type: dataset_to_be_clone.data_type as TDEIDataType,
             job_type: JobType["Clone-Dataset"],
             status: JobStatus["IN-PROGRESS"],
@@ -799,8 +797,8 @@ class TdeiCoreService implements ITdeiCoreService {
             : Buffer.from(metadataBuffer ?? "").toString("base64");
 
         // Edit-metadata uses the download workflows, so clone has its own workflow.
-        let workflow_start = dataset_to_be_clone.data_type == TDEIDataType.osw ? WorkflowName.clone_osw_dataset : WorkflowName.clone_dataset;
-        let workflow_input = {
+        const workflow_start = dataset_to_be_clone.data_type == TDEIDataType.osw ? WorkflowName.clone_osw_dataset : WorkflowName.clone_dataset;
+        const workflow_input = {
             job_id: job_id.toString(),
             user_id: user_id,// Required field for message authorization
             tdei_dataset_id: new_tdei_dataset_id,
@@ -834,7 +832,7 @@ class TdeiCoreService implements ITdeiCoreService {
                 role_to_check = TDEIRole.pathways_data_generator;
             }
 
-            let queryConfig: QueryConfig = {
+            const queryConfig: QueryConfig = {
                 text: `SELECT * from public.user_roles ur
                 INNER JOIN public.roles r on ur.role_id = r.role_id
                 WHERE user_id = $1 AND project_group_id = $2 AND r.name IN('tdei_admin', 'poc','member', $3)`.replace(/\n/g, ""),
@@ -844,7 +842,7 @@ class TdeiCoreService implements ITdeiCoreService {
                     role_to_check
                 ]
             };
-            let result = await dbClient.query(queryConfig);
+            const result = await dbClient.query(queryConfig);
 
             if (result.rows.length == 0) {
                 throw new InputException("User does not have permission to clone the dataset");
@@ -860,7 +858,7 @@ class TdeiCoreService implements ITdeiCoreService {
             const query = {
                 text: 'SELECT * FROM content.tdei_fetch_system_metrics()',
             };
-            var result = await dbClient.query(query);
+            const result = await dbClient.query(query);
             return result.rows[0].tdei_fetch_system_metrics;
         } catch (error: any) {
             console.error(error);
@@ -876,7 +874,7 @@ class TdeiCoreService implements ITdeiCoreService {
             const query = {
                 text: 'SELECT * FROM content.tdei_fetch_data_metrics()',
             };
-            var result = await dbClient.query(query);
+            const result = await dbClient.query(query);
             return result.rows[0].tdei_fetch_data_metrics;
         } catch (error: any) {
             console.error(error);
@@ -892,7 +890,7 @@ class TdeiCoreService implements ITdeiCoreService {
             const query = {
                 text: `SELECT * FROM content.get_services_summary_by_project_group('${projectGroupId}')`,
             };
-            var result = await dbClient.query(query);
+            const result = await dbClient.query(query);
             return result.rows[0].get_services_summary_by_project_group;
         } catch (error: any) {
             // Check if the message includes "does not exist"

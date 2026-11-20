@@ -16,6 +16,7 @@ import { apiTracker } from "../middleware/api-tracker";
 import { Utility } from "../utility/utility";
 import { DataType, JOBS_API_PATH } from "../constants/app-constants";
 import { getDatasetUploadLimitBytes, getDatasetUploadLimitErrorMessage } from "../constants/system-capabilities";
+import { sendErrorText } from "../exceptions/http/send-error-text";
 /**
   * Multer for multiple uploads
   * Configured to pull to 'uploads' folder
@@ -80,7 +81,7 @@ class FlexController implements IController {
     }
 
     getVersions = async (request: Request, response: express.Response, next: NextFunction) => {
-        let versionsList = new Versions([{
+        const versionsList = new Versions([{
             documentation: environment.gatewayUrl as string,
             specification: "https://github.com/MobilityData/gtfs-flex",
             version: "v2.0"
@@ -106,7 +107,7 @@ class FlexController implements IController {
             console.error('Error while getting the file download URL');
             console.error(error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while getting download URL");
@@ -138,14 +139,14 @@ class FlexController implements IController {
                 throw new HttpException(400, getDatasetUploadLimitErrorMessage(DataType.flex));
             }
 
-            let job_id = await flexService.processValidationOnlyRequest(request.body.user_id, datasetFile);
+            const job_id = await flexService.processValidationOnlyRequest(request.body.user_id, datasetFile);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
             console.error("Error while processing the validation request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the validation request");
@@ -162,8 +163,8 @@ class FlexController implements IController {
     */
     processPublishRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
-            let tdei_dataset_id = request.params["tdei_dataset_id"];
-            let job_id = await flexService.processPublishRequest(request.body.user_id, tdei_dataset_id);
+            const tdei_dataset_id = request.params["tdei_dataset_id"];
+            const job_id = await flexService.processPublishRequest(request.body.user_id, tdei_dataset_id);
 
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
@@ -171,7 +172,7 @@ class FlexController implements IController {
         } catch (error) {
             console.error("Error while processing the publish request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the publish request");
@@ -189,7 +190,7 @@ class FlexController implements IController {
     processUploadRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         try {
             console.log('Received upload request');
-            let uploadRequest: IUploadRequest = {
+            const uploadRequest: IUploadRequest = {
                 user_id: request.body.user_id,
                 tdei_project_group_id: request.params["tdei_project_group_id"],
                 tdei_service_id: request.params['tdei_service_id'],
@@ -216,14 +217,14 @@ class FlexController implements IController {
                 return next(new InputException("metadata file input upload missing"));
             }
 
-            let job_id = await flexService.processUploadRequest(uploadRequest);
+            const job_id = await flexService.processUploadRequest(uploadRequest);
             response.setHeader('Location', `${JOBS_API_PATH}?job_id=${job_id}`);
             return response.status(202).send(job_id);
 
         } catch (error) {
             console.error("Error while processing the upload request", error);
             if (error instanceof HttpException) {
-                response.status(error.status).send(error.message);
+                sendErrorText(response, error.status, error.message);
                 return next(error);
             }
             response.status(500).send("Error while processing the upload request");
@@ -234,9 +235,9 @@ class FlexController implements IController {
     // Testing code for zip request. To be removed later
     triggerZipRequest = async (request: Request, response: express.Response, next: NextFunction) => {
         console.log('Zip request got');
-        let datasetId = request.params["datasetId"];
+        const datasetId = request.params["datasetId"];
         console.log('datasetId:', datasetId);
-        let job_id = await flexService.processZipRequest(datasetId);
+        const job_id = await flexService.processZipRequest(datasetId);
         return response.status(202).send(job_id);
     }
 

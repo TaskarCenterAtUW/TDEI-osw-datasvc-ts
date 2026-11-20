@@ -44,12 +44,12 @@ export interface ITdeiCoreService {
  Send the email to the user with the email verification link
  *@param email - The email of the user
  */
-  verifyEmail(email: string): Promise<Boolean>;
+  verifyEmail(email: string): Promise<boolean>;
   /*
   Send the email to the user with the password recovery link
   *@param email - The email of the user
   */
-  recoverPassword(email: string): Promise<Boolean>;
+  recoverPassword(email: string): Promise<boolean>;
   /**
 * Fetches the data metrics
 */
@@ -138,7 +138,7 @@ export interface ITdeiCoreService {
    * @param version - The version of the metadata.
    * @returns A promise that resolves to a boolean indicating whether the name and version are unique.
    */
-  checkMetaNameAndVersionUnique(name: string, version: string): Promise<Boolean>;
+  checkMetaNameAndVersionUnique(name: string, version: string): Promise<boolean>;
 
   /**
   * Validates the metadata object.
@@ -187,5 +187,5 @@ export interface ITdeiCoreService {
    * @param id - The ID of the project group.
    * @returns A promise that resolves to a boolean indicating whether the project group exists.
    */
-  checkProjectGroupExistsById(id: string): Promise<Boolean>
+  checkProjectGroupExistsById(id: string): Promise<boolean>
 }

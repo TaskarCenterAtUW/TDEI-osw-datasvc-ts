@@ -20,7 +20,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     // Get the authorization key
     const bearerHeader = req.headers.authorization;
     if (bearerHeader === '' || bearerHeader === undefined) {
-        let apiKey = req.headers['x-api-key'];
+        const apiKey = req.headers['x-api-key'];
 
         if (apiKey === '' || apiKey === undefined) {
             next(new UnAuthenticated());
@@ -35,7 +35,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
                 body: apiKey as string
             }).then(async response => {
                 if (response.status === 200) {
-                    let result: any = await response.json();
+                    const result: any = await response.json();
                     req.body.user_id = result.id;
                     req.body.isAdmin = false;
                     next();

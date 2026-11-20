@@ -21,7 +21,7 @@ export class EventHandler extends workflowBase_v2 {
                 description: task.description
             });
 
-            let inputParams = task.input_params;
+            const inputParams = task.input_params;
             //Compose the input parameters
             let messageInput: any = OrchestratorUtility.map_props(inputParams, workflow_context);
             if (messageInput == null) {
@@ -58,7 +58,7 @@ export class EventHandler extends workflowBase_v2 {
             }
 
             //Publish the message
-            let queueMessage = QueueMessage.from({
+            const queueMessage = QueueMessage.from({
                 messageId: workflow_context.execution_id,
                 messageType: `${workflow.name}|${task.task_reference_name}`, //Workflow name + task name
                 data: messageInput

@@ -58,5 +58,5 @@ export interface IFlexService {
      */
     processValidationOnlyRequest(user_id: string, datasetFile: any): Promise<string>;
 
-    processZipRequest(tdei_dataset_id:string): Promise<String>;
+    processZipRequest(tdei_dataset_id:string): Promise<string>;
 }

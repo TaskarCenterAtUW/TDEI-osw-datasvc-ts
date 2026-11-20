@@ -5,7 +5,7 @@ import {
     ValidatorConstraintInterface
 } from 'class-validator';
 import { FeatureCollection } from 'geojson';
-const gjv = require("geojson-validation");
+import * as gjv from "geojson-validation";
 
 function isGeoJsonFeatureCollection(obj: any): boolean {
     return 'type' in obj && 'features' in obj;

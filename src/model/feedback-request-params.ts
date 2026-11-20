@@ -55,10 +55,10 @@ export class feedbackRequestParams {
     }
 
     async validateRequestInput() {
-        let errors = await validate(this);
+        const errors = await validate(this);
         if (errors.length > 0) {
             console.log('Input validation failed');
-            let message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
+            const message = errors.map((error: ValidationError) => Object.values(<any>error.constraints)).join(', ');
             throw new InputException(`Required fields are missing or invalid: ${message}`);
         }
         return true;

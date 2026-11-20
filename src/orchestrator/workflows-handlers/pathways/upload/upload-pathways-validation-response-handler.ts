@@ -33,7 +33,7 @@ export class PathwaysUploadValidationResponseHandler extends WorkflowHandlerBase
                 this.delegateWorkflowIfAny(delegate_worflow, message);
             }
 
-            let updateJobDTO = UpdateJobDTO.from({
+            const updateJobDTO = UpdateJobDTO.from({
                 job_id: message.messageId,
                 message: message.data.message,
                 status: message.data.success ? JobStatus.COMPLETED : JobStatus.FAILED,
