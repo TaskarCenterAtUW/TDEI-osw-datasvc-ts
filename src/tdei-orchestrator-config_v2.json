@@ -3136,7 +3136,9 @@
                 "jobId": "<%=jobId%>",
                 "tdei_dataset_ids": "<%=tdei_dataset_ids%>",
                 "tdei_api_key": "<%=tdei_api_key%>",
-                "tdei_auth_token": "<%=tdei_auth_token%>"
+                "tdei_auth_token": "<%=tdei_auth_token%>",
+                "poi_types": "<%=poi_types%>",
+                "pois_file_url": "<%=pois_file_url%>"
             },
             "tasks": [
                 {
@@ -3149,7 +3151,9 @@
                         "jobId": "<%=workflow_input.jobId%>",
                         "tdei_dataset_ids": "<%=workflow_input.tdei_dataset_ids%>",
                         "tdei_api_key": "<%=workflow_input.tdei_api_key%>",
-                        "tdei_auth_token": "<%=workflow_input.tdei_auth_token%>"
+                        "tdei_auth_token": "<%=workflow_input.tdei_auth_token%>",
+                        "poi_types": "<%=workflow_input.poi_types%>",
+                        "pois_file_url": "<%=workflow_input.pois_file_url%>"
                     },
                     "output_params": {
                         "success": "<%=data.success%>",
