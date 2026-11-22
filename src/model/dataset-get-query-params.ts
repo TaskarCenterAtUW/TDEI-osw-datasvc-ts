@@ -192,7 +192,35 @@ export class DatasetQueryParams {
         }
     }
 
+    /**
+     * page_no defaults to 1. page_size defaults to 10 and is capped at 50.
+     */
+    sanitizePagination(): void {
+        const pageNo = Number(this.page_no);
+        const pageSize = Number(this.page_size);
+
+        this.page_no = Number.isFinite(pageNo) && pageNo >= 1 ? Math.trunc(pageNo) : 1;
+
+        const resolvedSize = Number.isFinite(pageSize) && pageSize >= 1 ? Math.trunc(pageSize) : 10;
+        this.page_size = resolvedSize > 50 ? 50 : resolvedSize;
+    }
+
     getQuery(user_id: string): PgQueryObject {
+        this.sanitizePagination();
+        const { conditions, joins, mainTableName } = this.queryParts(user_id);
+        const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*', 'pg.name as project_group_name', 'pg.data_viewer_config as data_viewer_config', 's.name as service_name', 'd.name as dataset_name'];
+        return buildQuery(selectColumns, mainTableName, conditions, joins, this.sort_field, this.sort_order, this.page_size, this.page_no);
+    }
+
+    /**
+     * Counts matching datasets without loading rows or applying the page limit.
+     */
+    getCountQuery(user_id: string): PgQueryObject {
+        const { conditions, joins, mainTableName } = this.queryParts(user_id);
+        return buildQuery(['COUNT(DISTINCT d.tdei_dataset_id)::int AS total'], mainTableName, conditions, joins, undefined, undefined, undefined, undefined, true);
+    }
+
+    private queryParts(user_id: string): { conditions: WhereCondition[], joins: JoinCondition[], mainTableName: string } {
         //Validate inputs
         if (!Object.keys(SortField).includes(this.sort_field))
             throw new InputException("Invalid sort field provided." + this.sort_field);
@@ -209,8 +237,6 @@ export class DatasetQueryParams {
         if (this.bbox && this.bbox.length > 0 && this.bbox.length != 4)
             throw new InputException("Invalid bounding box provided." + this.bbox)
 
-        //Select columns
-        const selectColumns = ['ST_AsGeoJSON(dataset_area) as dataset_area2', '*', 'pg.name as project_group_name', 'pg.data_viewer_config as data_viewer_config', 's.name as service_name', 'd.name as dataset_name'];
         //Main table name
         const mainTableName = 'content.dataset d';
         //Joins
@@ -315,17 +341,11 @@ export class DatasetQueryParams {
         addConditionIfValueExists('d.metadata_json->>\'excluded_data\' ILIKE ', this.excluded_data ? '%' + this.excluded_data + '%' : null);
         addConditionIfValueExists('d.metadata_json->>\'excluded_data_reason\' ILIKE ', this.excluded_data_reason ? '%' + this.excluded_data_reason + '%' : null);
 
-        //Sort field
-        // const sortField = 'uploaded_timestamp';
-        // const sortOrder = SqlORder.DESC;
-        //Build the query
-        const queryObject = buildQuery(selectColumns, mainTableName, conditions, joins, this.sort_field, this.sort_order, this.page_size, this.page_no);
-
         function addConditionIfValueExists(clouse: string, value: any) {
             if (value) {
                 conditions.push({ clouse, value });
             }
         }
-        return queryObject;
+        return { conditions, joins, mainTableName };
     }
 }

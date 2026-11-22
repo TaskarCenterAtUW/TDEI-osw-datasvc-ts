@@ -3,7 +3,7 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { QueryConfig } from "pg";
 import dbClient from "../database/data-source";
 import HttpException from "../exceptions/http/http-base-exception";
-import { IJobService } from "./interface/job-service-interface";
+import { IJobService, JobListPage } from "./interface/job-service-interface";
 import { JobsQueryParams } from "../model/jobs-get-query-params";
 import { CreateJobDTO, JobDTO, UpdateJobDTO } from "../model/job-dto";
 import { JobEntity } from "../database/entity/job-entity";
@@ -17,7 +17,7 @@ class JobService implements IJobService {
      * @param params The query parameters used to filter the jobs.
      * @returns A promise that resolves to an array of JobDTO objects.
      */
-    async getJobs(user_id: string, params: JobsQueryParams): Promise<JobDTO[]> {
+    async getJobs(user_id: string, params: JobsQueryParams): Promise<JobListPage> {
 
         if (params.job_id && params.job_id.trim() != '') {
             if (Number.isNaN(Number(params.job_id)))
@@ -47,16 +47,25 @@ class JobService implements IJobService {
             }
         }
 
-        const queryObject = params.getQuery(user_id);
+        params.sanitizePagination();
+        const countQuery = params.getCountQuery(user_id);
+        const listQuery = params.getQuery(user_id);
 
-        const queryConfig = <QueryConfig>{
-            text: queryObject.text,
-            values: queryObject.values
-        }
-        const result = await dbClient.query(queryConfig);
+        const [countResult, listResult] = await Promise.all([
+            dbClient.query(<QueryConfig>{
+                text: countQuery.text,
+                values: countQuery.values
+            }),
+            dbClient.query(<QueryConfig>{
+                text: listQuery.text,
+                values: listQuery.values
+            })
+        ]);
+
+        const totalCount = Number(countResult.rows[0]?.total ?? 0);
 
         const list: JobDTO[] = [];
-        result.rows.map(x => {
+        listResult.rows.map(x => {
             const job = JobDTO.from(x);
             job.download_url = job.download_url ? `/job/download/${job.job_id}` : ''; // do not share internal upload URL
             job.progress = {
@@ -89,7 +98,12 @@ class JobService implements IJobService {
             list.push(job);
         });
 
-        return Promise.resolve(list);
+        return {
+            items: list,
+            totalCount: Number.isFinite(totalCount) ? totalCount : 0,
+            pageNo: params.page_no,
+            pageSize: params.page_size,
+        };
     }
 
     /**
