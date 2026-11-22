@@ -20,12 +20,41 @@ describe("General Controller Test", () => {
                 const list: DatasetDTO[] = [<DatasetDTO>{}]
                 const getDatasetsSpy = jest
                     .spyOn(tdeiCoreService, "getDatasets")
-                    .mockResolvedValueOnce(list);
+                    .mockResolvedValueOnce({ items: list, totalCount: 1, pageNo: 1, pageSize: 10 });
                 //Act
                 await generalController.getDatasetList(req, res, next);
                 //Assert
                 expect(getDatasetsSpy).toHaveBeenCalledTimes(1);
                 expect(res.status).toHaveBeenCalledWith(200);
+                expect(res.setHeader).toHaveBeenCalledWith("X-Total-Count", "1");
+                expect(res.setHeader).toHaveBeenCalledWith("X-Page-No", "1");
+                expect(res.setHeader).toHaveBeenCalledWith("X-Page-Size", "10");
+                expect(res.setHeader).not.toHaveBeenCalledWith("Link", expect.anything());
+                expect(res.send).toBeCalledWith(list);
+            });
+
+            test("When another page exists, Expect a next link and page headers", async () => {
+                const req = getMockReq({
+                    originalUrl: "/api/v1/datasets?name=test&page_no=2&page_size=10",
+                });
+                const { res, next } = getMockRes();
+                const list: DatasetDTO[] = [<DatasetDTO>{}]
+                jest.spyOn(tdeiCoreService, "getDatasets").mockResolvedValueOnce({
+                    items: list,
+                    totalCount: 25,
+                    pageNo: 2,
+                    pageSize: 10,
+                });
+
+                await generalController.getDatasetList(req, res, next);
+
+                expect(res.setHeader).toHaveBeenCalledWith("X-Total-Count", "25");
+                expect(res.setHeader).toHaveBeenCalledWith("X-Page-No", "2");
+                expect(res.setHeader).toHaveBeenCalledWith("X-Page-Size", "10");
+                expect(res.setHeader).toHaveBeenCalledWith(
+                    "Link",
+                    "</api/v1/datasets?name=test&page_no=3&page_size=10>; rel=\"next\""
+                );
                 expect(res.send).toBeCalledWith(list);
             });
 
@@ -148,13 +177,22 @@ describe("General Controller Test", () => {
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
-            const jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
+            const jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce({
+                items: [],
+                totalCount: 0,
+                pageNo: 1,
+                pageSize: 10,
+            });
 
             // Act
             await generalController.getJobs(req, res, next);
 
             // Assert
             expect(jsSpy).toHaveBeenCalledWith("mock-user-id", callParams);
+            expect(res.setHeader).toHaveBeenCalledWith("X-Total-Count", "0");
+            expect(res.setHeader).toHaveBeenCalledWith("X-Page-No", "1");
+            expect(res.setHeader).toHaveBeenCalledWith("X-Page-Size", "10");
+            expect(res.setHeader).not.toHaveBeenCalledWith("Link", expect.anything());
             expect(res.send).toHaveBeenCalledWith([]);
             expect(res.status).toHaveBeenCalledWith(200);
         });
@@ -187,15 +225,50 @@ describe("General Controller Test", () => {
             }
             const { res, next } = getMockRes();
             jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
-            const jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce([]);
+            const jsSpy = jest.spyOn(jobService, "getJobs").mockResolvedValueOnce({
+                items: [],
+                totalCount: 0,
+                pageNo: 1,
+                pageSize: 10,
+            });
 
             // Act
             await generalController.getJobs(req, res, next);
 
             // Assert
             expect(jsSpy).toHaveBeenCalledWith("mock-user-id", callParams);
+            expect(res.setHeader).toHaveBeenCalledWith("X-Total-Count", "0");
+            expect(res.setHeader).toHaveBeenCalledWith("X-Page-No", "1");
+            expect(res.setHeader).toHaveBeenCalledWith("X-Page-Size", "10");
             expect(res.send).toHaveBeenCalledWith([]);
             expect(res.status).toHaveBeenCalledWith(200);
+        });
+
+        test("When another jobs page exists, Expect a next link and page headers", async () => {
+            const req = getMockReq({
+                query: { tdei_project_group_id: "mock-tdei-project-group-id" },
+                body: { user_id: "mock-user-id", isAdmin: false },
+                originalUrl: "/api/v1/jobs?tdei_project_group_id=mock-tdei-project-group-id&page_no=2&page_size=10",
+            });
+            const { res, next } = getMockRes();
+            jest.spyOn(tdeiCoreService, "validateObject").mockResolvedValueOnce(undefined);
+            jest.spyOn(jobService, "getJobs").mockResolvedValueOnce({
+                items: [],
+                totalCount: 25,
+                pageNo: 2,
+                pageSize: 10,
+            });
+
+            await generalController.getJobs(req, res, next);
+
+            expect(res.setHeader).toHaveBeenCalledWith("X-Total-Count", "25");
+            expect(res.setHeader).toHaveBeenCalledWith("X-Page-No", "2");
+            expect(res.setHeader).toHaveBeenCalledWith("X-Page-Size", "10");
+            expect(res.setHeader).toHaveBeenCalledWith(
+                "Link",
+                "</api/v1/jobs?tdei_project_group_id=mock-tdei-project-group-id&page_no=3&page_size=10>; rel=\"next\""
+            );
+            expect(res.send).toHaveBeenCalledWith([]);
         });
 
         test("When requested with invalid params, Expect to return HTTP status 400", async () => {

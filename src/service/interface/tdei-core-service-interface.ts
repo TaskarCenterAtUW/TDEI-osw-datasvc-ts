@@ -11,6 +11,13 @@ import { DownloadStatsEntity } from "../../database/entity/download-stats";
 import { DownloadStatsDTO } from "../../model/download-stats-dto";
 import { Readable } from "stream";
 
+export interface DatasetListPage {
+  items: DatasetDTO[];
+  totalCount: number;
+  pageNo: number;
+  pageSize: number;
+}
+
 export interface ITdeiCoreService {
 
   /**
@@ -113,7 +120,7 @@ export interface ITdeiCoreService {
    * @param params The query parameters for filtering datasets.
    * @returns A promise that resolves to an array of DatasetDTO objects.
    */
-  getDatasets(user_id: string, params: DatasetQueryParams): Promise<DatasetDTO[]>;
+  getDatasets(user_id: string, params: DatasetQueryParams): Promise<DatasetListPage>;
 
   /**
    * Retrieves a FileEntity from the specified URL.

@@ -109,6 +109,7 @@ describe("TDEI core Service Test", () => {
                 };
                 jest
                     .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(<QueryResult<any>>{ rows: [{ total: 1 }] })
                     .mockResolvedValueOnce(dummyResponse);
 
 
@@ -116,8 +117,10 @@ describe("TDEI core Service Test", () => {
                 //Act
                 const result = await tdeiCoreService.getDatasets("user_id", params);
                 //Assert
-                expect(Array.isArray(result));
-                expect(result.every(item => item instanceof DatasetDTO));
+                expect(result.items.every(item => item instanceof DatasetDTO)).toBe(true);
+                expect(result.totalCount).toBe(1);
+                expect(result.pageNo).toBe(1);
+                expect(result.pageSize).toBe(10);
             });
 
             test("When requested with all search filters, expect to return Dataset list", async () => {
@@ -130,6 +133,7 @@ describe("TDEI core Service Test", () => {
                 };
                 jest
                     .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(<QueryResult<any>>{ rows: [{ total: 1 }] })
                     .mockResolvedValueOnce(dummyResponse);
 
                 const params: DatasetQueryParams = new DatasetQueryParams();
@@ -146,8 +150,8 @@ describe("TDEI core Service Test", () => {
                 //Act
                 const result = await tdeiCoreService.getDatasets("user_id", params);
                 //Assert
-                expect(Array.isArray(result));
-                expect(result.every(item => item instanceof DatasetDTO));
+                expect(result.items.every(item => item instanceof DatasetDTO)).toBe(true);
+                expect(result.totalCount).toBe(1);
             });
 
             test("When requested with invalid date search filter, Expect to throw InputException", async () => {
@@ -239,6 +243,7 @@ describe("TDEI core Service Test", () => {
                 };
                 jest
                     .spyOn(dbClient, "query")
+                    .mockResolvedValueOnce(<QueryResult<any>>{ rows: [{ total: 1 }] })
                     .mockResolvedValueOnce(dummyResponse);
 
                 const params: DatasetQueryParams = new DatasetQueryParams();
@@ -247,8 +252,8 @@ describe("TDEI core Service Test", () => {
                 //Act
                 const result = await tdeiCoreService.getDatasets("user_id", params);
                 //Assert
-                expect(Array.isArray(result));
-                expect(result.every(item => item instanceof DatasetDTO));
+                expect(result.items.every(item => item instanceof DatasetDTO)).toBe(true);
+                expect(result.totalCount).toBe(1);
             });
         });
     });
