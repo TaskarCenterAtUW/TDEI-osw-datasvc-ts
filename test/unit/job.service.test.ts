@@ -29,15 +29,20 @@ describe('JobService', () => {
                 text: 'mock-text',
                 values: [] as any[]
             };
-            jest.spyOn(params, "getQuery").mockResolvedValueOnce(queryObj);
-            const dbSpy = jest.spyOn(dbClient, "query").mockResolvedValue(mockResult as any);
+            jest.spyOn(params, "getQuery").mockReturnValue(queryObj);
+            jest.spyOn(params, "getCountQuery").mockReturnValue({ text: "count", values: [] });
+            const dbSpy = jest.spyOn(dbClient, "query")
+                .mockResolvedValueOnce({ rowCount: 1, rows: [{ job_id: 1 }] } as any)
+                .mockResolvedValueOnce({ rows: [{ total: 1 }] } as any)
+                .mockResolvedValueOnce(mockResult as any);
 
             // Act
             const result = await jobService.getJobs(user_id, params);
 
             // Assert
             expect(dbSpy).toHaveBeenCalled();
-            expect(result).toBeInstanceOf(Array<JobDTO>);
+            expect(result.totalCount).toBe(1);
+            expect(result.items[0]).toBeInstanceOf(JobDTO);
         });
     });
 

@@ -354,11 +354,24 @@ class GeneralController implements IController {
         try {
             const params: DatasetQueryParams = new DatasetQueryParams(JSON.parse(JSON.stringify(request.query)));
             params.isAdmin = request.body.isAdmin;
-            const dataset = await tdeiCoreService.getDatasets(request.body.user_id, params);
-            dataset.forEach(x => {
+            const page = await tdeiCoreService.getDatasets(request.body.user_id, params);
+            page.items.forEach(x => {
                 x.download_url = `${this.path}/${this.getroute(x.data_type)}/${x.tdei_dataset_id}`;
             });
-            response.status(200).send(dataset);
+
+            response.setHeader("X-Total-Count", String(page.totalCount));
+            response.setHeader("X-Page-No", String(page.pageNo));
+            response.setHeader("X-Page-Size", String(page.pageSize));
+
+            const hasNextPage = page.pageSize > 0 && page.pageNo * page.pageSize < page.totalCount;
+            if (hasNextPage) {
+                const link = this.nextPageLink(request, page.pageNo, page.pageSize);
+                if (link) {
+                    response.setHeader("Link", link);
+                }
+            }
+
+            response.status(200).send(page.items);
         } catch (error) {
             console.error(error);
             if (error instanceof InputException) {
@@ -370,6 +383,22 @@ class GeneralController implements IController {
                 next(new HttpException(500, "Error while fetching the dataset information"));
             }
         }
+    }
+
+    private nextPageLink(request: Request, pageNo: number, pageSize: number): string | undefined {
+        const rawUrl = request.originalUrl || request.url;
+        if (!rawUrl) {
+            return undefined;
+        }
+
+        const url = new URL(rawUrl, "http://localhost");
+        url.searchParams.set("page_no", String(pageNo + 1));
+        url.searchParams.set("page_size", String(pageSize));
+        const link = `<${url.pathname}${url.search}>; rel="next"`;
+        if (/[\r\n]/.test(link)) {
+            return undefined;
+        }
+        return link;
     }
 
     /**
@@ -420,9 +449,21 @@ class GeneralController implements IController {
                 if (!params.tdei_project_group_id) throw new InputException('tdei_project_group_id is required for non-admin user');
             }
 
-            const jobInfo = await jobService.getJobs(request.body.user_id, params);
+            const page = await jobService.getJobs(request.body.user_id, params);
 
-            response.status(200).send(jobInfo);
+            response.setHeader("X-Total-Count", String(page.totalCount));
+            response.setHeader("X-Page-No", String(page.pageNo));
+            response.setHeader("X-Page-Size", String(page.pageSize));
+
+            const hasNextPage = page.pageSize > 0 && page.pageNo * page.pageSize < page.totalCount;
+            if (hasNextPage) {
+                const link = this.nextPageLink(request, page.pageNo, page.pageSize);
+                if (link) {
+                    response.setHeader("Link", link);
+                }
+            }
+
+            response.status(200).send(page.items);
         } catch (error) {
             console.error("Error while gettting the jobs", error);
             if (error instanceof HttpException) {
