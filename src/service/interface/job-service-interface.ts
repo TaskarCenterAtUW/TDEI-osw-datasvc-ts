@@ -2,6 +2,13 @@ import { FileEntity } from "nodets-ms-core/lib/core/storage";
 import { CreateJobDTO, JobDTO, UpdateJobDTO } from "../../model/job-dto";
 import { JobStatus, JobsQueryParams } from "../../model/jobs-get-query-params";
 
+export interface JobListPage {
+    items: JobDTO[];
+    totalCount: number;
+    pageNo: number;
+    pageSize: number;
+}
+
 export interface IJobService {
     /**
          * Updates the response properties of a job.
@@ -17,7 +24,7 @@ export interface IJobService {
    * @param params The query parameters used to filter the jobs.
    * @returns A promise that resolves to an array of JobDTO objects.
    */
-    getJobs(user_id: string, params: JobsQueryParams): Promise<JobDTO[]>;
+    getJobs(user_id: string, params: JobsQueryParams): Promise<JobListPage>;
     /**
      * Retrieves job download info (job_type, download_url) for the given job ID.
      * @param job_id The ID of the job.

@@ -68,8 +68,22 @@ export class JobsQueryParams {
         Object.assign(this, init);
     }
 
+    /**
+     * page_no defaults to 1. page_size defaults to 10 and is capped at 50.
+     */
+    sanitizePagination(): void {
+        const pageNo = Number(this.page_no);
+        const pageSize = Number(this.page_size);
+
+        this.page_no = Number.isFinite(pageNo) && pageNo >= 1 ? Math.trunc(pageNo) : 1;
+
+        const resolvedSize = Number.isFinite(pageSize) && pageSize >= 1 ? Math.trunc(pageSize) : 10;
+        this.page_size = resolvedSize > 50 ? 50 : resolvedSize;
+    }
+
     getQuery(user_id: string): PgQueryObject {
-        //Select columns
+        this.sanitizePagination();
+        const { conditions, joins, mainTableName } = this.queryParts(user_id);
         const selectColumns = [`content.job.job_id, content.job.job_type,content.job.message, content.job.data_type, content.job.request_input, content.job.response_props,
              content.job.download_url, content.job.tdei_project_group_id, content.job.user_id,
             wfd.created_at,
@@ -77,7 +91,20 @@ export class JobsQueryParams {
 		    wfd.start_time, wfd.end_time,wfd.current_task_error,wfd.total_workflow_tasks,wfd.tasks_track_number,
             wfd.last_updated_at,
             ue.username as requested_by,pg.name as tdei_project_group_name`];
-        //Main table name
+        const sortField = 'wfd.last_updated_at';
+        const sortOrder = SqlORder.DESC;
+        return buildQuery(selectColumns, mainTableName, conditions, joins, sortField, sortOrder, this.page_size, this.page_no);
+    }
+
+    /**
+     * Counts matching jobs without loading rows or applying the page limit.
+     */
+    getCountQuery(user_id: string): PgQueryObject {
+        const { conditions, joins, mainTableName } = this.queryParts(user_id);
+        return buildQuery(['COUNT(DISTINCT content.job.job_id)::int AS total'], mainTableName, conditions, joins, undefined, undefined, undefined, undefined, true);
+    }
+
+    private queryParts(user_id: string): { conditions: WhereCondition[], joins: JoinCondition[], mainTableName: string } {
         const mainTableName = 'content.job';
         //Joins
         const joins: JoinCondition[] = [
@@ -132,18 +159,12 @@ export class JobsQueryParams {
         addConditionIfValueExists('content.job.job_id = ', this.job_id);
         addConditionIfValueExists('job_type = ', this.job_type);
 
-        //Sort field
-        const sortField = 'wfd.last_updated_at';
-        const sortOrder = SqlORder.DESC;
-        //Build the query
-        const queryObject = buildQuery(selectColumns, mainTableName, conditions, joins, sortField, sortOrder, this.page_size, this.page_no);
-
         function addConditionIfValueExists(clouse: string, value: any) {
             if (value) {
                 conditions.push({ clouse, value });
             }
         }
-        return queryObject;
+        return { conditions, joins, mainTableName };
     }
 
 }

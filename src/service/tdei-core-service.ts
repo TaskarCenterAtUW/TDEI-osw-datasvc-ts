@@ -4,7 +4,7 @@ import { DatasetEntity } from "../database/entity/dataset-entity";
 import { ServiceEntity } from "../database/entity/service-entity";
 import HttpException from "../exceptions/http/http-base-exception";
 import { DuplicateException, InputException, ServiceNotFoundException } from "../exceptions/http/http-exceptions";
-import { ITdeiCoreService } from "./interface/tdei-core-service-interface";
+import { DatasetListPage, ITdeiCoreService } from "./interface/tdei-core-service-interface";
 import UniqueKeyDbException from "../exceptions/db/database-exceptions";
 import { DatasetDTO } from "../model/dataset-dto";
 import { FileEntity } from "nodets-ms-core/lib/core/storage";
@@ -390,18 +390,26 @@ class TdeiCoreService implements ITdeiCoreService {
      * @param params The query parameters for filtering datasets.
      * @returns A promise that resolves to an array of DatasetDTO objects.
      */
-    async getDatasets(user_id: string, params: DatasetQueryParams): Promise<DatasetDTO[]> {
+    async getDatasets(user_id: string, params: DatasetQueryParams): Promise<DatasetListPage> {
 
-        const queryObject = params.getQuery(user_id);
+        params.sanitizePagination();
+        const countQuery = params.getCountQuery(user_id);
+        const listQuery = params.getQuery(user_id);
 
-        const queryConfig = <QueryConfig>{
-            text: queryObject.text,
-            values: queryObject.values
-        }
+        const [countResult, listResult] = await Promise.all([
+            dbClient.query(<QueryConfig>{
+                text: countQuery.text,
+                values: countQuery.values
+            }),
+            dbClient.query(<QueryConfig>{
+                text: listQuery.text,
+                values: listQuery.values
+            })
+        ]);
 
-        const result = await dbClient.query(queryConfig);
+        const totalCount = Number(countResult.rows[0]?.total ?? 0);
 
-        const list: DatasetDTO[] = result.rows.map(x => {
+        const list: DatasetDTO[] = listResult.rows.map(x => {
             const osw = DatasetDTO.from(x);
             // osw.name = x.dataset_name;
             osw.metadata = MetadataModel.unflatten(x.metadata_json);
@@ -432,7 +440,12 @@ class TdeiCoreService implements ITdeiCoreService {
             return osw;
         })
 
-        return list;
+        return {
+            items: list,
+            totalCount: Number.isFinite(totalCount) ? totalCount : 0,
+            pageNo: params.page_no,
+            pageSize: params.page_size,
+        };
     }
 
     /**
