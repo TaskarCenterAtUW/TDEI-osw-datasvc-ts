@@ -1028,6 +1028,7 @@ describe("OSW Controller Test", () => {
             ['a plain header', 'name,lat,lon,category,source,snapped\nA,47.6,-122.3,food,osm,true\n'],
             ['a byte order mark, quoted names and CRLF line ends', '\uFEFF"name","lat","lon","category","source","snapped"\r\n"A",47.6,-122.3,food,osm,true\r\n'],
             ['only a header (a dataset with no POIs)', 'lat,lon,category,source,snapped\n'],
+            ['only lat and lon (the report fills in the rest)', 'lat,lon\n47.6,-122.3\n'],
         ])('should pass an uploaded pois_file with %s to the service', async (_label, text) => {
             mockRequest.file = poisCsv(text);
             jest.spyOn(oswService, "createQualityReportJob").mockResolvedValueOnce('mock-job-id');
@@ -1042,8 +1043,8 @@ describe("OSW Controller Test", () => {
 
         it.each([
             ['sent with poi_types', { poi_types: ['civic'] }, 'name,lat,lon,category,source,snapped\n', "can't be sent with poi_types"],
-            ['without a snapped column', {}, 'name,lat,lon,category,source\n', 'it has no snapped column'],
-            ['that is empty', {}, '', 'it has no lat, lon, category, source, snapped column'],
+            ['without a lon column', {}, 'name,lat,category,source,snapped\n', 'it has no lon column'],
+            ['that is empty', {}, '', 'it has no lat, lon column'],
         ])('should reject a pois_file %s with 400 without creating a job', async (_label, body, text, message) => {
             Object.assign(mockRequest.body, body);
             mockRequest.file = poisCsv(text);
